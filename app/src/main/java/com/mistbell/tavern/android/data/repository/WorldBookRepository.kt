@@ -35,70 +35,22 @@ class WorldBookRepository(private val context: Context) {
     }
 
     suspend fun loadFromServer() {
-        withContext(Dispatchers.IO) {
-            try {
-                val result = api.getWorldBook()
-                if (result is JsonObject) {
-                    val booksArray = result["books"] as? JsonArray ?: return@withContext
-                    val bookEntities = mutableListOf<WorldBookEntity>()
-                    val allEntries = mutableMapOf<String, List<WorldBookEntryEntity>>()
-
-                    for (bookEl in booksArray) {
-                        val bookObj = bookEl as? JsonObject ?: continue
-                        val bookId = bookObj["id"]?.jsonPrimitive?.content ?: continue
-                        val bookName = bookObj["name"]?.jsonPrimitive?.content ?: ""
-                        bookEntities.add(WorldBookEntity(bookId, bookName, "{}"))
-
-                        val entriesArray = bookObj["entries"] as? JsonArray ?: emptyList()
-                        val entries = entriesArray.mapNotNull { entryEl ->
-                            val entryObj = entryEl as? JsonObject ?: return@mapNotNull null
-                            val entryId = entryObj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                            val keysStr = try {
-                                val keysArr = entryObj["key"] as? JsonArray ?: emptyList()
-                                Json.encodeToString(
-                                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                                    keysArr.map { it.jsonPrimitive.content }
-                                )
-                            } catch (_: Exception) { "[]" }
-
-                            WorldBookEntryEntity(
-                                id = entryId,
-                                bookId = bookId,
-                                comment = entryObj["comment"]?.jsonPrimitive?.content ?: "",
-                                keysJson = keysStr,
-                                content = entryObj["content"]?.jsonPrimitive?.content ?: "",
-                                constant = entryObj["constant"]?.jsonPrimitive?.booleanOrNull ?: false,
-                                disable = entryObj["disable"]?.jsonPrimitive?.booleanOrNull ?: false,
-                                order = entryObj["order"]?.jsonPrimitive?.intOrNull ?: 100
-                            )
-                        }
-                        allEntries[bookId] = entries
-                    }
-                    db.worldBookDao().replaceAll(bookEntities, allEntries)
-                }
-            } catch (_: Exception) {}
-        }
+        // 完全本地化：无服务器依赖，此方法保留为空以兼容现有调用点（刷新按钮等）
     }
 
     suspend fun createWorldBook(name: String): WorldBook? {
         return withContext(Dispatchers.IO) {
-            try {
-                val body = buildJsonObject { put("name", name) }
-                val result = api.createWorldBook(body)
-                val obj = result as? JsonObject
-                val id = obj?.get("id")?.jsonPrimitive?.content ?: UUID.randomUUID().toString()
-                loadFromServer()
-                WorldBook(id = id, name = name)
-            } catch (_: Exception) { null }
+            val id = UUID.randomUUID().toString()
+            val entity = WorldBookEntity(id = id, name = name, settingsJson = "{}")
+            db.worldBookDao().upsertBook(entity)
+            WorldBook(id = id, name = name, entries = emptyList())
         }
     }
 
     suspend fun deleteWorldBook(id: String) {
         withContext(Dispatchers.IO) {
-            try {
-                api.deleteWorldBook(id)
-                loadFromServer()
-            } catch (_: Exception) {}
+            db.worldBookDao().deleteEntriesByBookId(id)
+            db.worldBookDao().deleteBookById(id)
         }
     }
 
@@ -113,51 +65,47 @@ class WorldBookRepository(private val context: Context) {
         depth: Int = 1
     ): WorldBookEntry? {
         return withContext(Dispatchers.IO) {
-            try {
-                val body = buildJsonObject {
-                    put("bookId", bookId)
-                    put("comment", comment)
-                    put("key", Json.encodeToJsonElement(
-                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                        keys
-                    ))
-                    put("content", content)
-                    put("constant", constant)
-                    put("disable", disable)
-                    put("insertPosition", insertPosition)
-                    put("depth", depth)
-                }
-                api.createWorldEntry(body)
-                loadFromServer()
-                WorldBookEntry(
-                    id = UUID.randomUUID().toString(),
-                    comment = comment,
-                    key = keys,
-                    content = content,
-                    constant = constant,
-                    disable = disable,
-                    insertPosition = insertPosition,
-                    depth = depth
-                )
-            } catch (_: Exception) { null }
+            val id = UUID.randomUUID().toString()
+            val keysJson = Json.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                keys
+            )
+            val entity = WorldBookEntryEntity(
+                id = id,
+                bookId = bookId,
+                comment = comment,
+                keysJson = keysJson,
+                content = content,
+                constant = constant,
+                disable = disable,
+                order = 100
+            )
+            db.worldBookDao().upsertEntries(listOf(entity))
+            WorldBookEntry(
+                id = id,
+                comment = comment,
+                key = keys,
+                content = content,
+                constant = constant,
+                disable = disable,
+                insertPosition = insertPosition,
+                depth = depth,
+                order = 100
+            )
         }
     }
 
     suspend fun updateEntry(entryId: String, patch: JsonObject) {
         withContext(Dispatchers.IO) {
-            try {
-                api.updateWorldEntry(entryId, patch)
-                loadFromServer()
-            } catch (_: Exception) {}
+            db.worldBookDao().getEntryById(entryId)?.let { existing ->
+                db.worldBookDao().upsertEntries(listOf(existing.applyPatch(patch)))
+            }
         }
     }
 
     suspend fun deleteEntry(entryId: String) {
         withContext(Dispatchers.IO) {
-            try {
-                api.deleteWorldEntry(entryId)
-                loadFromServer()
-            } catch (_: Exception) {}
+            db.worldBookDao().deleteEntryById(entryId)
         }
     }
 
@@ -167,5 +115,26 @@ class WorldBookRepository(private val context: Context) {
                 api.exportWorldBook()
             } catch (_: Exception) { null }
         }
+    }
+
+    /**
+     * 将 JSON patch 应用到实体（本地优先写入时用于更新已有条目）。
+     * 只覆盖 patch 中实际提供的字段；实体不支持的字段（insertPosition/depth）沿用既有限制。
+     */
+    private fun WorldBookEntryEntity.applyPatch(patch: JsonObject): WorldBookEntryEntity {
+        val keysJson = (patch["key"] as? JsonArray)?.let { arr ->
+            Json.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                arr.map { it.jsonPrimitive.content }
+            )
+        } ?: this.keysJson
+        return copy(
+            comment  = patch["comment"]?.jsonPrimitive?.content ?: comment,
+            content  = patch["content"]?.jsonPrimitive?.content ?: content,
+            constant = patch["constant"]?.jsonPrimitive?.booleanOrNull ?: constant,
+            disable  = patch["disable"]?.jsonPrimitive?.booleanOrNull ?: disable,
+            order    = patch["order"]?.jsonPrimitive?.intOrNull ?: order,
+            keysJson = keysJson
+        )
     }
 }

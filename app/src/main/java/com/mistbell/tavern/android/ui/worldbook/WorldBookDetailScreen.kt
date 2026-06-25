@@ -30,6 +30,8 @@ fun WorldBookDetailScreen(
     val worldBooks by viewModel.worldBooks.collectAsState()
     val entries by viewModel.entries.collectAsState()
     val message by viewModel.message.collectAsState()
+    val showEntryForm by viewModel.showEntryForm.collectAsState()
+    val entryForm by viewModel.entryForm.collectAsState()
 
     var showDeleteEntryDialog by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -175,7 +177,9 @@ fun WorldBookDetailScreen(
 
             items(entries, key = { it.id }) { entry ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        viewModel.showEditEntryForm(entry)
+                    },
                     shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (entry.disable)
@@ -262,7 +266,9 @@ fun WorldBookDetailScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             TextButton(
-                                onClick = { showDeleteEntryDialog = entry.id },
+                                onClick = {
+                                    showDeleteEntryDialog = entry.id
+                                },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
                                 Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
@@ -294,5 +300,100 @@ fun WorldBookDetailScreen(
                 TextButton(onClick = { showDeleteEntryDialog = null }) { Text("取消") }
             }
         )
+    }
+
+    // 编辑条目表单
+    if (showEntryForm) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.hideEntryForm() },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    if (viewModel.editingEntryId.value != null) "编辑条目" else "新建条目",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                FormTextField(
+                    value = entryForm.comment,
+                    onValueChange = { viewModel.updateEntryForm { copy(comment = it) } },
+                    label = "名称",
+                    placeholder = "条目名称"
+                )
+                FormTextField(
+                    value = entryForm.keys,
+                    onValueChange = { viewModel.updateEntryForm { copy(keys = it) } },
+                    label = "关键词（逗号分隔）",
+                    placeholder = "关键词1, 关键词2"
+                )
+                FormTextArea(
+                    value = entryForm.content,
+                    onValueChange = { viewModel.updateEntryForm { copy(content = it) } },
+                    label = "内容",
+                    placeholder = "世界书条目内容...",
+                    minLines = 4
+                )
+
+                // Insert position
+                var positionExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(expanded = positionExpanded, onExpandedChange = { positionExpanded = it }) {
+                    OutlinedTextField(
+                        value = if (entryForm.insertPosition == "before_prompt") "提示词前" else "提示词后",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("插入位置") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = positionExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    ExposedDropdownMenu(expanded = positionExpanded, onDismissRequest = { positionExpanded = false }) {
+                        DropdownMenuItem(text = { Text("提示词前") }, onClick = {
+                            viewModel.updateEntryForm { copy(insertPosition = "before_prompt") }; positionExpanded = false
+                        })
+                        DropdownMenuItem(text = { Text("提示词后") }, onClick = {
+                            viewModel.updateEntryForm { copy(insertPosition = "after_prompt") }; positionExpanded = false
+                        })
+                    }
+                }
+
+                // Depth
+                var depthText by remember(entryForm.depth) { mutableStateOf(entryForm.depth.toString()) }
+                FormTextField(
+                    value = depthText,
+                    onValueChange = {
+                        depthText = it
+                        it.toIntOrNull()?.let { d -> viewModel.updateEntryForm { copy(depth = d.coerceIn(1, 10)) } }
+                    },
+                    label = "深度 (1-10)",
+                    placeholder = "1"
+                )
+
+                // Toggles
+                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = !entryForm.disable, onCheckedChange = { viewModel.updateEntryForm { copy(disable = !it) } })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("启用", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = entryForm.constant, onCheckedChange = { viewModel.updateEntryForm { copy(constant = it) } })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("常量", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+
+                Button(
+                    onClick = { viewModel.saveEntry() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                ) { Text("保存") }
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
     }
 }

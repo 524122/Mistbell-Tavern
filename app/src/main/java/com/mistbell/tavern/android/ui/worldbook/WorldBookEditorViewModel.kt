@@ -120,6 +120,12 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         _entryForm.value = _entryForm.value.transform()
     }
 
+    fun hideEntryForm() {
+        _showEntryForm.value = false
+        _editingEntryId.value = null
+        _entryForm.value = WorldBookEntryForm()
+    }
+
     fun saveEntry() {
         val form = _entryForm.value
         val bookId = _selectedBookId.value ?: return

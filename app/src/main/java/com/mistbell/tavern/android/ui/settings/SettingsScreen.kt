@@ -22,13 +22,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.ui.components.*
 import com.mistbell.tavern.android.ui.theme.*
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
+import com.mistbell.tavern.android.util.CrashLogger
 import com.mistbell.tavern.android.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -255,6 +258,19 @@ fun SettingsScreen(
                         onClick = { /* TODO: 导航到网络设置页面 */ }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    var showCrashLogDialog by remember { mutableStateOf(false) }
+                    SettingsNavItem(
+                        title = "问题反馈与日志",
+                        subtitle = "查看崩溃日志、导出反馈给开发者",
+                        onClick = { showCrashLogDialog = true }
+                    )
+
+                    if (showCrashLogDialog) {
+                        CrashLogDialog(onDismiss = { showCrashLogDialog = false })
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     SettingsNavItem(
                         title = "版本号",
                         subtitle = "v${BuildConfig.VERSION_NAME}",
@@ -456,6 +472,115 @@ private fun MemoryExtractionPromptDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+private fun CrashLogDialog(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    // null = 正在收集（抓取 logcat 可能阻塞，必须在后台线程构建）
+    var report by remember { mutableStateOf<String?>(null) }
+
+    // 打开对话框时在 IO 线程构建诊断报告：崩溃记录 + 过滤后的运行日志
+    LaunchedEffect(Unit) {
+        report = withContext(Dispatchers.IO) {
+            CrashLogger.buildDiagnosticReport(context)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "问题反馈与日志",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val currentReport = report
+                if (currentReport == null) {
+                    Text(
+                        text = "正在收集诊断信息…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text = "以下为崩溃记录与本次运行的最近日志（含导航/点击轨迹，可定位「点击失效、页面未升起」等问题）。已自动过滤聊天内容与 API Key，可导出后通过 Issue 反馈给开发者。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = ButtonDefaults.outlinedButtonBorder
+                    ) {
+                        Text(
+                            text = currentReport,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp, max = 320.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                lineHeight = 18.sp
+                            )
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val uri = CrashLogger.exportReport(context, currentReport)
+                                if (uri != null) {
+                                    context.startActivity(
+                                        android.content.Intent.createChooser(
+                                            CrashLogger.createShareIntent(uri),
+                                            "导出诊断日志"
+                                        )
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("导出日志")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                // 仅能清除落盘的崩溃记录；logcat 属系统缓冲区无法清。清后重建报告。
+                                CrashLogger.clearLogs(context)
+                                report = null
+                                coroutineScope.launch {
+                                    report = withContext(Dispatchers.IO) {
+                                        CrashLogger.buildDiagnosticReport(context)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("清除崩溃记录")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭")
             }
         }
     )

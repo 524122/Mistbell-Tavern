@@ -22,6 +22,9 @@ interface WorldBookDao {
     @Query("SELECT * FROM world_book_entries WHERE book_id = :bookId ORDER BY [order]")
     suspend fun getEntriesList(bookId: String): List<WorldBookEntryEntity>
 
+    @Query("SELECT * FROM world_book_entries WHERE id = :id LIMIT 1")
+    suspend fun getEntryById(id: String): WorldBookEntryEntity?
+
     @Upsert
     suspend fun upsertBook(book: WorldBookEntity)
 
@@ -31,8 +34,17 @@ interface WorldBookDao {
     @Query("DELETE FROM world_books")
     suspend fun deleteAllBooks()
 
+    @Query("DELETE FROM world_books WHERE id = :id")
+    suspend fun deleteBookById(id: String)
+
     @Query("DELETE FROM world_book_entries")
     suspend fun deleteAllEntries()
+
+    @Query("DELETE FROM world_book_entries WHERE id = :id")
+    suspend fun deleteEntryById(id: String)
+
+    @Query("DELETE FROM world_book_entries WHERE book_id = :bookId")
+    suspend fun deleteEntriesByBookId(bookId: String)
 
     @Transaction
     suspend fun replaceAll(books: List<WorldBookEntity>, allEntries: Map<String, List<WorldBookEntryEntity>>) {

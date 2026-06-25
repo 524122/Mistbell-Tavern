@@ -29,7 +29,10 @@ import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 @Composable
 fun WorldBookListScreen(
     onBack: () -> Unit = {},
-    onBookClick: (String) -> Unit = {},
+    // 可空：传入则导航外跳；为 null（默认/导航图当前用法）则在本屏内联展开条目列表。
+    // 不能用 `onBookClick: (String)->Unit = {}` 再拿 `!= {}` 判断——每个 {} 都是新实例，
+    // 比较恒为 true，会导致点击永远走空操作分支、进不去条目（见下方 clickable）。
+    onBookClick: ((String) -> Unit)? = null,
     viewModel: WorldBookEditorViewModel = viewModel(),
     showBackButton: Boolean = true,
     modifier: Modifier = Modifier
@@ -263,8 +266,9 @@ fun WorldBookListScreen(
                         items(worldBooks, key = { it.id }) { book ->
                             Card(
                                 modifier = Modifier.fillMaxWidth().clickable {
-                                    if (onBookClick != {}) {
-                                        onBookClick(book.id)
+                                    val cb = onBookClick
+                                    if (cb != null) {
+                                        cb(book.id)
                                     } else {
                                         viewModel.selectBook(book.id)
                                     }
@@ -554,7 +558,7 @@ fun WorldBookListScreen(
     // Entry form bottom sheet
     if (showEntryForm) {
         ModalBottomSheet(
-            onDismissRequest = { viewModel.updateEntryForm { WorldBookEntryForm() }; /* trigger close via _showEntryForm */ },
+            onDismissRequest = { viewModel.hideEntryForm() },
             containerColor = MaterialTheme.colorScheme.surface
         ) {
             Column(
