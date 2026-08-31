@@ -1,0 +1,78 @@
+﻿API Settings | OMate User Manual
+OMate
+User Manual
+OMate.net
+Download App
+Contact Us
+Powered by
+OMate.net
+Download App
+Contact Us
+Powered by
+#
+API Settings
+OMate supports connecting to AI service providers. By configuring API settings, you can use your own API key to access these services.
+Note
+In theory, APIs that support the OpenAI specification should work, but due to varying levels of API support from different service providers, OMate may not function properly with some service providers&#x27; APIs.
+#
+API Configuration List
+The API configuration list page displays all the API connections you have configured. Each API configuration card contains the following information:
+API name
+API specification (currently fixed as OpenAI specification)
+API key (partially hidden)
+#
+Adding a New API Configuration
+To add a new API configuration:
+Navigate to the "Settings" page
+In the "API Settings" section, click the "+" button
+Fill out the following information in the popup dialog:
+#
+Required Information
+Name
+: Name this API configuration
+API Specification
+: Currently only supports OpenAI interface specification
+API Key
+: Enter your API key
+Tip
+You can click the floating button in the bottom right corner to quickly fill in configurations
+Tip
+You can obtain an API key from the service provider&#x27;s official website. If the provider has an application link, the system will provide a quick access button in the form.
+Please keep your API key secure and do not share it with others. OMate only stores your API key locally and will not upload it to any server.
+#
+Editing API Configuration
+You can edit any API configuration you&#x27;ve created at any time:
+In the API configuration list, swipe left on the API card
+The system will automatically enter edit mode
+Modify the information that needs to be updated
+Click the "Save" button to apply the changes
+#
+Deleting API Configuration
+If you no longer need an API configuration, you can delete it:
+In the API configuration list, swipe right on the API card
+The system will prompt for confirmation of deletion
+Enter as prompted and click the confirm button to complete the deletion
+Note
+The system requires at least one API configuration to be retained. If only one API configuration is left, you will not be able to delete it.
+#
+Active API Configuration
+The system will automatically set newly added API configurations as active:
+When you add a new API configuration, the system will set it as active
+The active API configuration will be used for all functions that require an API
+In chat settings, you can select different API configurations for specific conversations
+#
+Discovery Page API Settings
+In addition to the main API settings, OMate also provides discovery page API settings:
+Navigate to the "Settings" page
+Click "Discovery Page Settings"
+In the API address settings, you can:
+Add new API addresses
+Edit existing API addresses
+Adjust the priority order of API addresses
+Tip
+Discovery page API addresses are used to obtain content from remote servers, such as character cards. The system will attempt to connect to API addresses in the order set and merge the data obtained.
+Previous
+Quick Start
+Next
+Character Management
+© Copyright 2025. All rights reserved.

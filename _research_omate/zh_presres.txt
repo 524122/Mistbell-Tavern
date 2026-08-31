@@ -1,0 +1,169 @@
+﻿预设解析机制 | OMate用户手册
+OMate
+用户手册
+官方网站
+下载应用
+联系我们
+Powered by
+官方网站
+下载应用
+联系我们
+Powered by
+#
+预设解析机制
+本页面向 AI 助手（小M）与深度用户：预设栈如何合并、每个可预设键覆写到哪里、在哪个环节被消费。回答用户时请转成通俗语言。
+#
+1. 概念模型
+预设
+= 一组稀疏的配置覆盖项。每个键有独立开关：开=参与合并，关=保留值但不生效。
+挂载栈
+= 某个作用域上的有序预设列表。
+越靠上优先级越高
+，每条有启停开关。
+作用域
+四种：
+global
+（全局）、
+role
+（角色）、
+chat
+（单个对话）、
+app
+（内置功能：
+story
+故事 /
+moments
+朋友圈）。
+门禁
+：整个数据库没有任何挂载时，解析直接返回空 → 所有消费点走原有配置，行为与无预设系统时完全一致。
+#
+2. 解析算法
+flowchart LR
+subgraph 聊天场景
+G[global 栈] --&gt; R[role 栈] --&gt; C[chat 栈]
+end
+subgraph 故事/朋友圈
+G2[global 栈] --&gt; A[app 栈]
+end
+C --&gt; M[合并结果&lt;br&gt;后应用者覆盖先应用者]
+A --&gt; M
+# 模块: preset resolver
+def resolve(scope_chain):            # 聊天: [global, role, chat]; 故事: [global, app:story]
+if not has_any_mounts():         # 门禁：全库无挂载
+return None
+layers = []
+for scope in scope_chain:        # 低优先作用域在前
+stack = get_stack(scope)     # 按 sort_index 升序（=界面从上到下）
+# 栈内翻转：底部先应用、顶部最后应用 → 顶部覆盖底部
+layers += [p.overlay for p in reversed(stack) if p.enabled]
+result = {}
+for layer in layers:             # 依次应用，后来者按合并策略处理
+for key, entry in layer.items():
+if not entry.on:         # 键级开关关闭 → 跳过
+continue
+if strategy(key) == &quot;scalar&quot;:
+result[key] = entry.value            # 直接覆盖
+elif strategy(key) == &quot;listUnion&quot;:
+result[key] = union(result.get(key, []), entry.value)  # 并集
+return result
+优先级总结（同一个键被多处设置时）：
+代码默认值 &lt; 全局手填 &lt; 对话手填 &lt; global 栈底…栈顶 &lt; role/app 栈底…栈顶 &lt; chat 栈底…栈顶
+scalar 键
+（模型/温度/系统提示词等）：高优先级直接覆盖。
+listUnion 键
+（提示词分组/世界书挂载/知识书）：各层
+取并集
+，不互相覆盖。
+#
+3. 键面与覆写落点（全量）
+预设键
+类型
+覆写到哪
+消费环节
+api.configId
+整配置引用
+替换整个 API 连接（密钥不存预设，只存引用）
+发送时临时创建 AI 服务
+api.model
+scalar
+API 配置的聊天模型名
+同上
+ai.temperature
+scalar
+API 配置温度 + 打开温度开关
+请求参数
+ai.maxTokens
+scalar
+API 配置附加参数的
+max_tokens
+（
+输出
+token 上限，非上行预算）
+请求参数
+prompt.systemPrompt
+scalar
+对话级系统提示词
+上下文管线第⑧步
+prompt.injectionGroups
+listUnion
+按
+分组名
+批量启用注入提示词
+管线第②/④步的启用判断
+worldbook.mounts
+listUnion
+与角色绑定的世界书
+并集
+世界书扫描（第⑤步）
+knowledge.books
+listUnion
+与角色启用的知识书
+并集
+知识库检索（第⑱步）
+chat.historyCount
+scalar
+知识库查询引用的历史条数
+知识库检索
+chat.streamEnabled
+scalar
+流式输出开关
+请求方式
+#
+4. 消费点清单（预设在哪些地方生效）
+场景
+解析链
+解析时机
+聊天（含群聊外的单聊）
+global → role → chat
+每次发送消息时
+故事续写
+global → app:story
+进入故事页初始化时；故事设置页返回时重建
+朋友圈手动生成
+global → app:moments
+进入朋友圈页初始化时；设置页返回时重建
+朋友圈自动生成（后台）
+global → app:moments
+每次后台任务触发时
+编辑栈（增删/排序/启停）
+即时写库
+，不需要保存按钮；生效时机见上表第三列。
+#
+5. 常见问题的机制解释
+「两个预设都设了温度，用哪个？」
+同一栈内位置靠上的赢；不同作用域时 chat 栈赢过 role 栈赢过 global 栈。
+「预设挂了世界书，会顶掉角色绑定的书吗？」
+不会。世界书/知识书/提示词分组是
+并集
+语义，只加不减。
+「关掉预设里的某一项会怎样？」
+该键退出合并，值保留（下次打开还在）；下层或手填值重新接管。
+「移除挂载和关闭启停开关的区别？」
+效果相同（都不参与合并），启停开关是为了临时切换不丢顺序。
+「预设改了模型，为什么当前对话的 API 配置页没变？」
+覆写只作用在发送时的副本上，不改动你的原始配置——移除预设即恢复原样。
+Previous
+数据存储地图
+Next
+聊天上下文管线
+© Copyright 2026. All rights reserved.

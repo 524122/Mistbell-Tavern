@@ -178,13 +178,22 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         android.util.Log.d("ChatSetup", "Character found: ${characterEntity?.name}, firstMes: ${characterEntity?.firstMes}")
 
         if (characterEntity != null && characterEntity.firstMes.isNotBlank()) {
+            // F2.1：开场白先用宏引擎渲染（{{char}}/{{user}} 等），用户名取 settings，缺省 "User"
+            val mctx = com.mistbell.tavern.android.util.MacroContext(
+                char = characterEntity.name,
+                user = db.settingsDao().getValue("user_name") ?: "User",
+                description = characterEntity.description,
+                personality = characterEntity.personality,
+                scenario = characterEntity.scenario,
+                persona = ""
+            )
             val firstMessage = MessageEntity(
                 id = UUID.randomUUID().toString(),
                 sessionId = sessionId,
                 ownerId = ownerId,
                 characterId = characterId,
                 role = "assistant",
-                content = characterEntity.firstMes,
+                content = com.mistbell.tavern.android.util.MacroEngine.render(characterEntity.firstMes, mctx),
                 thinking = null,
                 createdAt = now,
                 memoryIdsJson = "[]",

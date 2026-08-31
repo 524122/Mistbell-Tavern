@@ -1,0 +1,105 @@
+﻿Prompt Settings | OMate User Manual
+OMate
+User Manual
+OMate.net
+Download App
+Contact Us
+Powered by
+OMate.net
+Download App
+Contact Us
+Powered by
+#
+Prompt Settings
+Prompts are instructions that guide AI behavior and response methods. OMate allows you to customize system prompts to optimize AI performance and personalize your experience.
+#
+Prompt List
+You can access the prompt settings page from the settings panel, which displays the system&#x27;s built-in prompt templates that you can customize. Each prompt card contains the following information:
+Prompt name
+Prompt description
+Custom status marker (if you have modified it)
+#
+Available Prompt Types
+OMate provides the following types of prompt templates:
+Roleplay System Prompt
+: Controls how the AI plays a role in conversation with the user
+Character Setting Prompt
+: Defines detailed character setting information
+Personality Traits Prompt
+: Defines the character&#x27;s personality traits
+Scene Setting Prompt
+: Defines the scene where the character is located
+Conversation Example Prompt
+: Provides examples of character dialogue
+Post-History Instruction Prompt
+: Instructions added after the conversation history
+Mask Prompt
+: Defines mask setting information
+Memory Extraction Prompt
+: Prompt for extracting memories from conversations
+Memory Usage Prompt
+: Prompt for using memories
+#
+Editing Prompts
+You can customize any built-in prompt:
+Navigate to the "Settings" page
+Select "Prompt Settings"
+Click on the prompt card you want to edit
+On the editing page:
+View the default system prompt
+Edit the custom prompt content
+Click the "Save" button to apply changes
+If you want to restore the default settings, you can:
+Click on the edit page of the specific prompt
+Delete the custom content
+Click the "Save" button to restore the default prompt
+#
+Reset All Prompts
+If you want to reset all custom prompt settings:
+On the prompt settings page, click the "Reset" icon in the top right corner
+Type "reset" in the confirmation dialog
+Click the "Confirm" button to reset all prompts to system defaults
+The reset operation cannot be undone. All custom prompt settings will be deleted.
+#
+Prompt Usage Scenarios
+OMate&#x27;s prompt system is used in the following scenarios:
+#
+Character Conversations
+When you converse with a character:
+The system automatically uses the corresponding character prompts
+This includes personality traits, scene settings, conversation examples, etc.
+Making your interactions with the character more consistent with their settings
+#
+Mask Application
+When you apply a mask:
+The mask prompt is used to define the user&#x27;s role
+Combined with the AI character&#x27;s prompts to create specific conversation scenarios
+#
+Memory Function
+When using the memory function:
+Memory extraction prompts are used to extract important information from conversations
+Memory usage prompts control how the AI utilizes stored memories
+#
+Prompt Writing Tips
+#
+Variable Usage
+OMate supports using variables in prompts:
+{{char}}: Character name
+{{user}}: User name/mask name
+#
+Elements of Effective Prompts
+Clear Guidance
+: Clearly indicate how the AI should respond
+Character Positioning
+: Clearly define the character&#x27;s identity and behavior
+Conversation Style
+: Describe the character&#x27;s language style and expression habits
+Interaction Rules
+: Set basic rules and limitations for interacting with users
+Tip
+Good prompts can significantly improve AI performance and conversation quality. By customizing prompts, you can make the AI respond as you expect.
+Previous
+Voice Interaction
+Next
+Card Creation Bot
+© Copyright 2025. All rights reserved.

@@ -1,0 +1,53 @@
+﻿Voice Interaction | OMate User Manual
+OMate
+User Manual
+OMate.net
+Download App
+Contact Us
+Powered by
+OMate.net
+Download App
+Contact Us
+Powered by
+#
+Voice Interaction
+OMate supports voice output functionality and voice chat, making AI character responses more lively and natural.
+Video tutorial
+#
+Voice Playback
+When ① voice model is configured ② and voice parameters are configured in the character settings, a voice icon will appear in the chat interface. Click on it to play the voice.
+Tip
+If voice parameters are not set in the character settings, the voice icon will not appear in the chat interface
+#
+Voice Settings
+Configure voice parameters in the settings page:
+Select a voice model
+Set voice parameters: please configure according to the voice model&#x27;s documentation
+Go to the character list, find the character card that needs voice settings, swipe left to edit
+Enter the relevant parameters in the voice parameters field on the edit page, save
+Enter the character conversation interface, click the voice icon in the top left of the text to play the voice
+The specific parameters depend on the
+service provider&#x27;s text-to-speech documentation
+. Taking Silicon Flow as an example:
+Enter
+FunAudioLLM/CosyVoice2-0.5B
+in the voice model field in the API settings
+Enter
+voice=FunAudioLLM/CosyVoice2-0.5B:alex
+in the voice parameters field of the character card, where alex is a preset voice. You can refer to the documentation to adjust:
+#
+Voice Call
+Once you have configured voice playback, if you also configure the speech recognition model, you will be able to use the voice call feature.
+You can use the speech recognition model from the same service provider as your chat model, just enter the name directly. For example:
+Silicon Flow:
+iic/SenseVoiceSmall
+OpenAI:
+whisper-1
+You can also specify a separate service provider for speech recognition by clicking the
+&#x2795;
+in the settings item, where you can separately fill in the api address, key, and parameters.
+Previous
+Memory Management
+Next
+Custom Prompts
+© Copyright 2025. All rights reserved.

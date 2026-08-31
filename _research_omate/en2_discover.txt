@@ -1,0 +1,75 @@
+﻿Customize Discovery Page | OMate User Manual
+OMate
+User Manual
+OMate.net
+Download App
+Contact Us
+Powered by
+OMate.net
+Download App
+Contact Us
+Powered by
+#
+Customize Discovery Page
+You can customize the discovery page by providing a JSON file. In "Settings" → "Discovery Page Settings", you can add a discovery page API address.
+The OMate APP will access
+discovery page API address/cards.json
+to read the card list.
+For example, the current official discovery page JSON file address is:
+https://store.omate.net/oc/cards.json
+Its format definition is as follows:
+cards:
+[
+{
+"id": "1742218048477",
+"name": "Su Mo",
+"fileName": "1742218048404-苏墨.png",
+"filePath": "uploads/1742218048404-苏墨.png",
+"coverPath": "uploads/1742218048404-苏墨-cover.jpg",
+"fileType": "png",
+"uploadTime": "2025-03-17T13:27:28.477Z",
+"gender": "female",
+"intro": "Hand-drawn designer, stubborn and sensitive, maintains her individuality amid the AI wave, using her brush to depict emotions and dreams.",
+"description": "Su Mo, a 20-year-old modern Chinese woman.",
+"personality": "",
+"stories":
+[
+{
+"path": "uploads/stories/1741855693696-E88B8FE5A2A8-C3A5C2A4C28DC3A5C288C2BBC3A4C2BAC2BAC3A7C294C29FC382C2B7C3A4C2B8C28A.multi.h2book.json",
+"name": "Replicated Life·Part 1.multi.h2book.json",
+"uploadTime": "2025-03-13T08:48:13.702Z"
+}
+]
+},
+... other cards
+]
+Where:
+coverPath
+is the path to the card&#x27;s cover image
+filePath
+is the path to the card&#x27;s image (which contains character information)
+stories
+is the list of storybooks for the card
+These paths are all relative to the
+discovery page API address
+. For example, if
+coverPath
+is
+uploads/1742218048404-苏墨-cover.jpg
+, and the
+discovery page API address
+is
+https://store.omate.net/oc
+, then the complete path for
+coverPath
+would be
+https://store.omate.net/oc/uploads/1742218048404-苏墨-cover.jpg
+.
+#
+Tools
+We will provide corresponding tools to generate discovery page configurations later. You can also send it to AI to generate the tools you need.
+Previous
+Storybook Editor
+Next
+Changelog
+© Copyright 2025. All rights reserved.

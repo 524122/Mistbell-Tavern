@@ -22,7 +22,9 @@ import java.util.UUID
 data class CharacterImportResult(
     val character: CharacterEntity,
     val worldBook: WorldBookEntity?,
-    val worldBookEntries: List<WorldBookEntryEntity>
+    val worldBookEntries: List<WorldBookEntryEntity>,
+    // 导入诊断：非阻断性提示（如未映射字段、v1 老格式等），错误不阻断导入
+    val warnings: List<String> = emptyList()
 )
 
 /**
@@ -41,6 +43,15 @@ object CardParser {
             val jsonElement = json.parseToJsonElement(jsonString)
             val jsonObject = jsonElement.jsonObject
             val dataObject = jsonObject["data"]?.jsonObject
+
+            // 导入诊断收集（去重、保持插入顺序；错误不阻断导入）
+            val warnings = linkedSetOf<String>()
+
+            // v1 老键名来源检测（char_name 等仅存在于 v1 卡片根上）
+            val v1Keys = listOf("char_name", "char_persona", "world_scenario", "char_greeting", "example_dialogue")
+            if (v1Keys.any { jsonObject.containsKey(it) }) {
+                warnings.add("检测到 v1 老格式卡片")
+            }
 
             // 辅助函数：v2 优先 data 位，其次 root 位（v1 卡片字段在根上）
             fun getText(vararg keys: String): String {
@@ -70,6 +81,10 @@ object CardParser {
             // extensions 透传保真：优先 data 位，其次 root 位
             val extensions = dataObject?.get("extensions")?.jsonObject
                 ?: jsonObject["extensions"]?.jsonObject
+            // extensions 非空时提示已透传的扩展命名空间数量
+            if (extensions != null && extensions.isNotEmpty()) {
+                warnings.add("已透传 ${extensions.size} 个扩展命名空间")
+            }
 
             // alternate_greetings / tags 提取进 CharacterData
             val alternateGreetings = buildList {
@@ -104,7 +119,8 @@ object CardParser {
 
                 worldBookEntries = parseBookEntries(
                     entriesElement = characterBook["entries"],
-                    bookId = worldBookId
+                    bookId = worldBookId,
+                    warnings = warnings
                 )
             } else {
                 // 兼容旧格式
@@ -149,7 +165,8 @@ object CardParser {
             CharacterImportResult(
                 character = characterEntity,
                 worldBook = worldBookEntity,
-                worldBookEntries = worldBookEntries
+                worldBookEntries = worldBookEntries,
+                warnings = warnings.toList()
             )
         } catch (e: Exception) {
             // 纯函数不依赖 android.util.Log（JVM 单测环境不可用）；薄壳层负责日志
@@ -160,9 +177,13 @@ object CardParser {
     /**
      * 解析世界书条目，兼容【数组】与【按 uid 的 map】两种形态。
      * 字段映射规则：enabled 存在时 disable = !enabled；insertion_order 优先于 order；
-     * key/keysecondary 单字符串包成数组（keysecondary 暂不映射）。
+     * key/keysecondary 单字符串包成数组（keysecondary 暂不映射，收集进 warnings 诊断）。
      */
-    internal fun parseBookEntries(entriesElement: kotlinx.serialization.json.JsonElement?, bookId: String): List<WorldBookEntryEntity> {
+    internal fun parseBookEntries(
+        entriesElement: kotlinx.serialization.json.JsonElement?,
+        bookId: String,
+        warnings: MutableSet<String> = mutableSetOf()
+    ): List<WorldBookEntryEntity> {
         if (entriesElement == null) return emptyList()
         val entryObjects: List<Pair<String?, JsonObject>> = when (entriesElement) {
             is JsonArray -> entriesElement.mapNotNull { el ->
@@ -200,6 +221,14 @@ object CardParser {
                     else -> emptyList()
                 }
                 // TODO: keysecondary（次要关键字）暂不映射，待后续支持
+                // 诊断：条目含 keysecondary / position / probability / depth 等未映射字段时收集提示（不阻断导入）
+                if (entry.containsKey("keysecondary")) {
+                    warnings.add("次级关键词暂未映射，已忽略")
+                }
+                val unmappedFields = listOf("position", "probability", "depth").filter { entry.containsKey(it) }
+                if (unmappedFields.isNotEmpty()) {
+                    warnings.add("世界书条目包含未映射字段：${unmappedFields.joinToString("/")}")
+                }
                 val keysJson = json.encodeToString(
                     kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                     keys

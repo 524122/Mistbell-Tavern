@@ -1,0 +1,170 @@
+﻿Live Page 使用指南 | OMate用户手册
+OMate
+用户手册
+官方网站
+下载应用
+联系我们
+Powered by
+官方网站
+下载应用
+联系我们
+Powered by
+#
+Live Page 使用指南
+#
+概述
+Live Page 是在聊天中以卡片形式展示的可交互 HTML 页面，适合承载结构化数据、仪表盘、任务面板等。
+卡片点击后将在半透明浮层中以 WebView 打开，自动注入数据与环境变量，支持本地 KV 存储读写。
+通过 AI 可一键生成或修改 Live Page；也支持手动创建、导入与导出。
+#
+快速入口
+设置页进入
+OMate Pro
+页面，点击
+Live Page 管理
+进入列表。
+列表中可创建、编辑、删除、导入、导出，并进入
+API 设置
+选择用于 AI 生成的接口配置。
+#
+在聊天中如何呈现
+当消息文本包含如下标签时，会在气泡中插入 Live Page 卡片：
+&lt;LivePage slug=&quot;your-slug&quot;&gt;
+{&quot;title&quot;:&quot;Status&quot;,&quot;hp&quot;:100,&quot;mp&quot;:50}
+&lt;/LivePage&gt;
+渲染逻辑：根据
+slug
+从本地 Live Page 配置中取出对应的 HTML 模板，再把标签中的 JSON 数据注入
+window.omateLivePageData
+，卡片展示名称与图标，点击打开浮层。
+#
+浮层与数据注入
+打开卡片后会加载 HTML，并注入：
+window.omateLivePageData
+：来自聊天标签的 JSON 数据。
+window.omate.env
+：聊天环境变量（当前会话的配置、角色、群聊角色列表、面具、API 等）。
+简化版 KV SDK：
+window.omate.kv
+，提供
+get/set/delete/list
+操作，默认分类为
+livepage
+，按会话隔离。
+示例（HTML 片段，数据渲染）：
+&lt;span id=&quot;hp&quot;&gt;&lt;/span&gt;
+&lt;script&gt;
+const data = window.omateLivePageData;
+document.getElementById('hp').innerText = data.hp;
+&lt;/script&gt;
+KV 使用示例：
+await omate.kv.set('last_open', Date.now());
+const v = await omate.kv.get('last_open');
+const all = await omate.kv.list();
+await omate.kv.delete('last_open');
+#
+创建与管理
+进入
+Live Page 管理
+：
+创建：点击右上角菜单
+创建 LivePage
+或空列表的引导按钮。
+编辑：向右滑列表项或点击条目进入编辑页。
+删除：向左滑列表项并输入
+delete
+确认。
+导入：从 JSON 文件导入，若
+slug
+冲突可选择覆盖。
+导出：在编辑页菜单选择导出，得到标准 JSON 文件。
+#
+字段与格式
+每个 Live Page 配置包含以下字段：
+name
+：显示名称（必填）
+slug
+：唯一标识，使用小写字母、数字、下划线、连字符（必填）
+icon
+：Emoji 图标（可选）
+showIcon
+：是否显示图标（可选，默认
+true
+）
+htmlCode
+：完整 HTML（必填，包含样式与脚本，数据从
+window.omateLivePageData
+读取）
+dataDefine
+：数据结构的 JSON Schema（可选）
+dataDemo
+：示例数据（可选，用于预览与测试）
+note
+：备注说明（可选）
+导入/导出示例：
+{
+&quot;name&quot;: &quot;Status Panel&quot;,
+&quot;slug&quot;: &quot;status-panel&quot;,
+&quot;icon&quot;: &quot;📊&quot;,
+&quot;showIcon&quot;: true,
+&quot;htmlCode&quot;: &quot;&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;...&lt;/head&gt;&lt;body&gt;...&lt;/body&gt;&lt;/html&gt;&quot;,
+&quot;dataDefine&quot;: &quot;{\n  \&quot;type\&quot;: \&quot;object\&quot;, ...\n}&quot;,
+&quot;dataDemo&quot;: &quot;{\n  \&quot;title\&quot;: \&quot;Status\&quot;, \&quot;hp\&quot;: 100\n}&quot;,
+&quot;note&quot;: &quot;Demo panel&quot;
+}
+#
+AI 生成与修改
+在编辑页的
+AI
+标签：
+生成：输入期望描述，点击
+AI 生成
+。
+修改：在编辑模式下描述需要变动的内容，使用
+AI 生成
+进行增量更新。
+复制与粘贴：可复制系统提示，或粘贴 AI 输出进行解析。
+输出格式要求（由系统提示约束）：AI 返回一组标签，编辑页会自动解析并填充：
+&lt;OMateLivePageName&gt;...&lt;/OMateLivePageName&gt;
+&lt;OMateLivePageSlug&gt;...&lt;/OMateLivePageSlug&gt;
+&lt;OMateLivePageIcon&gt;...&lt;/OMateLivePageIcon&gt;
+&lt;OMateLivePageShowIcon&gt;true|false&lt;/OMateLivePageShowIcon&gt;
+&lt;OMateLivePageHtmlCode&gt;...&lt;/OMateLivePageHtmlCode&gt;
+&lt;OMateLivePageDataDefine&gt;...&lt;/OMateLivePageDataDefine&gt;
+&lt;OMateLivePageDataDemo&gt;...&lt;/OMateLivePageDataDemo&gt;
+&lt;OMateLivePageNote&gt;...&lt;/OMateLivePageNote&gt;
+视觉模型支持：若在
+API 设置
+选择了包含
+visionModel
+的配置，可选图片作为提示上下文，系统会自动切换到对应模型与接口。
+#
+在聊天中使用与事件联动
+将
+&lt;LivePage&gt;
+标签放入消息内容即可触发卡片渲染。
+事件检查可读取 Live Page 数据并展平为状态字段（
+livepage.{slug}.{field}
+），用于判断事件完成条件。
+#
+体验细节
+浮层自动计算高度，若模板使用
+100vh
+或内容不足，将以最大高度显示。
+外部链接默认阻断，提升安全与沉浸体验；控制台输出可在调试时查看。
+#
+常见问题
+slug
+已占用：导入或保存时将提示冲突，支持覆盖或更换名称。
+AI 输出未解析：确认 AI 返回的标签完整且大小写正确；也可使用“粘贴”功能手动填充。
+数据未显示：检查模板是否从
+window.omateLivePageData
+读取；确保聊天标签中的 JSON 与模板字段一致。
+KV 不生效：KV 默认分类为
+livepage
+，按会话隔离，确保在同一会话中读写。
+Previous
+工具调用
+Next
+制卡工具：Coze&​O​Role
+© Copyright 2026. All rights reserved.

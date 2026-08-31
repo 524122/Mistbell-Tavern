@@ -138,12 +138,13 @@ class ChatRepository(private val context: Context) {
                         // 流式关：整包返回，不调 onPartial
                         sb.append(LlmClient.chat(llmConfig, promptMessages))
                     }
-                    val reply = sb.toString()
+                    // F2.1 回复清洗：提取全部 <think>…</think> 块为思考内容，正文不含 think（流式/非流式统一走 sb，此处统一处理）
+                    val (replyContent, replyThinking) = splitThinking(sb.toString())
                     val assistantMsg = Message(
                         id = UUID.randomUUID().toString(),
                         role = "assistant",
-                        content = reply,
-                        thinking = null,
+                        content = replyContent,
+                        thinking = replyThinking,
                         createdAt = java.time.Instant.now().toString(),
                         memoryIds = null,
                         swipes = null,
@@ -156,7 +157,7 @@ class ChatRepository(private val context: Context) {
 
                     // 3.5. 向量化 AI 回复（异步，不阻塞主流程）
                     storeAssistantMessageVector(
-                        content = reply,
+                        content = replyContent,
                         ownerId = ownerId,
                         characterId = characterId,
                         sessionId = sessionId,
@@ -177,7 +178,7 @@ class ChatRepository(private val context: Context) {
                             enabled = sessionAfterReply.enableLongTermMemory,
                             providerId = sessionAfterReply.providerId,
                             userMessage = message,
-                            assistantMessage = reply,
+                            assistantMessage = replyContent,
                             ownerId = ownerId,
                             characterId = characterId,
                             sessionId = sessionId,
@@ -335,13 +336,14 @@ class ChatRepository(private val context: Context) {
                 }
                 throw e
             }
-            val reply = sb.toString()
+            // F2.1 回复清洗：重新生成路径同样提取 think 块
+            val (replyContent, replyThinking) = splitThinking(sb.toString())
 
             val assistantMsg = Message(
                 id = UUID.randomUUID().toString(),
                 role = "assistant",
-                content = reply,
-                thinking = null,
+                content = replyContent,
+                thinking = replyThinking,
                 createdAt = java.time.Instant.now().toString(),
                 memoryIds = null,
                 swipes = null,
@@ -365,7 +367,7 @@ class ChatRepository(private val context: Context) {
             // 向量化新回复（异步，不阻塞主流程）。
             // 已知残留：被替换的旧消息向量没有按消息删除的接口，暂无法清理（见 ROADMAP 向量双写一致性问题）
             storeAssistantMessageVector(
-                content = reply,
+                content = replyContent,
                 ownerId = ownerId,
                 characterId = characterId,
                 sessionId = sessionId,
@@ -448,6 +450,17 @@ class ChatRepository(private val context: Context) {
     }
 
     // --- Helpers ---
+
+    // F2.1 回复清洗：提取全部 <think>…</think> 块，多段以空行合并为思考内容；
+    // 正文为去除全部 think 块后 trim 的结果。无有效思考时 thinking 为 null。
+    private fun splitThinking(reply: String): Pair<String, String?> {
+        val thinking = Regex("(?s)<think>([\\s\\S]*?)</think>").findAll(reply)
+            .map { it.groupValues[1].trim() }
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+        val content = reply.replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "").trim()
+        return content to thinking.ifBlank { null }
+    }
 
     private suspend fun loadLlmConfig(): LlmConfig {
         val settingsDao = db.settingsDao()

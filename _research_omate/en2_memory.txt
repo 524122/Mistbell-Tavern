@@ -1,0 +1,78 @@
+﻿Memory Management | OMate User Manual
+OMate
+User Manual
+OMate.net
+Download App
+Contact Us
+Powered by
+OMate.net
+Download App
+Contact Us
+Powered by
+#
+Memory Management
+OMate has a long-term memory feature that allows AI characters to remember important information from your interactions, providing a more coherent and personalized conversation experience.
+#
+How Memory Works
+When the long-term memory feature is enabled, OMate will:
+Automatically extract important information about the user from conversations
+Store this information in the memory repository with date markers
+In subsequent conversations, the AI can reference these memories to provide more personalized responses
+You can adjust the types of information to be remembered in custom prompts for more precise memory management
+#
+Enabling Long-Term Memory
+Enabling the long-term memory feature is very simple:
+In the chat interface, click the settings button in the top right corner
+Go to the conversation management page
+Turn on the "Enable Long-Term Memory" switch
+Adjust the maximum number of long-term memories as needed
+#
+Memory Management
+#
+Viewing and Managing Memories
+You can view and manage stored memories at any time:
+On the conversation management page, click the "Manage Long-Term Memory" button
+On the memory management page, you can:
+View all stored memory entries
+Edit the content of memory entries by long-pressing them
+Swipe left or right to edit or delete individual memories
+Use the clear button in the top right corner to delete all memories
+#
+Memory Quantity Settings
+You can control the number of memories stored by the system:
+Use the slider to adjust the maximum number of long-term memories (100-5000)
+When the number of memories exceeds the set value, the system will automatically delete the oldest memories
+We recommend setting an appropriate memory quantity based on conversation frequency and importance
+#
+Memory Extraction Mechanism
+OMate uses specialized prompts to extract and use memories:
+#
+Extracting Memories
+After a conversation is completed, the system will automatically:
+Analyze the recent conversation content
+Identify new information about the user
+Extract the new information as concise sentences
+Save it to the memory repository with a time marker
+#
+Memory Usage
+When a new conversation starts:
+The system loads the user&#x27;s historical memories
+These memories are provided to the AI as context
+The AI will naturally reference these memories at appropriate times
+Avoiding repeated inquiries about known information
+#
+Best Practices
+#
+Optimizing Memory Quality
+Clearly express important information in conversations to help the system extract it correctly
+Regularly check the memory repository to delete inaccurate or outdated memories
+Edit vague or incomplete memory entries to improve memory quality
+#
+Privacy Note
+Tip
+All memories are stored on your local device and are not uploaded to the cloud. You can view, edit, or delete these memories at any time.
+Previous
+Stories
+Next
+Voice Interaction
+© Copyright 2025. All rights reserved.

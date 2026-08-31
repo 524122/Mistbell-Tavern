@@ -1,0 +1,237 @@
+﻿聊天上下文管线（Chat Detail） | OMate用户手册
+OMate
+用户手册
+官方网站
+下载应用
+联系我们
+Powered by
+官方网站
+下载应用
+联系我们
+Powered by
+#
+聊天上下文管线（Chat Detail）
+本页面向 AI 助手（小M）与深度用户：描述一条消息从「点击发送」到「请求发出」经过的完整处理管线。伪代码为 Python 风格、按 Dart 实现逻辑改写，只保留决定行为的逻辑。回答普通用户时请转成通俗语言，不要直接粘贴伪代码。
+#
+1. 主流程总览
+flowchart TD
+A[用户点击发送] --> B[解析预设栈<br>global → role → chat]
+B --> C{有任何挂载?}
+C -- 无 --> D[使用原始对话配置]
+C -- 有 --> E[生成覆写后的 record 副本<br>API/模型/温度/系统提示词/分组/世界书/知识书…]
+D --> F[组装上下文 getContextMessages]
+E --> F
+F --> G{预设改了 API 连接?}
+G -- 是 --> H[用覆写配置临时创建 AI 服务]
+G -- 否 --> I[用常驻 AI 服务]
+H --> J[发起请求<br>流式或非流式]
+I --> J
+J --> K[响应后处理<br>思考标签/正则 to_display]
+K --> L[消息落库 + 界面更新]
+要点：
+预设解析发生在每次发送时
+，因此修改任何预设栈后，下一条消息立即生效，无需重启或刷新。
+全库没有任何预设挂载时走「门禁短路」：行为与没有预设系统时完全一致（零开销）。
+预设覆写作用在
+record 的深拷贝副本
+上，原始对话配置不被修改。
+#
+2. 上下文组装顺序（核心）
+getContextMessages
+的输出分两个列表：
+context_messages
+（系统消息序列）与裁剪后的历史消息，最终拼接为一个请求。
+顺序即优先级语义
+——越靠前越接近"世界观"，越靠后越接近"当前指令"。
+#
+2.1 阶段 A：消息预处理
+# 模块: chat context flow — 消息预处理
+def preprocess(user_messages):
+history = user_messages[:-1]        # 历史消息
+sending = user_messages[-1]         # 本次要发送的消息
+history = [filter_cot_tags(m) for m in history]     # 剥离 CoT 折叠标签
+sending = filter_cot_tags(sending)
+if regex_enabled and regex_scripts:
+# to_api 方向的正则规则，支持 minDepth/maxDepth 深度过滤
+# depth=0 是最新一条消息，depth=1 倒数第二条，以此类推
+history = apply_regex_rules(history, direction="to_api", depth_filter=True)
+sending = apply_regex_rules([sending], "to_api", depth_filter=True)[0]
+return history, sending
+#
+2.2 阶段 B：系统消息序列（context_messages）逐段构建
+# 模块: chat context flow — 系统消息序列（顺序精确对应实现）
+def build_context_messages(record, history, sending):
+ctx = []
+role_play = record["role_play_enabled"]
+role = record["role"]                       # 覆写后的角色快照
+# ① 全局系统提示词（设置 → 提示词）
+ctx.append(global_system_prompt)
+# ② 注入提示词：position == "relative" 的部分
+#    启用条件三选一：enableStatus=global / manual 且本对话勾选 / 所属分组被预设启用
+for p in injected_prompts:
+if should_use(p) and p.position == "relative":
+ctx.append({"role": p.role, "content": p.content})
+# ③ 历史消息先按「历史消息数量」(history_count) 裁剪 —— 只算真实对话，
+#    不包括后面注入的内容
+history = history[-history_count:]
+# ④ 深度注入流水线（三种来源合并后按 depth 插入历史消息内部）
+depth_prompts = []
+depth_prompts += [p for p in injected_prompts
+if should_use(p) and p.position == "chat_history"]
+if role_play and role.depth_prompt:          # 角色卡 depth_prompt（ST 转化）
+depth_prompts.append(role.depth_prompt)  # 默认 depth=4
+# ⑤ 世界书扫描（发生在此处；产出三个桶）
+#    扫描窗口 = 裁剪后的历史 + 当前消息；书 = 角色绑定的书 − 对话临时禁用的书
+wb = worldbook_scan(books=role.enabled_worldbooks - record.disabled_worldbooks,
+window=history + [sending])
+depth_prompts += wb.at_depth_bucket          # atDepth 桶并入深度注入
+history = inject_at_depth(history, depth_prompts)   # 见 §2.3
+# ⑥ API 配置自带的系统提示词（apiSystemPrompt，若填写）
+ctx.append(api_config.api_system_prompt)
+# ⑦ 角色扮演内置系统提示（rolePlaySystem 模板，可在「提示词自定义」覆盖）
+if role_play:
+ctx.append(template("rolePlaySystem", char=char, user=user))
+# ⑧ 对话级系统提示词（对话管理页填写；可被预设 prompt.systemPrompt 覆写）
+ctx.append(record["system_prompt"])
+# ⑨ 世界书 worldInfoBefore 桶（角色设定链之前）
+ctx += wb.before_char_bucket
+# ⑩ 角色设定链（顺序固定）
+if role_play:
+ctx.append(template("roleSettings", settings=role.desp))     # 角色描述
+ctx.append(role.system_prompt)                               # 角色系统提示词
+ctx.append(template("personalityPrompt", role.personality))  # 性格
+if active_event and active_event.desp:
+ctx.append(template("eventDescriptionPrompt", active_event.desp))
+# 注意：激活的事件描述会「替代」场景设定，二者不共存
+else:
+ctx.append(template("scenarioPrompt", role.scenario))    # 场景
+ctx.append(template("messageExamplePrompt", role.mes_example))  # 对话示例
+# ⑪ 世界书 worldInfoAfter 桶（角色设定链之后）
+ctx += wb.after_char_bucket
+# ⑫ 面具（用户人设）设定
+ctx.append(template("maskSettings", record["mask"].desp))
+# ⑬ 记事本自动加载分类（按对话配置的分类从 KV 表取条目）
+ctx.append(template("notebookAutoLoadPrompt", notebook_entries))
+# ⑭ 长期记忆（若开启：该对话已启用的记忆条目）
+ctx.append(template("memoryPrompt", enabled_memories))
+# ⑮ 永久记忆（若开启：用当前输入向量检索全部历史对话，
+#    与当前上下文中已存在的消息按 ID 去重后注入）
+ctx.append(template("persistentMemoryPrompt", dedup(search_results)))
+# ⑯ 时间提示（对话管理可关；放在序列靠后位置以利于上游上下文缓存命中）
+if record["enable_time_prompt"]:
+ctx.append(current_time_prompt)
+# ⑰ 过滤 <think> 标签（在副本上），清理空消息
+return strip_think_and_empty(ctx), history, wb
+#
+2.3 深度注入算法（chat_history 位置如何落点）
+depth
+的含义：
+从最新消息往回数第几个位置
+。depth=1 表示插到最后一条消息之前，depth=4 表示往前数第 4 个空隙。
+# 模块: chat context flow — 深度注入
+def inject_at_depth(history, prompts):
+prompts = [p for p in prompts if p.content and p.depth > 0]  # depth=0 不注入
+history = list(reversed(history))       # 反转：索引 0 = 最新消息
+inserted = 0
+for depth in range(1, max_depth + 1):   # 深度从小到大
+batch = list(reversed([p for p in prompts if p.depth == depth]))
+if not batch:
+continue
+pos = min(depth + inserted - 1, len(history))   # 超出则贴到最旧一端
+history[pos:pos] = [msg(p) for p in batch]
+inserted += len(batch)
+return list(reversed(history))          # 反转回时间顺序
+#
+2.4 阶段 C：知识库、裁剪与收尾
+# 模块: chat context flow — 收尾
+def finalize(ctx, history, sending, record):
+# ⑱ 知识库检索（向量）：书单 = 角色启用 ∪ 预设 knowledge.books ∪ 活动事件附加书
+#    查询文本 = 当前输入 + 最近 recent_history_count 条原始历史（不含注入内容）
+#    结果按相似度阈值 + 最大召回条数过滤
+knowledge = vector_search(books, query=sending + recent_history)
+# ⑲ 上行预算裁剪：conversation_max_tokens（按字符数近似），
+#    先扣除系统消息与知识库占用，再从最新往最旧回填历史，塞不下即停
+history = fill_newest_first(history, budget=max_tokens - len(ctx) - len(knowledge))
+ctx += history
+# ⑳ post_history_instructions（角色卡字段；激活事件的 processPrompt 会替代它）
+#    位置：历史消息之后、用户消息之前 —— 这是"最后的指令"槽位
+ctx.append(template("postHistoryInstructionsPrompt", phi))
+# ㉑ 知识库内容注入：优先替换上下文中的  占位符；
+#    没有占位符则追加到末尾
+ctx = place_knowledge(ctx, knowledge)
+# ㉒ 用户本次消息（保证是最后一条）
+ctx.append(sending)
+# ㉓ 宏统一 pass：/ 等变量宏按消息顺序执行并持久化，
+#    // 等无状态宏兜底替换
+return run_macro_pass(ctx)
+#
+3. 组件交互时序
+sequenceDiagram
+participant CD as 聊天页
+participant PS as 预设解析
+participant WB as 世界书引擎
+participant KB as 知识库(向量)
+participant AI as AI 服务工厂
+Note over CD: 每次发送都执行 ↓
+CD->>PS: resolveForChat(chatId, roleId)
+PS-->>CD: 生效配置(或 null=无挂载)
+CD->>CD: applyToRecord → record 副本
+CD->>WB: scan(绑定书, 扫描窗口, 时效状态)
+WB-->>CD: before/after/atDepth 三桶 + 新时效状态
+CD->>KB: search(书单, 查询文本)
+KB-->>CD: 相关片段
+alt 预设改了 API 连接
+CD->>AI: 用覆写配置临时建服务
+else
+CD->>AI: 复用常驻服务(页面初始化时创建)
+end
+AI-->>CD: 流式响应
+#
+4. 用户可见开关对照表（排查依据）
+管线环节
+用户开关位置
+全局系统提示词
+设置 → 提示词自定义
+注入提示词启停/分组
+设置 → 提示词注入；对话管理 → Prompt 标签
+预设栈（五处）
+设置 → 预设（全局）/ 角色编辑页 / 对话管理 → 基础设置 / 故事设置页 / 朋友圈设置页；聊天页顶栏可加星快捷入口
+世界书绑定
+角色编辑页 → 世界书；对话管理 → Prompt 标签可临时禁用
+历史消息数量 / 最大上行字数
+设置 → 聊天设置（全局）；对话管理 → 基础设置（独立设置开启时）
+时间提示
+对话管理 → Prompt 标签
+长期记忆 / 永久记忆
+对话管理 → 记忆标签
+知识库
+角色编辑页 → 知识书；相似度阈值在设置 → 聊天设置
+正则规则
+角色编辑页 → 正则处理设置
+思考显示
+对话管理 → 基础设置 →「显示模型思考」
+流式输出
+对话管理 → 基础设置（可被预设 chat.streamEnabled 覆写）
+#
+5. 常见问题的机制解释
+「AI 没有按我的世界书回答」
+：世界书按关键词在
+扫描窗口
+（裁剪后的历史 + 当前消息）内匹配。旧对话的角色快照不含新绑定的书——绑定后需
+新建对话
+；或检查对话管理里是否被临时禁用。
+「预设为什么没生效」
+：栈内开关是否打开；同一键被多个作用域设置时 chat > role/app > global，同栈内
+越靠上优先级越高
+；预设键本身有独立开关（关=保值不生效）。
+「上下文太长被截断」
+：先检查「最大上行字数」预算；系统消息与知识库内容优先占用预算，历史消息从最新往回填，塞不下的最旧消息被丢弃（会有提示）。
+「事件激活后场景变了」
+：激活事件的描述会
+替代
+角色的场景设定（scenario），事件的 processPrompt 会
+替代
+角色的 post_history_instructions，这是设计行为。
+Previous
+预设解析机制
+© Copyright 2026. All rights reserved.

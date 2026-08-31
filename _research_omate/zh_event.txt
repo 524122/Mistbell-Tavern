@@ -1,0 +1,529 @@
+﻿事件书 | OMate用户手册
+OMate
+用户手册
+官方网站
+下载应用
+联系我们
+Powered by
+官方网站
+下载应用
+联系我们
+Powered by
+#
+事件书
+OMate的事件书功能让您可以创建和管理复杂的剧情流程、任务系统或交互式内容，增强AI聊天体验的深度和趣味性。
+视频教程
+#
+事件书概述
+事件书是由一系列事件组成的集合，每个事件都有自己的解锁条件、属性和完成条件。通过事件书，您可以：
+创建有序的剧情线和任务流程
+设计基于状态变化的事件触发机制
+构建复杂的交互式故事体验
+#
+事件书管理
+#
+查看事件书
+事件书管理页面展示了所有可用的事件书，每个事件书卡片包含以下信息：
+事件书名称
+作者信息
+事件书描述
+包含的事件数量
+#
+创建新的事件书
+创建一个新的事件书非常简单：
+导航至「事件书」页面
+点击右上角的「+」按钮
+在弹出的对话框中：
+输入事件书名称
+填写作者信息（可选）
+添加事件书描述
+点击「创建」按钮完成
+#
+事件管理
+#
+事件列表
+事件列表页面展示了当前事件书中的所有事件，按照事件编号排序。每个事件卡片包含：
+事件编号
+事件标题
+事件描述摘要
+事件状态（锁定/解锁/已完成）
+#
+创建新事件
+添加一个新事件到事件书中：
+在事件书详情页面，点击「添加事件」按钮
+在事件编辑页面中：
+输入事件标题
+添加事件描述
+设置解锁条件
+设置完成条件
+点击「保存」按钮完成创建
+提示
+系统会自动为新事件分配一个编号，通常是当前最大编号加10。这个编号是可以编辑的。
+#
+编辑事件
+您可以随时修改现有事件的内容：
+在事件列表中点击要编辑的事件
+在事件详情页面，点击「编辑」按钮
+修改事件内容
+点击「保存」按钮应用更改
+#
+解锁条件类型
+事件可以通过两种不同的方式解锁：
+#
+无需解锁
+该事件没有解锁条件，创建后按编号顺序可以依次触发。适用于：
+故事的起始事件
+独立的、不依赖其他事件的内容
+#
+其他事件完成后
+当指定的一个或多个其他事件完成后解锁。适用于：
+剧情的顺序推进
+依赖于前置任务的后续内容
+分支故事线的汇合点
+#
+完成条件类型
+事件可以通过三种不同的方式完成：
+#
+手动完成
+该事件没有自动完成条件，需要用户手动标记为完成。适用于：
+需要玩家主观判断的任务
+多种完成方式的开放性任务
+需要人工确认的关键节点
+#
+状态值条件
+基于聊天中状态栏的状态值自动完成。详细的状态栏使用方法请参考
+状态栏系统
+文档。
+OMate支持多种状态比较操作符：
+等于/不等于
+大于/小于
+大于等于/小于等于
+包含/不包含
+为空/不为空
+#
+提示词识别
+当聊天中出现特定提示词时自动完成事件。适用于：
+剧情推进检测
+特定对话内容的识别
+关键词触发的事件
+提示
+默认的完成类型为「提示词识别」，默认提示词为「同时满足以下两个条件 ① 历史对话已经覆盖了描述的主要剧情 ② 并且对话已推进至当前剧情的最后节点」。
+注意
+提示词识别类型的事件支持「自动检查」功能开关，您可以在事件书设置中启用或禁用此功能。禁用后，系统将不会自动检查提示词是否出现，需要手动完成事件。状态值条件类型的事件不受此开关影响，始终会自动检查。
+#
+在聊天中使用事件
+事件系统与聊天功能紧密集成，可以实现动态的剧情和任务体验：
+#
+事件解锁与完成通知
+当事件被解锁或完成时，系统会在聊天界面显示相应通知：
+事件解锁通知会显示新可用的事件
+事件完成通知会显示已完成的事件
+#
+状态栏集成
+事件系统与状态栏紧密集成，可以基于状态值自动完成事件。详细的状态栏语法和使用方法请参考
+状态栏系统
+文档。
+#
+事件查看
+在聊天界面，您可以：
+点击右上角的「事件」按钮
+查看当前对话关联的事件书
+浏览已解锁和已完成的事件
+手动标记可完成的事件
+#
+导入与导出
+OMate支持事件书的导入与导出功能，方便分享和备份：
+#
+导出事件书
+将当前事件书导出为JSON文件：
+在事件书详情页面，点击「导出」按钮
+选择保存位置
+系统会生成「事件书名称_时间戳.json」格式的文件
+#
+导入事件书
+从JSON文件导入事件书：
+在事件书列表页面，点击「导入」按钮
+选择要导入的JSON文件
+选择导入方式：
+新建导入：创建一个全新的事件书
+合并导入：将事件合并到现有事件书中
+警告
+合并导入时，只会导入当前事件书中不存在的事件（基于事件ID）。
+#
+事件链的构建
+通过设置合理的解锁和完成条件，您可以构建复杂的事件链：
+线性事件链
+：每个事件依赖前一个事件完成后解锁
+分支事件链
+：一个事件完成后解锁多个不同的后续事件
+汇合事件链
+：多个事件都完成后才解锁一个新事件
+条件事件链
+：基于状态值或提示词的动态事件流程
+提示
+设计事件链时，请确保逻辑合理，避免创建无法解锁的事件。
+#
+事件书模板生成
+您可以使用以下提示词模板，复制粘贴并修改大体剧情，快速生成符合格式的事件书JSON：
+你正在设计一个包含多个事件的[主题]故事，请规划[数量]个具有代表性事件，供用户体验。
+JSON 的 schema 如下：
+{
+&quot;$schema&quot;: &quot;http://json-schema.org/draft-07/schema#&quot;,
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;id&quot;, &quot;meta&quot;, &quot;events&quot;],
+&quot;properties&quot;: {
+&quot;id&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件书唯一标识符，使用UUID格式&quot;
+},
+&quot;meta&quot;: {
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;name&quot;, &quot;desp&quot;],
+&quot;properties&quot;: {
+&quot;name&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件书名称&quot;
+},
+&quot;author&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;作者名称（可选）&quot;
+},
+&quot;author_link&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;作者链接，可以是网址或邮箱地址（以http://、https://或mailto:开头）&quot;
+},
+&quot;desp&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件书详细描述&quot;
+}
+}
+},
+&quot;events&quot;: {
+&quot;type&quot;: &quot;array&quot;,
+&quot;items&quot;: {
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;id&quot;, &quot;number&quot;, &quot;title&quot;, &quot;desp&quot;, &quot;unlockType&quot;, &quot;completeType&quot;],
+&quot;properties&quot;: {
+&quot;id&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件唯一标识符，使用UUID格式&quot;
+},
+&quot;number&quot;: {
+&quot;type&quot;: &quot;integer&quot;,
+&quot;description&quot;: &quot;事件编号，通常是10的倍数&quot;
+},
+&quot;title&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件标题&quot;
+},
+&quot;desp&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件详细描述&quot;
+},
+&quot;unlockType&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;enum&quot;: [&quot;none&quot;, &quot;events&quot;],
+&quot;description&quot;: &quot;解锁类型，可选值: 'none'(无需解锁), 'events'(其他事件完成后)&quot;
+},
+&quot;unlockCondition&quot;: {
+&quot;description&quot;: &quot;解锁条件，内容根据unlockType有不同的结构&quot;,
+&quot;oneOf&quot;: [
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当unlockType为'none'时，可为空字符串&quot;
+},
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当unlockType为'events'时，是JSON字符串表示的事件ID数组&quot;
+}
+]
+},
+&quot;completeType&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;enum&quot;: [&quot;none&quot;, &quot;status&quot;, &quot;prompt&quot;],
+&quot;description&quot;: &quot;完成类型，可选值: 'none'(手动完成), 'status'(状态值条件), 'prompt'(提示词识别)&quot;
+},
+&quot;compeletCondition&quot;: {
+&quot;description&quot;: &quot;完成条件，内容根据completeType有不同的结构&quot;,
+&quot;oneOf&quot;: [
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当completeType为'none'时，可为空字符串&quot;
+},
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当completeType为'status'时，是JSON字符串表示的状态条件对象数组&quot;
+},
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当completeType为'prompt'时，是提示词字符串&quot;
+}
+]
+}
+}
+}
+}
+}
+}
+当completeType为'status'时，compeletCondition字段包含的状态条件对象数组的schema如下：
+{
+&quot;type&quot;: &quot;array&quot;,
+&quot;items&quot;: {
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;key&quot;, &quot;op&quot;],
+&quot;properties&quot;: {
+&quot;key&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;状态键名&quot;
+},
+&quot;op&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;enum&quot;: [&quot;eq&quot;, &quot;neq&quot;, &quot;gt&quot;, &quot;lt&quot;, &quot;gte&quot;, &quot;lte&quot;, &quot;contains&quot;, &quot;notcontains&quot;, &quot;empty&quot;, &quot;notempty&quot;],
+&quot;description&quot;: &quot;操作符&quot;
+},
+&quot;value&quot;: {
+&quot;description&quot;: &quot;比较值，除了'empty'和'notempty'操作符外都需要&quot;
+}
+}
+}
+}
+输出示例：
+{
+&quot;id&quot;: &quot;a9d937aa-cde1-49b8-9fba-6bdc188cccc8&quot;,
+&quot;meta&quot;: {
+&quot;name&quot;: &quot;恋爱循环&quot;,
+&quot;author&quot;: &quot;Gemini&quot;,
+&quot;author_link&quot;: &quot;&quot;,
+&quot;desp&quot;: &quot;一系列恋爱事件&quot;
+},
+&quot;events&quot;: [
+{
+&quot;id&quot;: &quot;c76675f9-d332-4f37-9a27-f3c08c8c2b57&quot;,
+&quot;number&quot;: 10,
+&quot;title&quot;: &quot;相遇&quot;,
+&quot;desp&quot;: &quot;在学校门口的斜坡上， 遇到了正在奋力奔跑的 ，一个意外让他们撞到了一起，在一系列的互动后，两人留下了对方的联系方式。&quot;,
+&quot;unlockType&quot;: &quot;none&quot;,
+&quot;unlockCondition&quot;: &quot;&quot;,
+&quot;completeType&quot;: &quot;none&quot;,
+&quot;compeletCondition&quot;: &quot;&quot;
+}
+]
+}
+编号按10递增。id 随机。新的事件补充到 events 里边。在desp中，使用  代指用户， 代指角色。
+将上述模板中的方括号内容替换为您自己的剧情和事件设计，然后发送给AI生成。
+提示
+保持JSON格式的正确性很重要，尤其是引号、逗号和大括号的配对。AI生成可能出现问题，需要仔细核查。
+#
+事件书JSON Schema
+以下是事件书JSON的完整Schema定义，可用于验证事件书格式的正确性：
+{
+&quot;$schema&quot;: &quot;http://json-schema.org/draft-07/schema#&quot;,
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;id&quot;, &quot;meta&quot;, &quot;events&quot;],
+&quot;properties&quot;: {
+&quot;id&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件书唯一标识符，使用UUID格式&quot;
+},
+&quot;meta&quot;: {
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;name&quot;, &quot;desp&quot;],
+&quot;properties&quot;: {
+&quot;name&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件书名称&quot;
+},
+&quot;author&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;作者名称（可选）&quot;
+},
+&quot;author_link&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;作者链接，可以是网址或邮箱地址（以http://、https://或mailto:开头）&quot;
+},
+&quot;desp&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件书详细描述&quot;
+}
+}
+},
+&quot;events&quot;: {
+&quot;type&quot;: &quot;array&quot;,
+&quot;items&quot;: {
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;id&quot;, &quot;number&quot;, &quot;title&quot;, &quot;desp&quot;, &quot;unlockType&quot;, &quot;completeType&quot;],
+&quot;properties&quot;: {
+&quot;id&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件唯一标识符，使用UUID格式&quot;
+},
+&quot;number&quot;: {
+&quot;type&quot;: &quot;integer&quot;,
+&quot;description&quot;: &quot;事件编号，通常是10的倍数&quot;
+},
+&quot;title&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件标题&quot;
+},
+&quot;desp&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;事件详细描述&quot;
+},
+&quot;unlockType&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;enum&quot;: [&quot;none&quot;, &quot;events&quot;],
+&quot;description&quot;: &quot;解锁类型，可选值: 'none'(无需解锁), 'events'(其他事件完成后)&quot;
+},
+&quot;unlockCondition&quot;: {
+&quot;description&quot;: &quot;解锁条件，内容根据unlockType有不同的结构&quot;,
+&quot;oneOf&quot;: [
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当unlockType为'none'时，可为空字符串&quot;
+},
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当unlockType为'events'时，是JSON字符串表示的事件ID数组&quot;
+}
+]
+},
+&quot;completeType&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;enum&quot;: [&quot;none&quot;, &quot;status&quot;, &quot;prompt&quot;],
+&quot;description&quot;: &quot;完成类型，可选值: 'none'(手动完成), 'status'(状态值条件), 'prompt'(提示词识别)&quot;
+},
+&quot;compeletCondition&quot;: {
+&quot;description&quot;: &quot;完成条件，内容根据completeType有不同的结构&quot;,
+&quot;oneOf&quot;: [
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当completeType为'none'时，可为空字符串&quot;
+},
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当completeType为'status'时，是JSON字符串表示的状态条件对象数组&quot;
+},
+{
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;当completeType为'prompt'时，是提示词字符串&quot;
+}
+]
+}
+}
+}
+}
+}
+}
+#
+状态条件对象Schema
+当completeType为&#x27;status&#x27;时，compeletCondition字段包含的状态条件对象数组的schema如下：
+{
+&quot;type&quot;: &quot;array&quot;,
+&quot;items&quot;: {
+&quot;type&quot;: &quot;object&quot;,
+&quot;required&quot;: [&quot;key&quot;, &quot;op&quot;],
+&quot;properties&quot;: {
+&quot;key&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;description&quot;: &quot;状态键名&quot;
+},
+&quot;op&quot;: {
+&quot;type&quot;: &quot;string&quot;,
+&quot;enum&quot;: [&quot;eq&quot;, &quot;neq&quot;, &quot;gt&quot;, &quot;lt&quot;, &quot;gte&quot;, &quot;lte&quot;, &quot;contains&quot;, &quot;notcontains&quot;, &quot;empty&quot;, &quot;notempty&quot;],
+&quot;description&quot;: &quot;操作符&quot;
+},
+&quot;value&quot;: {
+&quot;description&quot;: &quot;比较值，除了'empty'和'notempty'操作符外都需要&quot;
+}
+}
+}
+}
+#
+示例
+以下是一个符合schema的事件书JSON示例：
+{
+&quot;id&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+&quot;meta&quot;: {
+&quot;name&quot;: &quot;勇者冒险&quot;,
+&quot;author&quot;: &quot;OMate开发团队&quot;,
+&quot;author_link&quot;: &quot;https://example.com&quot;,
+&quot;desp&quot;: &quot;一个关于勇者冒险的故事线&quot;
+},
+&quot;events&quot;: [
+{
+&quot;id&quot;: &quot;550e8400-e29b-41d4-a716-446655440001&quot;,
+&quot;number&quot;: 10,
+&quot;title&quot;: &quot;冒险开始&quot;,
+&quot;desp&quot;: &quot;准备开始一段冒险之旅&quot;,
+&quot;unlockType&quot;: &quot;none&quot;,
+&quot;unlockCondition&quot;: &quot;&quot;,
+&quot;completeType&quot;: &quot;prompt&quot;,
+&quot;compeletCondition&quot;: &quot;同时满足以下两个条件 ① 历史对话已经覆盖了描述的主要剧情 ② 并且对话已推进至当前剧情的最后节点&quot;
+},
+{
+&quot;id&quot;: &quot;550e8400-e29b-41d4-a716-446655440002&quot;,
+&quot;number&quot;: 20,
+&quot;title&quot;: &quot;获得武器&quot;,
+&quot;desp&quot;: &quot;需要获得一把武器才能继续冒险&quot;,
+&quot;unlockType&quot;: &quot;events&quot;,
+&quot;unlockCondition&quot;: &quot;[\&quot;550e8400-e29b-41d4-a716-446655440001\&quot;]&quot;,
+&quot;completeType&quot;: &quot;status&quot;,
+&quot;compeletCondition&quot;: &quot;[{\&quot;key\&quot;:\&quot;装备\&quot;,\&quot;op\&quot;:\&quot;contains\&quot;,\&quot;value\&quot;:\&quot;剑\&quot;}]&quot;
+},
+{
+&quot;id&quot;: &quot;550e8400-e29b-41d4-a716-446655440003&quot;,
+&quot;number&quot;: 30,
+&quot;title&quot;: &quot;打败魔王&quot;,
+&quot;desp&quot;: &quot;需要打败魔王完成冒险&quot;,
+&quot;unlockType&quot;: &quot;events&quot;,
+&quot;unlockCondition&quot;: &quot;[\&quot;550e8400-e29b-41d4-a716-446655440002\&quot;]&quot;,
+&quot;completeType&quot;: &quot;none&quot;,
+&quot;compeletCondition&quot;: &quot;&quot;
+}
+]
+}
+#
+在对话中挂接事件书
+要将事件书与特定对话关联起来，您需要完成以下步骤：
+#
+选择对话关联事件书
+打开聊天对话页面
+点击右上角的事件书图标（日历形状）
+在弹出的事件书设置页面中：
+启用「启用事件书」开关
+从下拉菜单中选择要关联的事件书
+可选：启用「自动检测」开关，允许系统自动检测提示词类型事件的完成
+点击返回按钮完成设置
+#
+查看事件状态与进度
+事件书成功关联后，您可以在设置页面查看事件的状态：
+每个事件都会显示其解锁状态、完成状态和激活状态
+已解锁的事件会显示其详细信息，包括：
+事件编号
+事件标题
+事件描述
+解锁条件
+完成条件
+对于每个已解锁的事件，您可以：
+手动标记为已完成（如果是手动完成类型）
+设置为当前激活事件（只能有一个激活事件）
+#
+事件激活机制
+事件激活是事件书系统的重要功能：
+只能有一个事件处于激活状态
+激活的事件会成为当前故事/任务的焦点
+当事件完成时，其激活状态会自动取消
+您可以在事件设置页面手动激活任何已解锁的事件
+#
+取消事件书关联
+如果您希望取消当前对话与事件书的关联：
+打开事件书设置页面
+关闭「启用事件书」开关
+返回聊天界面
+注意
+取消关联后，事件书的状态会被保留。如果之后重新启用相同的事件书，所有事件状态会恢复。
+Previous
+状态栏
+Next
+朋友圈
+© Copyright 2026. All rights reserved.

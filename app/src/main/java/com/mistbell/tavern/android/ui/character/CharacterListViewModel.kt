@@ -156,7 +156,17 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
                     val worldBookInfo = if (importResult.worldBook != null) {
                         "（含 ${importResult.worldBookEntries.size} 条世界书条目）"
                     } else ""
-                    _message.value = "成功导入角色：${characterEntity.name}$worldBookInfo"
+                    // 导入诊断明细：仅记录提示条数与内容摘要到 logcat（不含卡片正文，隐私）
+                    if (importResult.warnings.isNotEmpty()) {
+                        importResult.warnings.forEach { warning ->
+                            android.util.Log.i("CharacterImport", "导入提示: $warning")
+                        }
+                    }
+                    // 提示消息升级：附加 k 条提示（不含卡内容）
+                    val warningsInfo = if (importResult.warnings.isNotEmpty()) {
+                        "（${importResult.warnings.size} 条提示）"
+                    } else ""
+                    _message.value = "成功导入角色：${characterEntity.name}$worldBookInfo$warningsInfo"
                 } else {
                     _message.value = "导入失败：无法解析 JSON 文件"
                 }

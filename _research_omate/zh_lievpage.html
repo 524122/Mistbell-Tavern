@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="3.12.0.837752939225">
+
+    <!-- See retype.com -->
+    <meta name="generator" content="Retype 3.12.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Live Page 使用指南 | OMate用户手册</title>
+    <meta name="title" content="Live Page 使用指南 | OMate用户手册">
+    <meta name="description" content="Live Page 是在聊天中以卡片形式展示的可交互 HTML 页面，适合承载结构化数据、仪表盘、任务面板等。">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://help.omate.org/features/lievpage/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://help.omate.org/features/lievpage/">
+    <meta property="og:title" content="Live Page 使用指南 | OMate用户手册">
+    <meta property="og:description" content="Live Page 是在聊天中以卡片形式展示的可交互 HTML 页面，适合承载结构化数据、仪表盘、任务面板等。">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://help.omate.org/features/lievpage/">
+    <meta property="twitter:title" content="Live Page 使用指南 | OMate用户手册">
+    <meta property="twitter:description" content="Live Page 是在聊天中以卡片形式展示的可交互 HTML 页面，适合承载结构化数据、仪表盘、任务面板等。">
+
+    <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
+
+    <link id="retype-favicon" rel="icon" href="../../static/favicon.png" />
+    <link href="../../resources/css/retype.css?v=3.12.0.837752939225" rel="stylesheet">
+
+    <script data-cfasync="false" src="../../resources/js/config.js?v=3.12.0.837752939225" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../../resources/js/retype.js?v=3.12.0" data-turbo-eval="false" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=3.12.0.837752939225" data-turbo-eval="false" defer></script>
+    <script id="prism-js" data-cfasync="false" src="../../resources/js/prism.js?v=3.12.0.837752939225" defer></script>
+</head>
+<body>
+    <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
+        <div class="absolute bottom-0 left-0" style="top: 5rem; right: 50%"></div>
+    
+        <header id="retype-header" class="sticky top-0 z-30 flex w-full h-16 bg-header-bg border-b border-header-border md:h-20">
+            <div class="container relative flex items-center justify-between pr-6 grow md:justify-start">
+                <!-- Mobile menu button skeleton -->
+                <button v-cloak class="skeleton retype-mobile-menu-button flex items-center justify-center shrink-0 overflow-hidden dark:text-white focus:outline-none rounded-full w-10 h-10 ml-3.5 md:hidden"><svg xmlns="http://www.w3.org/2000/svg" class="mb-px shrink-0" width="24" height="24" viewBox="0 0 24 24" role="presentation" style="margin-bottom: 0px;"><g fill="currentColor"><path d="M2 4h20v2H2zM2 11h20v2H2zM2 18h20v2H2z"></path></g></svg></button>
+                <div v-cloak id="retype-sidebar-left-toggle-button"></div>
+        
+                <!-- Logo -->
+                <div class="flex items-center justify-between h-full py-2 md:w-75">
+                    <div class="flex items-center px-2 md:px-6">
+                        <a id="retype-branding-logo" href="../../" class="flex items-center leading-snug text-2xl">
+                            <span class="dark:text-white font-bold line-clamp-1 md:line-clamp-2">OMate</span>
+                        </a><span id="retype-branding-label" class="inline-flex mt-1 px-2 py-1 ml-4 text-xs font-medium leading-none items-center rounded-md bg-branding-label-bg text-branding-label-text ring-1 ring-branding-label-border ring-inset md:inline-block">用户手册</span>
+                    </div>
+        
+                    <span class="hidden h-8 border-r md:inline-block border-base-border"></span>
+                </div>
+        
+                <div class="flex justify-between md:grow">
+                    <!-- Top Nav -->
+                    <nav id="retype-header-nav" class="hidden md:flex">
+                        <ul class="flex flex-col mb-4 md:pl-16 md:mb-0 md:flex-row md:items-center">
+                            <li class="mr-6">
+                                <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://omate.org">官方网站</a>
+                            </li>
+                            <li class="mr-6">
+                                <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="../../#%E4%B8%8B%E8%BD%BD">下载应用</a>
+                            </li>
+                            <li class="mr-6">
+                                <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="mailto:admin@omate.org">联系我们</a>
+                            </li>
+        
+                        </ul>
+                    </nav>
+        
+                    <div v-cloak class="flex justify-end grow">
+                        <div id="retype-mobile-search-button"></div>
+                        <doc-search-desktop></doc-search-desktop>
+        
+                        <doc-theme-switch class="lg:ml-2"></doc-theme-switch>
+                        <doc-history></doc-history>
+                    </div>
+                </div>
+            </div>
+        </header>
+    
+    
+        <div id="retype-container" class="container relative flex bg-white">
+            <!-- Sidebar Skeleton -->
+            <div v-cloak class="fixed flex flex-col shrink-0 duration-300 ease-in-out bg-sidebar-left-bg border-sidebar-left-border sidebar top-20 w-75 border-r h-screen md:sticky transition-transform skeleton">
+            
+                <div class="flex items-center h-16 px-6">
+                    <input id="retype-filter-input-mock" class="w-full h-10 pl-8 px-3 py-2 transition-colors duration-200 ease-linear bg-filter-bg border border-filter-border rounded-lg shadow-none md:text-sm hover:border-filter-border-hover focus:outline-none focus:border-filter-border-focus placeholder-filter-placeholder" type="text">
+                </div>
+            
+                <div class="pl-6 mt-1 mb-4">
+                    <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                </div>
+            
+                <div class="shrink-0 mt-auto bg-transparent dark:border-base-border">
+                    <a class="flex items-center justify-center flex-nowrap h-16 text-gray-350 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 transition-colors duration-150 ease-in docs-powered-by" target="_blank" href="https://retype.com/" rel="noopener">
+                        <span class="text-xs whitespace-nowrap">Powered by</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="ml-2" fill="currentColor" width="96" height="20" overflow="visible"><path d="M0 0v20h13.59V0H0zm11.15 17.54H2.44V2.46h8.71v15.08zM15.8 20h2.44V4.67L15.8 2.22zM20.45 6.89V20h2.44V9.34z"/><g><path d="M40.16 8.44c0 1.49-.59 2.45-1.75 2.88l2.34 3.32h-2.53l-2.04-2.96h-1.43v2.96h-2.06V5.36h3.5c1.43 0 2.46.24 3.07.73s.9 1.27.9 2.35zm-2.48 1.1c.26-.23.38-.59.38-1.09 0-.5-.13-.84-.4-1.03s-.73-.28-1.39-.28h-1.54v2.75h1.5c.72 0 1.2-.12 1.45-.35zM51.56 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92h4.74v1.83h-6.79V5.36h6.64zM60.09 7.15v7.48h-2.06V7.15h-2.61V5.36h7.28v1.79h-2.61zM70.81 14.64h-2.06v-3.66l-3.19-5.61h2.23l1.99 3.45 1.99-3.45H74l-3.19 5.61v3.66zM83.99 6.19c.65.55.97 1.4.97 2.55s-.33 1.98-1 2.51-1.68.8-3.04.8h-1.23v2.59h-2.06V5.36h3.26c1.42 0 2.45.28 3.1.83zm-1.51 3.65c.25-.28.37-.69.37-1.22s-.16-.92-.48-1.14c-.32-.23-.82-.34-1.5-.34H79.7v3.12h1.38c.68 0 1.15-.14 1.4-.42zM95.85 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92H96v1.83h-6.79V5.36h6.64z"/></g></svg>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Sidebar component -->
+            <doc-sidebar v-cloak>
+                <template #sidebar-footer>
+                    <div class="shrink-0 mt-auto border-t md:bg-transparent md:border-none dark:border-base-border">
+            
+                        <div class="py-3 px-6 md:hidden border-b dark:border-base-border">
+                            <nav>
+                                <ul class="flex flex-wrap justify-center items-center">
+                                    <li class="mr-6">
+                                        <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://omate.org">官方网站</a>
+                                    </li>
+                                    <li class="mr-6">
+                                        <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="../../#%E4%B8%8B%E8%BD%BD">下载应用</a>
+                                    </li>
+                                    <li class="mr-6">
+                                        <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="mailto:admin@omate.org">联系我们</a>
+                                    </li>
+            
+                                </ul>
+                            </nav>
+                        </div>
+            
+                        <a class="flex items-center justify-center flex-nowrap h-16 text-gray-350 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 transition-colors duration-150 ease-in docs-powered-by" target="_blank" href="https://retype.com/" rel="noopener">
+                            <span class="text-xs whitespace-nowrap">Powered by</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="ml-2" fill="currentColor" width="96" height="20" overflow="visible"><path d="M0 0v20h13.59V0H0zm11.15 17.54H2.44V2.46h8.71v15.08zM15.8 20h2.44V4.67L15.8 2.22zM20.45 6.89V20h2.44V9.34z"/><g><path d="M40.16 8.44c0 1.49-.59 2.45-1.75 2.88l2.34 3.32h-2.53l-2.04-2.96h-1.43v2.96h-2.06V5.36h3.5c1.43 0 2.46.24 3.07.73s.9 1.27.9 2.35zm-2.48 1.1c.26-.23.38-.59.38-1.09 0-.5-.13-.84-.4-1.03s-.73-.28-1.39-.28h-1.54v2.75h1.5c.72 0 1.2-.12 1.45-.35zM51.56 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92h4.74v1.83h-6.79V5.36h6.64zM60.09 7.15v7.48h-2.06V7.15h-2.61V5.36h7.28v1.79h-2.61zM70.81 14.64h-2.06v-3.66l-3.19-5.61h2.23l1.99 3.45 1.99-3.45H74l-3.19 5.61v3.66zM83.99 6.19c.65.55.97 1.4.97 2.55s-.33 1.98-1 2.51-1.68.8-3.04.8h-1.23v2.59h-2.06V5.36h3.26c1.42 0 2.45.28 3.1.83zm-1.51 3.65c.25-.28.37-.69.37-1.22s-.16-.92-.48-1.14c-.32-.23-.82-.34-1.5-.34H79.7v3.12h1.38c.68 0 1.15-.14 1.4-.42zM95.85 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92H96v1.83h-6.79V5.36h6.64z"/></g></svg>
+                        </a>
+                    </div>
+                </template>
+            </doc-sidebar>
+    
+            <div class="grow min-w-0 bg-body-bg">
+                <!-- Render "toolbar" template here on api pages --><!-- Render page content -->
+                <div class="flex">
+                    <div id="retype-main" class="min-w-0 p-4 grow md:px-16">
+                        <main class="relative pb-12 lg:pt-2">
+                            <div class="retype-markdown" id="retype-content">
+                                <!-- Rendered if sidebar right is enabled -->
+                                <div id="retype-sidebar-right-toggle"></div>
+                                <!-- Page content  -->
+<doc-anchor-target id="live-page-使用指南" class="break-words">
+    <h1>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#live-page-使用指南">#</doc-anchor-trigger>
+        <span>Live Page 使用指南</span>
+    </h1>
+</doc-anchor-target>
+<doc-anchor-target id="概述">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#概述">#</doc-anchor-trigger>
+        <span>概述</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>Live Page 是在聊天中以卡片形式展示的可交互 HTML 页面，适合承载结构化数据、仪表盘、任务面板等。</li>
+<li>卡片点击后将在半透明浮层中以 WebView 打开，自动注入数据与环境变量，支持本地 KV 存储读写。</li>
+<li>通过 AI 可一键生成或修改 Live Page；也支持手动创建、导入与导出。</li>
+</ul>
+<doc-anchor-target id="快速入口">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#快速入口">#</doc-anchor-trigger>
+        <span>快速入口</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>设置页进入 <code translate="no" v-pre>OMate Pro</code> 页面，点击 <code translate="no" v-pre>Live Page 管理</code> 进入列表。</li>
+<li>列表中可创建、编辑、删除、导入、导出，并进入 <code translate="no" v-pre>API 设置</code> 选择用于 AI 生成的接口配置。</li>
+</ul>
+<doc-anchor-target id="在聊天中如何呈现">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#在聊天中如何呈现">#</doc-anchor-trigger>
+        <span>在聊天中如何呈现</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li><p>当消息文本包含如下标签时，会在气泡中插入 Live Page 卡片：</p>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-markup"><code v-pre class="language-markup">&lt;LivePage slug=&quot;your-slug&quot;&gt;
+{&quot;title&quot;:&quot;Status&quot;,&quot;hp&quot;:100,&quot;mp&quot;:50}
+&lt;/LivePage&gt;</code></pre>
+</doc-codeblock></div>
+</li>
+<li><p>渲染逻辑：根据 <code translate="no" v-pre>slug</code> 从本地 Live Page 配置中取出对应的 HTML 模板，再把标签中的 JSON 数据注入 <code translate="no" v-pre>window.omateLivePageData</code>，卡片展示名称与图标，点击打开浮层。</p>
+</li>
+</ul>
+<doc-anchor-target id="浮层与数据注入">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#浮层与数据注入">#</doc-anchor-trigger>
+        <span>浮层与数据注入</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>打开卡片后会加载 HTML，并注入：
+<ul>
+<li><code translate="no" v-pre>window.omateLivePageData</code>：来自聊天标签的 JSON 数据。</li>
+<li><code translate="no" v-pre>window.omate.env</code>：聊天环境变量（当前会话的配置、角色、群聊角色列表、面具、API 等）。</li>
+<li>简化版 KV SDK：<code translate="no" v-pre>window.omate.kv</code>，提供 <code translate="no" v-pre>get/set/delete/list</code> 操作，默认分类为 <code translate="no" v-pre>livepage</code>，按会话隔离。</li>
+</ul>
+</li>
+<li><p>示例（HTML 片段，数据渲染）：</p>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-markup"><code v-pre class="language-markup">&lt;span id=&quot;hp&quot;&gt;&lt;/span&gt;
+&lt;script&gt;
+  const data = window.omateLivePageData;
+  document.getElementById('hp').innerText = data.hp;
+&lt;/script&gt;</code></pre>
+</doc-codeblock></div>
+</li>
+<li><p>KV 使用示例：</p>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-javascript"><code v-pre class="language-javascript">await omate.kv.set('last_open', Date.now());
+const v = await omate.kv.get('last_open');
+const all = await omate.kv.list();
+await omate.kv.delete('last_open');</code></pre>
+</doc-codeblock></div>
+</li>
+</ul>
+<doc-anchor-target id="创建与管理">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#创建与管理">#</doc-anchor-trigger>
+        <span>创建与管理</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>进入 <code translate="no" v-pre>Live Page 管理</code>：
+<ul>
+<li>创建：点击右上角菜单 <code translate="no" v-pre>创建 LivePage</code> 或空列表的引导按钮。</li>
+<li>编辑：向右滑列表项或点击条目进入编辑页。</li>
+<li>删除：向左滑列表项并输入 <code translate="no" v-pre>delete</code> 确认。</li>
+<li>导入：从 JSON 文件导入，若 <code translate="no" v-pre>slug</code> 冲突可选择覆盖。</li>
+<li>导出：在编辑页菜单选择导出，得到标准 JSON 文件。</li>
+</ul>
+</li>
+</ul>
+<doc-anchor-target id="字段与格式">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#字段与格式">#</doc-anchor-trigger>
+        <span>字段与格式</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>每个 Live Page 配置包含以下字段：
+<ul>
+<li><code translate="no" v-pre>name</code>：显示名称（必填）</li>
+<li><code translate="no" v-pre>slug</code>：唯一标识，使用小写字母、数字、下划线、连字符（必填）</li>
+<li><code translate="no" v-pre>icon</code>：Emoji 图标（可选）</li>
+<li><code translate="no" v-pre>showIcon</code>：是否显示图标（可选，默认 <code translate="no" v-pre>true</code>）</li>
+<li><code translate="no" v-pre>htmlCode</code>：完整 HTML（必填，包含样式与脚本，数据从 <code translate="no" v-pre>window.omateLivePageData</code> 读取）</li>
+<li><code translate="no" v-pre>dataDefine</code>：数据结构的 JSON Schema（可选）</li>
+<li><code translate="no" v-pre>dataDemo</code>：示例数据（可选，用于预览与测试）</li>
+<li><code translate="no" v-pre>note</code>：备注说明（可选）</li>
+</ul>
+</li>
+<li><p>导入/导出示例：</p>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-json"><code v-pre class="language-json">{
+  &quot;name&quot;: &quot;Status Panel&quot;,
+  &quot;slug&quot;: &quot;status-panel&quot;,
+  &quot;icon&quot;: &quot;📊&quot;,
+  &quot;showIcon&quot;: true,
+  &quot;htmlCode&quot;: &quot;&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;...&lt;/head&gt;&lt;body&gt;...&lt;/body&gt;&lt;/html&gt;&quot;,
+  &quot;dataDefine&quot;: &quot;{\n  \&quot;type\&quot;: \&quot;object\&quot;, ...\n}&quot;,
+  &quot;dataDemo&quot;: &quot;{\n  \&quot;title\&quot;: \&quot;Status\&quot;, \&quot;hp\&quot;: 100\n}&quot;,
+  &quot;note&quot;: &quot;Demo panel&quot;
+}</code></pre>
+</doc-codeblock></div>
+</li>
+</ul>
+<doc-anchor-target id="ai-生成与修改">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#ai-生成与修改">#</doc-anchor-trigger>
+        <span>AI 生成与修改</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>在编辑页的 <code translate="no" v-pre>AI</code> 标签：
+<ul>
+<li>生成：输入期望描述，点击 <code translate="no" v-pre>AI 生成</code>。</li>
+<li>修改：在编辑模式下描述需要变动的内容，使用 <code translate="no" v-pre>AI 生成</code> 进行增量更新。</li>
+<li>复制与粘贴：可复制系统提示，或粘贴 AI 输出进行解析。</li>
+</ul>
+</li>
+<li><p>输出格式要求（由系统提示约束）：AI 返回一组标签，编辑页会自动解析并填充：</p>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-none"><code v-pre class="language-none">&lt;OMateLivePageName&gt;...&lt;/OMateLivePageName&gt;
+&lt;OMateLivePageSlug&gt;...&lt;/OMateLivePageSlug&gt;
+&lt;OMateLivePageIcon&gt;...&lt;/OMateLivePageIcon&gt;
+&lt;OMateLivePageShowIcon&gt;true|false&lt;/OMateLivePageShowIcon&gt;
+&lt;OMateLivePageHtmlCode&gt;...&lt;/OMateLivePageHtmlCode&gt;
+&lt;OMateLivePageDataDefine&gt;...&lt;/OMateLivePageDataDefine&gt;
+&lt;OMateLivePageDataDemo&gt;...&lt;/OMateLivePageDataDemo&gt;
+&lt;OMateLivePageNote&gt;...&lt;/OMateLivePageNote&gt;</code></pre>
+</doc-codeblock></div>
+</li>
+<li>视觉模型支持：若在 <code translate="no" v-pre>API 设置</code> 选择了包含 <code translate="no" v-pre>visionModel</code> 的配置，可选图片作为提示上下文，系统会自动切换到对应模型与接口。</li>
+</ul>
+<doc-anchor-target id="在聊天中使用与事件联动">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#在聊天中使用与事件联动">#</doc-anchor-trigger>
+        <span>在聊天中使用与事件联动</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>将 <code translate="no" v-pre>&lt;LivePage&gt;</code> 标签放入消息内容即可触发卡片渲染。</li>
+<li>事件检查可读取 Live Page 数据并展平为状态字段（<code translate="no" v-pre>livepage.{slug}.{field}</code>），用于判断事件完成条件。</li>
+</ul>
+<doc-anchor-target id="体验细节">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#体验细节">#</doc-anchor-trigger>
+        <span>体验细节</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li>浮层自动计算高度，若模板使用 <code translate="no" v-pre>100vh</code> 或内容不足，将以最大高度显示。</li>
+<li>外部链接默认阻断，提升安全与沉浸体验；控制台输出可在调试时查看。</li>
+</ul>
+<doc-anchor-target id="常见问题">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#常见问题">#</doc-anchor-trigger>
+        <span>常见问题</span>
+    </h2>
+</doc-anchor-target>
+<ul>
+<li><code translate="no" v-pre>slug</code> 已占用：导入或保存时将提示冲突，支持覆盖或更换名称。</li>
+<li>AI 输出未解析：确认 AI 返回的标签完整且大小写正确；也可使用“粘贴”功能手动填充。</li>
+<li>数据未显示：检查模板是否从 <code translate="no" v-pre>window.omateLivePageData</code> 读取；确保聊天标签中的 JSON 与模板字段一致。</li>
+<li>KV 不生效：KV 默认分类为 <code translate="no" v-pre>livepage</code>，按会话隔离，确保在同一会话中读写。</li>
+</ul>
+
+                                
+                                <!-- Required only on API pages -->
+                                <doc-toolbar-member-filter-no-results></doc-toolbar-member-filter-no-results>
+                            </div>
+                            <footer id="retype-content-footer" class="clear-both">
+                            
+                                <nav id="retype-nextprev" class="print:hidden flex mt-14">
+                                    <div class="w-1/2">
+                                        <a class="px-5 py-4 h-full flex items-center break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-l-lg transition-colors duration-150 relative hover:z-5" href="../../features/tools/">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="mr-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19 11H7.41l5.29-5.29a.996.996 0 10-1.41-1.41l-7 7a1 1 0 000 1.42l7 7a1.024 1.024 0 001.42-.01.996.996 0 000-1.41L7.41 13H19c.55 0 1-.45 1-1s-.45-1-1-1z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
+                                            <span>
+                                                <span class="block text-xs font-normal text-base-text-muted">Previous</span>
+                                                <span class="block mt-1">工具调用</span>
+                                            </span>
+                                        </a>
+                                    </div>
+                            
+                                    <div class="w-1/2">
+                                        <a class="px-5 py-4 -mx-px h-full flex items-center justify-end break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-r-lg transition-colors duration-150 relative hover:z-5" href="../../create/cardbot/">
+                                            <span>
+                                                <span class="block text-xs font-normal text-right text-base-text-muted">Next</span>
+                                                <span class="block mt-1">制卡工具：Coze&​O​Role</span>
+                                            </span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="ml-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H5c-.55 0-1 .45-1 1s.45 1 1 1h11.59l-5.29 5.29a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
+                                        </a>
+                                    </div>
+                                </nav>
+                            </footer>
+                        </main>
+                
+                        <div id="retype-page-footer" class="print:border-none border-t border-base-border pt-6 mb-8">
+                            <footer class="flex flex-wrap items-center justify-between print:justify-center">
+                                <div id="retype-footer-links" class="print:hidden">
+                                    <ul class="flex flex-wrap items-center text-sm">
+                                    </ul>
+                                </div>
+                                <div id="retype-copyright" class="print:justify-center py-2 text-footer-text font-footer-link text-sm leading-relaxed"><p>© Copyright 2026. All rights reserved.</p></div>
+                            </footer>
+                        </div>
+                    </div>
+                
+                    <!-- Rendered if sidebar right is enabled -->
+                    <!-- Sidebar right skeleton-->
+                    <div v-cloak class="fixed top-0 bottom-0 right-0 translate-x-full bg-sidebar-right-bg border-sidebar-right-border lg:sticky lg:border-l lg:shrink-0 lg:pt-6 lg:transform-none sm:w-1/2 lg:w-64 lg:z-0 md:w-104 sidebar-right skeleton">
+                        <div class="pl-5">
+                            <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                            <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                            <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                        </div>
+                    </div>
+                
+                    <!-- User should be able to hide sidebar right -->
+                    <doc-sidebar-right v-cloak></doc-sidebar-right>
+                </div>
+
+            </div>
+        </div>
+    
+        <doc-search-mobile></doc-search-mobile>
+        <doc-back-to-top></doc-back-to-top>
+    </div>
+
+
+    <div id="retype-overlay-target"></div>
+
+    <script data-cfasync="false">window.__DOCS__ = { "title": "Live Page", level: 2, icon: "file", hasPrism: true, hasMermaid: false, hasMath: false, tocDepth: 23 }</script>
+</body>
+</html>

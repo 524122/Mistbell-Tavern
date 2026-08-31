@@ -256,16 +256,25 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                         )
                         db.sessionDao().upsert(session)
 
-                        // 插入开场白
+                        // 插入开场白（F2.1：先用宏引擎渲染 {{char}}/{{user}} 等）
                         val characterEntity = db.characterDao().getById(characterId)
                         if (characterEntity != null && characterEntity.firstMes.isNotBlank()) {
+                            // 宏上下文：用户名取 settings 的 user_name，缺省 "User"
+                            val mctx = com.mistbell.tavern.android.util.MacroContext(
+                                char = characterEntity.name,
+                                user = db.settingsDao().getValue("user_name") ?: "User",
+                                description = characterEntity.description,
+                                personality = characterEntity.personality,
+                                scenario = characterEntity.scenario,
+                                persona = ""
+                            )
                             val firstMessage = com.mistbell.tavern.android.data.local.entity.MessageEntity(
                                 id = java.util.UUID.randomUUID().toString(),
                                 sessionId = newSessionId,
                                 ownerId = "local-user",
                                 characterId = characterId,
                                 role = "assistant",
-                                content = characterEntity.firstMes,
+                                content = com.mistbell.tavern.android.util.MacroEngine.render(characterEntity.firstMes, mctx),
                                 thinking = null,
                                 createdAt = now,
                                 memoryIdsJson = "[]",

@@ -6,6 +6,8 @@ import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.util.MacroContext
+import com.mistbell.tavern.android.util.MacroEngine
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 
@@ -31,6 +33,16 @@ object PromptBuilder {
             .mapNotNull { db.characterDao().getById(it) }
             .ifEmpty { db.characterDao().getById(characterId)?.let { listOf(it) } ?: emptyList() }
         val character = participantCharacters.firstOrNull() ?: db.characterDao().getById(characterId)
+        // F2.1 宏引擎上下文（契约 B）：用户名统一取 settings 的 "user_name"，缺省 "User"；
+        // persona 字段此处不注入（S3 persona 批次再补）
+        val mctx = MacroContext(
+            char = character?.name ?: "",
+            user = db.settingsDao().getValue("user_name") ?: "User",
+            description = character?.description ?: "",
+            personality = character?.personality ?: "",
+            scenario = character?.scenario ?: "",
+            persona = ""
+        )
         if (character != null) {
             val systemParts = mutableListOf<String>()
             if (participantCharacters.size > 1) {
@@ -44,16 +56,17 @@ object PromptBuilder {
                 val roleLabel = if (index == 0) "Primary character" else "Participant character"
                 val characterParts = mutableListOf<String>()
                 characterParts.add("$roleLabel: ${participant.name}")
-                if (participant.description.isNotBlank()) characterParts.add(participant.description)
-                if (participant.personality.isNotBlank()) characterParts.add("Personality: ${participant.personality}")
-                if (participant.scenario.isNotBlank()) characterParts.add("Scenario: ${participant.scenario}")
+                // 参与组装的角色文本先过宏引擎渲染（{{char}}/{{user}} 等）
+                if (participant.description.isNotBlank()) characterParts.add(MacroEngine.render(participant.description, mctx))
+                if (participant.personality.isNotBlank()) characterParts.add("Personality: ${MacroEngine.render(participant.personality, mctx)}")
+                if (participant.scenario.isNotBlank()) characterParts.add("Scenario: ${MacroEngine.render(participant.scenario, mctx)}")
                 if (participant.dataJson.isNotBlank()) {
                     try {
                         val charData =
                             kotlinx.serialization.json.Json.decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(
                                 participant.dataJson
                             )
-                        if (charData.systemPrompt.isNotBlank()) characterParts.add(1, charData.systemPrompt)
+                        if (charData.systemPrompt.isNotBlank()) characterParts.add(1, MacroEngine.render(charData.systemPrompt, mctx))
                     } catch (_: Exception) {
                     }
                 }
@@ -121,7 +134,8 @@ object PromptBuilder {
         val entries = db.worldBookDao().getEntriesList(worldBookId)
         val constantEntries = entries.filter { it.constant && !it.disable }
         if (constantEntries.isNotEmpty()) {
-            val worldContent = constantEntries.joinToString("\n\n") { "[${it.comment}] ${it.content}" }
+            // 世界书条目内容同样过宏渲染（constant 常驻条目）
+            val worldContent = constantEntries.joinToString("\n\n") { "[${it.comment}] ${MacroEngine.render(it.content, mctx)}" }
             messages.add(ChatMessage(role = "system", content = "World Info:\n$worldContent"))
         }
 
@@ -131,7 +145,8 @@ object PromptBuilder {
             }
         }
         if (activatedEntries.isNotEmpty()) {
-            val activatedContent = activatedEntries.joinToString("\n\n") { "[${it.comment}] ${it.content}" }
+            // 世界书条目内容同样过宏渲染（activated 关键词激活条目）
+            val activatedContent = activatedEntries.joinToString("\n\n") { "[${it.comment}] ${MacroEngine.render(it.content, mctx)}" }
             messages.add(ChatMessage(role = "system", content = "Activated World Info:\n$activatedContent"))
         }
 
@@ -152,10 +167,16 @@ object PromptBuilder {
             contextTokenLimit = contextTokenLimit
         )
         history.forEach { msg: MessageEntity ->
-            messages.add(ChatMessage(role = msg.role, content = msg.content))
+            // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
+            // 思考型模型的历史推理不进上下文（展示层不动）
+            val cleanContent = msg.content
+                .replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "")
+                .trim()
+            messages.add(ChatMessage(role = msg.role, content = cleanContent))
         }
 
-        messages.add(ChatMessage(role = "user", content = userMessage))
+        // 最后的当前用户消息参与宏渲染
+        messages.add(ChatMessage(role = "user", content = MacroEngine.render(userMessage, mctx)))
 
         return messages
     }

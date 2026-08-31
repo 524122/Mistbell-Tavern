@@ -1,0 +1,41 @@
+﻿Changelog | OMate User Manual
+OMate
+User Manual
+OMate.net
+Download App
+Contact Us
+Powered by
+OMate.net
+Download App
+Contact Us
+Powered by
+#
+Changelog
+#
+1.0.11
+Optimized voice playback button UI
+Fixed the issue of losing avatars and backgrounds when upgrading the app on iOS
+Fixed the white page issue when creating an application without selecting a character
+Added support for editing knowledge base
+#
+1.0.10
+Voice chat now supports streaming, improving response speed for replies
+Added support for knowledge base, which can be loaded as character settings or knowledge sets in character properties
+#
+1.0.8
+Fixed voice call failure issue on iOS
+Fixed UI distortion issues in screenshot and chat pages on Android 15
+#
+1.0.7
+Added support for voice calls with long-term memory
+Long-term memory now supports adding and multi-select deletion
+#
+1.0.5-alpha
+Added support for generating avatars when creating characters
+Added option to set conversations as non-streaming
+Added AI-generated conversation alternatives
+Previous
+Customize Discovery Page
+Next
+FAQ
+© Copyright 2025. All rights reserved.

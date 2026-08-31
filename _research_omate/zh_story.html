@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="3.12.0.837752939225">
+
+    <!-- See retype.com -->
+    <meta name="generator" content="Retype 3.12.0">
+
+    <!-- Primary Meta Tags -->
+    <title>故事 | OMate用户手册</title>
+    <meta name="title" content="故事 | OMate用户手册">
+    <meta name="description" content="OMate的故事模式提供了一种沉浸式的叙事体验，让您可以阅读和体验AI创作的互动故事。">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://help.omate.org/features/story/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://help.omate.org/features/story/">
+    <meta property="og:title" content="故事 | OMate用户手册">
+    <meta property="og:description" content="OMate的故事模式提供了一种沉浸式的叙事体验，让您可以阅读和体验AI创作的互动故事。">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://help.omate.org/features/story/">
+    <meta property="twitter:title" content="故事 | OMate用户手册">
+    <meta property="twitter:description" content="OMate的故事模式提供了一种沉浸式的叙事体验，让您可以阅读和体验AI创作的互动故事。">
+
+    <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
+
+    <link id="retype-favicon" rel="icon" href="../../static/favicon.png" />
+    <link href="../../resources/css/retype.css?v=3.12.0.837752939225" rel="stylesheet">
+
+    <script data-cfasync="false" src="../../resources/js/config.js?v=3.12.0.837752939225" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../../resources/js/retype.js?v=3.12.0" data-turbo-eval="false" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=3.12.0.837752939225" data-turbo-eval="false" defer></script>
+</head>
+<body>
+    <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
+        <div class="absolute bottom-0 left-0" style="top: 5rem; right: 50%"></div>
+    
+        <header id="retype-header" class="sticky top-0 z-30 flex w-full h-16 bg-header-bg border-b border-header-border md:h-20">
+            <div class="container relative flex items-center justify-between pr-6 grow md:justify-start">
+                <!-- Mobile menu button skeleton -->
+                <button v-cloak class="skeleton retype-mobile-menu-button flex items-center justify-center shrink-0 overflow-hidden dark:text-white focus:outline-none rounded-full w-10 h-10 ml-3.5 md:hidden"><svg xmlns="http://www.w3.org/2000/svg" class="mb-px shrink-0" width="24" height="24" viewBox="0 0 24 24" role="presentation" style="margin-bottom: 0px;"><g fill="currentColor"><path d="M2 4h20v2H2zM2 11h20v2H2zM2 18h20v2H2z"></path></g></svg></button>
+                <div v-cloak id="retype-sidebar-left-toggle-button"></div>
+        
+                <!-- Logo -->
+                <div class="flex items-center justify-between h-full py-2 md:w-75">
+                    <div class="flex items-center px-2 md:px-6">
+                        <a id="retype-branding-logo" href="../../" class="flex items-center leading-snug text-2xl">
+                            <span class="dark:text-white font-bold line-clamp-1 md:line-clamp-2">OMate</span>
+                        </a><span id="retype-branding-label" class="inline-flex mt-1 px-2 py-1 ml-4 text-xs font-medium leading-none items-center rounded-md bg-branding-label-bg text-branding-label-text ring-1 ring-branding-label-border ring-inset md:inline-block">用户手册</span>
+                    </div>
+        
+                    <span class="hidden h-8 border-r md:inline-block border-base-border"></span>
+                </div>
+        
+                <div class="flex justify-between md:grow">
+                    <!-- Top Nav -->
+                    <nav id="retype-header-nav" class="hidden md:flex">
+                        <ul class="flex flex-col mb-4 md:pl-16 md:mb-0 md:flex-row md:items-center">
+                            <li class="mr-6">
+                                <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://omate.org">官方网站</a>
+                            </li>
+                            <li class="mr-6">
+                                <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="../../#%E4%B8%8B%E8%BD%BD">下载应用</a>
+                            </li>
+                            <li class="mr-6">
+                                <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="mailto:admin@omate.org">联系我们</a>
+                            </li>
+        
+                        </ul>
+                    </nav>
+        
+                    <div v-cloak class="flex justify-end grow">
+                        <div id="retype-mobile-search-button"></div>
+                        <doc-search-desktop></doc-search-desktop>
+        
+                        <doc-theme-switch class="lg:ml-2"></doc-theme-switch>
+                        <doc-history></doc-history>
+                    </div>
+                </div>
+            </div>
+        </header>
+    
+    
+        <div id="retype-container" class="container relative flex bg-white">
+            <!-- Sidebar Skeleton -->
+            <div v-cloak class="fixed flex flex-col shrink-0 duration-300 ease-in-out bg-sidebar-left-bg border-sidebar-left-border sidebar top-20 w-75 border-r h-screen md:sticky transition-transform skeleton">
+            
+                <div class="flex items-center h-16 px-6">
+                    <input id="retype-filter-input-mock" class="w-full h-10 pl-8 px-3 py-2 transition-colors duration-200 ease-linear bg-filter-bg border border-filter-border rounded-lg shadow-none md:text-sm hover:border-filter-border-hover focus:outline-none focus:border-filter-border-focus placeholder-filter-placeholder" type="text">
+                </div>
+            
+                <div class="pl-6 mt-1 mb-4">
+                    <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                    <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                </div>
+            
+                <div class="shrink-0 mt-auto bg-transparent dark:border-base-border">
+                    <a class="flex items-center justify-center flex-nowrap h-16 text-gray-350 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 transition-colors duration-150 ease-in docs-powered-by" target="_blank" href="https://retype.com/" rel="noopener">
+                        <span class="text-xs whitespace-nowrap">Powered by</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="ml-2" fill="currentColor" width="96" height="20" overflow="visible"><path d="M0 0v20h13.59V0H0zm11.15 17.54H2.44V2.46h8.71v15.08zM15.8 20h2.44V4.67L15.8 2.22zM20.45 6.89V20h2.44V9.34z"/><g><path d="M40.16 8.44c0 1.49-.59 2.45-1.75 2.88l2.34 3.32h-2.53l-2.04-2.96h-1.43v2.96h-2.06V5.36h3.5c1.43 0 2.46.24 3.07.73s.9 1.27.9 2.35zm-2.48 1.1c.26-.23.38-.59.38-1.09 0-.5-.13-.84-.4-1.03s-.73-.28-1.39-.28h-1.54v2.75h1.5c.72 0 1.2-.12 1.45-.35zM51.56 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92h4.74v1.83h-6.79V5.36h6.64zM60.09 7.15v7.48h-2.06V7.15h-2.61V5.36h7.28v1.79h-2.61zM70.81 14.64h-2.06v-3.66l-3.19-5.61h2.23l1.99 3.45 1.99-3.45H74l-3.19 5.61v3.66zM83.99 6.19c.65.55.97 1.4.97 2.55s-.33 1.98-1 2.51-1.68.8-3.04.8h-1.23v2.59h-2.06V5.36h3.26c1.42 0 2.45.28 3.1.83zm-1.51 3.65c.25-.28.37-.69.37-1.22s-.16-.92-.48-1.14c-.32-.23-.82-.34-1.5-.34H79.7v3.12h1.38c.68 0 1.15-.14 1.4-.42zM95.85 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92H96v1.83h-6.79V5.36h6.64z"/></g></svg>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Sidebar component -->
+            <doc-sidebar v-cloak>
+                <template #sidebar-footer>
+                    <div class="shrink-0 mt-auto border-t md:bg-transparent md:border-none dark:border-base-border">
+            
+                        <div class="py-3 px-6 md:hidden border-b dark:border-base-border">
+                            <nav>
+                                <ul class="flex flex-wrap justify-center items-center">
+                                    <li class="mr-6">
+                                        <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://omate.org">官方网站</a>
+                                    </li>
+                                    <li class="mr-6">
+                                        <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="../../#%E4%B8%8B%E8%BD%BD">下载应用</a>
+                                    </li>
+                                    <li class="mr-6">
+                                        <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="mailto:admin@omate.org">联系我们</a>
+                                    </li>
+            
+                                </ul>
+                            </nav>
+                        </div>
+            
+                        <a class="flex items-center justify-center flex-nowrap h-16 text-gray-350 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 transition-colors duration-150 ease-in docs-powered-by" target="_blank" href="https://retype.com/" rel="noopener">
+                            <span class="text-xs whitespace-nowrap">Powered by</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="ml-2" fill="currentColor" width="96" height="20" overflow="visible"><path d="M0 0v20h13.59V0H0zm11.15 17.54H2.44V2.46h8.71v15.08zM15.8 20h2.44V4.67L15.8 2.22zM20.45 6.89V20h2.44V9.34z"/><g><path d="M40.16 8.44c0 1.49-.59 2.45-1.75 2.88l2.34 3.32h-2.53l-2.04-2.96h-1.43v2.96h-2.06V5.36h3.5c1.43 0 2.46.24 3.07.73s.9 1.27.9 2.35zm-2.48 1.1c.26-.23.38-.59.38-1.09 0-.5-.13-.84-.4-1.03s-.73-.28-1.39-.28h-1.54v2.75h1.5c.72 0 1.2-.12 1.45-.35zM51.56 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92h4.74v1.83h-6.79V5.36h6.64zM60.09 7.15v7.48h-2.06V7.15h-2.61V5.36h7.28v1.79h-2.61zM70.81 14.64h-2.06v-3.66l-3.19-5.61h2.23l1.99 3.45 1.99-3.45H74l-3.19 5.61v3.66zM83.99 6.19c.65.55.97 1.4.97 2.55s-.33 1.98-1 2.51-1.68.8-3.04.8h-1.23v2.59h-2.06V5.36h3.26c1.42 0 2.45.28 3.1.83zm-1.51 3.65c.25-.28.37-.69.37-1.22s-.16-.92-.48-1.14c-.32-.23-.82-.34-1.5-.34H79.7v3.12h1.38c.68 0 1.15-.14 1.4-.42zM95.85 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92H96v1.83h-6.79V5.36h6.64z"/></g></svg>
+                        </a>
+                    </div>
+                </template>
+            </doc-sidebar>
+    
+            <div class="grow min-w-0 bg-body-bg">
+                <!-- Render "toolbar" template here on api pages --><!-- Render page content -->
+                <div class="flex">
+                    <div id="retype-main" class="min-w-0 p-4 grow md:px-16">
+                        <main class="relative pb-12 lg:pt-2">
+                            <div class="retype-markdown" id="retype-content">
+                                <!-- Rendered if sidebar right is enabled -->
+                                <div id="retype-sidebar-right-toggle"></div>
+                                <!-- Page content  -->
+<doc-anchor-target id="故事" class="break-words">
+    <h1>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#故事">#</doc-anchor-trigger>
+        <span>故事</span>
+    </h1>
+</doc-anchor-target>
+<p>OMate的故事模式提供了一种沉浸式的叙事体验，让您可以阅读和体验AI创作的互动故事。</p>
+<doc-anchor-target id="故事列表">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#故事列表">#</doc-anchor-trigger>
+        <span>故事列表</span>
+    </h2>
+</doc-anchor-target>
+<p>故事列表页面展示了您的所有故事，每个故事卡片包含以下信息：</p>
+<ul>
+<li>故事标题</li>
+<li>作者信息</li>
+<li>故事简介</li>
+<li>参与角色头像</li>
+</ul>
+<doc-anchor-target id="添加故事">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#添加故事">#</doc-anchor-trigger>
+        <span>添加故事</span>
+    </h2>
+</doc-anchor-target>
+<p>点击故事列表右上角的&quot;+&quot;号按钮，您可以通过以下方式添加故事：</p>
+<doc-anchor-target id="导入故事">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#导入故事">#</doc-anchor-trigger>
+        <span>导入故事</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li><strong>文件导入</strong>：上传JSON格式的故事文件</li>
+<li><strong>扫码导入</strong>：扫描二维码导入在线故事</li>
+<li>发现页面的部分角色也附带了故事书，可以在角色卡详情页面导入</li>
+</ol>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>提示</h5>
+<p>当网络慢时，导入操作可能持续较长时间，请耐心等待。</p>
+        </div>
+    </div>
+</div>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>提示</h5>
+<p>导入的故事将保存在本地，您可以随时阅读和管理。</p>
+        </div>
+    </div>
+</div>
+<doc-anchor-target id="本地创建故事测试版">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#本地创建故事测试版">#</doc-anchor-trigger>
+        <span>本地创建故事（测试版）</span>
+    </h3>
+</doc-anchor-target>
+<p>您还可以在本地创建全新的故事：</p>
+<ol>
+<li>在添加故事菜单中选择&quot;创作·测试版&quot;</li>
+<li>填写故事基本信息：
+<ul>
+<li>故事标题</li>
+<li>作者信息（可选）</li>
+<li>故事简介</li>
+<li>系统提示词（用于指导AI生成故事内容）</li>
+</ul>
+</li>
+<li>选择参与故事的角色（至少选择一个角色）</li>
+<li>点击&quot;创建故事&quot;完成创建</li>
+</ol>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>提示</h5>
+<p>创建故事时，第一个选择的角色将被设定为主角。</p>
+        </div>
+    </div>
+</div>
+<doc-anchor-target id="阅读故事">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#阅读故事">#</doc-anchor-trigger>
+        <span>阅读故事</span>
+    </h2>
+</doc-anchor-target>
+<doc-anchor-target id="开始阅读">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#开始阅读">#</doc-anchor-trigger>
+        <span>开始阅读</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li>在故事列表中点击任一故事</li>
+<li>进入故事详情页面</li>
+<li>点击&quot;继续阅读&quot;开始体验</li>
+</ol>
+<doc-anchor-target id="阅读界面">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#阅读界面">#</doc-anchor-trigger>
+        <span>阅读界面</span>
+    </h3>
+</doc-anchor-target>
+<p>故事阅读界面包含以下元素：</p>
+<ul>
+<li>故事标题</li>
+<li>对话内容展示区</li>
+<li>继续阅读按钮</li>
+<li>故事信息按钮</li>
+</ul>
+<doc-anchor-target id="阅读进度">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#阅读进度">#</doc-anchor-trigger>
+        <span>阅读进度</span>
+    </h3>
+</doc-anchor-target>
+<ul>
+<li>系统会自动保存您的阅读进度</li>
+<li>您可以随时退出，下次继续从上次阅读的位置开始</li>
+<li>故事读完后，可以选择重新开始阅读</li>
+</ul>
+<doc-anchor-target id="ai生成功能">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#ai生成功能">#</doc-anchor-trigger>
+        <span>AI生成功能</span>
+    </h2>
+</doc-anchor-target>
+<p>故事模式集成了强大的AI生成功能，让您可以：</p>
+<doc-anchor-target id="续写故事">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#续写故事">#</doc-anchor-trigger>
+        <span>续写故事</span>
+    </h3>
+</doc-anchor-target>
+<p>当您阅读到故事结尾时，可以使用AI续写功能：</p>
+<ol>
+<li>点击&quot;继续&quot;按钮自动续写</li>
+<li>AI会根据当前故事内容自动生成6句后续对话</li>
+<li>生成的对话将自动添加到故事末尾</li>
+</ol>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>注意</h5>
+<p>续写时，默认会将角色设置中的&quot;角色设定&quot;和&quot;性格特点&quot;字段放入上下文，可以在故事设置→角色管理中编辑相关字段，此处编辑的内容只对故事生效，不会覆盖角色设置</p>
+        </div>
+    </div>
+</div>
+<doc-anchor-target id="自定义续写">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#自定义续写">#</doc-anchor-trigger>
+        <span>自定义续写</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li>长按&quot;继续&quot;按钮进入&quot;自定义续写&quot;</li>
+<li>设置生成参数：
+<ul>
+<li><strong>生成句数</strong>：1-20句</li>
+<li><strong>续写建议</strong>：输入您希望故事朝什么方向发展的建议</li>
+<li><strong>参与角色</strong>：指定哪些角色参与本次生成的对话</li>
+</ul>
+</li>
+<li>点击&quot;开始生成&quot;</li>
+</ol>
+<doc-anchor-target id="重写对话">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#重写对话">#</doc-anchor-trigger>
+        <span>重写对话</span>
+    </h3>
+</doc-anchor-target>
+<p>对于已存在的对话，您可以使用重写功能：</p>
+<doc-anchor-target id="重写本句">
+    <h4>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#重写本句">#</doc-anchor-trigger>
+        <span>重写本句</span>
+    </h4>
+</doc-anchor-target>
+<ol>
+<li>长按任意对话气泡</li>
+<li>在弹出菜单中选择&quot;重写本句&quot;</li>
+<li>可选择性地输入重写要求（如&quot;更加幽默&quot;、&quot;更有感情&quot;等）</li>
+<li>AI会重新生成这句对话</li>
+</ol>
+<doc-anchor-target id="重写后续">
+    <h4>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#重写后续">#</doc-anchor-trigger>
+        <span>重写后续</span>
+    </h4>
+</doc-anchor-target>
+<ol>
+<li>长按任意对话气泡</li>
+<li>选择&quot;重写后续&quot;</li>
+<li>设置要重写的句数和重写建议</li>
+<li>AI会从当前位置开始重新生成指定数量的对话</li>
+</ol>
+<doc-anchor-target id="编辑和删除对话">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#编辑和删除对话">#</doc-anchor-trigger>
+        <span>编辑和删除对话</span>
+    </h3>
+</doc-anchor-target>
+<p>除了AI生成功能，您还可以手动编辑故事：</p>
+<ul>
+<li><strong>编辑对话</strong>：长按对话气泡，选择&quot;编辑&quot;可直接修改对话文字</li>
+<li><strong>删除对话</strong>：长按对话气泡，选择&quot;删除&quot;可移除不需要的对话</li>
+</ul>
+<doc-anchor-target id="故事信息">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#故事信息">#</doc-anchor-trigger>
+        <span>故事信息</span>
+    </h2>
+</doc-anchor-target>
+<p>每个故事都有详细的信息页面，您可以查看和编辑：</p>
+<ul>
+<li>故事名称</li>
+<li>作者信息</li>
+<li>故事简介</li>
+<li>参与角色列表</li>
+<li>AI生成配置（API配置、上下文对话数量等）</li>
+</ul>
+<p>在故事信息页面，您还可以：</p>
+<ul>
+<li>修改故事的系统提示词</li>
+<li>配置AI生成时使用的API</li>
+<li>调整生成时的上下文对话数量</li>
+<li>导出故事配置</li>
+</ul>
+<doc-anchor-target id="故事管理">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#故事管理">#</doc-anchor-trigger>
+        <span>故事管理</span>
+    </h2>
+</doc-anchor-target>
+<doc-anchor-target id="删除故事">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#删除故事">#</doc-anchor-trigger>
+        <span>删除故事</span>
+    </h3>
+</doc-anchor-target>
+<p>如果您想删除某个故事：</p>
+<ol>
+<li>在故事列表中，向右滑动故事卡片</li>
+<li>点击红色&quot;删除&quot;按钮</li>
+<li>输入&quot;delete&quot;确认删除操作</li>
+</ol>
+<doc-anchor-target id="查看故事信息">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#查看故事信息">#</doc-anchor-trigger>
+        <span>查看故事信息</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li>在故事列表中，向左滑动故事卡片</li>
+<li>会自动进入故事信息页面</li>
+</ol>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>警告</h5>
+<p>删除操作不可撤销，请谨慎操作。</p>
+        </div>
+    </div>
+</div>
+<doc-anchor-target id="使用技巧">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#使用技巧">#</doc-anchor-trigger>
+        <span>使用技巧</span>
+    </h2>
+</doc-anchor-target>
+<doc-anchor-target id="ai生成优化">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#ai生成优化">#</doc-anchor-trigger>
+        <span>AI生成优化</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li><strong>合理设置系统提示词</strong>：详细的系统提示词能帮助AI更好地理解故事风格和方向</li>
+<li><strong>使用续写建议</strong>：在续写时提供具体的方向建议，如&quot;增加冲突&quot;、&quot;温馨对话&quot;等</li>
+<li><strong>选择参与角色</strong>：通过限制参与角色可以让剧情更加聚焦</li>
+<li><strong>调整上下文数量</strong>：在故事信息页面可以调整AI生成时使用的上下文对话数量</li>
+</ol>
+<doc-anchor-target id="创作建议">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#创作建议">#</doc-anchor-trigger>
+        <span>创作建议</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li><strong>角色设定要详细</strong>：在创建故事前，确保参与的角色都有完整的性格设定</li>
+<li><strong>分段创作</strong>：不要一次性生成太多对话，可以分批续写并根据效果调整</li>
+<li><strong>结合手动编辑</strong>：AI生成后可以手动微调，让故事更加完美</li>
+<li><strong>保存备份</strong>：重要的故事可以通过分享功能导出备份</li>
+</ol>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>提示</h5>
+<p>AI生成的内容基于当前的故事上下文和角色设定，合理的设定能获得更好的生成效果。</p>
+        </div>
+    </div>
+</div>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+            <h5>注意</h5>
+<p>使用AI功能需要配置相应的API密钥，请在设置中完成API配置。</p>
+        </div>
+    </div>
+</div>
+
+                                
+                                <!-- Required only on API pages -->
+                                <doc-toolbar-member-filter-no-results></doc-toolbar-member-filter-no-results>
+                            </div>
+                            <footer id="retype-content-footer" class="clear-both">
+                            
+                                <nav id="retype-nextprev" class="print:hidden flex mt-14">
+                                    <div class="w-1/2">
+                                        <a class="px-5 py-4 h-full flex items-center break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-l-lg transition-colors duration-150 relative hover:z-5" href="../../features/masks/">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="mr-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19 11H7.41l5.29-5.29a.996.996 0 10-1.41-1.41l-7 7a1 1 0 000 1.42l7 7a1.024 1.024 0 001.42-.01.996.996 0 000-1.41L7.41 13H19c.55 0 1-.45 1-1s-.45-1-1-1z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
+                                            <span>
+                                                <span class="block text-xs font-normal text-base-text-muted">Previous</span>
+                                                <span class="block mt-1">面具</span>
+                                            </span>
+                                        </a>
+                                    </div>
+                            
+                                    <div class="w-1/2">
+                                        <a class="px-5 py-4 -mx-px h-full flex items-center justify-end break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-r-lg transition-colors duration-150 relative hover:z-5" href="../../features/memory/">
+                                            <span>
+                                                <span class="block text-xs font-normal text-right text-base-text-muted">Next</span>
+                                                <span class="block mt-1">记忆管理</span>
+                                            </span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="ml-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H5c-.55 0-1 .45-1 1s.45 1 1 1h11.59l-5.29 5.29a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
+                                        </a>
+                                    </div>
+                                </nav>
+                            </footer>
+                        </main>
+                
+                        <div id="retype-page-footer" class="print:border-none border-t border-base-border pt-6 mb-8">
+                            <footer class="flex flex-wrap items-center justify-between print:justify-center">
+                                <div id="retype-footer-links" class="print:hidden">
+                                    <ul class="flex flex-wrap items-center text-sm">
+                                    </ul>
+                                </div>
+                                <div id="retype-copyright" class="print:justify-center py-2 text-footer-text font-footer-link text-sm leading-relaxed"><p>© Copyright 2026. All rights reserved.</p></div>
+                            </footer>
+                        </div>
+                    </div>
+                
+                    <!-- Rendered if sidebar right is enabled -->
+                    <!-- Sidebar right skeleton-->
+                    <div v-cloak class="fixed top-0 bottom-0 right-0 translate-x-full bg-sidebar-right-bg border-sidebar-right-border lg:sticky lg:border-l lg:shrink-0 lg:pt-6 lg:transform-none sm:w-1/2 lg:w-64 lg:z-0 md:w-104 sidebar-right skeleton">
+                        <div class="pl-5">
+                            <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                            <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                            <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                        </div>
+                    </div>
+                
+                    <!-- User should be able to hide sidebar right -->
+                    <doc-sidebar-right v-cloak></doc-sidebar-right>
+                </div>
+
+            </div>
+        </div>
+    
+        <doc-search-mobile></doc-search-mobile>
+        <doc-back-to-top></doc-back-to-top>
+    </div>
+
+
+    <div id="retype-overlay-target"></div>
+
+    <script data-cfasync="false">window.__DOCS__ = { "title": "故事", level: 2, icon: "file", hasPrism: false, hasMermaid: false, hasMath: false, tocDepth: 23 }</script>
+</body>
+</html>
