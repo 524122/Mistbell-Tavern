@@ -23,7 +23,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         VectorMemoryEntity::class,
         ThemePackEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -217,6 +217,40 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v13→v14：修复索引名不匹配导致的升级崩溃（真机实证 2026-09）。
+        // 根因：MIGRATION_8_9 用简写名建索引（如 index_messages_session_created），
+        // 而实体 @Index 未声明 name → Room 校验期待默认全列名（index_messages_session_id_created_at）。
+        // 凡走过 8_9 迁移的存量设备，升级到 ≥13 后校验必抛 "Migration didn't properly handle: messages/sessions/structured_memory"。
+        // 修法：按实体声明逐一补建默认名索引（IF NOT EXISTS 幂等），并清理短名旧索引（避免重复索引的写放大）。
+        private val MIGRATION_13_14 =
+            object : Migration(13, 14) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // messages（实体声明：session_id+created_at、session_id+owner_id+character_id）
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_id_created_at ON messages(session_id, created_at)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_id_owner_id_character_id ON messages(session_id, owner_id, character_id)")
+                    db.execSQL("DROP INDEX IF EXISTS index_messages_session_created")
+                    db.execSQL("DROP INDEX IF EXISTS index_messages_session_owner")
+
+                    // sessions（实体声明：owner_id+updated_at、owner_id+is_pinned+updated_at、owner_id+character_id+updated_at）
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_updated_at ON sessions(owner_id, updated_at)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at ON sessions(owner_id, is_pinned, updated_at)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_character_id_updated_at ON sessions(owner_id, character_id, updated_at)")
+                    db.execSQL("DROP INDEX IF EXISTS index_sessions_owner_updated")
+                    db.execSQL("DROP INDEX IF EXISTS index_sessions_owner_pinned")
+                    db.execSQL("DROP INDEX IF EXISTS index_sessions_character")
+
+                    // structured_memory（实体声明六个索引的默认全列名）
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_character_id ON structured_memory(owner_id, character_id)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_memory_type ON structured_memory(memory_type)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_importance ON structured_memory(importance)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_created_at ON structured_memory(created_at)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_importance_created_at ON structured_memory(owner_id, importance, created_at)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_session_id_created_at ON structured_memory(owner_id, session_id, created_at)")
+                    db.execSQL("DROP INDEX IF EXISTS index_structured_memory_importance_created")
+                    db.execSQL("DROP INDEX IF EXISTS index_structured_memory_session")
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -224,7 +258,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tavern.db",
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

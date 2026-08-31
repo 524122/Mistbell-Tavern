@@ -11,6 +11,9 @@ import com.mistbell.tavern.android.data.api.model.Message
     indices = [
         Index(value = ["session_id", "created_at"]),
         Index(value = ["session_id", "owner_id", "character_id"]),
+        // F3 词法召回性能索引（v13 迁移创建；v14 起声明于实体——Room 校验要求索引全集合相等，
+        // 未声明的额外索引同样会触发 "Migration didn't properly handle"）
+        Index(value = ["owner_id", "character_id", "created_at"]),
     ],
 )
 data class MessageEntity(
