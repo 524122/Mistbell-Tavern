@@ -14,7 +14,10 @@ object SessionImporter {
      * @param uri 文件 URI
      * @return SessionExportData 或 null（如果解析失败）
      */
-    fun importFromJson(context: Context, uri: Uri): SessionExportData? {
+    fun importFromJson(
+        context: Context,
+        uri: Uri,
+    ): SessionExportData? {
         return try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val jsonString = inputStream?.bufferedReader()?.use { it.readText() } ?: return null
@@ -38,31 +41,33 @@ object SessionImporter {
 
             // 解析会话信息
             val sessionObj = jsonObject["session"]?.jsonObject ?: return null
-            val session = SessionSummary(
-                id = sessionObj["id"]?.jsonPrimitive?.content ?: "",
-                title = sessionObj["title"]?.jsonPrimitive?.content ?: "未命名对话",
-                createdAt = sessionObj["createdAt"]?.jsonPrimitive?.content ?: "",
-                updatedAt = sessionObj["updatedAt"]?.jsonPrimitive?.content ?: "",
-                messageCount = sessionObj["messageCount"]?.jsonPrimitive?.intOrNull ?: 0,
-                characterId = sessionObj["characterId"]?.jsonPrimitive?.content,
-                characterName = sessionObj["characterName"]?.jsonPrimitive?.content
-            )
+            val session =
+                SessionSummary(
+                    id = sessionObj["id"]?.jsonPrimitive?.content ?: "",
+                    title = sessionObj["title"]?.jsonPrimitive?.content ?: "未命名对话",
+                    createdAt = sessionObj["createdAt"]?.jsonPrimitive?.content ?: "",
+                    updatedAt = sessionObj["updatedAt"]?.jsonPrimitive?.content ?: "",
+                    messageCount = sessionObj["messageCount"]?.jsonPrimitive?.intOrNull ?: 0,
+                    characterId = sessionObj["characterId"]?.jsonPrimitive?.content,
+                    characterName = sessionObj["characterName"]?.jsonPrimitive?.content,
+                )
 
             // 解析消息列表
             val messagesArray = jsonObject["messages"]?.jsonArray ?: JsonArray(emptyList())
-            val messages = messagesArray.mapNotNull { msgElement ->
-                val msgObj = msgElement.jsonObject
-                Message(
-                    id = msgObj["id"]?.jsonPrimitive?.content ?: "",
-                    role = msgObj["role"]?.jsonPrimitive?.content ?: "user",
-                    content = msgObj["content"]?.jsonPrimitive?.content ?: "",
-                    thinking = msgObj["thinking"]?.jsonPrimitive?.content,
-                    createdAt = msgObj["createdAt"]?.jsonPrimitive?.content ?: "",
-                    memoryIds = msgObj["memoryIds"]?.jsonArray?.map { it.jsonPrimitive.content },
-                    swipes = msgObj["swipes"]?.jsonArray?.map { it.jsonPrimitive.content },
-                    swipeIndex = msgObj["swipeIndex"]?.jsonPrimitive?.intOrNull ?: 0
-                )
-            }
+            val messages =
+                messagesArray.mapNotNull { msgElement ->
+                    val msgObj = msgElement.jsonObject
+                    Message(
+                        id = msgObj["id"]?.jsonPrimitive?.content ?: "",
+                        role = msgObj["role"]?.jsonPrimitive?.content ?: "user",
+                        content = msgObj["content"]?.jsonPrimitive?.content ?: "",
+                        thinking = msgObj["thinking"]?.jsonPrimitive?.content,
+                        createdAt = msgObj["createdAt"]?.jsonPrimitive?.content ?: "",
+                        memoryIds = msgObj["memoryIds"]?.jsonArray?.map { it.jsonPrimitive.content },
+                        swipes = msgObj["swipes"]?.jsonArray?.map { it.jsonPrimitive.content },
+                        swipeIndex = msgObj["swipeIndex"]?.jsonPrimitive?.intOrNull ?: 0,
+                    )
+                }
 
             Pair(session, messages)
         } catch (e: Exception) {

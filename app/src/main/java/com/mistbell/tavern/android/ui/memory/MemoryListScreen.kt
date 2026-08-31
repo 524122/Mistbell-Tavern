@@ -24,19 +24,24 @@ import com.mistbell.tavern.android.ui.components.*
 import com.mistbell.tavern.android.ui.theme.AccentBlue
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
-private val LAYER_LABELS = mapOf(
-    "profile" to "档案", "relationship" to "关系", "episodic" to "事件", "core" to "核心"
-)
-private val TYPE_LABELS = mapOf(
-    "note" to "笔记", "fact" to "事实", "identity" to "身份", "preference" to "偏好",
-    "relationship" to "关系", "goal" to "目标", "event" to "事件", "emotion" to "情绪", "core" to "核心"
-)
+private val LAYER_LABELS =
+    mapOf(
+        "profile" to "档案",
+        "relationship" to "关系",
+        "episodic" to "事件",
+        "core" to "核心",
+    )
+private val TYPE_LABELS =
+    mapOf(
+        "note" to "笔记", "fact" to "事实", "identity" to "身份", "preference" to "偏好",
+        "relationship" to "关系", "goal" to "目标", "event" to "事件", "emotion" to "情绪", "core" to "核心",
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MemoryListScreen(
     onBack: () -> Unit,
-    viewModel: MemoryViewModel = viewModel()
+    viewModel: MemoryViewModel = viewModel(),
 ) {
     val memories by viewModel.filteredMemories.collectAsState()
     val allMemories by viewModel.memories.collectAsState()
@@ -50,7 +55,10 @@ fun MemoryListScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(message) {
-        message?.let { snackbarHostState.showSnackbar(it); viewModel.clearMessage() }
+        message?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
     }
 
     // Initialize with default values
@@ -60,27 +68,35 @@ fun MemoryListScreen(
     val layerCounts = allMemories.groupBy { it.layer }.mapValues { it.value.size }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .clearFocusOnTap(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .clearFocusOnTap(),
         topBar = {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", modifier = Modifier.size(22.dp))
                         }
-                        Text("记忆管理", style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(
+                            "记忆管理",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                        )
                         IconButton(onClick = { viewModel.loadFromServer() }, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.Refresh, "刷新", modifier = Modifier.size(18.dp))
                         }
                         TextButton(onClick = { viewModel.backfill() }, enabled = !isBackfilling) {
-                            if (isBackfilling) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                            else Text("回填")
+                            if (isBackfilling) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("回填")
+                            }
                         }
                     }
                     HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -91,16 +107,16 @@ fun MemoryListScreen(
             FloatingActionButton(
                 onClick = { viewModel.showNewForm() },
                 containerColor = AccentBlue,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Default.Add, "新建记忆") }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(paddingValues).imePadding(),
             contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Stats
             item {
@@ -118,7 +134,7 @@ fun MemoryListScreen(
                         FilterChip(
                             selected = layerFilter == null,
                             onClick = { viewModel.setLayerFilter(null) },
-                            label = { Text("全部") }
+                            label = { Text("全部") },
                         )
                     }
                     LAYER_LABELS.forEach { (key, label) ->
@@ -126,7 +142,7 @@ fun MemoryListScreen(
                             FilterChip(
                                 selected = layerFilter == key,
                                 onClick = { viewModel.setLayerFilter(if (layerFilter == key) null else key) },
-                                label = { Text("$label (${layerCounts[key] ?: 0})") }
+                                label = { Text("$label (${layerCounts[key] ?: 0})") },
                             )
                         }
                     }
@@ -138,106 +154,127 @@ fun MemoryListScreen(
             }
 
             items(memories, key = { it.id }) { memory ->
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) {
-                            viewModel.deleteMemory(memory.id)
-                            true
-                        } else false
-                    }
-                )
+                val dismissState =
+                    rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.deleteMemory(memory.id)
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    )
 
                 SwipeToDismissBox(
                     state = dismissState,
                     backgroundContent = {
                         val color by animateColorAsState(
-                            if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart)
+                            if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
                                 MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.surface,
-                            label = "swipe_color"
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                            label = "swipe_color",
                         )
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(color, RoundedCornerShape(10.dp))
-                                .padding(horizontal = 20.dp),
-                            contentAlignment = Alignment.CenterEnd
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(color, RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterEnd,
                         ) {
                             Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.onError)
                         }
                     },
-                    enableDismissFromStartToEnd = false
+                    enableDismissFromStartToEnd = false,
                 ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        memory.content,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                IconButton(onClick = { showDeleteDialog = memory.id }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        "删除",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AssistChip(
+                                    onClick = {},
+                                    label = {
+                                        Text(
+                                            LAYER_LABELS[memory.layer] ?: memory.layer,
+                                            style = MaterialTheme.typography.labelSmall,
+                                        )
+                                    },
+                                )
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text(TYPE_LABELS[memory.type] ?: memory.type, style = MaterialTheme.typography.labelSmall) },
+                                )
                                 Text(
-                                    memory.content,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 3,
-                                    overflow = TextOverflow.Ellipsis
+                                    "重要度: %.1f".format(memory.importance),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.align(Alignment.CenterVertically),
                                 )
                             }
-                            IconButton(onClick = { showDeleteDialog = memory.id }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                            }
+                            // Tap to edit
+                            TextButton(
+                                onClick = { viewModel.showEditForm(memory) },
+                                modifier = Modifier.align(Alignment.End),
+                            ) { Text("编辑") }
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(LAYER_LABELS[memory.layer] ?: memory.layer, style = MaterialTheme.typography.labelSmall) }
-                            )
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(TYPE_LABELS[memory.type] ?: memory.type, style = MaterialTheme.typography.labelSmall) }
-                            )
-                            Text(
-                                "重要度: %.1f".format(memory.importance),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
-                        }
-                        // Tap to edit
-                        TextButton(
-                            onClick = { viewModel.showEditForm(memory) },
-                            modifier = Modifier.align(Alignment.End)
-                        ) { Text("编辑") }
                     }
                 }
             }
         }
-    }
     }
 
     // Delete confirmation
     showDeleteDialog?.let { memoryId ->
         ConfirmDeleteDialog(
             message = "确定要删除这条记忆吗？",
-            onConfirm = { viewModel.deleteMemory(memoryId); showDeleteDialog = null },
-            onDismiss = { showDeleteDialog = null }
+            onConfirm = {
+                viewModel.deleteMemory(memoryId)
+                showDeleteDialog = null
+            },
+            onDismiss = { showDeleteDialog = null },
         )
     }
 
     // Memory form bottom sheet
     if (showForm) {
         ModalBottomSheet(
-            onDismissRequest = { viewModel.updateForm { MemoryForm() }; /* close handled by _showForm */ },
-            containerColor = MaterialTheme.colorScheme.surface
+            onDismissRequest = {
+                viewModel.updateForm { MemoryForm() }; // close handled by _showForm
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     if (viewModel.editingMemoryId.value != null) "编辑记忆" else "新建记忆",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
 
                 FormTextArea(
@@ -245,7 +282,7 @@ fun MemoryListScreen(
                     onValueChange = { viewModel.updateForm { copy(content = it) } },
                     label = "内容",
                     placeholder = "记忆内容...",
-                    minLines = 3
+                    minLines = 3,
                 )
 
                 // Layer dropdown
@@ -258,12 +295,13 @@ fun MemoryListScreen(
                         label = { Text("层级") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = layerExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     )
                     ExposedDropdownMenu(expanded = layerExpanded, onDismissRequest = { layerExpanded = false }) {
                         LAYER_LABELS.forEach { (key, label) ->
                             DropdownMenuItem(text = { Text(label) }, onClick = {
-                                viewModel.updateForm { copy(layer = key) }; layerExpanded = false
+                                viewModel.updateForm { copy(layer = key) }
+                                layerExpanded = false
                             })
                         }
                     }
@@ -279,12 +317,13 @@ fun MemoryListScreen(
                         label = { Text("类型") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     )
                     ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
                         TYPE_LABELS.forEach { (key, label) ->
                             DropdownMenuItem(text = { Text(label) }, onClick = {
-                                viewModel.updateForm { copy(type = key) }; typeExpanded = false
+                                viewModel.updateForm { copy(type = key) }
+                                typeExpanded = false
                             })
                         }
                     }
@@ -294,15 +333,18 @@ fun MemoryListScreen(
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("重要度", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text("%.1f".format(form.importance), style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "%.1f".format(form.importance),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     Slider(
                         value = form.importance.toFloat(),
                         onValueChange = { viewModel.updateForm { copy(importance = it.toDouble()) } },
                         valueRange = 0f..1f,
                         steps = 9,
-                        colors = SliderDefaults.colors(thumbColor = AccentBlue, activeTrackColor = AccentBlue)
+                        colors = SliderDefaults.colors(thumbColor = AccentBlue, activeTrackColor = AccentBlue),
                     )
                 }
 
@@ -310,41 +352,48 @@ fun MemoryListScreen(
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("稳定性", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text("%.1f".format(form.stability), style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "%.1f".format(form.stability),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     Slider(
                         value = form.stability.toFloat(),
                         onValueChange = { viewModel.updateForm { copy(stability = it.toDouble()) } },
                         valueRange = 0f..1f,
                         steps = 9,
-                        colors = SliderDefaults.colors(thumbColor = AccentBlue, activeTrackColor = AccentBlue)
+                        colors = SliderDefaults.colors(thumbColor = AccentBlue, activeTrackColor = AccentBlue),
                     )
                 }
 
                 // Subject-Relation-Object triple
-                Text("三元组（可选）", style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "三元组（可选）",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 FormTextField(
                     value = form.subject,
                     onValueChange = { viewModel.updateForm { copy(subject = it) } },
                     label = "主体",
-                    placeholder = "例如：Alice"
+                    placeholder = "例如：Alice",
                 )
 
                 FormTextField(
                     value = form.relation,
                     onValueChange = { viewModel.updateForm { copy(relation = it) } },
                     label = "关系",
-                    placeholder = "例如：喜欢"
+                    placeholder = "例如：喜欢",
                 )
 
                 FormTextField(
                     value = form.objectValue,
                     onValueChange = { viewModel.updateForm { copy(objectValue = it) } },
                     label = "客体",
-                    placeholder = "例如：咖啡"
+                    placeholder = "例如：咖啡",
                 )
 
                 // Tags
@@ -368,13 +417,13 @@ fun MemoryListScreen(
                                         Icon(Icons.Default.Add, "添加标签", modifier = Modifier.size(18.dp))
                                     }
                                 }
-                            }
+                            },
                         )
                     }
                     if (form.tags.isNotEmpty()) {
                         LazyRow(
                             modifier = Modifier.padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             items(form.tags) { tag ->
                                 FilterChip(
@@ -383,7 +432,7 @@ fun MemoryListScreen(
                                     label = { Text(tag) },
                                     trailingIcon = {
                                         Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -411,13 +460,13 @@ fun MemoryListScreen(
                                         Icon(Icons.Default.Add, "添加别名", modifier = Modifier.size(18.dp))
                                     }
                                 }
-                            }
+                            },
                         )
                     }
                     if (form.aliases.isNotEmpty()) {
                         LazyRow(
                             modifier = Modifier.padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             items(form.aliases) { alias ->
                                 FilterChip(
@@ -426,7 +475,7 @@ fun MemoryListScreen(
                                     label = { Text(alias) },
                                     trailingIcon = {
                                         Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -436,7 +485,7 @@ fun MemoryListScreen(
                 Button(
                     onClick = { viewModel.saveMemory() },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
                 ) { Text("保存") }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -446,15 +495,19 @@ fun MemoryListScreen(
 }
 
 @Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+private fun StatCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AccentBlue)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

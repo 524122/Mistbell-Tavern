@@ -22,8 +22,8 @@ object ImageUtils {
     fun processImage(
         context: Context,
         uri: Uri,
-        maxSize: Int = 0,  // 改为0表示不缩放，保留原图
-        quality: Int = 85
+        maxSize: Int = 0, // 改为0表示不缩放，保留原图
+        quality: Int = 85,
     ): String? {
         return try {
             android.util.Log.d("ImageUtils", "Processing image from URI: $uri")
@@ -45,13 +45,14 @@ object ImageUtils {
             val rotatedBitmap = fixImageRotation(context, uri, originalBitmap)
 
             // 如果设置了maxSize且大于0，才进行缩放，否则保留原图尺寸
-            val finalBitmap = if (maxSize > 0 && (rotatedBitmap.width > maxSize || rotatedBitmap.height > maxSize)) {
-                android.util.Log.d("ImageUtils", "Resizing to max: $maxSize")
-                resizeBitmap(rotatedBitmap, maxSize)
-            } else {
-                android.util.Log.d("ImageUtils", "Keeping original size")
-                rotatedBitmap
-            }
+            val finalBitmap =
+                if (maxSize > 0 && (rotatedBitmap.width > maxSize || rotatedBitmap.height > maxSize)) {
+                    android.util.Log.d("ImageUtils", "Resizing to max: $maxSize")
+                    resizeBitmap(rotatedBitmap, maxSize)
+                } else {
+                    android.util.Log.d("ImageUtils", "Keeping original size")
+                    rotatedBitmap
+                }
 
             android.util.Log.d("ImageUtils", "Final bitmap size: ${finalBitmap.width}x${finalBitmap.height}")
 
@@ -79,23 +80,29 @@ object ImageUtils {
     /**
      * 修正图片旋转方向
      */
-    private fun fixImageRotation(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
+    private fun fixImageRotation(
+        context: Context,
+        uri: Uri,
+        bitmap: Bitmap,
+    ): Bitmap {
         return try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val exif = ExifInterface(inputStream!!)
             inputStream.close()
 
-            val orientation = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
-            )
+            val orientation =
+                exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL,
+                )
 
-            val rotation = when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                else -> 0f
-            }
+            val rotation =
+                when (orientation) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
 
             if (rotation != 0f) {
                 val matrix = Matrix()
@@ -123,7 +130,10 @@ object ImageUtils {
     /**
      * 缩放 Bitmap 到目标尺寸
      */
-    private fun resizeBitmap(bitmap: Bitmap, maxSize: Int): Bitmap {
+    private fun resizeBitmap(
+        bitmap: Bitmap,
+        maxSize: Int,
+    ): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
 
@@ -142,7 +152,10 @@ object ImageUtils {
      * 将 Bitmap 转换为 Base64 字符串（带 data URI 前缀）
      * 使用 JPEG 格式以减小文件大小（PNG对于照片来说太大）
      */
-    private fun bitmapToBase64(bitmap: Bitmap, quality: Int): String {
+    private fun bitmapToBase64(
+        bitmap: Bitmap,
+        quality: Int,
+    ): String {
         val outputStream = ByteArrayOutputStream()
         // 使用 JPEG 格式以减小文件大小，避免超过数据库限制
         bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)

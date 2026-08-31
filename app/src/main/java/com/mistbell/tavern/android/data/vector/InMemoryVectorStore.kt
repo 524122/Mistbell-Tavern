@@ -25,17 +25,17 @@ import java.io.File
  */
 class InMemoryVectorStore(
     private val context: Context,
-    private val maxVectorsInMemory: Int = 1000
+    private val maxVectorsInMemory: Int = 1000,
 ) : VectorStore {
-
     private val vectors = mutableMapOf<String, VectorStore.VectorEntry>()
     private val mutex = Mutex()
     private val storageFile = File(context.filesDir, "vector_store.json")
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        prettyPrint = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            prettyPrint = true
+        }
 
     companion object {
         private const val TAG = "InMemoryVectorStore"
@@ -55,7 +55,11 @@ class InMemoryVectorStore(
         }
     }
 
-    override suspend fun add(id: String, vector: FloatArray, metadata: Map<String, Any>) {
+    override suspend fun add(
+        id: String,
+        vector: FloatArray,
+        metadata: Map<String, Any>,
+    ) {
         mutex.withLock {
             ensureLoaded()
             vectors[id] = VectorStore.VectorEntry(id, vector, metadata)
@@ -94,25 +98,26 @@ class InMemoryVectorStore(
     override suspend fun search(
         queryVector: FloatArray,
         topK: Int,
-        filters: Map<String, Any>
-    ): List<VectorStore.SearchResult> = withContext(Dispatchers.Default) {
-        mutex.withLock {
-            ensureLoaded()
-            vectors.values
-                .filter { entry -> matchesFilters(entry, filters) }
-                .map { entry ->
-                    val score = VectorUtils.cosineSimilarity(queryVector, entry.vector)
-                    VectorStore.SearchResult(
-                        id = entry.id,
-                        score = score,
-                        content = entry.metadata["content"] as? String ?: "",
-                        metadata = entry.metadata
-                    )
-                }
-                .sortedByDescending { it.score }
-                .take(topK)
+        filters: Map<String, Any>,
+    ): List<VectorStore.SearchResult> =
+        withContext(Dispatchers.Default) {
+            mutex.withLock {
+                ensureLoaded()
+                vectors.values
+                    .filter { entry -> matchesFilters(entry, filters) }
+                    .map { entry ->
+                        val score = VectorUtils.cosineSimilarity(queryVector, entry.vector)
+                        VectorStore.SearchResult(
+                            id = entry.id,
+                            score = score,
+                            content = entry.metadata["content"] as? String ?: "",
+                            metadata = entry.metadata,
+                        )
+                    }
+                    .sortedByDescending { it.score }
+                    .take(topK)
+            }
         }
-    }
 
     override suspend fun get(id: String): VectorStore.VectorEntry? {
         return mutex.withLock {
@@ -131,22 +136,24 @@ class InMemoryVectorStore(
     }
 
     override suspend fun deleteByFilters(filters: Map<String, Any>): Int {
-        val deleted = mutex.withLock {
-            ensureLoaded()
-            val toDelete = vectors.values.filter { entry ->
-                matchesFilters(entry, filters)
-            }.map { it.id }
+        val deleted =
+            mutex.withLock {
+                ensureLoaded()
+                val toDelete =
+                    vectors.values.filter { entry ->
+                        matchesFilters(entry, filters)
+                    }.map { it.id }
 
-            toDelete.forEach { id ->
-                vectors.remove(id)
+                toDelete.forEach { id ->
+                    vectors.remove(id)
+                }
+
+                if (toDelete.isNotEmpty()) {
+                    saveToDisk()
+                }
+
+                toDelete.size
             }
-
-            if (toDelete.isNotEmpty()) {
-                saveToDisk()
-            }
-
-            toDelete.size
-        }
 
         Log.d(TAG, "Deleted $deleted vectors by filters")
         return deleted
@@ -171,7 +178,10 @@ class InMemoryVectorStore(
     /**
      * 检查向量条目是否匹配过滤条件
      */
-    private fun matchesFilters(entry: VectorStore.VectorEntry, filters: Map<String, Any>): Boolean {
+    private fun matchesFilters(
+        entry: VectorStore.VectorEntry,
+        filters: Map<String, Any>,
+    ): Boolean {
         if (filters.isEmpty()) return true
 
         return filters.all { (key, value) ->
@@ -185,15 +195,17 @@ class InMemoryVectorStore(
      */
     private fun saveToDisk() {
         try {
-            val data = VectorStoreData(
-                vectors = vectors.values.map { entry ->
-                    SerializableVectorEntry(
-                        id = entry.id,
-                        vector = entry.vector.toList(),
-                        metadata = entry.metadata.mapValues { (_, v) -> v.toString() }
-                    )
-                }
-            )
+            val data =
+                VectorStoreData(
+                    vectors =
+                        vectors.values.map { entry ->
+                            SerializableVectorEntry(
+                                id = entry.id,
+                                vector = entry.vector.toList(),
+                                metadata = entry.metadata.mapValues { (_, v) -> v.toString() },
+                            )
+                        },
+                )
 
             storageFile.writeText(json.encodeToString(data))
             Log.d(TAG, "Saved ${vectors.size} vectors to disk")
@@ -216,11 +228,12 @@ class InMemoryVectorStore(
             val data = json.decodeFromString<VectorStoreData>(content)
 
             data.vectors.forEach { entry ->
-                vectors[entry.id] = VectorStore.VectorEntry(
-                    id = entry.id,
-                    vector = entry.vector.toFloatArray(),
-                    metadata = entry.metadata
-                )
+                vectors[entry.id] =
+                    VectorStore.VectorEntry(
+                        id = entry.id,
+                        vector = entry.vector.toFloatArray(),
+                        metadata = entry.metadata,
+                    )
             }
 
             Log.d(TAG, "Loaded ${vectors.size} vectors from disk")
@@ -231,13 +244,13 @@ class InMemoryVectorStore(
 
     @Serializable
     private data class VectorStoreData(
-        val vectors: List<SerializableVectorEntry>
+        val vectors: List<SerializableVectorEntry>,
     )
 
     @Serializable
     private data class SerializableVectorEntry(
         val id: String,
         val vector: List<Float>,
-        val metadata: Map<String, String>
+        val metadata: Map<String, String>,
     )
 }

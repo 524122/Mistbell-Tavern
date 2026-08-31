@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun SectionHeader(
     title: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = title,
@@ -18,6 +18,6 @@ fun SectionHeader(
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface,
         letterSpacing = 0.02.sp,
-        modifier = modifier
+        modifier = modifier,
     )
 }

@@ -33,7 +33,7 @@ data class ChatListItem(
     val isOnline: Boolean = false,
     val isPinned: Boolean = false,
     val isMuted: Boolean = false,
-    val lastMessageSender: String = ""
+    val lastMessageSender: String = "",
 )
 
 class ChatListViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,75 +52,81 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
     private val _selectedSessions = MutableStateFlow<Set<Pair<String, String>>>(emptySet())
     val selectedSessions: StateFlow<Set<Pair<String, String>>> = _selectedSessions.asStateFlow()
 
-    val chatListItems: StateFlow<List<ChatListItem>> = combine(
-        db.sessionDao().getRecent("local-user"),
-        db.characterDao().getAll(),
-        _searchQuery
-    ) { sessions, characters, query ->
-        val characterMap = characters.associateBy { it.id }
+    val chatListItems: StateFlow<List<ChatListItem>> =
+        combine(
+            db.sessionDao().getRecent("local-user"),
+            db.characterDao().getAll(),
+            _searchQuery,
+        ) { sessions, characters, query ->
+            val characterMap = characters.associateBy { it.id }
 
-        // 批量获取所有会话的最后消息（修复 N+1 查询）
-        val lastMessages = try {
-            db.messageDao().getLatestMessagesByOwner(ownerId)
-                .associateBy { it.sessionId }
-        } catch (e: Exception) {
-            emptyMap()
-        }
+            // 批量获取所有会话的最后消息（修复 N+1 查询）
+            val lastMessages =
+                try {
+                    db.messageDao().getLatestMessagesByOwner(ownerId)
+                        .associateBy { it.sessionId }
+                } catch (e: Exception) {
+                    emptyMap()
+                }
 
-        val items = sessions.mapNotNull { session ->
-            val character = characterMap[session.characterId] ?: return@mapNotNull null
-            val participantCharacters = session.participantCharacterIds()
-                .mapNotNull { characterMap[it]?.toDomain() }
-                .ifEmpty { listOf(character.toDomain()) }
+            val items =
+                sessions.mapNotNull { session ->
+                    val character = characterMap[session.characterId] ?: return@mapNotNull null
+                    val participantCharacters =
+                        session.participantCharacterIds()
+                            .mapNotNull { characterMap[it]?.toDomain() }
+                            .ifEmpty { listOf(character.toDomain()) }
 
-            // 从批量查询结果中获取最后消息
-            val lastMsg = lastMessages[session.id]
-            val lastMessage = lastMsg?.content?.take(50) ?: ""
-            val lastMessageRole = lastMsg?.role ?: ""
+                    // 从批量查询结果中获取最后消息
+                    val lastMsg = lastMessages[session.id]
+                    val lastMessage = lastMsg?.content?.take(50) ?: ""
+                    val lastMessageRole = lastMsg?.role ?: ""
 
-            // Filter by search query
-            if (query.isNotBlank() &&
-                !character.name.contains(query, ignoreCase = true) &&
-                !lastMessage.contains(query, ignoreCase = true)) {
-                return@mapNotNull null
+                    // Filter by search query
+                    if (query.isNotBlank() &&
+                        !character.name.contains(query, ignoreCase = true) &&
+                        !lastMessage.contains(query, ignoreCase = true)
+                    ) {
+                        return@mapNotNull null
+                    }
+
+                    // Determine sender label
+                    val senderLabel =
+                        when (lastMessageRole) {
+                            "user" -> "我"
+                            "assistant" -> character.name
+                            else -> ""
+                        }
+
+                    ChatListItem(
+                        sessionId = session.id,
+                        characterId = character.id,
+                        sessionTitle = session.title,
+                        characterName = character.name,
+                        characterColor = character.color,
+                        characterAvatarData = character.avatarData,
+                        participantCharacters = participantCharacters,
+                        lastMessage = lastMessage.ifBlank { session.title },
+                        lastMessageTime = formatTimestamp(session.updatedAt),
+                        unreadCount = session.unreadCount,
+                        isOnline = false,
+                        isPinned = session.isPinned,
+                        isMuted = session.isMuted,
+                        lastMessageSender = senderLabel,
+                    )
+                }
+
+            // If no sessions, return sample data for preview
+            if (items.isEmpty() && query.isBlank()) {
+                emptyList()
+            } else {
+                items
             }
-
-            // Determine sender label
-            val senderLabel = when (lastMessageRole) {
-                "user" -> "我"
-                "assistant" -> character.name
-                else -> ""
-            }
-
-            ChatListItem(
-                sessionId = session.id,
-                characterId = character.id,
-                sessionTitle = session.title,
-                characterName = character.name,
-                characterColor = character.color,
-                characterAvatarData = character.avatarData,
-                participantCharacters = participantCharacters,
-                lastMessage = lastMessage.ifBlank { session.title },
-                lastMessageTime = formatTimestamp(session.updatedAt),
-                unreadCount = session.unreadCount,
-                isOnline = false,
-                isPinned = session.isPinned,
-                isMuted = session.isMuted,
-                lastMessageSender = senderLabel
-            )
-        }
-
-        // If no sessions, return sample data for preview
-        if (items.isEmpty() && query.isBlank()) {
-            emptyList()
-        } else {
-            items
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
@@ -130,7 +136,10 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         _selectedTab.value = index
     }
 
-    fun navigateToChat(sessionId: String, characterId: String) {
+    fun navigateToChat(
+        sessionId: String,
+        characterId: String,
+    ) {
         // Will be handled by navigation callback
     }
 
@@ -166,7 +175,10 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun togglePin(sessionId: String, characterId: String) {
+    fun togglePin(
+        sessionId: String,
+        characterId: String,
+    ) {
         viewModelScope.launch {
             val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@launch
             val newPinned = !session.isPinned
@@ -175,21 +187,31 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun toggleMute(sessionId: String, characterId: String) {
+    fun toggleMute(
+        sessionId: String,
+        characterId: String,
+    ) {
         viewModelScope.launch {
             val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@launch
             db.sessionDao().updateMuted(sessionId, ownerId, characterId, !session.isMuted)
         }
     }
 
-    fun markAsRead(sessionId: String, characterId: String) {
+    fun markAsRead(
+        sessionId: String,
+        characterId: String,
+    ) {
         viewModelScope.launch {
             db.messageDao().markAsRead(sessionId, ownerId, characterId)
             db.sessionDao().updateUnreadCount(sessionId, ownerId, characterId, 0)
         }
     }
 
-    fun renameSession(sessionId: String, characterId: String, title: String) {
+    fun renameSession(
+        sessionId: String,
+        characterId: String,
+        title: String,
+    ) {
         val trimmedTitle = title.trim()
         if (trimmedTitle.isBlank()) return
 
@@ -198,13 +220,19 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun deleteSession(sessionId: String, characterId: String) {
+    fun deleteSession(
+        sessionId: String,
+        characterId: String,
+    ) {
         viewModelScope.launch {
             deleteSessionData(sessionId, characterId)
         }
     }
 
-    private suspend fun deleteSessionData(sessionId: String, characterId: String) {
+    private suspend fun deleteSessionData(
+        sessionId: String,
+        characterId: String,
+    ) {
         db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
         db.structuredMemoryDao().deleteBySession(ownerId, sessionId)
         db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
@@ -222,29 +250,35 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun copySession(context: Context, sessionId: String, characterId: String) {
+    fun copySession(
+        context: Context,
+        sessionId: String,
+        characterId: String,
+    ) {
         viewModelScope.launch {
             try {
                 val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@launch
                 val characterName = db.characterDao().getById(characterId)?.name ?: "AI"
                 val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
                 val title = session.title.ifBlank { characterName }
-                val content = buildString {
-                    appendLine(title)
-                    appendLine()
-                    messages.forEach { message ->
-                        val speaker = when (message.role) {
-                            "user" -> "我"
-                            "assistant" -> characterName
-                            else -> message.role.ifBlank { "消息" }
-                        }
-                        appendLine("$speaker: ${message.content}")
-                        if (!message.thinking.isNullOrBlank()) {
-                            appendLine("思考: ${message.thinking}")
-                        }
+                val content =
+                    buildString {
+                        appendLine(title)
                         appendLine()
-                    }
-                }.trim()
+                        messages.forEach { message ->
+                            val speaker =
+                                when (message.role) {
+                                    "user" -> "我"
+                                    "assistant" -> characterName
+                                    else -> message.role.ifBlank { "消息" }
+                                }
+                            appendLine("$speaker: ${message.content}")
+                            if (!message.thinking.isNullOrBlank()) {
+                                appendLine("思考: ${message.thinking}")
+                            }
+                            appendLine()
+                        }
+                    }.trim()
 
                 val clipboard = context.getSystemService(ClipboardManager::class.java)
                 clipboard?.setPrimaryClip(ClipData.newPlainText(title, content))
@@ -262,7 +296,7 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         characterId: String,
         format: SessionExportFormat,
         fileName: String,
-        onComplete: (SessionExportResult?) -> Unit
+        onComplete: (SessionExportResult?) -> Unit,
     ) {
         viewModelScope.launch {
             onComplete(exportSessionFile(context, sessionId, characterId, format, fileName))
@@ -274,45 +308,53 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         sessionId: String,
         characterId: String,
         format: SessionExportFormat,
-        fileName: String = SessionExporter.buildFileName("session", sessionId, format.extension)
+        fileName: String = SessionExporter.buildFileName("session", sessionId, format.extension),
     ): SessionExportResult? {
         return try {
             val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return null
             val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
             val characterName = db.characterDao().getById(characterId)?.name ?: "AI"
 
-            val sessionSummary = SessionSummary(
-                id = session.id,
-                title = session.title.ifBlank { characterName },
-                createdAt = session.createdAt,
-                updatedAt = session.updatedAt,
-                messageCount = messages.size,
-                characterId = session.characterId,
-                characterName = null
-            )
-
-            val apiMessages = messages.map { msg ->
-                Message(
-                    id = msg.id,
-                    role = msg.role,
-                    content = msg.content,
-                    thinking = msg.thinking,
-                    createdAt = msg.createdAt,
-                    memoryIds = try {
-                        kotlinx.serialization.json.Json.decodeFromString<List<String>>(msg.memoryIdsJson)
-                    } catch (e: Exception) { null },
-                    swipes = try {
-                        kotlinx.serialization.json.Json.decodeFromString<List<String>>(msg.swipesJson)
-                    } catch (e: Exception) { null },
-                    swipeIndex = msg.swipeIndex
+            val sessionSummary =
+                SessionSummary(
+                    id = session.id,
+                    title = session.title.ifBlank { characterName },
+                    createdAt = session.createdAt,
+                    updatedAt = session.updatedAt,
+                    messageCount = messages.size,
+                    characterId = session.characterId,
+                    characterName = null,
                 )
-            }
+
+            val apiMessages =
+                messages.map { msg ->
+                    Message(
+                        id = msg.id,
+                        role = msg.role,
+                        content = msg.content,
+                        thinking = msg.thinking,
+                        createdAt = msg.createdAt,
+                        memoryIds =
+                            try {
+                                kotlinx.serialization.json.Json.decodeFromString<List<String>>(msg.memoryIdsJson)
+                            } catch (e: Exception) {
+                                null
+                            },
+                        swipes =
+                            try {
+                                kotlinx.serialization.json.Json.decodeFromString<List<String>>(msg.swipesJson)
+                            } catch (e: Exception) {
+                                null
+                            },
+                        swipeIndex = msg.swipeIndex,
+                    )
+                }
 
             SessionExporter.exportToJson(
                 context = context,
                 session = sessionSummary,
                 messages = apiMessages,
-                fileName = fileName
+                fileName = fileName,
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -330,13 +372,17 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         _selectedSessions.value = emptySet()
     }
 
-    fun toggleSessionSelection(sessionId: String, characterId: String) {
+    fun toggleSessionSelection(
+        sessionId: String,
+        characterId: String,
+    ) {
         val key = Pair(sessionId, characterId)
-        _selectedSessions.value = if (_selectedSessions.value.contains(key)) {
-            _selectedSessions.value - key
-        } else {
-            _selectedSessions.value + key
-        }
+        _selectedSessions.value =
+            if (_selectedSessions.value.contains(key)) {
+                _selectedSessions.value - key
+            } else {
+                _selectedSessions.value + key
+            }
     }
 
     fun selectAllSessions() {
@@ -353,7 +399,10 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun exportSelectedSessions(context: android.content.Context, onComplete: (List<android.net.Uri>) -> Unit) {
+    fun exportSelectedSessions(
+        context: android.content.Context,
+        onComplete: (List<android.net.Uri>) -> Unit,
+    ) {
         viewModelScope.launch {
             val uris = mutableListOf<android.net.Uri>()
             _selectedSessions.value.forEach { (sessionId, characterId) ->

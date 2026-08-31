@@ -8,7 +8,6 @@ import kotlin.math.sqrt
  * 提供向量计算相关的工具方法
  */
 object VectorUtils {
-
     /**
      * 计算两个向量的余弦相似度
      *
@@ -16,7 +15,10 @@ object VectorUtils {
      * @param vec2 向量2
      * @return 相似度分数 (0-1)，1 表示完全相似，0 表示完全不相似
      */
-    fun cosineSimilarity(vec1: FloatArray, vec2: FloatArray): Float {
+    fun cosineSimilarity(
+        vec1: FloatArray,
+        vec2: FloatArray,
+    ): Float {
         require(vec1.size == vec2.size) {
             "Vector dimensions must match: ${vec1.size} vs ${vec2.size}"
         }
@@ -40,7 +42,10 @@ object VectorUtils {
     /**
      * 计算欧氏距离
      */
-    fun euclideanDistance(vec1: FloatArray, vec2: FloatArray): Float {
+    fun euclideanDistance(
+        vec1: FloatArray,
+        vec2: FloatArray,
+    ): Float {
         require(vec1.size == vec2.size) {
             "Vector dimensions must match"
         }

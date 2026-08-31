@@ -25,20 +25,23 @@ data class ProviderForm(
     val topP: Double? = null,
     val topK: Int? = null,
     val frequencyPenalty: Double? = null,
-    val maxTokens: Int? = null
+    val maxTokens: Int? = null,
 )
 
 class ProviderViewModel(application: Application) : AndroidViewModel(application) {
     private val repo = ProviderRepository(application)
 
-    val providers: StateFlow<List<ProviderConfig>> = repo.observeProviders()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val providers: StateFlow<List<ProviderConfig>> =
+        repo.observeProviders()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val activeProviderId: StateFlow<String> = repo.observeActiveProviderId()
-        .stateIn(viewModelScope, SharingStarted.Lazily, "")
+    val activeProviderId: StateFlow<String> =
+        repo.observeActiveProviderId()
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
-    val activeModelId: StateFlow<String> = repo.observeActiveModelId()
-        .stateIn(viewModelScope, SharingStarted.Lazily, "")
+    val activeModelId: StateFlow<String> =
+        repo.observeActiveModelId()
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
     private val _form = MutableStateFlow(ProviderForm())
     val form: StateFlow<ProviderForm> = _form
@@ -74,23 +77,24 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
 
             if (provider != null) {
                 android.util.Log.d("ProviderViewModel", "found provider: ${provider.name}")
-                _form.value = ProviderForm(
-                    id = provider.id,
-                    name = provider.name,
-                    type = provider.type,
-                    endpoint = provider.endpoint,
-                    apiKey = provider.apiKey,
-                    selectedModel = provider.selectedModel,
-                    embeddingModel = provider.embeddingModel,
-                    summaryModel = provider.summaryModel,
-                    memoryModel = provider.memoryModel,
-                    context1M = provider.context1M,
-                    temperature = provider.temperature,
-                    topP = provider.topP,
-                    topK = provider.topK,
-                    frequencyPenalty = provider.frequencyPenalty,
-                    maxTokens = provider.maxTokens
-                )
+                _form.value =
+                    ProviderForm(
+                        id = provider.id,
+                        name = provider.name,
+                        type = provider.type,
+                        endpoint = provider.endpoint,
+                        apiKey = provider.apiKey,
+                        selectedModel = provider.selectedModel,
+                        embeddingModel = provider.embeddingModel,
+                        summaryModel = provider.summaryModel,
+                        memoryModel = provider.memoryModel,
+                        context1M = provider.context1M,
+                        temperature = provider.temperature,
+                        topP = provider.topP,
+                        topK = provider.topK,
+                        frequencyPenalty = provider.frequencyPenalty,
+                        maxTokens = provider.maxTokens,
+                    )
                 android.util.Log.d("ProviderViewModel", "form updated with name: ${_form.value.name}")
             } else {
                 android.util.Log.e("ProviderViewModel", "provider not found with id: $id")
@@ -129,7 +133,11 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun testConnectionForProvider(endpoint: String, apiKey: String, type: String) {
+    fun testConnectionForProvider(
+        endpoint: String,
+        apiKey: String,
+        type: String,
+    ) {
         viewModelScope.launch {
             _testResult.value = null
             val ok = repo.testConnection(endpoint, apiKey, type)
@@ -139,19 +147,23 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
 
     fun saveProvider() {
         val f = _form.value
-        if (f.name.isBlank()) { _message.value = "名称不能为空"; return }
+        if (f.name.isBlank()) {
+            _message.value = "名称不能为空"
+            return
+        }
 
         viewModelScope.launch {
             val current = providers.value.toMutableList()
             val existing = current.find { it.id == f.id }
-            val config = ProviderConfig(
-                id = f.id.ifBlank { UUID.randomUUID().toString() },
-                name = f.name, type = f.type, endpoint = f.endpoint, apiKey = f.apiKey,
-                selectedModel = f.selectedModel, embeddingModel = f.embeddingModel,
-                summaryModel = f.summaryModel, memoryModel = f.memoryModel, context1M = f.context1M,
-                temperature = f.temperature, topP = f.topP, topK = f.topK,
-                frequencyPenalty = f.frequencyPenalty, maxTokens = f.maxTokens
-            )
+            val config =
+                ProviderConfig(
+                    id = f.id.ifBlank { UUID.randomUUID().toString() },
+                    name = f.name, type = f.type, endpoint = f.endpoint, apiKey = f.apiKey,
+                    selectedModel = f.selectedModel, embeddingModel = f.embeddingModel,
+                    summaryModel = f.summaryModel, memoryModel = f.memoryModel, context1M = f.context1M,
+                    temperature = f.temperature, topP = f.topP, topK = f.topK,
+                    frequencyPenalty = f.frequencyPenalty, maxTokens = f.maxTokens,
+                )
 
             if (existing != null) {
                 val idx = current.indexOf(existing)
@@ -174,9 +186,14 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setActiveProvider(providerId: String, modelId: String) {
+    fun setActiveProvider(
+        providerId: String,
+        modelId: String,
+    ) {
         viewModelScope.launch { repo.setActiveProvider(providerId, modelId) }
     }
 
-    fun clearMessage() { _message.value = null }
+    fun clearMessage() {
+        _message.value = null
+    }
 }

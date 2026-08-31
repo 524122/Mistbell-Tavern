@@ -15,25 +15,26 @@ fun EmptyStateView(
     icon: String = "📭",
     title: String = "暂无内容",
     subtitle: String = "",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(32.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = icon,
-            fontSize = 40.sp
+            fontSize = 40.sp,
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
         if (subtitle.isNotBlank()) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -41,7 +42,7 @@ fun EmptyStateView(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
         }
     }

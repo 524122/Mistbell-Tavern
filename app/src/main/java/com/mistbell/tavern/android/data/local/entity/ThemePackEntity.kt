@@ -12,6 +12,6 @@ data class ThemePackEntity(
     val author: String,
     val version: String,
     @ColumnInfo(name = "tokens_json") val tokensJson: String,
-    @ColumnInfo(name = "background_file") val backgroundFile: String?,  // 可空：zip 内 assets/<名>
-    @ColumnInfo(name = "created_at") val createdAt: String
+    @ColumnInfo(name = "background_file") val backgroundFile: String?, // 可空：zip 内 assets/<名>
+    @ColumnInfo(name = "created_at") val createdAt: String,
 )

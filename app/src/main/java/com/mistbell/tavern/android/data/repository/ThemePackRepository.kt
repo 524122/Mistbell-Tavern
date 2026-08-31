@@ -29,7 +29,7 @@ private data class ThemeManifest(
     val name: String,
     val author: String = "",
     val version: String = "1",
-    val capabilities: String = "cosmetic"
+    val capabilities: String = "cosmetic",
 )
 
 /**
@@ -37,23 +37,26 @@ private data class ThemeManifest(
  * 皮肤级：纯数据 tokens，无代码执行。
  */
 class ThemePackRepository(private val context: Context) {
-
     private val db get() = TavernApplication.instance.database
 
-    private val manifestJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    private val manifestJson =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     private val imageExtensions = setOf("png", "jpg", "jpeg", "webp")
 
     fun observePacks(): Flow<List<ThemePackEntity>> = db.themePackDao().observeAll()
 
-    fun observeActiveThemeId(): Flow<String?> =
-        db.settingsDao().observeValue("active_theme_id")
+    fun observeActiveThemeId(): Flow<String?> = db.settingsDao().observeValue("active_theme_id")
 
     /** null/空串 = 恢复默认 */
-    suspend fun setActiveTheme(id: String?) = withContext(Dispatchers.IO) {
-        val value = id?.trim().orEmpty()
-        db.settingsDao().upsert(SettingsEntity("active_theme_id", value))
-    }
+    suspend fun setActiveTheme(id: String?) =
+        withContext(Dispatchers.IO) {
+            val value = id?.trim().orEmpty()
+            db.settingsDao().upsert(SettingsEntity("active_theme_id", value))
+        }
 
     /**
      * 从 zip 导入主题包，返回主题 id。
@@ -61,104 +64,107 @@ class ThemePackRepository(private val context: Context) {
      * 同 id 覆盖安装；Entry 名含 ".." 一律拒绝（防路径穿越）。
      * 坏包抛 IllegalArgumentException（中文消息）。
      */
-    suspend fun importFromUri(uri: Uri): String = withContext(Dispatchers.IO) {
-        var manifest: ThemeManifest? = null
-        var themeJson: String? = null
-        var backgroundName: String? = null
-        val backgroundBytes = mutableListOf<Pair<String, ByteArray>>()
+    suspend fun importFromUri(uri: Uri): String =
+        withContext(Dispatchers.IO) {
+            var manifest: ThemeManifest? = null
+            var themeJson: String? = null
+            var backgroundName: String? = null
+            val backgroundBytes = mutableListOf<Pair<String, ByteArray>>()
 
-        try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                ZipInputStream(input.buffered()).use { zip ->
-                    var entry: ZipEntry? = zip.nextEntry
-                    if (entry == null) throw IllegalArgumentException("主题包无效：zip 内没有任何文件")
-                    while (entry != null) {
-                        val name = entry!!.name
-                        if (name.split('/').any { it == ".." }) throw IllegalArgumentException("主题包非法：条目路径包含 \"..\"（疑似路径穿越）")
-                        if (!entry!!.isDirectory) {
-                            val content = zip.readBytes()
-                            when {
-                                name == "manifest.json" ->
-                                    manifest = parseManifest(content.toString(Charsets.UTF_8))
-                                name == "theme.json" ->
-                                    themeJson = content.toString(Charsets.UTF_8)
-                                name.startsWith("assets/") -> {
-                                    val fileName = name.removePrefix("assets/").substringAfterLast('/')
-                                    val ext = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
-                                    if (ext in imageExtensions && backgroundName == null) {
-                                        backgroundName = fileName
-                                        backgroundBytes.add(fileName to content)
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    ZipInputStream(input.buffered()).use { zip ->
+                        var entry: ZipEntry? = zip.nextEntry
+                        if (entry == null) throw IllegalArgumentException("主题包无效：zip 内没有任何文件")
+                        while (entry != null) {
+                            val name = entry!!.name
+                            if (name.split('/').any { it == ".." }) throw IllegalArgumentException("主题包非法：条目路径包含 \"..\"（疑似路径穿越）")
+                            if (!entry!!.isDirectory) {
+                                val content = zip.readBytes()
+                                when {
+                                    name == "manifest.json" ->
+                                        manifest = parseManifest(content.toString(Charsets.UTF_8))
+                                    name == "theme.json" ->
+                                        themeJson = content.toString(Charsets.UTF_8)
+                                    name.startsWith("assets/") -> {
+                                        val fileName = name.removePrefix("assets/").substringAfterLast('/')
+                                        val ext = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
+                                        if (ext in imageExtensions && backgroundName == null) {
+                                            backgroundName = fileName
+                                            backgroundBytes.add(fileName to content)
+                                        }
                                     }
                                 }
                             }
+                            zip.closeEntry()
+                            entry = zip.nextEntry
                         }
-                        zip.closeEntry()
-                        entry = zip.nextEntry
                     }
-                }
-            } ?: throw IllegalArgumentException("主题包导入失败：无法打开所选文件")
-        } catch (e: IllegalArgumentException) {
-            throw e
-        } catch (e: Exception) {
-            throw IllegalArgumentException("主题包导入失败：zip 解压异常（${e.message ?: "未知错误"}）")
-        }
+                } ?: throw IllegalArgumentException("主题包导入失败：无法打开所选文件")
+            } catch (e: IllegalArgumentException) {
+                throw e
+            } catch (e: Exception) {
+                throw IllegalArgumentException("主题包导入失败：zip 解压异常（${e.message ?: "未知错误"}）")
+            }
 
-        val m = manifest ?: throw IllegalArgumentException("主题包无效：缺少 manifest.json")
-        if (themeJson == null) throw IllegalArgumentException("主题包无效：缺少 theme.json")
-        // 落库前校验 tokens 可解析，坏包直接拒绝（避免坏 JSON 入库后打死应用链）
-        if (ThemeSupport.parseTokens(themeJson!!) == null) {
-            throw IllegalArgumentException("主题包无效：theme.json 无法解析为有效的主题定义")
-        }
-        if (!Regex("^[A-Za-z0-9_-]{1,64}$").matches(m.id)) {
-            throw IllegalArgumentException("主题包非法：manifest.id 不合法（仅允许 1-64 位字母/数字/下划线/连字符）")
-        }
+            val m = manifest ?: throw IllegalArgumentException("主题包无效：缺少 manifest.json")
+            if (themeJson == null) throw IllegalArgumentException("主题包无效：缺少 theme.json")
+            // 落库前校验 tokens 可解析，坏包直接拒绝（避免坏 JSON 入库后打死应用链）
+            if (ThemeSupport.parseTokens(themeJson!!) == null) {
+                throw IllegalArgumentException("主题包无效：theme.json 无法解析为有效的主题定义")
+            }
+            if (!Regex("^[A-Za-z0-9_-]{1,64}$").matches(m.id)) {
+                throw IllegalArgumentException("主题包非法：manifest.id 不合法（仅允许 1-64 位字母/数字/下划线/连字符）")
+            }
 
-        // 覆盖安装采用"先写新、后清旧"顺序：中途失败时旧行仍在（最多背景文件被同名覆盖），
-        // 不会出现"旧包已删、新包未落库"的数据丢失窗口
-        val packDir = File(context.filesDir, "themes/${m.id}")
-        packDir.mkdirs()
-        var storedBackground: String? = null
-        if (backgroundName != null) {
-            val bg = backgroundBytes.first()
-            File(packDir, bg.first).writeBytes(bg.second)
-            storedBackground = bg.first
-        }
+            // 覆盖安装采用"先写新、后清旧"顺序：中途失败时旧行仍在（最多背景文件被同名覆盖），
+            // 不会出现"旧包已删、新包未落库"的数据丢失窗口
+            val packDir = File(context.filesDir, "themes/${m.id}")
+            packDir.mkdirs()
+            var storedBackground: String? = null
+            if (backgroundName != null) {
+                val bg = backgroundBytes.first()
+                File(packDir, bg.first).writeBytes(bg.second)
+                storedBackground = bg.first
+            }
 
-        val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-        db.themePackDao().upsert(
-            ThemePackEntity(
-                id = m.id,
-                name = m.name,
-                author = m.author,
-                version = m.version,
-                tokensJson = themeJson!!,
-                backgroundFile = storedBackground,
-                createdAt = now
+            val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+            db.themePackDao().upsert(
+                ThemePackEntity(
+                    id = m.id,
+                    name = m.name,
+                    author = m.author,
+                    version = m.version,
+                    tokensJson = themeJson!!,
+                    backgroundFile = storedBackground,
+                    createdAt = now,
+                ),
             )
-        )
 
-        // 清理包目录中不再被引用的遗留文件（覆盖安装后旧背景等）
-        packDir.listFiles()?.forEach { f ->
-            if (storedBackground == null || f.name != storedBackground) f.delete()
+            // 清理包目录中不再被引用的遗留文件（覆盖安装后旧背景等）
+            packDir.listFiles()?.forEach { f ->
+                if (storedBackground == null || f.name != storedBackground) f.delete()
+            }
+            m.id
         }
-        m.id
-    }
 
     private fun parseManifest(text: String): ThemeManifest {
-        val m = try {
-            manifestJson.decodeFromString<ThemeManifest>(text)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("主题包无效：manifest.json 解析失败（${e.message ?: "格式错误"}）")
-        }
+        val m =
+            try {
+                manifestJson.decodeFromString<ThemeManifest>(text)
+            } catch (e: Exception) {
+                throw IllegalArgumentException("主题包无效：manifest.json 解析失败（${e.message ?: "格式错误"}）")
+            }
         if (m.id.isBlank()) throw IllegalArgumentException("主题包非法：manifest.id 为空")
         return m
     }
 
     /** 删行 + 递归删 filesDir/themes/<id> */
-    suspend fun deletePack(id: String) = withContext(Dispatchers.IO) {
-        db.themePackDao().deleteById(id)
-        File(context.filesDir, "themes/$id").deleteRecursively()
-    }
+    suspend fun deletePack(id: String) =
+        withContext(Dispatchers.IO) {
+            db.themePackDao().deleteById(id)
+            File(context.filesDir, "themes/$id").deleteRecursively()
+        }
 
     /** 背景图文件：filesDir/themes/<id>/<backgroundFile>，不存在返回 null */
     fun backgroundFile(pack: ThemePackEntity): File? {
@@ -171,24 +177,29 @@ class ThemePackRepository(private val context: Context) {
      * 应用链命中的包实体（会话 → 角色 → 全局 → null）；tokens 与背景图共用此解析保证语义一致。
      * sessionId 空白时跳过会话层，不订阅 observeById（避免无谓查询）。
      */
-    fun observeResolvedPack(sessionId: String?, characterId: String?): Flow<ThemePackEntity?> {
+    fun observeResolvedPack(
+        sessionId: String?,
+        characterId: String?,
+    ): Flow<ThemePackEntity?> {
         val sid = sessionId?.trim().orEmpty()
-        val sessionTheme = if (sid.isEmpty()) {
-            kotlinx.coroutines.flow.flowOf<com.mistbell.tavern.android.data.local.entity.SessionEntity?>(null)
-        } else {
-            db.sessionDao().observeById(sid)
-        }
+        val sessionTheme =
+            if (sid.isEmpty()) {
+                kotlinx.coroutines.flow.flowOf<com.mistbell.tavern.android.data.local.entity.SessionEntity?>(null)
+            } else {
+                db.sessionDao().observeById(sid)
+            }
         val charId = characterId?.trim().orEmpty()
-        val characterTheme = if (charId.isEmpty()) {
-            kotlinx.coroutines.flow.flowOf<String?>(null)
-        } else {
-            db.characterDao().getAll().map { list -> list.find { it.id == charId }?.themeId }
-        }
+        val characterTheme =
+            if (charId.isEmpty()) {
+                kotlinx.coroutines.flow.flowOf<String?>(null)
+            } else {
+                db.characterDao().getAll().map { list -> list.find { it.id == charId }?.themeId }
+            }
         return combine(
             sessionTheme.map { it?.themeId },
             characterTheme,
             db.themePackDao().observeAll(),
-            db.settingsDao().observeValue("active_theme_id")
+            db.settingsDao().observeValue("active_theme_id"),
         ) { sessionThemeId, charThemeId, packs, activeId ->
             val map = packs.associateBy { it.id }
             ThemeSupport.resolvePackId(sessionThemeId, charThemeId, activeId, map)?.let { map[it] }
@@ -201,31 +212,37 @@ class ThemePackRepository(private val context: Context) {
             .map { pack -> pack?.let { ThemeSupport.parseTokens(it.tokensJson) } }
 
     /** 重建 zip 到 cacheDir/themes/<id>.zip 供分享，不存在则抛 IllegalArgumentException */
-    suspend fun exportPack(id: String): File = withContext(Dispatchers.IO) {
-        val pack = db.themePackDao().getById(id)
-            ?: throw IllegalArgumentException("导出失败：主题包不存在（id=$id）")
-        val outFile = File(File(context.cacheDir, "themes"), "$id.zip")
-        outFile.parentFile?.mkdirs()
-        ZipOutputStream(outFile.outputStream().buffered()).use { zip ->
-            val manifest = ThemeManifest(
-                id = pack.id, name = pack.name, author = pack.author,
-                version = pack.version, capabilities = "cosmetic"
-            )
-            zip.putNextEntry(ZipEntry("manifest.json"))
-            zip.write(manifestJson.encodeToString(ThemeManifest.serializer(), manifest).toByteArray(Charsets.UTF_8))
-            zip.closeEntry()
-
-            zip.putNextEntry(ZipEntry("theme.json"))
-            zip.write(pack.tokensJson.toByteArray(Charsets.UTF_8))
-            zip.closeEntry()
-
-            val bg = backgroundFile(pack)
-            if (bg != null) {
-                zip.putNextEntry(ZipEntry("assets/${bg.name}"))
-                bg.inputStream().use { it.copyTo(zip) }
+    suspend fun exportPack(id: String): File =
+        withContext(Dispatchers.IO) {
+            val pack =
+                db.themePackDao().getById(id)
+                    ?: throw IllegalArgumentException("导出失败：主题包不存在（id=$id）")
+            val outFile = File(File(context.cacheDir, "themes"), "$id.zip")
+            outFile.parentFile?.mkdirs()
+            ZipOutputStream(outFile.outputStream().buffered()).use { zip ->
+                val manifest =
+                    ThemeManifest(
+                        id = pack.id,
+                        name = pack.name,
+                        author = pack.author,
+                        version = pack.version,
+                        capabilities = "cosmetic",
+                    )
+                zip.putNextEntry(ZipEntry("manifest.json"))
+                zip.write(manifestJson.encodeToString(ThemeManifest.serializer(), manifest).toByteArray(Charsets.UTF_8))
                 zip.closeEntry()
+
+                zip.putNextEntry(ZipEntry("theme.json"))
+                zip.write(pack.tokensJson.toByteArray(Charsets.UTF_8))
+                zip.closeEntry()
+
+                val bg = backgroundFile(pack)
+                if (bg != null) {
+                    zip.putNextEntry(ZipEntry("assets/${bg.name}"))
+                    bg.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
             }
+            outFile
         }
-        outFile
-    }
 }

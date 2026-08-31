@@ -1,11 +1,9 @@
 package com.mistbell.tavern.android.service
 
 import android.content.Context
-import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.Message
 import com.mistbell.tavern.android.data.local.entity.MemoryEntity
-import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.service.models.*
 
 /**
@@ -15,7 +13,6 @@ import com.mistbell.tavern.android.service.models.*
  * 负责将角色、消息、记忆、世界书等信息组合成完整的系统提示词
  */
 class LocalPromptService(private val context: Context) {
-
     companion object {
         private const val SESSION_SUMMARY_MAX_INPUT_CHARS = 14000
         private const val SESSION_SUMMARY_TARGET_CHARS = 2200
@@ -36,7 +33,7 @@ class LocalPromptService(private val context: Context) {
         recentMessages: List<Message>,
         memories: List<MemoryEntity> = emptyList(),
         activatedEntries: List<ActivatedEntry> = emptyList(),
-        sessionSummary: String? = null
+        sessionSummary: String? = null,
     ): PromptSections {
         return PromptSections(
             mainPrompt = buildMainPrompt(character),
@@ -45,9 +42,9 @@ class LocalPromptService(private val context: Context) {
             characterPersonality = character.personality,
             scenario = character.scenario,
             sessionSummary = sessionSummary ?: "",
-            structuredMemoryContext = "",  // TODO: 实现结构化记忆
+            structuredMemoryContext = "", // TODO: 实现结构化记忆
             memoryContext = buildMemoryContext(memories),
-            vectorMemoryContext = "",  // TODO: 实现向量记忆
+            vectorMemoryContext = "", // TODO: 实现向量记忆
             worldInfoAfter = buildWorldInfoByPosition(activatedEntries, "after"),
             exampleBefore = buildWorldInfoByPosition(activatedEntries, "exampleBefore"),
             exampleDialogue = character.mesExample,
@@ -57,7 +54,7 @@ class LocalPromptService(private val context: Context) {
             postHistory = character.data?.postHistoryInstructions ?: "",
             depthEntries = buildDepthEntries(activatedEntries),
             recentMessages = recentMessages,
-            activatedWorldInfo = activatedEntries
+            activatedWorldInfo = activatedEntries,
         )
     }
 
@@ -70,7 +67,7 @@ class LocalPromptService(private val context: Context) {
      */
     fun buildChatMessages(
         sections: PromptSections,
-        includePostHistory: Boolean = true
+        includePostHistory: Boolean = true,
     ): List<LocalChatMessage> {
         val messages = mutableListOf<LocalChatMessage>()
 
@@ -80,17 +77,19 @@ class LocalPromptService(private val context: Context) {
 
         // 插入带深度注入的消息
         val messagesWithDepth = insertDepthEntries(sections.recentMessages, sections.depthEntries)
-        messages.addAll(messagesWithDepth.map { msg ->
-            LocalChatMessage(role = msg.role, content = msg.content)
-        })
+        messages.addAll(
+            messagesWithDepth.map { msg ->
+                LocalChatMessage(role = msg.role, content = msg.content)
+            },
+        )
 
         // 后置指令
         if (includePostHistory && sections.postHistory.isNotBlank()) {
             messages.add(
                 LocalChatMessage(
                     role = "system",
-                    content = "## Post-History Instructions\n${sections.postHistory}"
-                )
+                    content = "## Post-History Instructions\n${sections.postHistory}",
+                ),
             )
         }
 
@@ -132,10 +131,11 @@ class LocalPromptService(private val context: Context) {
      */
     private fun buildWorldInfoByPosition(
         entries: List<ActivatedEntry>,
-        position: String
+        position: String,
     ): String {
-        val filtered = entries.filter { it.position == position && it.enabled }
-            .sortedBy { it.order }
+        val filtered =
+            entries.filter { it.position == position && it.enabled }
+                .sortedBy { it.order }
 
         if (filtered.isEmpty()) return ""
 
@@ -165,7 +165,7 @@ class LocalPromptService(private val context: Context) {
      */
     private fun insertDepthEntries(
         messages: List<Message>,
-        depthEntries: List<DepthEntry>
+        depthEntries: List<DepthEntry>,
     ): List<Message> {
         if (depthEntries.isEmpty()) return messages
 
@@ -180,11 +180,11 @@ class LocalPromptService(private val context: Context) {
             depthMap[depthFromEnd]?.forEach { entry ->
                 result.add(
                     Message(
-                        id = "depth_${depthFromEnd}",
+                        id = "depth_$depthFromEnd",
                         role = "system",
                         content = entry.content,
-                        createdAt = message.createdAt
-                    )
+                        createdAt = message.createdAt,
+                    ),
                 )
             }
 
@@ -212,14 +212,19 @@ class LocalPromptService(private val context: Context) {
      */
     fun generatePromptAudit(
         sections: PromptSections,
-        finalMessages: List<LocalChatMessage>
+        finalMessages: List<LocalChatMessage>,
     ): PromptAudit {
         val sectionAudits = mutableListOf<SectionAudit>()
         var stableTokens = 0
         var dynamicTokens = 0
 
         // 审计各个段落
-        fun auditSection(name: String, label: String, type: String, content: String) {
+        fun auditSection(
+            name: String,
+            label: String,
+            type: String,
+            content: String,
+        ) {
             val chars = content.length
             val tokens = estimateTokens(content)
             val included = content.isNotBlank()
@@ -231,8 +236,8 @@ class LocalPromptService(private val context: Context) {
                     type = type,
                     chars = chars,
                     estimatedTokens = tokens,
-                    included = included
-                )
+                    included = included,
+                ),
             )
 
             if (included) {
@@ -255,28 +260,30 @@ class LocalPromptService(private val context: Context) {
         auditSection("memoryContext", "长期记忆", "dynamic", sections.memoryContext)
 
         // 审计消息
-        val messageAudits = finalMessages.mapIndexed { index, message ->
-            val chars = message.content.length
-            val tokens = estimateTokens(message.content)
-            MessageAudit(
-                index = index,
-                role = message.role,
-                chars = chars,
-                estimatedTokens = tokens,
-                dynamic = message.role != "system"
-            )
-        }
+        val messageAudits =
+            finalMessages.mapIndexed { index, message ->
+                val chars = message.content.length
+                val tokens = estimateTokens(message.content)
+                MessageAudit(
+                    index = index,
+                    role = message.role,
+                    chars = chars,
+                    estimatedTokens = tokens,
+                    dynamic = message.role != "system",
+                )
+            }
 
-        val messageDynamicTokens = messageAudits
-            .filter { it.dynamic }
-            .sumOf { it.estimatedTokens }
+        val messageDynamicTokens =
+            messageAudits
+                .filter { it.dynamic }
+                .sumOf { it.estimatedTokens }
 
         return PromptAudit(
             sections = sectionAudits,
             messages = messageAudits,
             stableTokens = stableTokens,
             dynamicTokens = dynamicTokens + messageDynamicTokens,
-            totalTokens = stableTokens + dynamicTokens + messageDynamicTokens
+            totalTokens = stableTokens + dynamicTokens + messageDynamicTokens,
         )
     }
 }

@@ -21,14 +21,19 @@ data class CharacterEntity(
     @ColumnInfo(name = "world_book_id") val worldBookId: String,
     // defaultValue 必须与 MIGRATION_9_10 的 SQL DEFAULT '' 一致（Room TableInfo 校验列默认值）
     @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = "",
-    @ColumnInfo(name = "data_json") val dataJson: String
+    @ColumnInfo(name = "data_json") val dataJson: String,
 ) {
     fun toDomain(): Character {
-        val charData = try {
-            if (dataJson.isNotBlank()) {
-                kotlinx.serialization.json.Json.decodeFromString<CharacterData>(dataJson)
-            } else null
-        } catch (_: Exception) { null }
+        val charData =
+            try {
+                if (dataJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<CharacterData>(dataJson)
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
 
         return Character(
             id = id,
@@ -43,15 +48,16 @@ data class CharacterEntity(
             avatarData = avatarData,
             worldBookId = worldBookId,
             themeId = themeId,
-            data = charData
+            data = charData,
         )
     }
 
     companion object {
         fun fromDomain(c: Character): CharacterEntity {
-            val dataStr = c.data?.let {
-                kotlinx.serialization.json.Json.encodeToString(CharacterData.serializer(), it)
-            } ?: ""
+            val dataStr =
+                c.data?.let {
+                    kotlinx.serialization.json.Json.encodeToString(CharacterData.serializer(), it)
+                } ?: ""
             return CharacterEntity(
                 id = c.id,
                 name = c.name,
@@ -65,7 +71,7 @@ data class CharacterEntity(
                 avatarData = c.avatarData,
                 worldBookId = c.worldBookId,
                 themeId = c.themeId,
-                dataJson = dataStr
+                dataJson = dataStr,
             )
         }
     }

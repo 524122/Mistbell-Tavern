@@ -22,21 +22,31 @@ class VectorMemoryRepository(context: Context) {
     }
 
     // 按角色获取向量记忆
-    fun getMemoriesByCharacter(ownerId: String, characterId: String): Flow<List<VectorMemory>> {
+    fun getMemoriesByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Flow<List<VectorMemory>> {
         return memoryDao.getByCharacter(ownerId, characterId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     // 按会话获取向量记忆
-    fun getMemoriesBySession(ownerId: String, characterId: String, sessionId: String): Flow<List<VectorMemory>> {
+    fun getMemoriesBySession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Flow<List<VectorMemory>> {
         return memoryDao.getBySession(ownerId, characterId, sessionId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     // 按内容类型获取向量记忆
-    fun getMemoriesByContentType(ownerId: String, contentType: String): Flow<List<VectorMemory>> {
+    fun getMemoriesByContentType(
+        ownerId: String,
+        contentType: String,
+    ): Flow<List<VectorMemory>> {
         return memoryDao.getByContentType(ownerId, contentType).map { entities ->
             entities.map { it.toDomain() }
         }
@@ -66,9 +76,10 @@ class VectorMemoryRepository(context: Context) {
     // 创建向量记忆
     suspend fun createMemory(memory: VectorMemory): Long {
         return withContext(Dispatchers.IO) {
-            val entity = VectorMemoryEntity.fromDomain(
-                memory.copy(createdAt = Instant.now().toString())
-            )
+            val entity =
+                VectorMemoryEntity.fromDomain(
+                    memory.copy(createdAt = Instant.now().toString()),
+                )
             memoryDao.insert(entity)
         }
     }
@@ -89,14 +100,20 @@ class VectorMemoryRepository(context: Context) {
     }
 
     // 按角色删除向量记忆
-    suspend fun deleteMemoriesByCharacter(ownerId: String, characterId: String) {
+    suspend fun deleteMemoriesByCharacter(
+        ownerId: String,
+        characterId: String,
+    ) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteByCharacter(ownerId, characterId)
         }
     }
 
     // 按会话删除向量记忆
-    suspend fun deleteMemoriesBySession(ownerId: String, sessionId: String) {
+    suspend fun deleteMemoriesBySession(
+        ownerId: String,
+        sessionId: String,
+    ) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteBySession(ownerId, sessionId)
         }
@@ -117,14 +134,21 @@ class VectorMemoryRepository(context: Context) {
     }
 
     // 获取角色的向量记忆数量
-    suspend fun getMemoryCountByCharacter(ownerId: String, characterId: String): Int {
+    suspend fun getMemoryCountByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Int {
         return withContext(Dispatchers.IO) {
             memoryDao.getCountByCharacter(ownerId, characterId)
         }
     }
 
     // 获取会话的向量记忆数量
-    suspend fun getMemoryCountBySession(ownerId: String, characterId: String, sessionId: String): Int {
+    suspend fun getMemoryCountBySession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Int {
         return withContext(Dispatchers.IO) {
             memoryDao.getCountBySession(ownerId, characterId, sessionId)
         }

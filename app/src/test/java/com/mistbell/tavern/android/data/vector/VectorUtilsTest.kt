@@ -9,7 +9,6 @@ import org.junit.Test
  * 重点覆盖审查指出的边界：零向量、维度不匹配。
  */
 class VectorUtilsTest {
-
     @Test
     fun `相同向量余弦相似度为1`() {
         val v = floatArrayOf(1f, 2f, 3f)

@@ -1,7 +1,6 @@
 package com.mistbell.tavern.android.ui.character
 
 import android.app.Application
-import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.data.api.model.Character
@@ -33,7 +32,7 @@ data class CharacterForm(
     val worldBookId: String = "",
     val themeId: String = "",
     val customGreetings: List<String> = emptyList(),
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
 )
 
 class CharacterEditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -55,13 +54,15 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
-    val worldBooks: StateFlow<List<WorldBook>> = worldBookRepo.observeWorldBooks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val worldBooks: StateFlow<List<WorldBook>> =
+        worldBookRepo.observeWorldBooks()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val themePackRepo = ThemePackRepository(application)
 
-    val availableThemes: StateFlow<List<ThemePackEntity>> = themePackRepo.observePacks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val availableThemes: StateFlow<List<ThemePackEntity>> =
+        themePackRepo.observePacks()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private var editingCharacterId: String? = null
 
@@ -76,26 +77,27 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
                 _isEditing.value = true
                 // 保留编辑前的扩展字段，保存时透传回去
                 loadedExtensions = char.data?.extensions
-                _form.value = CharacterForm(
-                    name = char.name,
-                    description = char.description,
-                    personality = char.personality,
-                    scenario = char.scenario,
-                    firstMes = char.firstMes,
-                    mesExample = char.mesExample,
-                    color = char.color.ifBlank { "#6C5CE7" },
-                    avatarData = char.avatarData,
-                    systemPrompt = char.data?.systemPrompt ?: "",
-                    postHistoryInstructions = char.data?.postHistoryInstructions ?: "",
-                    creatorNotes = char.data?.creatorNotes ?: "",
-                    creator = char.data?.creator ?: "",
-                    characterVersion = char.data?.characterVersion ?: "1.0",
-                    worldBookId = char.worldBookId,
-                    themeId = char.themeId,
-                    // 从 char.data 填充备用问候语与标签，避免编辑后丢失（修复 NH-4）
-                    customGreetings = char.data?.alternateGreetings ?: emptyList(),
-                    tags = char.data?.tags ?: emptyList()
-                )
+                _form.value =
+                    CharacterForm(
+                        name = char.name,
+                        description = char.description,
+                        personality = char.personality,
+                        scenario = char.scenario,
+                        firstMes = char.firstMes,
+                        mesExample = char.mesExample,
+                        color = char.color.ifBlank { "#6C5CE7" },
+                        avatarData = char.avatarData,
+                        systemPrompt = char.data?.systemPrompt ?: "",
+                        postHistoryInstructions = char.data?.postHistoryInstructions ?: "",
+                        creatorNotes = char.data?.creatorNotes ?: "",
+                        creator = char.data?.creator ?: "",
+                        characterVersion = char.data?.characterVersion ?: "1.0",
+                        worldBookId = char.worldBookId,
+                        themeId = char.themeId,
+                        // 从 char.data 填充备用问候语与标签，避免编辑后丢失（修复 NH-4）
+                        customGreetings = char.data?.alternateGreetings ?: emptyList(),
+                        tags = char.data?.tags ?: emptyList(),
+                    )
             }
         }
     }
@@ -114,33 +116,35 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             _isSaving.value = true
             try {
-                val characterData = CharacterData(
-                    systemPrompt = f.systemPrompt,
-                    postHistoryInstructions = f.postHistoryInstructions,
-                    creatorNotes = f.creatorNotes,
-                    creator = f.creator,
-                    characterVersion = f.characterVersion,
-                    // 带上备用问候语与标签；扩展字段透传保留（表单不编辑）
-                    alternateGreetings = f.customGreetings,
-                    tags = f.tags,
-                    extensions = loadedExtensions
-                )
+                val characterData =
+                    CharacterData(
+                        systemPrompt = f.systemPrompt,
+                        postHistoryInstructions = f.postHistoryInstructions,
+                        creatorNotes = f.creatorNotes,
+                        creator = f.creator,
+                        characterVersion = f.characterVersion,
+                        // 带上备用问候语与标签；扩展字段透传保留（表单不编辑）
+                        alternateGreetings = f.customGreetings,
+                        tags = f.tags,
+                        extensions = loadedExtensions,
+                    )
 
-                val character = Character(
-                    id = editingCharacterId ?: UUID.randomUUID().toString(),
-                    name = f.name,
-                    role = "assistant",
-                    description = f.description,
-                    personality = f.personality,
-                    scenario = f.scenario,
-                    firstMes = f.firstMes,
-                    mesExample = f.mesExample,
-                    color = f.color,
-                    avatarData = f.avatarData,
-                    worldBookId = f.worldBookId,
-                    themeId = f.themeId,
-                    data = characterData
-                )
+                val character =
+                    Character(
+                        id = editingCharacterId ?: UUID.randomUUID().toString(),
+                        name = f.name,
+                        role = "assistant",
+                        description = f.description,
+                        personality = f.personality,
+                        scenario = f.scenario,
+                        firstMes = f.firstMes,
+                        mesExample = f.mesExample,
+                        color = f.color,
+                        avatarData = f.avatarData,
+                        worldBookId = f.worldBookId,
+                        themeId = f.themeId,
+                        data = characterData,
+                    )
 
                 // 直接保存到本地数据库
                 characterRepo.createCharacter(character)
@@ -156,5 +160,7 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
-    fun clearMessage() { _message.value = null }
+    fun clearMessage() {
+        _message.value = null
+    }
 }

@@ -47,7 +47,10 @@ interface WorldBookDao {
     suspend fun deleteEntriesByBookId(bookId: String)
 
     @Transaction
-    suspend fun replaceAll(books: List<WorldBookEntity>, allEntries: Map<String, List<WorldBookEntryEntity>>) {
+    suspend fun replaceAll(
+        books: List<WorldBookEntity>,
+        allEntries: Map<String, List<WorldBookEntryEntity>>,
+    ) {
         deleteAllBooks()
         deleteAllEntries()
         books.forEach { upsertBook(it) }

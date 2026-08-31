@@ -31,7 +31,7 @@ import com.mistbell.tavern.android.ui.components.EmptyStateView
 @Composable
 fun ThemeManagerScreen(
     onBack: () -> Unit = {},
-    viewModel: ThemeManagerViewModel = viewModel()
+    viewModel: ThemeManagerViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val packs by viewModel.packs.collectAsState()
@@ -49,12 +49,13 @@ fun ThemeManagerScreen(
     // 待删除确认的主题包
     var pendingDelete by remember { mutableStateOf<ThemePackEntity?>(null) }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        // 一次性读取，不需要持久授权
-        uri?.let { viewModel.importPack(it) }
-    }
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            // 一次性读取，不需要持久授权
+            uri?.let { viewModel.importPack(it) }
+        }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -65,7 +66,7 @@ fun ThemeManagerScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
-                }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -75,40 +76,42 @@ fun ThemeManagerScreen(
                     importLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
                 },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("导入主题") }
+                text = { Text("导入主题") },
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         if (packs.isEmpty()) {
             EmptyStateView(
                 icon = "🎨",
                 title = "暂无主题包",
                 subtitle = "点击右下角按钮导入 .zip 主题包",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
             )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = paddingValues
+                contentPadding = paddingValues,
             ) {
                 // 默认（不使用主题）
                 item {
                     val selected = activeThemeId.isNullOrBlank()
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.setActive(null) }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setActive(null) }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = "默认（不使用主题）",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         RadioButton(selected = selected, onClick = { viewModel.setActive(null) })
                     }
@@ -117,34 +120,35 @@ fun ThemeManagerScreen(
                 items(packs, key = { it.id }) { pack ->
                     val selected = activeThemeId == pack.id
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.setActive(pack.id) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setActive(pack.id) }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = pack.name,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                                 )
                                 Text(
                                     text = "${pack.author} · ${pack.version}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 ColorSwatchPreview(tokensJson = pack.tokensJson)
                             }
                             RadioButton(
                                 selected = selected,
-                                onClick = { viewModel.setActive(pack.id) }
+                                onClick = { viewModel.setActive(pack.id) },
                             )
                             IconButton(onClick = { pendingDelete = pack }) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "删除",
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = MaterialTheme.colorScheme.error,
                                 )
                             }
                             IconButton(onClick = { viewModel.exportPack(pack.id) }) {
@@ -166,7 +170,7 @@ fun ThemeManagerScreen(
                 viewModel.deletePack(pack.id)
                 pendingDelete = null
             },
-            onDismiss = { pendingDelete = null }
+            onDismiss = { pendingDelete = null },
         )
     }
 }
@@ -175,33 +179,35 @@ fun ThemeManagerScreen(
 @Composable
 private fun ColorSwatchPreview(tokensJson: String) {
     val tokens = remember(tokensJson) { ThemeSupport.parseTokens(tokensJson) }
-    val colors = listOfNotNull(
-        tokens?.colors?.primary,
-        tokens?.colors?.userBubble,
-        tokens?.colors?.assistantBubble,
-        tokens?.colors?.background,
-        tokens?.colors?.surface
-    )
+    val colors =
+        listOfNotNull(
+            tokens?.colors?.primary,
+            tokens?.colors?.userBubble,
+            tokens?.colors?.assistantBubble,
+            tokens?.colors?.background,
+            tokens?.colors?.surface,
+        )
     if (tokens == null) {
         Text(
             text = "无效主题",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error
+            color = MaterialTheme.colorScheme.error,
         )
         return
     }
     Row(
         modifier = Modifier.padding(top = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         colors.forEach { hex ->
             val color = ThemeSupport.parseHexColor(hex)
             if (color != null) {
                 Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(color)
+                    modifier =
+                        Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(color),
                 )
             }
         }

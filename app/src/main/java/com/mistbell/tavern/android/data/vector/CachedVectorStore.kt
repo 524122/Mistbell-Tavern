@@ -15,9 +15,8 @@ import kotlinx.coroutines.sync.withLock
  */
 class CachedVectorStore(
     private val delegate: VectorStore,
-    cacheSize: Int = 50
+    cacheSize: Int = 50,
 ) : VectorStore {
-
     private val searchCache = LruCache<SearchCacheKey, List<VectorStore.SearchResult>>(cacheSize)
     private val cacheMutex = Mutex()
 
@@ -25,7 +24,11 @@ class CachedVectorStore(
         private const val TAG = "CachedVectorStore"
     }
 
-    override suspend fun add(id: String, vector: FloatArray, metadata: Map<String, Any>) {
+    override suspend fun add(
+        id: String,
+        vector: FloatArray,
+        metadata: Map<String, Any>,
+    ) {
         delegate.add(id, vector, metadata)
         invalidateCache()
     }
@@ -38,13 +41,14 @@ class CachedVectorStore(
     override suspend fun search(
         queryVector: FloatArray,
         topK: Int,
-        filters: Map<String, Any>
+        filters: Map<String, Any>,
     ): List<VectorStore.SearchResult> {
-        val cacheKey = SearchCacheKey(
-            vectorHash = queryVector.contentHashCode(),
-            topK = topK,
-            filters = filters
-        )
+        val cacheKey =
+            SearchCacheKey(
+                vectorHash = queryVector.contentHashCode(),
+                topK = topK,
+                filters = filters,
+            )
 
         // 尝试从缓存获取
         cacheMutex.withLock {
@@ -103,6 +107,6 @@ class CachedVectorStore(
     private data class SearchCacheKey(
         val vectorHash: Int,
         val topK: Int,
-        val filters: Map<String, Any>
+        val filters: Map<String, Any>,
     )
 }

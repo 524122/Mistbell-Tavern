@@ -40,7 +40,10 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun observeSessions(ownerId: String, characterId: String): Flow<List<SessionSummary>> {
+    fun observeSessions(
+        ownerId: String,
+        characterId: String,
+    ): Flow<List<SessionSummary>> {
         return db.sessionDao().getByCharacter(ownerId, characterId).map { entities ->
             entities.map { it.toDomain() }
         }
@@ -52,19 +55,29 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun observeMessages(ownerId: String, characterId: String, sessionId: String): Flow<List<Message>> {
+    fun observeMessages(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Flow<List<Message>> {
         return db.messageDao().getBySession(sessionId, ownerId, characterId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    fun observeMemories(ownerId: String, characterId: String): Flow<List<Memory>> {
+    fun observeMemories(
+        ownerId: String,
+        characterId: String,
+    ): Flow<List<Memory>> {
         return db.memoryDao().getAll(ownerId, characterId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    suspend fun getActiveSessionId(ownerId: String, characterId: String): String {
+    suspend fun getActiveSessionId(
+        ownerId: String,
+        characterId: String,
+    ): String {
         val sessions = db.sessionDao().getByCharacter(ownerId, characterId).first()
         return sessions.firstOrNull()?.id ?: ""
     }
@@ -77,24 +90,25 @@ class ChatRepository(private val context: Context) {
         sessionId: String,
         message: String,
         worldBookId: String = "",
-        onPartial: ((String) -> Unit)? = null
+        onPartial: ((String) -> Unit)? = null,
     ): Message {
         return withContext(Dispatchers.IO) {
             val msgId = UUID.randomUUID().toString()
-            val userMsg = Message(
-                id = msgId,
-                role = "user",
-                content = message,
-                thinking = null,
-                createdAt = java.time.Instant.now().toString(),
-                memoryIds = null,
-                swipes = null,
-                swipeIndex = 0
-            )
+            val userMsg =
+                Message(
+                    id = msgId,
+                    role = "user",
+                    content = message,
+                    thinking = null,
+                    createdAt = java.time.Instant.now().toString(),
+                    memoryIds = null,
+                    swipes = null,
+                    swipeIndex = 0,
+                )
 
             // 1. Save user message locally
             db.messageDao().upsert(
-                MessageEntity.fromDomain(userMsg, sessionId, ownerId, characterId)
+                MessageEntity.fromDomain(userMsg, sessionId, ownerId, characterId),
             )
 
             // 1.5. 向量化用户消息（异步，不阻塞主流程）
@@ -103,7 +117,7 @@ class ChatRepository(private val context: Context) {
                 ownerId = ownerId,
                 characterId = characterId,
                 sessionId = sessionId,
-                messageId = msgId
+                messageId = msgId,
             )
 
             // 2. Update session message count
@@ -113,10 +127,13 @@ class ChatRepository(private val context: Context) {
                     session.copy(
                         messageCount = session.messageCount + 1,
                         updatedAt = userMsg.createdAt,
-                        title = if (session.title.isBlank() && session.messageCount == 0) {
-                            message.take(26)
-                        } else session.title
-                    )
+                        title =
+                            if (session.title.isBlank() && session.messageCount == 0) {
+                                message.take(26)
+                            } else {
+                                session.title
+                            },
+                    ),
                 )
             }
 
@@ -140,18 +157,19 @@ class ChatRepository(private val context: Context) {
                     }
                     // F2.1 回复清洗：提取全部 <think>…</think> 块为思考内容，正文不含 think（流式/非流式统一走 sb，此处统一处理）
                     val (replyContent, replyThinking) = splitThinking(sb.toString())
-                    val assistantMsg = Message(
-                        id = UUID.randomUUID().toString(),
-                        role = "assistant",
-                        content = replyContent,
-                        thinking = replyThinking,
-                        createdAt = java.time.Instant.now().toString(),
-                        memoryIds = null,
-                        swipes = null,
-                        swipeIndex = 0
-                    )
+                    val assistantMsg =
+                        Message(
+                            id = UUID.randomUUID().toString(),
+                            role = "assistant",
+                            content = replyContent,
+                            thinking = replyThinking,
+                            createdAt = java.time.Instant.now().toString(),
+                            memoryIds = null,
+                            swipes = null,
+                            swipeIndex = 0,
+                        )
                     db.messageDao().upsert(
-                        MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId)
+                        MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId),
                     )
                     insertedAssistantId = assistantMsg.id
 
@@ -161,16 +179,17 @@ class ChatRepository(private val context: Context) {
                         ownerId = ownerId,
                         characterId = characterId,
                         sessionId = sessionId,
-                        messageId = assistantMsg.id
+                        messageId = assistantMsg.id,
                     )
 
                     // 更新会话消息计数
                     val updatedSession = db.sessionDao().get(sessionId, ownerId, characterId)
                     if (updatedSession != null) {
-                        val sessionAfterReply = updatedSession.copy(
-                            messageCount = updatedSession.messageCount + 1,
-                            updatedAt = assistantMsg.createdAt
-                        )
+                        val sessionAfterReply =
+                            updatedSession.copy(
+                                messageCount = updatedSession.messageCount + 1,
+                                updatedAt = assistantMsg.createdAt,
+                            )
                         db.sessionDao().upsert(sessionAfterReply)
 
                         // 每一轮对话都提取记忆（开场白已经在创建会话时插入，不参与这里的逻辑）
@@ -182,7 +201,7 @@ class ChatRepository(private val context: Context) {
                             ownerId = ownerId,
                             characterId = characterId,
                             sessionId = sessionId,
-                            messageIds = listOf(msgId, assistantMsg.id)
+                            messageIds = listOf(msgId, assistantMsg.id),
                         )
                     }
 
@@ -194,26 +213,27 @@ class ChatRepository(private val context: Context) {
                 // 用户主动停止生成：不同于网络失败，不回滚用户消息。
                 // 已收到部分回复则按成功路径格式落库部分回复并回写计数，然后向上抛出取消。
                 if (sb.isNotEmpty()) {
-                    val partialMsg = Message(
-                        id = UUID.randomUUID().toString(),
-                        role = "assistant",
-                        content = sb.toString(),
-                        thinking = null,
-                        createdAt = java.time.Instant.now().toString(),
-                        memoryIds = null,
-                        swipes = null,
-                        swipeIndex = 0
-                    )
+                    val partialMsg =
+                        Message(
+                            id = UUID.randomUUID().toString(),
+                            role = "assistant",
+                            content = sb.toString(),
+                            thinking = null,
+                            createdAt = java.time.Instant.now().toString(),
+                            memoryIds = null,
+                            swipes = null,
+                            swipeIndex = 0,
+                        )
                     db.messageDao().upsert(
-                        MessageEntity.fromDomain(partialMsg, sessionId, ownerId, characterId)
+                        MessageEntity.fromDomain(partialMsg, sessionId, ownerId, characterId),
                     )
                     val sessionAfterPartial = db.sessionDao().get(sessionId, ownerId, characterId)
                     if (sessionAfterPartial != null) {
                         db.sessionDao().upsert(
                             sessionAfterPartial.copy(
                                 messageCount = sessionAfterPartial.messageCount + 1,
-                                updatedAt = partialMsg.createdAt
-                            )
+                                updatedAt = partialMsg.createdAt,
+                            ),
                         )
                     }
                 }
@@ -230,8 +250,8 @@ class ChatRepository(private val context: Context) {
                         db.sessionDao().upsert(
                             sessionForRollback.copy(
                                 messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size,
-                                title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title
-                            )
+                                title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title,
+                            ),
                         )
                     }
                 }
@@ -240,7 +260,11 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    suspend fun undoLastMessage(ownerId: String, characterId: String, sessionId: String) {
+    suspend fun undoLastMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
         withContext(Dispatchers.IO) {
             // 事务保证删除与计数回写原子完成，避免中途失败导致计数漂移
             db.withTransaction {
@@ -256,7 +280,12 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    suspend fun backtrackToMessage(ownerId: String, characterId: String, sessionId: String, messageId: String) {
+    suspend fun backtrackToMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageId: String,
+    ) {
         withContext(Dispatchers.IO) {
             val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
             val idx = messages.indexOfFirst { it.id == messageId }
@@ -271,7 +300,7 @@ class ChatRepository(private val context: Context) {
         characterId: String,
         sessionId: String,
         messageId: String,
-        onPartial: ((String) -> Unit)? = null
+        onPartial: ((String) -> Unit)? = null,
     ) {
         withContext(Dispatchers.IO) {
             val msg = db.messageDao().getById(messageId, sessionId) ?: return@withContext
@@ -279,8 +308,9 @@ class ChatRepository(private val context: Context) {
 
             // 先取上下文与配置，任何删除都在拿到新回复成功之后，避免旧消息丢失而新回复没来
             val userMessages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
-            val lastUserMsg = userMessages.lastOrNull { it.role == "user" }
-                ?: throw IllegalStateException("没有可重新生成的用户消息")
+            val lastUserMsg =
+                userMessages.lastOrNull { it.role == "user" }
+                    ?: throw IllegalStateException("没有可重新生成的用户消息")
             val llmConfig = loadLlmConfig()
             if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
                 throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
@@ -288,11 +318,16 @@ class ChatRepository(private val context: Context) {
 
             // excludeFromMessageId：截断目标消息及其之后的历史，
             // 保证正要被替换的旧回复不进入上下文（否则模型会复述旧答案）
-            val prompt = PromptBuilder.buildPrompt(
-                db, ownerId, characterId, sessionId, lastUserMsg.content,
-                currentMessageId = lastUserMsg.id,
-                excludeFromMessageId = messageId
-            )
+            val prompt =
+                PromptBuilder.buildPrompt(
+                    db,
+                    ownerId,
+                    characterId,
+                    sessionId,
+                    lastUserMsg.content,
+                    currentMessageId = lastUserMsg.id,
+                    excludeFromMessageId = messageId,
+                )
             // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
             val sb = StringBuilder()
             try {
@@ -310,26 +345,27 @@ class ChatRepository(private val context: Context) {
                 // 用户主动停止重新生成：不删旧消息、不触发失败回滚。
                 // 已收到部分回复则按成功路径的替换事务落库部分回复；空则直接上抛取消。
                 if (sb.isNotEmpty()) {
-                    val partialMsg = Message(
-                        id = UUID.randomUUID().toString(),
-                        role = "assistant",
-                        content = sb.toString(),
-                        thinking = null,
-                        createdAt = java.time.Instant.now().toString(),
-                        memoryIds = null,
-                        swipes = null,
-                        swipeIndex = 0
-                    )
+                    val partialMsg =
+                        Message(
+                            id = UUID.randomUUID().toString(),
+                            role = "assistant",
+                            content = sb.toString(),
+                            thinking = null,
+                            createdAt = java.time.Instant.now().toString(),
+                            memoryIds = null,
+                            swipes = null,
+                            swipeIndex = 0,
+                        )
                     db.withTransaction {
                         db.messageDao().deleteAfter(sessionId, messageId, ownerId, characterId)
                         db.messageDao().deleteById(messageId)
                         db.messageDao().upsert(
-                            MessageEntity.fromDomain(partialMsg, sessionId, ownerId, characterId)
+                            MessageEntity.fromDomain(partialMsg, sessionId, ownerId, characterId),
                         )
                         val session = db.sessionDao().get(sessionId, ownerId, characterId)
                         if (session != null) {
                             db.sessionDao().upsert(
-                                session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size)
+                                session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size),
                             )
                         }
                     }
@@ -339,28 +375,29 @@ class ChatRepository(private val context: Context) {
             // F2.1 回复清洗：重新生成路径同样提取 think 块
             val (replyContent, replyThinking) = splitThinking(sb.toString())
 
-            val assistantMsg = Message(
-                id = UUID.randomUUID().toString(),
-                role = "assistant",
-                content = replyContent,
-                thinking = replyThinking,
-                createdAt = java.time.Instant.now().toString(),
-                memoryIds = null,
-                swipes = null,
-                swipeIndex = 0
-            )
+            val assistantMsg =
+                Message(
+                    id = UUID.randomUUID().toString(),
+                    role = "assistant",
+                    content = replyContent,
+                    thinking = replyThinking,
+                    createdAt = java.time.Instant.now().toString(),
+                    memoryIds = null,
+                    swipes = null,
+                    swipeIndex = 0,
+                )
 
             // 成功拿到新回复后，在事务内原子完成替换：先删目标之后的消息与目标本身，再插入新回复并回写计数
             db.withTransaction {
                 db.messageDao().deleteAfter(sessionId, messageId, ownerId, characterId)
                 db.messageDao().deleteById(messageId)
                 db.messageDao().upsert(
-                    MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId)
+                    MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId),
                 )
                 val session = db.sessionDao().get(sessionId, ownerId, characterId)
                 if (session != null) {
                     db.sessionDao().upsert(
-                        session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size)
+                        session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size),
                     )
                 }
             }
@@ -371,26 +408,40 @@ class ChatRepository(private val context: Context) {
                 ownerId = ownerId,
                 characterId = characterId,
                 sessionId = sessionId,
-                messageId = assistantMsg.id
+                messageId = assistantMsg.id,
             )
         }
     }
 
-    suspend fun continueMessage(ownerId: String, characterId: String, sessionId: String) {
+    suspend fun continueMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
         withContext(Dispatchers.IO) {
             // Continue message 功能需要 LLM 实现
             // TODO: 实现本地 LLM 的 continue 功能
         }
     }
 
-    suspend fun swipeMessage(ownerId: String, characterId: String, sessionId: String, messageId: String, direction: String) {
+    suspend fun swipeMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageId: String,
+        direction: String,
+    ) {
         withContext(Dispatchers.IO) {
             // Swipe message 功能需要本地实现
             // TODO: 实现本地的 swipe 功能
         }
     }
 
-    suspend fun clearConversation(ownerId: String, characterId: String, sessionId: String) {
+    suspend fun clearConversation(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
         withContext(Dispatchers.IO) {
             db.messageDao().deleteBySession(sessionId, ownerId, characterId)
         }
@@ -402,40 +453,46 @@ class ChatRepository(private val context: Context) {
         title: String = "",
         providerId: String = "",
         enableLongTermMemory: Boolean = false,
-        worldBookId: String = ""
+        worldBookId: String = "",
     ): String {
         return withContext(Dispatchers.IO) {
             val sessionId = UUID.randomUUID().toString()
             val now = java.time.Instant.now().toString()
 
             // 如果没有指定 providerId，尝试获取默认的 provider
-            val actualProviderId = if (providerId.isBlank()) {
-                providerRepo.observeProviders().first().firstOrNull()?.id ?: ""
-            } else {
-                providerId
-            }
+            val actualProviderId =
+                if (providerId.isBlank()) {
+                    providerRepo.observeProviders().first().firstOrNull()?.id ?: ""
+                } else {
+                    providerId
+                }
 
-            val session = SessionEntity(
-                id = sessionId,
-                ownerId = ownerId,
-                characterId = characterId,
-                title = title,
-                createdAt = now,
-                updatedAt = now,
-                messageCount = 0,
-                providerId = actualProviderId,
-                modelId = "",
-                worldBookId = worldBookId,
-                summaryJson = "",
-                enableLongTermMemory = enableLongTermMemory,
-                participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(listOf(characterId))
-            )
+            val session =
+                SessionEntity(
+                    id = sessionId,
+                    ownerId = ownerId,
+                    characterId = characterId,
+                    title = title,
+                    createdAt = now,
+                    updatedAt = now,
+                    messageCount = 0,
+                    providerId = actualProviderId,
+                    modelId = "",
+                    worldBookId = worldBookId,
+                    summaryJson = "",
+                    enableLongTermMemory = enableLongTermMemory,
+                    participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(listOf(characterId)),
+                )
             db.sessionDao().upsert(session)
             sessionId
         }
     }
 
-    suspend fun deleteSession(ownerId: String, characterId: String, sessionId: String) {
+    suspend fun deleteSession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
         withContext(Dispatchers.IO) {
             // 删除该会话的所有记忆
             db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
@@ -454,10 +511,11 @@ class ChatRepository(private val context: Context) {
     // F2.1 回复清洗：提取全部 <think>…</think> 块，多段以空行合并为思考内容；
     // 正文为去除全部 think 块后 trim 的结果。无有效思考时 thinking 为 null。
     private fun splitThinking(reply: String): Pair<String, String?> {
-        val thinking = Regex("(?s)<think>([\\s\\S]*?)</think>").findAll(reply)
-            .map { it.groupValues[1].trim() }
-            .filter { it.isNotBlank() }
-            .joinToString("\n\n")
+        val thinking =
+            Regex("(?s)<think>([\\s\\S]*?)</think>").findAll(reply)
+                .map { it.groupValues[1].trim() }
+                .filter { it.isNotBlank() }
+                .joinToString("\n\n")
         val content = reply.replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "").trim()
         return content to thinking.ifBlank { null }
     }
@@ -469,7 +527,7 @@ class ChatRepository(private val context: Context) {
             apiKey = SecureStore.unwrap(settingsDao.getValue("llm_api_key") ?: ""),
             model = settingsDao.getValue("llm_model") ?: "",
             temperature = settingsDao.getValue("temperature")?.toDoubleOrNull() ?: 0.8,
-            maxTokens = settingsDao.getValue("max_tokens")?.toIntOrNull() ?: 1024
+            maxTokens = settingsDao.getValue("max_tokens")?.toIntOrNull() ?: 1024,
         )
     }
 
@@ -481,7 +539,7 @@ class ChatRepository(private val context: Context) {
         ownerId: String,
         characterId: String,
         sessionId: String,
-        messageIds: List<String>
+        messageIds: List<String>,
     ) {
         if (!enabled) {
             android.util.Log.d("ChatRepository", "Long-term memory disabled for this session")
@@ -507,36 +565,38 @@ class ChatRepository(private val context: Context) {
                         android.util.Log.i("ChatRepository", "Falling back to first available provider: ${provider.name}")
                     } else {
                         val llmConfig = loadLlmConfig()
-                        provider = if (
-                            llmConfig.baseUrl.isNotBlank() &&
-                            llmConfig.apiKey.isNotBlank() &&
-                            llmConfig.model.isNotBlank()
-                        ) {
-                            android.util.Log.i("ChatRepository", "Using active LLM config for memory extraction")
-                            ProviderConfig(
-                                id = "active_llm_config",
-                                name = "Active LLM Config",
-                                endpoint = llmConfig.baseUrl,
-                                apiKey = llmConfig.apiKey,
-                                selectedModel = llmConfig.model,
-                                memoryModel = llmConfig.model
-                            )
-                        } else {
-                            android.util.Log.w("ChatRepository", "No LLM providers configured, memory extraction disabled")
-                            null
-                        }
+                        provider =
+                            if (
+                                llmConfig.baseUrl.isNotBlank() &&
+                                llmConfig.apiKey.isNotBlank() &&
+                                llmConfig.model.isNotBlank()
+                            ) {
+                                android.util.Log.i("ChatRepository", "Using active LLM config for memory extraction")
+                                ProviderConfig(
+                                    id = "active_llm_config",
+                                    name = "Active LLM Config",
+                                    endpoint = llmConfig.baseUrl,
+                                    apiKey = llmConfig.apiKey,
+                                    selectedModel = llmConfig.model,
+                                    memoryModel = llmConfig.model,
+                                )
+                            } else {
+                                android.util.Log.w("ChatRepository", "No LLM providers configured, memory extraction disabled")
+                                null
+                            }
                     }
                 }
 
-                val savedCount = memoryExtractionService.extractAndSaveMemories(
-                    userMessage = userMessage,
-                    assistantMessage = assistantMessage,
-                    ownerId = ownerId,
-                    characterId = characterId,
-                    sessionId = sessionId,
-                    messageIds = messageIds,
-                    provider = provider
-                )
+                val savedCount =
+                    memoryExtractionService.extractAndSaveMemories(
+                        userMessage = userMessage,
+                        assistantMessage = assistantMessage,
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        sessionId = sessionId,
+                        messageIds = messageIds,
+                        provider = provider,
+                    )
                 android.util.Log.d("ChatRepository", "Memory extraction completed, saved $savedCount memories")
             } catch (e: Exception) {
                 android.util.Log.e("ChatRepository", "Memory extraction failed: ${e.message}", e)

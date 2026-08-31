@@ -11,7 +11,6 @@ import org.junit.Test
  * 注：同长度词位按提取顺序稳定排列（Kotlin sortedByDescending 为稳定排序）。
  */
 class TermExtractorTest {
-
     @Test
     fun `纯中文连续段取全部相邻bigram`() {
         // "天气真好" → 相邻 bigram：天气、气真、真好

@@ -9,11 +9,10 @@ import kotlin.math.ln
  * 通过生成基于词频的伪向量来模拟 embedding
  */
 class BM25EmbeddingService : EmbeddingService {
-
     companion object {
-        private const val DIMENSION = 512  // 伪向量维度
-        private const val K1 = 1.5f  // BM25 参数 k1
-        private const val B = 0.75f  // BM25 参数 b
+        private const val DIMENSION = 512 // 伪向量维度
+        private const val K1 = 1.5f // BM25 参数 k1
+        private const val B = 0.75f // BM25 参数 b
     }
 
     // 文档集合（用于计算 IDF）
@@ -96,13 +95,17 @@ class BM25EmbeddingService : EmbeddingService {
     /**
      * 计算词的 TF（词频）
      */
-    private fun calculateTF(term: String, tokens: List<String>, docLength: Int): Double {
+    private fun calculateTF(
+        term: String,
+        tokens: List<String>,
+        docLength: Int,
+    ): Double {
         val termFreq = tokens.count { it == term }.toDouble()
 
         // BM25 TF 公式
         // TF = (f * (k1 + 1)) / (f + k1 * (1 - b + b * (docLength / avgDocLength)))
         return (termFreq * (K1 + 1)) /
-               (termFreq + K1 * (1 - B + B * (docLength / avgDocLength)))
+            (termFreq + K1 * (1 - B + B * (docLength / avgDocLength)))
     }
 
     /**

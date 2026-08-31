@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.model.Character
-import com.mistbell.tavern.android.data.api.model.SessionSummary
 import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.repository.CharacterRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
@@ -19,11 +18,13 @@ class PromptPreviewViewModel(application: Application) : AndroidViewModel(applic
     private val characterRepo = CharacterRepository(context)
     private val worldBookRepo = WorldBookRepository(context)
 
-    val characters: StateFlow<List<Character>> = characterRepo.observeCharacters()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val characters: StateFlow<List<Character>> =
+        characterRepo.observeCharacters()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val worldBooks: StateFlow<List<WorldBook>> = worldBookRepo.observeWorldBooks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val worldBooks: StateFlow<List<WorldBook>> =
+        worldBookRepo.observeWorldBooks()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _selectedCharacterId = MutableStateFlow("")
     val selectedCharacterId: StateFlow<String> = _selectedCharacterId
@@ -50,20 +51,29 @@ class PromptPreviewViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun setSelectedCharacterId(id: String) { _selectedCharacterId.value = id }
-    fun setSelectedWorldBookId(id: String) { _selectedWorldBookId.value = id }
-    fun setTestMessage(msg: String) { _testMessage.value = msg }
+    fun setSelectedCharacterId(id: String) {
+        _selectedCharacterId.value = id
+    }
+
+    fun setSelectedWorldBookId(id: String) {
+        _selectedWorldBookId.value = id
+    }
+
+    fun setTestMessage(msg: String) {
+        _testMessage.value = msg
+    }
 
     fun preview() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val body = buildJsonObject {
-                    put("ownerId", "local-user")
-                    put("characterId", _selectedCharacterId.value)
-                    if (_selectedWorldBookId.value.isNotBlank()) put("worldBookId", _selectedWorldBookId.value)
-                    put("message", _testMessage.value)
-                }
+                val body =
+                    buildJsonObject {
+                        put("ownerId", "local-user")
+                        put("characterId", _selectedCharacterId.value)
+                        if (_selectedWorldBookId.value.isNotBlank()) put("worldBookId", _selectedWorldBookId.value)
+                        put("message", _testMessage.value)
+                    }
                 val result = api.promptPreview(body)
                 _previewResult.value = result as? JsonObject
             } catch (e: Exception) {
@@ -74,5 +84,7 @@ class PromptPreviewViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun clearMessage() { _message.value = null }
+    fun clearMessage() {
+        _message.value = null
+    }
 }

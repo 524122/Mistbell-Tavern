@@ -20,7 +20,7 @@ import com.mistbell.tavern.android.ui.theme.CharColors
 fun ColorPickerGrid(
     selectedColor: String,
     onColorSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val colorMap = CharColors.associateBy { colorToHex(it) }
 
@@ -28,30 +28,35 @@ fun ColorPickerGrid(
         for (row in CharColors.chunked(4)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 for (color in row) {
                     val hex = colorToHex(color)
                     val isSelected = hex.equals(selectedColor, ignoreCase = true)
                     Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(
-                                width = if (isSelected) 3.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                shape = CircleShape
-                            )
-                            .clickable { onColorSelected(hex) },
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (isSelected) 3.dp else 1.dp,
+                                    color =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.onSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                        },
+                                    shape = CircleShape,
+                                )
+                                .clickable { onColorSelected(hex) },
+                        contentAlignment = Alignment.Center,
                     ) {
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Filled.Check,
                                 contentDescription = "已选择",
                                 tint = Color.White,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }

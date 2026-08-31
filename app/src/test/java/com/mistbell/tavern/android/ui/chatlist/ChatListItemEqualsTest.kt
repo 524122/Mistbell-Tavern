@@ -14,23 +14,23 @@ import org.junit.Test
  * 防止同类"性能优化"再次引入该缺陷。
  */
 class ChatListItemEqualsTest {
-
-    private fun baseItem() = ChatListItem(
-        sessionId = "s-1",
-        characterId = "c-1",
-        sessionTitle = "标题",
-        characterName = "旧名字",
-        characterColor = "#6C5CE7",
-        characterAvatarData = null,
-        participantCharacters = emptyList(),
-        lastMessage = "你好",
-        lastMessageTime = "刚刚",
-        unreadCount = 0,
-        isOnline = false,
-        isPinned = false,
-        isMuted = false,
-        lastMessageSender = ""
-    )
+    private fun baseItem() =
+        ChatListItem(
+            sessionId = "s-1",
+            characterId = "c-1",
+            sessionTitle = "标题",
+            characterName = "旧名字",
+            characterColor = "#6C5CE7",
+            characterAvatarData = null,
+            participantCharacters = emptyList(),
+            lastMessage = "你好",
+            lastMessageTime = "刚刚",
+            unreadCount = 0,
+            isOnline = false,
+            isPinned = false,
+            isMuted = false,
+            lastMessageSender = "",
+        )
 
     private fun assertChangeDetected(mutate: (ChatListItem) -> ChatListItem) {
         val a = baseItem()
@@ -47,16 +47,13 @@ class ChatListItemEqualsTest {
     }
 
     @Test
-    fun `角色名变化参与相等性`() =
-        assertChangeDetected { it.copy(characterName = "新名字") }
+    fun `角色名变化参与相等性`() = assertChangeDetected { it.copy(characterName = "新名字") }
 
     @Test
-    fun `会话标题变化参与相等性`() =
-        assertChangeDetected { it.copy(sessionTitle = "新标题") }
+    fun `会话标题变化参与相等性`() = assertChangeDetected { it.copy(sessionTitle = "新标题") }
 
     @Test
-    fun `头像数据变化参与相等性`() =
-        assertChangeDetected { it.copy(characterAvatarData = "data:image/png;base64,xxx") }
+    fun `头像数据变化参与相等性`() = assertChangeDetected { it.copy(characterAvatarData = "data:image/png;base64,xxx") }
 
     @Test
     fun `参与角色变化参与相等性`() =
@@ -65,8 +62,7 @@ class ChatListItemEqualsTest {
         }
 
     @Test
-    fun `最后消息发送者变化参与相等性`() =
-        assertChangeDetected { it.copy(lastMessageSender = "我") }
+    fun `最后消息发送者变化参与相等性`() = assertChangeDetected { it.copy(lastMessageSender = "我") }
 
     @Test
     fun `最后消息内容与时间变化参与相等性`() {

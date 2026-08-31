@@ -10,31 +10,70 @@ interface StructuredMemoryDao {
     fun getAll(ownerId: String): Flow<List<StructuredMemoryEntity>>
 
     @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId ORDER BY created_at DESC")
-    fun getByCharacter(ownerId: String, characterId: String): Flow<List<StructuredMemoryEntity>>
+    fun getByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
-    @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId ORDER BY created_at DESC")
-    fun getBySession(ownerId: String, characterId: String, sessionId: String): Flow<List<StructuredMemoryEntity>>
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId ORDER BY created_at DESC",
+    )
+    fun getBySession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
     @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId ORDER BY created_at DESC")
-    fun getBySession(ownerId: String, sessionId: String): Flow<List<StructuredMemoryEntity>>
+    fun getBySession(
+        ownerId: String,
+        sessionId: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
     @Query("SELECT * FROM structured_memory WHERE id = :id")
     suspend fun getById(id: Long): StructuredMemoryEntity?
 
-    @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC")
-    fun getByType(ownerId: String, memoryType: String): Flow<List<StructuredMemoryEntity>>
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC",
+    )
+    fun getByType(
+        ownerId: String,
+        memoryType: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
-    @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC")
-    fun getBySessionAndType(ownerId: String, sessionId: String, memoryType: String): Flow<List<StructuredMemoryEntity>>
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC",
+    )
+    fun getBySessionAndType(
+        ownerId: String,
+        sessionId: String,
+        memoryType: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
-    @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND importance >= :minImportance ORDER BY importance DESC, created_at DESC")
-    fun getByImportance(ownerId: String, minImportance: Int): Flow<List<StructuredMemoryEntity>>
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND importance >= :minImportance ORDER BY importance DESC, created_at DESC",
+    )
+    fun getByImportance(
+        ownerId: String,
+        minImportance: Int,
+    ): Flow<List<StructuredMemoryEntity>>
 
-    @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY importance DESC, created_at DESC")
-    fun search(ownerId: String, query: String): Flow<List<StructuredMemoryEntity>>
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY importance DESC, created_at DESC",
+    )
+    fun search(
+        ownerId: String,
+        query: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
-    @Query("SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY importance DESC, created_at DESC")
-    fun searchBySession(ownerId: String, sessionId: String, query: String): Flow<List<StructuredMemoryEntity>>
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY importance DESC, created_at DESC",
+    )
+    fun searchBySession(
+        ownerId: String,
+        sessionId: String,
+        query: String,
+    ): Flow<List<StructuredMemoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(memory: StructuredMemoryEntity): Long
@@ -49,20 +88,32 @@ interface StructuredMemoryDao {
     suspend fun deleteById(id: Long)
 
     @Query("DELETE FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId")
-    suspend fun deleteByCharacter(ownerId: String, characterId: String)
+    suspend fun deleteByCharacter(
+        ownerId: String,
+        characterId: String,
+    )
 
     @Query("DELETE FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId")
-    suspend fun deleteBySession(ownerId: String, sessionId: String)
+    suspend fun deleteBySession(
+        ownerId: String,
+        sessionId: String,
+    )
 
     @Query("DELETE FROM structured_memory")
     suspend fun deleteAll()
 
     @Query("UPDATE structured_memory SET access_count = access_count + 1, last_accessed_at = :accessedAt WHERE id = :id")
-    suspend fun incrementAccessCount(id: Long, accessedAt: String)
+    suspend fun incrementAccessCount(
+        id: Long,
+        accessedAt: String,
+    )
 
     @Query("SELECT COUNT(*) FROM structured_memory WHERE owner_id = :ownerId")
     suspend fun getCount(ownerId: String): Int
 
     @Query("SELECT COUNT(*) FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId")
-    suspend fun getCountByCharacter(ownerId: String, characterId: String): Int
+    suspend fun getCountByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Int
 }

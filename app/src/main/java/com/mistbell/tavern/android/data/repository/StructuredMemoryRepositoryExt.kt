@@ -30,53 +30,54 @@ import kotlinx.coroutines.withContext
 suspend fun StructuredMemoryRepository.retrieveForConversation(
     ownerId: String,
     characterId: String,
-    userMessage: String
-): List<StructuredMemory> = withContext(Dispatchers.IO) {
-    // 获取所有记忆
-    val allMemories = getMemoriesByCharacter(ownerId, characterId).first()
-    val result = mutableListOf<StructuredMemory>()
+    userMessage: String,
+): List<StructuredMemory> =
+    withContext(Dispatchers.IO) {
+        // 获取所有记忆
+        val allMemories = getMemoriesByCharacter(ownerId, characterId).first()
+        val result = mutableListOf<StructuredMemory>()
 
-    // 1. 始终包含高重要性记忆（重要性 >= 8）
-    allMemories
-        .filter { it.importance >= 8 }
-        .sortedByDescending { it.importance }
-        .take(5)
-        .forEach { result.add(it) }
-
-    // 2. 包含角色基础信息（重要性 >= 6）
-    allMemories
-        .filter { it.memoryType == "character_info" }
-        .filter { it.importance >= 6 }
-        .filter { it !in result }  // 避免重复
-        .take(3)
-        .forEach { result.add(it) }
-
-    // 3. 关键词匹配（简单实现）
-    if (userMessage.isNotBlank()) {
-        val keywords = userMessage.lowercase().split("\\s+".toRegex())
-
+        // 1. 始终包含高重要性记忆（重要性 >= 8）
         allMemories
-            .filter { it !in result }  // 避免重复
-            .filter { memory ->
-                val content = memory.content.lowercase()
-                val title = memory.title?.lowercase() ?: ""
-                val tags = memory.tags.map { it.lowercase() }
+            .filter { it.importance >= 8 }
+            .sortedByDescending { it.importance }
+            .take(5)
+            .forEach { result.add(it) }
 
-                keywords.any { keyword ->
-                    keyword.length > 2 && (
-                        content.contains(keyword) ||
-                        title.contains(keyword) ||
-                        tags.any { tag -> tag.contains(keyword) }
-                    )
-                }
-            }
+        // 2. 包含角色基础信息（重要性 >= 6）
+        allMemories
+            .filter { it.memoryType == "character_info" }
+            .filter { it.importance >= 6 }
+            .filter { it !in result } // 避免重复
             .take(3)
             .forEach { result.add(it) }
-    }
 
-    // 限制总数为10条
-    result.take(10)
-}
+        // 3. 关键词匹配（简单实现）
+        if (userMessage.isNotBlank()) {
+            val keywords = userMessage.lowercase().split("\\s+".toRegex())
+
+            allMemories
+                .filter { it !in result } // 避免重复
+                .filter { memory ->
+                    val content = memory.content.lowercase()
+                    val title = memory.title?.lowercase() ?: ""
+                    val tags = memory.tags.map { it.lowercase() }
+
+                    keywords.any { keyword ->
+                        keyword.length > 2 && (
+                            content.contains(keyword) ||
+                                title.contains(keyword) ||
+                                tags.any { tag -> tag.contains(keyword) }
+                        )
+                    }
+                }
+                .take(3)
+                .forEach { result.add(it) }
+        }
+
+        // 限制总数为10条
+        result.take(10)
+    }
 
 /**
  * 检查记忆是否需要同步到向量数据库

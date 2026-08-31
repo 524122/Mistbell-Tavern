@@ -17,15 +17,15 @@ data class ThemeColors(
     val onUserBubble: String? = null,
     val onAssistantBubble: String? = null,
     val onBackground: String? = null,
-    val onSurface: String? = null
+    val onSurface: String? = null,
 )
 
 /** 主题包 tokens（theme.json 内容） */
 @Serializable
 data class ThemeTokens(
     val colors: ThemeColors = ThemeColors(),
-    val dark: ThemeColors? = null,      // 深色模式覆盖，缺省同色
-    val background: String? = null      // 背景图文件名（zip 内 assets/ 下）
+    val dark: ThemeColors? = null, // 深色模式覆盖，缺省同色
+    val background: String? = null, // 背景图文件名（zip 内 assets/ 下）
 )
 
 /** resolved 结果：仅 Compose Color，空 = 不覆盖 */
@@ -36,12 +36,11 @@ data class ParsedThemeColors(
     val onBackground: Color?,
     val surface: Color?,
     val onSurface: Color?,
-    val surfaceVariant: Color?
+    val surfaceVariant: Color?,
 )
 
 /** 主题辅助：颜色解析、tokens 解析、应用链解析（纯函数） */
 object ThemeSupport {
-
     /** "#RRGGBB"/"#AARRGGBB" → Color，非法/空返回 null */
     fun parseHexColor(hex: String?): Color? {
         if (hex.isNullOrBlank()) return null
@@ -56,14 +55,19 @@ object ThemeSupport {
         }
     }
 
-    private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    private val lenientJson =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     /** 容错解析 theme.json，失败返回 null */
-    fun parseTokens(json: String): ThemeTokens? = try {
-        lenientJson.decodeFromString<ThemeTokens>(json)
-    } catch (_: Exception) {
-        null
-    }
+    fun parseTokens(json: String): ThemeTokens? =
+        try {
+            lenientJson.decodeFromString<ThemeTokens>(json)
+        } catch (_: Exception) {
+            null
+        }
 
     /**
      * 应用链（纯函数）：会话主题 → 角色主题 → 全局主题 → null；
@@ -73,7 +77,7 @@ object ThemeSupport {
         sessionThemeId: String?,
         characterThemeId: String?,
         activeThemeId: String?,
-        packs: Map<String, ThemePackEntity>
+        packs: Map<String, ThemePackEntity>,
     ): ThemeTokens? {
         val sessionId = sessionThemeId?.trim().orEmpty()
         if (sessionId.isNotEmpty()) {
@@ -95,7 +99,7 @@ object ThemeSupport {
         sessionThemeId: String?,
         characterThemeId: String?,
         activeThemeId: String?,
-        packs: Map<String, ThemePackEntity>
+        packs: Map<String, ThemePackEntity>,
     ): String? {
         val sessionId = sessionThemeId?.trim().orEmpty()
         if (sessionId.isNotEmpty()) {
@@ -120,20 +124,23 @@ object ThemeSupport {
  * onPrimary = onUserBubble ?: onPrimary（原 null）；onSurface = onAssistantBubble ?: onSurface（原 null）
  */
 fun ThemeTokens.resolved(isDark: Boolean): ParsedThemeColors {
-    val base = if (isDark && dark != null) {
-        colors.copy(
-            primary = dark.primary ?: colors.primary,
-            background = dark.background ?: colors.background,
-            surface = dark.surface ?: colors.surface,
-            surfaceVariant = dark.surfaceVariant ?: colors.surfaceVariant,
-            userBubble = dark.userBubble ?: colors.userBubble,
-            assistantBubble = dark.assistantBubble ?: colors.assistantBubble,
-            onUserBubble = dark.onUserBubble ?: colors.onUserBubble,
-            onAssistantBubble = dark.onAssistantBubble ?: colors.onAssistantBubble,
-            onBackground = dark.onBackground ?: colors.onBackground,
-            onSurface = dark.onSurface ?: colors.onSurface
-        )
-    } else colors
+    val base =
+        if (isDark && dark != null) {
+            colors.copy(
+                primary = dark.primary ?: colors.primary,
+                background = dark.background ?: colors.background,
+                surface = dark.surface ?: colors.surface,
+                surfaceVariant = dark.surfaceVariant ?: colors.surfaceVariant,
+                userBubble = dark.userBubble ?: colors.userBubble,
+                assistantBubble = dark.assistantBubble ?: colors.assistantBubble,
+                onUserBubble = dark.onUserBubble ?: colors.onUserBubble,
+                onAssistantBubble = dark.onAssistantBubble ?: colors.onAssistantBubble,
+                onBackground = dark.onBackground ?: colors.onBackground,
+                onSurface = dark.onSurface ?: colors.onSurface,
+            )
+        } else {
+            colors
+        }
 
     return ParsedThemeColors(
         primary = ThemeSupport.parseHexColor(base.userBubble) ?: ThemeSupport.parseHexColor(base.primary),
@@ -142,6 +149,6 @@ fun ThemeTokens.resolved(isDark: Boolean): ParsedThemeColors {
         onBackground = ThemeSupport.parseHexColor(base.onBackground),
         surface = ThemeSupport.parseHexColor(base.assistantBubble) ?: ThemeSupport.parseHexColor(base.surface),
         onSurface = ThemeSupport.parseHexColor(base.onAssistantBubble),
-        surfaceVariant = ThemeSupport.parseHexColor(base.surfaceVariant)
+        surfaceVariant = ThemeSupport.parseHexColor(base.surfaceVariant),
     )
 }

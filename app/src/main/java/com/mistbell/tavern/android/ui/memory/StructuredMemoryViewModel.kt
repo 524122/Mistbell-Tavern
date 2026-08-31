@@ -3,7 +3,6 @@ package com.mistbell.tavern.android.ui.memory
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.mistbell.tavern.android.data.api.model.MemoryType
 import com.mistbell.tavern.android.data.api.model.SourceType
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.repository.StructuredMemoryRepository
@@ -23,24 +22,25 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    val memories: StateFlow<List<StructuredMemory>> = combine(
-        _ownerId,
-        _characterId,
-        _sessionId,
-        _typeFilter,
-        _searchQuery
-    ) { ownerId, _, sessionId, typeFilter, query ->
-        if (sessionId.isNullOrBlank()) {
-            return@combine flowOf(emptyList())
-        }
+    val memories: StateFlow<List<StructuredMemory>> =
+        combine(
+            _ownerId,
+            _characterId,
+            _sessionId,
+            _typeFilter,
+            _searchQuery,
+        ) { ownerId, _, sessionId, typeFilter, query ->
+            if (sessionId.isNullOrBlank()) {
+                return@combine flowOf(emptyList())
+            }
 
-        when {
-            query.isNotBlank() -> repository.searchMemoriesBySession(ownerId, sessionId, query)
-            typeFilter != null -> repository.getMemoriesBySessionAndType(ownerId, sessionId, typeFilter)
-            else -> repository.getMemoriesBySession(ownerId, sessionId)
-        }
-    }.flatMapLatest { it }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            when {
+                query.isNotBlank() -> repository.searchMemoriesBySession(ownerId, sessionId, query)
+                typeFilter != null -> repository.getMemoriesBySessionAndType(ownerId, sessionId, typeFilter)
+                else -> repository.getMemoriesBySession(ownerId, sessionId)
+            }
+        }.flatMapLatest { it }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _showCreateDialog = MutableStateFlow(false)
     val showCreateDialog: StateFlow<Boolean> = _showCreateDialog.asStateFlow()
@@ -51,7 +51,11 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 
-    fun init(ownerId: String, characterId: String? = null, sessionId: String? = null) {
+    fun init(
+        ownerId: String,
+        characterId: String? = null,
+        sessionId: String? = null,
+    ) {
         _ownerId.value = ownerId
         _characterId.value = characterId
         _sessionId.value = sessionId
@@ -88,7 +92,7 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
         title: String,
         content: String,
         importance: Int,
-        tags: List<String>
+        tags: List<String>,
     ) {
         viewModelScope.launch {
             try {
@@ -98,24 +102,25 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
                     return@launch
                 }
 
-                val memory = StructuredMemory(
-                    ownerId = _ownerId.value,
-                    characterId = _characterId.value,
-                    sessionId = sessionId,
-                    memoryType = memoryType,
-                    title = title,
-                    content = content,
-                    structuredData = null,
-                    importance = importance,
-                    tags = tags,
-                    keywords = emptyList(),
-                    createdAt = "",
-                    updatedAt = "",
-                    lastAccessedAt = null,
-                    accessCount = 0,
-                    relatedMessageIds = emptyList(),
-                    sourceType = SourceType.MANUAL
-                )
+                val memory =
+                    StructuredMemory(
+                        ownerId = _ownerId.value,
+                        characterId = _characterId.value,
+                        sessionId = sessionId,
+                        memoryType = memoryType,
+                        title = title,
+                        content = content,
+                        structuredData = null,
+                        importance = importance,
+                        tags = tags,
+                        keywords = emptyList(),
+                        createdAt = "",
+                        updatedAt = "",
+                        lastAccessedAt = null,
+                        accessCount = 0,
+                        relatedMessageIds = emptyList(),
+                        sourceType = SourceType.MANUAL,
+                    )
                 repository.createMemory(memory)
                 _message.value = "记忆创建成功"
                 hideCreateDialog()
@@ -131,18 +136,19 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
         title: String,
         content: String,
         importance: Int,
-        tags: List<String>
+        tags: List<String>,
     ) {
         viewModelScope.launch {
             try {
                 val existing = _editingMemory.value ?: return@launch
-                val updated = existing.copy(
-                    memoryType = memoryType,
-                    title = title,
-                    content = content,
-                    importance = importance,
-                    tags = tags
-                )
+                val updated =
+                    existing.copy(
+                        memoryType = memoryType,
+                        title = title,
+                        content = content,
+                        importance = importance,
+                        tags = tags,
+                    )
                 repository.updateMemory(updated)
                 _message.value = "记忆更新成功"
                 hideCreateDialog()

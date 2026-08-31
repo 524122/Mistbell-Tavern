@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.flow
  * 适配 LlmClient 进行实际的网络请求
  */
 class LocalProviderService(private val context: Context) {
-
     private val settingsRepo = SettingsRepository(context)
 
     /**
@@ -27,36 +26,39 @@ class LocalProviderService(private val context: Context) {
         messages: List<LocalChatMessage>,
         model: String? = null,
         temperature: Double? = null,
-        maxTokens: Int? = null
-    ): Flow<String> = flow {
-        // 获取 LLM 配置
-        val config = settingsRepo.getLlmConfig()
+        maxTokens: Int? = null,
+    ): Flow<String> =
+        flow {
+            // 获取 LLM 配置
+            val config = settingsRepo.getLlmConfig()
 
-        // 使用参数或配置中的默认值
-        val actualConfig = LlmConfig(
-            baseUrl = config.baseUrl,
-            apiKey = config.apiKey,
-            model = model ?: config.model,
-            temperature = temperature ?: config.temperature,
-            maxTokens = maxTokens ?: config.maxTokens
-        )
+            // 使用参数或配置中的默认值
+            val actualConfig =
+                LlmConfig(
+                    baseUrl = config.baseUrl,
+                    apiKey = config.apiKey,
+                    model = model ?: config.model,
+                    temperature = temperature ?: config.temperature,
+                    maxTokens = maxTokens ?: config.maxTokens,
+                )
 
-        // 转换消息格式
-        val llmMessages = messages.map { msg ->
-            com.mistbell.tavern.android.data.api.ChatMessage(
-                role = msg.role,
-                content = msg.content
-            )
+            // 转换消息格式
+            val llmMessages =
+                messages.map { msg ->
+                    com.mistbell.tavern.android.data.api.ChatMessage(
+                        role = msg.role,
+                        content = msg.content,
+                    )
+                }
+
+            // 调用 LLM API
+            try {
+                val response = LlmClient.chat(actualConfig, llmMessages)
+                emit(response)
+            } catch (e: Exception) {
+                emit("[错误] ${e.message}")
+            }
         }
-
-        // 调用 LLM API
-        try {
-            val response = LlmClient.chat(actualConfig, llmMessages)
-            emit(response)
-        } catch (e: Exception) {
-            emit("[错误] ${e.message}")
-        }
-    }
 
     /**
      * 聊天完成（非流式）
@@ -65,25 +67,27 @@ class LocalProviderService(private val context: Context) {
         messages: List<LocalChatMessage>,
         model: String? = null,
         temperature: Double? = null,
-        maxTokens: Int? = null
+        maxTokens: Int? = null,
     ): String {
         val config = settingsRepo.getLlmConfig()
 
-        val actualConfig = LlmConfig(
-            baseUrl = config.baseUrl,
-            apiKey = config.apiKey,
-            model = model ?: config.model,
-            temperature = temperature ?: config.temperature,
-            maxTokens = maxTokens ?: config.maxTokens
-        )
+        val actualConfig =
+            LlmConfig(
+                baseUrl = config.baseUrl,
+                apiKey = config.apiKey,
+                model = model ?: config.model,
+                temperature = temperature ?: config.temperature,
+                maxTokens = maxTokens ?: config.maxTokens,
+            )
 
         // 转换消息格式
-        val llmMessages = messages.map { msg ->
-            com.mistbell.tavern.android.data.api.ChatMessage(
-                role = msg.role,
-                content = msg.content
-            )
-        }
+        val llmMessages =
+            messages.map { msg ->
+                com.mistbell.tavern.android.data.api.ChatMessage(
+                    role = msg.role,
+                    content = msg.content,
+                )
+            }
 
         return try {
             LlmClient.chat(actualConfig, llmMessages)
@@ -111,9 +115,10 @@ class LocalProviderService(private val context: Context) {
      */
     suspend fun extractMemories(
         messages: List<LocalChatMessage>,
-        characterName: String
+        characterName: String,
     ): List<String> {
-        val systemPrompt = """
+        val systemPrompt =
+            """
             你是一个记忆提取助手。从以下对话中提取重要的记忆信息。
 
             提取规则：
@@ -127,13 +132,15 @@ class LocalProviderService(private val context: Context) {
             - Alice 喜欢喝咖啡
             - 用户在一家科技公司工作
             - Alice 和 Bob 是朋友关系
-        """.trimIndent()
+            """.trimIndent()
 
-        val extractMessages = listOf(
-            LocalChatMessage(role = "system", content = systemPrompt)
-        ) + messages + listOf(
-            LocalChatMessage(role = "user", content = "请提取上述对话中的重要记忆。")
-        )
+        val extractMessages =
+            listOf(
+                LocalChatMessage(role = "system", content = systemPrompt),
+            ) + messages +
+                listOf(
+                    LocalChatMessage(role = "user", content = "请提取上述对话中的重要记忆。"),
+                )
 
         val response = chat(extractMessages)
 
@@ -152,9 +159,10 @@ class LocalProviderService(private val context: Context) {
      */
     suspend fun summarizeSession(
         messages: List<LocalChatMessage>,
-        targetLength: Int = 2200
+        targetLength: Int = 2200,
     ): String {
-        val systemPrompt = """
+        val systemPrompt =
+            """
             你是一个对话总结助手。请总结以下对话的关键内容。
 
             总结要求：
@@ -162,13 +170,15 @@ class LocalProviderService(private val context: Context) {
             2. 保持时间顺序
             3. 简洁明了
             4. 目标长度约 $targetLength 字符
-        """.trimIndent()
+            """.trimIndent()
 
-        val summaryMessages = listOf(
-            LocalChatMessage(role = "system", content = systemPrompt)
-        ) + messages + listOf(
-            LocalChatMessage(role = "user", content = "请总结上述对话。")
-        )
+        val summaryMessages =
+            listOf(
+                LocalChatMessage(role = "system", content = systemPrompt),
+            ) + messages +
+                listOf(
+                    LocalChatMessage(role = "user", content = "请总结上述对话。"),
+                )
 
         return chat(summaryMessages, maxTokens = 1000)
     }

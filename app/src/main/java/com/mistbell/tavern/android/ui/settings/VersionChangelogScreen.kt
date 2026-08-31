@@ -17,8 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.BuildConfig
-import com.mistbell.tavern.android.data.model.VersionInfo
 import com.mistbell.tavern.android.data.model.ChangeItem
+import com.mistbell.tavern.android.data.model.VersionInfo
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,7 +26,7 @@ import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 fun VersionChangelogScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val changelog by viewModel.changelog.collectAsState()
     val isLoading by viewModel.isLoadingChangelog.collectAsState()
@@ -43,66 +43,70 @@ fun VersionChangelogScreen(
     }
 
     Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .clearFocusOnTap(),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .clearFocusOnTap(),
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
+                tonalElevation = 0.dp,
             ) {
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "返回",
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                         Text(
                             text = "版本更新日志",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         // 当前版本标识
                         Text(
                             text = "v${BuildConfig.VERSION_NAME}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         if (isLoading) {
             // 加载指示器
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
             }
         } else {
             // 版本列表
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(changelog) { versionInfo ->
                     VersionCard(versionInfo)
@@ -120,29 +124,30 @@ fun VersionChangelogScreen(
 @Composable
 private fun VersionCard(versionInfo: VersionInfo) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // 版本号和日期
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "v${versionInfo.version}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
             Text(
                 text = versionInfo.releaseDate,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -157,29 +162,30 @@ private fun VersionCard(versionInfo: VersionInfo) {
 
 @Composable
 private fun ChangeItemRow(change: ChangeItem) {
-    val (icon, color) = when (change.type) {
-        "feature" -> "●" to MaterialTheme.colorScheme.primary
-        "fix" -> "●" to Color(0xFFF59E0B) // Orange
-        "improvement" -> "▲" to Color(0xFF10B981) // Green
-        "chore" -> "●" to MaterialTheme.colorScheme.onSurfaceVariant
-        else -> "●" to MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val (icon, color) =
+        when (change.type) {
+            "feature" -> "●" to MaterialTheme.colorScheme.primary
+            "fix" -> "●" to Color(0xFFF59E0B) // Orange
+            "improvement" -> "▲" to Color(0xFF10B981) // Green
+            "chore" -> "●" to MaterialTheme.colorScheme.onSurfaceVariant
+            else -> "●" to MaterialTheme.colorScheme.onSurfaceVariant
+        }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = icon,
             style = MaterialTheme.typography.bodyMedium,
             color = color,
-            modifier = Modifier.width(16.dp)
+            modifier = Modifier.width(16.dp),
         )
         Text(
             text = change.description,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 }

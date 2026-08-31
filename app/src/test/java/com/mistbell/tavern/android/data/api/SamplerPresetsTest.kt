@@ -12,7 +12,6 @@ import org.junit.Test
  * 注：temperature 启发式存在已知限制——用户显式填 0.8 时会被视为"未显式"，被预设温度覆盖。
  */
 class SamplerPresetsTest {
-
     // ---------- byName ----------
 
     @Test
@@ -62,10 +61,15 @@ class SamplerPresetsTest {
     /** base.topP/topK/frequencyPenalty 非 null 即显式：覆盖预设。 */
     @Test
     fun `base显式细项覆盖预设`() {
-        val base = LlmConfig(
-            baseUrl = "https://x", apiKey = "k", model = "m",
-            topP = 0.5, topK = 10, frequencyPenalty = 0.9
-        )
+        val base =
+            LlmConfig(
+                baseUrl = "https://x",
+                apiKey = "k",
+                model = "m",
+                topP = 0.5,
+                topK = 10,
+                frequencyPenalty = 0.9,
+            )
         val out = SamplerPresets.resolve(base, SamplerPresets.CREATIVE)
 
         // 显式字段保留 base 原值
@@ -102,10 +106,17 @@ class SamplerPresetsTest {
     /** 空预设（params=null，即 custom）：只保留 base，字段不额外改动。 */
     @Test
     fun `空预设只保留base`() {
-        val base = LlmConfig(
-            baseUrl = "x", apiKey = "k", model = "m",
-            temperature = 0.6, topP = 0.9, topK = 30, frequencyPenalty = 0.1, maxTokens = 512
-        )
+        val base =
+            LlmConfig(
+                baseUrl = "x",
+                apiKey = "k",
+                model = "m",
+                temperature = 0.6,
+                topP = 0.9,
+                topK = 30,
+                frequencyPenalty = 0.1,
+                maxTokens = 512,
+            )
         val out = SamplerPresets.resolve(base, null)
 
         assertEquals(base, out)

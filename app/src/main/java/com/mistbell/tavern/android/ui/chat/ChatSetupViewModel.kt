@@ -24,18 +24,21 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
     private val worldBookRepo = WorldBookRepository(application)
 
     // 所有角色
-    val characters: StateFlow<List<Character>> = db.characterDao()
-        .getAll()
-        .map { entities -> entities.map { it.toDomain() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val characters: StateFlow<List<Character>> =
+        db.characterDao()
+            .getAll()
+            .map { entities -> entities.map { it.toDomain() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 所有提供商
-    val providers: StateFlow<List<ProviderConfig>> = providerRepo.observeProviders()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val providers: StateFlow<List<ProviderConfig>> =
+        providerRepo.observeProviders()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 所有世界书
-    val worldBooks: StateFlow<List<WorldBook>> = worldBookRepo.observeWorldBooks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val worldBooks: StateFlow<List<WorldBook>> =
+        worldBookRepo.observeWorldBooks()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 选中的角色 IDs
     private val _selectedCharacterIds = MutableStateFlow<Set<String>>(emptySet())
@@ -122,7 +125,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     // 创建页永远创建新会话；旧会话从最近聊天列表进入。
-    suspend fun getOrCreateSession(characterIds: Set<String>, ownerId: String = "local-user"): String {
+    suspend fun getOrCreateSession(
+        characterIds: Set<String>,
+        ownerId: String = "local-user",
+    ): String {
         if (characterIds.isEmpty()) return "new"
 
         val characterId = characterIds.first() // 使用第一个角色作为主角色
@@ -130,7 +136,11 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         return createNewSession(characterId, characterIds, ownerId)
     }
 
-    private suspend fun createNewSession(characterId: String, characterIds: Set<String>, ownerId: String): String {
+    private suspend fun createNewSession(
+        characterId: String,
+        characterIds: Set<String>,
+        ownerId: String,
+    ): String {
         android.util.Log.d("ChatSetup", "Creating new session for character $characterId")
         val sessionId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
@@ -148,28 +158,29 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         // 世界书 ID 直接使用选中值
         val sessionWorldBookId = _selectedWorldBookId.value
 
-        val session = SessionEntity(
-            id = sessionId,
-            ownerId = ownerId,
-            characterId = characterId,
-            title = "新对话",
-            createdAt = now,
-            updatedAt = now,
-            messageCount = 0,
-            providerId = selectedProvider,
-            modelId = selectedModel,
-            worldBookId = sessionWorldBookId,
-            summaryJson = "",
-            unreadCount = 0,
-            isPinned = false,
-            pinnedAt = null,
-            isMuted = false,
-            // 长期记忆：优先尊重用户在设置页的显式开关；初始缺省值已在 init 中读全局默认
-            enableLongTermMemory = _enableLongTermMemory.value,
-            // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
-            contextTokenLimit = settingsRepo.defaultContextTokens(),
-            participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(characterIds)
-        )
+        val session =
+            SessionEntity(
+                id = sessionId,
+                ownerId = ownerId,
+                characterId = characterId,
+                title = "新对话",
+                createdAt = now,
+                updatedAt = now,
+                messageCount = 0,
+                providerId = selectedProvider,
+                modelId = selectedModel,
+                worldBookId = sessionWorldBookId,
+                summaryJson = "",
+                unreadCount = 0,
+                isPinned = false,
+                pinnedAt = null,
+                isMuted = false,
+                // 长期记忆：优先尊重用户在设置页的显式开关；初始缺省值已在 init 中读全局默认
+                enableLongTermMemory = _enableLongTermMemory.value,
+                // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
+                contextTokenLimit = settingsRepo.defaultContextTokens(),
+                participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(characterIds),
+            )
 
         db.sessionDao().upsert(session)
 
@@ -179,29 +190,31 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
 
         if (characterEntity != null && characterEntity.firstMes.isNotBlank()) {
             // F2.1：开场白先用宏引擎渲染（{{char}}/{{user}} 等），用户名取 settings，缺省 "User"
-            val mctx = com.mistbell.tavern.android.util.MacroContext(
-                char = characterEntity.name,
-                user = db.settingsDao().getValue("user_name") ?: "User",
-                description = characterEntity.description,
-                personality = characterEntity.personality,
-                scenario = characterEntity.scenario,
-                persona = ""
-            )
-            val firstMessage = MessageEntity(
-                id = UUID.randomUUID().toString(),
-                sessionId = sessionId,
-                ownerId = ownerId,
-                characterId = characterId,
-                role = "assistant",
-                content = com.mistbell.tavern.android.util.MacroEngine.render(characterEntity.firstMes, mctx),
-                thinking = null,
-                createdAt = now,
-                memoryIdsJson = "[]",
-                swipesJson = "[]",
-                swipeIndex = 0,
-                thinkingSwipesJson = "[]",
-                isRead = true
-            )
+            val mctx =
+                com.mistbell.tavern.android.util.MacroContext(
+                    char = characterEntity.name,
+                    user = db.settingsDao().getValue("user_name") ?: "User",
+                    description = characterEntity.description,
+                    personality = characterEntity.personality,
+                    scenario = characterEntity.scenario,
+                    persona = "",
+                )
+            val firstMessage =
+                MessageEntity(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = sessionId,
+                    ownerId = ownerId,
+                    characterId = characterId,
+                    role = "assistant",
+                    content = com.mistbell.tavern.android.util.MacroEngine.render(characterEntity.firstMes, mctx),
+                    thinking = null,
+                    createdAt = now,
+                    memoryIdsJson = "[]",
+                    swipesJson = "[]",
+                    swipeIndex = 0,
+                    thinkingSwipesJson = "[]",
+                    isRead = true,
+                )
             db.messageDao().upsert(firstMessage)
             android.util.Log.d("ChatSetup", "FirstMes inserted: ${characterEntity.firstMes}")
 

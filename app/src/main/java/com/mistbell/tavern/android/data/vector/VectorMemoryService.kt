@@ -1,7 +1,6 @@
 package com.mistbell.tavern.android.data.vector
 
 import android.util.Log
-import com.mistbell.tavern.android.data.api.model.VectorMemory
 import java.util.UUID
 
 /**
@@ -15,9 +14,8 @@ import java.util.UUID
  */
 class VectorMemoryService(
     private val vectorStore: VectorStore,
-    private val embeddingService: EmbeddingService
+    private val embeddingService: EmbeddingService,
 ) {
-
     companion object {
         private const val TAG = "VectorMemoryService"
     }
@@ -50,22 +48,23 @@ class VectorMemoryService(
         characterId: String,
         sessionId: String,
         messageId: String,
-        contentType: String
+        contentType: String,
     ): String {
         try {
             // 1. 生成向量
             val embedding = embeddingService.embed(content)
 
             // 2. 构建元数据
-            val metadata = mapOf(
-                "owner_id" to ownerId,
-                "character_id" to characterId,
-                "session_id" to sessionId,
-                "message_id" to messageId,
-                "content_type" to contentType,
-                "content" to content,
-                "created_at" to System.currentTimeMillis().toString()
-            )
+            val metadata =
+                mapOf(
+                    "owner_id" to ownerId,
+                    "character_id" to characterId,
+                    "session_id" to sessionId,
+                    "message_id" to messageId,
+                    "content_type" to contentType,
+                    "content" to content,
+                    "created_at" to System.currentTimeMillis().toString(),
+                )
 
             // 3. 生成向量ID
             val vectorId = generateVectorId()
@@ -76,7 +75,6 @@ class VectorMemoryService(
             Log.d(TAG, "Stored message vector: $messageId -> $vectorId")
 
             return vectorId
-
         } catch (e: Exception) {
             Log.e(TAG, "Failed to store message vector: ${e.message}", e)
             throw e
@@ -98,17 +96,18 @@ class VectorMemoryService(
         ownerId: String,
         characterId: String,
         sessionId: String?,
-        topK: Int = 5
+        topK: Int = 5,
     ): List<VectorStore.SearchResult> {
         try {
             // 1. 查询向量化
             val queryEmbedding = embeddingService.embed(query)
 
             // 2. 构建过滤器
-            val filters = mutableMapOf<String, Any>(
-                "owner_id" to ownerId,
-                "character_id" to characterId
-            )
+            val filters =
+                mutableMapOf<String, Any>(
+                    "owner_id" to ownerId,
+                    "character_id" to characterId,
+                )
 
             // 如果指定了会话ID，则只检索当前会话
             if (sessionId != null) {
@@ -121,7 +120,6 @@ class VectorMemoryService(
             Log.d(TAG, "Search found ${results.size} relevant memories for query: ${query.take(50)}")
 
             return results
-
         } catch (e: Exception) {
             Log.e(TAG, "Failed to search relevant memories: ${e.message}", e)
             return emptyList()
@@ -134,20 +132,20 @@ class VectorMemoryService(
     suspend fun deleteSessionVectors(
         ownerId: String,
         characterId: String,
-        sessionId: String
+        sessionId: String,
     ): Int {
         try {
-            val filters = mapOf(
-                "owner_id" to ownerId,
-                "character_id" to characterId,
-                "session_id" to sessionId
-            )
+            val filters =
+                mapOf(
+                    "owner_id" to ownerId,
+                    "character_id" to characterId,
+                    "session_id" to sessionId,
+                )
 
             val deleted = vectorStore.deleteByFilters(filters)
             Log.d(TAG, "Deleted $deleted vectors for session: $sessionId")
 
             return deleted
-
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete session vectors: ${e.message}", e)
             return 0
@@ -159,19 +157,19 @@ class VectorMemoryService(
      */
     suspend fun deleteCharacterVectors(
         ownerId: String,
-        characterId: String
+        characterId: String,
     ): Int {
         try {
-            val filters = mapOf(
-                "owner_id" to ownerId,
-                "character_id" to characterId
-            )
+            val filters =
+                mapOf(
+                    "owner_id" to ownerId,
+                    "character_id" to characterId,
+                )
 
             val deleted = vectorStore.deleteByFilters(filters)
             Log.d(TAG, "Deleted $deleted vectors for character: $characterId")
 
             return deleted
-
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete character vectors: ${e.message}", e)
             return 0
@@ -186,7 +184,7 @@ class VectorMemoryService(
             val count = vectorStore.count()
             VectorStatistics(
                 totalVectors = count,
-                dimension = embeddingService.getDimension()
+                dimension = embeddingService.getDimension(),
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get statistics: ${e.message}", e)
@@ -206,6 +204,6 @@ class VectorMemoryService(
      */
     data class VectorStatistics(
         val totalVectors: Int,
-        val dimension: Int
+        val dimension: Int,
     )
 }

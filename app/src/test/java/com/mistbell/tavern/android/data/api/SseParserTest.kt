@@ -9,7 +9,6 @@ import org.junit.Test
  * 覆盖契约边界：[DONE]、坏 JSON、空 choices、空 content、多 choices、finish_reason 尾包。
  */
 class SseParserTest {
-
     @Test
     fun `DONE哨兵返回null`() {
         assertNull(SseParser.contentDelta("[DONE]"))

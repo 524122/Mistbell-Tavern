@@ -40,55 +40,62 @@ fun MessageBubble(
     onRegenerate: () -> Unit = {},
     onContinue: () -> Unit = {},
     onSwipeLeft: () -> Unit = {},
-    onSwipeRight: () -> Unit = {}
+    onSwipeRight: () -> Unit = {},
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var thinkingExpanded by remember { mutableStateOf(false) }
 
     val bubbleShape = RoundedCornerShape(16.dp)
-    val cardBackgroundColor = if (isUser) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val cardBorderColor = if (isUser) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
-    } else {
-        MaterialTheme.colorScheme.outlineVariant
-    }
-    val cardTextColor = if (isUser) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-    val cardShadowColor = if (isUser) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-    } else {
-        Color.Black.copy(alpha = 0.04f)
-    }
+    val cardBackgroundColor =
+        if (isUser) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+    val cardBorderColor =
+        if (isUser) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant
+        }
+    val cardTextColor =
+        if (isUser) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    val cardShadowColor =
+        if (isUser) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        } else {
+            Color.Black.copy(alpha = 0.04f)
+        }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = if (isLastInGroup) 20.dp else 2.dp),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = if (isLastInGroup) 20.dp else 2.dp),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
     ) {
         // Sender label
         if (isLastInGroup) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(
-                    bottom = 4.dp,
-                    start = if (isUser) 0.dp else 16.dp,
-                    end = if (isUser) 16.dp else 0.dp
-                )
+                modifier =
+                    Modifier.padding(
+                        bottom = 4.dp,
+                        start = if (isUser) 0.dp else 16.dp,
+                        end = if (isUser) 16.dp else 0.dp,
+                    ),
             ) {
                 if (!isUser) {
                     Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(AccentGreen)
+                        modifier =
+                            Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(AccentGreen),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                 }
@@ -96,49 +103,51 @@ fun MessageBubble(
                     text = if (isUser) "你" else characterName,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
         // Message row
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
             horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
         ) {
             // No avatar - it's now in the background
 
             // Bubble with long-press menu
             Box {
                 Box(
-                    modifier = Modifier
-                        .widthIn(max = if (isUser) 280.dp else 520.dp)
-                        .combinedClickable(
-                            onClick = {},
-                            onLongClick = { showMenu = true }
-                        )
-                        .then(
-                            Modifier
-                                .shadow(1.dp, bubbleShape, ambientColor = cardShadowColor)
-                                .background(cardBackgroundColor, bubbleShape)
-                                .border(1.dp, cardBorderColor, bubbleShape)
-                        )
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                    modifier =
+                        Modifier
+                            .widthIn(max = if (isUser) 280.dp else 520.dp)
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { showMenu = true },
+                            )
+                            .then(
+                                Modifier
+                                    .shadow(1.dp, bubbleShape, ambientColor = cardShadowColor)
+                                    .background(cardBackgroundColor, bubbleShape)
+                                    .border(1.dp, cardBorderColor, bubbleShape),
+                            )
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
                 ) {
                     if (isUser) {
                         Text(
                             text = message.content,
                             style = MaterialTheme.typography.bodyLarge,
                             color = cardTextColor,
-                            lineHeight = 22.sp
+                            lineHeight = 22.sp,
                         )
                     } else {
                         MarkdownRenderer(
                             content = message.content,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -146,39 +155,54 @@ fun MessageBubble(
                 // Long-press context menu
                 DropdownMenu(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                    onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
                         text = { Text("复制") },
-                        onClick = { showMenu = false; onCopy() },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp)) }
+                        onClick = {
+                            showMenu = false
+                            onCopy()
+                        },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp)) },
                     )
                     if (!isUser && !isLastMessage) {
                         DropdownMenuItem(
                             text = { Text("回退到这里") },
-                            onClick = { showMenu = false; onBacktrack() },
-                            leadingIcon = { Icon(Icons.Default.Replay, null, modifier = Modifier.size(18.dp)) }
+                            onClick = {
+                                showMenu = false
+                                onBacktrack()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Replay, null, modifier = Modifier.size(18.dp)) },
                         )
                     }
                     if (!isUser) {
                         DropdownMenuItem(
                             text = { Text("重新生成") },
-                            onClick = { showMenu = false; onRegenerate() },
-                            leadingIcon = { Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp)) }
+                            onClick = {
+                                showMenu = false
+                                onRegenerate()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp)) },
                         )
                     }
                     if (isLastMessage && !isUser) {
                         DropdownMenuItem(
                             text = { Text("继续") },
-                            onClick = { showMenu = false; onContinue() },
-                            leadingIcon = { Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp)) }
+                            onClick = {
+                                showMenu = false
+                                onContinue()
+                            },
+                            leadingIcon = { Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp)) },
                         )
                     }
                     if (isLastMessage && isUser) {
                         DropdownMenuItem(
                             text = { Text("撤销") },
-                            onClick = { showMenu = false; onUndo() },
-                            leadingIcon = { Icon(Icons.Default.Undo, null, modifier = Modifier.size(18.dp)) }
+                            onClick = {
+                                showMenu = false
+                                onUndo()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Undo, null, modifier = Modifier.size(18.dp)) },
                         )
                     }
                     // Swipe controls for AI messages with multiple swipes
@@ -186,13 +210,19 @@ fun MessageBubble(
                         HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("← 上一个 (${message.swipeIndex}/${message.swipes.size - 1})") },
-                            onClick = { showMenu = false; onSwipeLeft() },
-                            leadingIcon = { Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(18.dp)) }
+                            onClick = {
+                                showMenu = false
+                                onSwipeLeft()
+                            },
+                            leadingIcon = { Icon(Icons.Default.ChevronLeft, null, modifier = Modifier.size(18.dp)) },
                         )
                         DropdownMenuItem(
                             text = { Text("下一个 →") },
-                            onClick = { showMenu = false; onSwipeRight() },
-                            leadingIcon = { Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(18.dp)) }
+                            onClick = {
+                                showMenu = false
+                                onSwipeRight()
+                            },
+                            leadingIcon = { Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(18.dp)) },
                         )
                     }
                 }
@@ -201,25 +231,28 @@ fun MessageBubble(
             // Swipe indicator and controls for AI messages with multiple swipes
             if (!isUser && message.swipes != null && message.swipes.size > 1) {
                 Row(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .widthIn(max = 520.dp),
+                    modifier =
+                        Modifier
+                            .padding(top = 4.dp)
+                            .widthIn(max = 520.dp),
                     horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
                         onClick = onSwipeLeft,
                         modifier = Modifier.size(24.dp),
-                        enabled = message.swipeIndex > 0
+                        enabled = message.swipeIndex > 0,
                     ) {
                         Icon(
                             Icons.Default.ChevronLeft,
                             contentDescription = "上一个回复",
                             modifier = Modifier.size(18.dp),
-                            tint = if (message.swipeIndex > 0)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            tint =
+                                if (message.swipeIndex > 0) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                },
                         )
                     }
 
@@ -227,22 +260,24 @@ fun MessageBubble(
                         text = "${message.swipeIndex + 1}/${message.swipes.size}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 4.dp)
+                        modifier = Modifier.padding(horizontal = 4.dp),
                     )
 
                     IconButton(
                         onClick = onSwipeRight,
                         modifier = Modifier.size(24.dp),
-                        enabled = message.swipeIndex < message.swipes.size - 1
+                        enabled = message.swipeIndex < message.swipes.size - 1,
                     ) {
                         Icon(
                             Icons.Default.ChevronRight,
                             contentDescription = "下一个回复",
                             modifier = Modifier.size(18.dp),
-                            tint = if (message.swipeIndex < message.swipes.size - 1)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            tint =
+                                if (message.swipeIndex < message.swipes.size - 1) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                },
                         )
                     }
                 }
@@ -254,48 +289,49 @@ fun MessageBubble(
         // Thinking section (collapsible)
         if (!message.thinking.isNullOrBlank()) {
             Column(
-                modifier = Modifier
-                    .padding(
-                        top = 4.dp,
-                        start = if (isUser) 0.dp else 16.dp,
-                        end = if (isUser) 16.dp else 0.dp
-                    )
-                    .widthIn(max = 520.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .combinedClickable(
-                        onClick = { thinkingExpanded = !thinkingExpanded },
-                        onLongClick = {}
-                    )
-                    .padding(12.dp)
+                modifier =
+                    Modifier
+                        .padding(
+                            top = 4.dp,
+                            start = if (isUser) 0.dp else 16.dp,
+                            end = if (isUser) 16.dp else 0.dp,
+                        )
+                        .widthIn(max = 520.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                        .combinedClickable(
+                            onClick = { thinkingExpanded = !thinkingExpanded },
+                            onLongClick = {},
+                        )
+                        .padding(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "💭 思考过程",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Icon(
                         if (thinkingExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 AnimatedVisibility(
                     visible = thinkingExpanded,
                     enter = expandVertically(),
-                    exit = shrinkVertically()
+                    exit = shrinkVertically(),
                 ) {
                     Text(
                         text = message.thinking,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         lineHeight = 16.sp,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
             }
@@ -307,11 +343,12 @@ fun MessageBubble(
                 text = formatTime(message.createdAt),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(
-                    top = 4.dp,
-                    start = if (isUser) 0.dp else 16.dp,
-                    end = if (isUser) 16.dp else 0.dp
-                )
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp,
+                        start = if (isUser) 0.dp else 16.dp,
+                        end = if (isUser) 16.dp else 0.dp,
+                    ),
             )
         }
     }

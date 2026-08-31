@@ -1,5 +1,6 @@
 package com.mistbell.tavern.android.ui.chatlist
 
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,18 +17,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import android.widget.Toast
 import com.mistbell.tavern.android.ui.chat.CompositeCharacterAvatar
+import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 import com.mistbell.tavern.android.util.SessionExportFormat
 import com.mistbell.tavern.android.util.SessionExporter
-import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +36,7 @@ fun ChatListScreen(
     onTabSelected: (Int) -> Unit = {},
     showBottomBar: Boolean = true,
     showTopBar: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val chatItems by viewModel.chatListItems.collectAsState()
@@ -52,50 +50,52 @@ fun ChatListScreen(
 
     val fabRotation by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (fabExpanded) 45f else 0f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
-        ),
-        label = "fab_rotation"
+        animationSpec =
+            androidx.compose.animation.core.spring(
+                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
+            ),
+        label = "fab_rotation",
     )
 
     if (!showTopBar && !showBottomBar) {
         // Embedded in MainScreen - just show content
         Scaffold(
-            modifier = modifier
-                .fillMaxSize()
-                .clearFocusOnTap()
-                .statusBarsPadding(),
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .clearFocusOnTap()
+                    .statusBarsPadding(),
             containerColor = MaterialTheme.colorScheme.background,
             floatingActionButton = {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     // Sub FABs - shown when expanded
                     androidx.compose.animation.AnimatedVisibility(
                         visible = fabExpanded,
                         enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
+                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
                     ) {
                         Column(
                             horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             // Import chat button with label
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.surface,
                                     shape = RoundedCornerShape(8.dp),
-                                    shadowElevation = 2.dp
+                                    shadowElevation = 2.dp,
                                 ) {
                                     Text(
                                         text = "导入对话",
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = MaterialTheme.typography.labelLarge,
                                     )
                                 }
                                 SmallFloatingActionButton(
@@ -104,11 +104,11 @@ fun ChatListScreen(
                                         // TODO: 导入对话
                                     },
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 ) {
                                     Icon(
                                         Icons.Default.FileUpload,
-                                        contentDescription = "导入对话"
+                                        contentDescription = "导入对话",
                                     )
                                 }
                             }
@@ -116,17 +116,17 @@ fun ChatListScreen(
                             // New chat button with label
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.surface,
                                     shape = RoundedCornerShape(8.dp),
-                                    shadowElevation = 2.dp
+                                    shadowElevation = 2.dp,
                                 ) {
                                     Text(
                                         text = "新建对话",
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = MaterialTheme.typography.labelLarge,
                                     )
                                 }
                                 SmallFloatingActionButton(
@@ -135,11 +135,11 @@ fun ChatListScreen(
                                         onNewChatClick()
                                     },
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                                 ) {
                                     Icon(
                                         Icons.Default.Add,
-                                        contentDescription = "新建对话"
+                                        contentDescription = "新建对话",
                                     )
                                 }
                             }
@@ -150,30 +150,31 @@ fun ChatListScreen(
                     FloatingActionButton(
                         onClick = { fabExpanded = !fabExpanded },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = if (fabExpanded) "收起" else "展开",
-                            modifier = Modifier.rotate(fabRotation)
+                            modifier = Modifier.rotate(fabRotation),
                         )
                     }
                 }
-            }
+            },
         ) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 // Fixed main title with menu
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "聊天列表",
                         style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
 
                     var showMenu by remember { mutableStateOf(false) }
@@ -181,12 +182,12 @@ fun ChatListScreen(
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "菜单"
+                                contentDescription = "菜单",
                             )
                         }
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
+                            onDismissRequest = { showMenu = false },
                         ) {
                             DropdownMenuItem(
                                 text = { Text("清空所有对话", color = MaterialTheme.colorScheme.error) },
@@ -198,9 +199,9 @@ fun ChatListScreen(
                                     Icon(
                                         Icons.Default.DeleteSweep,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error
+                                        tint = MaterialTheme.colorScheme.error,
                                     )
-                                }
+                                },
                             )
                         }
                     }
@@ -209,7 +210,7 @@ fun ChatListScreen(
                 // Scrollable content
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    contentPadding = PaddingValues(vertical = 8.dp),
                 ) {
                     // Section title
                     item {
@@ -218,7 +219,7 @@ fun ChatListScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
 
@@ -239,9 +240,9 @@ fun ChatListScreen(
                                     characterId = item.characterId,
                                     format = format,
                                     fileName = fileName,
-                                    onComplete = onDone
+                                    onComplete = onDone,
                                 )
-                            }
+                            },
                         )
                     }
                 }
@@ -259,7 +260,7 @@ fun ChatListScreen(
                         onClick = {
                             showClearAllDialog = false
                             viewModel.deleteAllSessions()
-                        }
+                        },
                     ) {
                         Text("删除", color = MaterialTheme.colorScheme.error)
                     }
@@ -268,7 +269,7 @@ fun ChatListScreen(
                     TextButton(onClick = { showClearAllDialog = false }) {
                         Text("取消")
                     }
-                }
+                },
             )
         }
 
@@ -283,200 +284,216 @@ fun ChatListScreen(
         topBar = {
             if (showTopBar) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .statusBarsPadding()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .statusBarsPadding(),
                 ) {
-                // Top app bar with search or multi-select toolbar
-                if (isMultiSelectMode) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = "${selectedSessions.size} 已选择",
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { viewModel.exitMultiSelectMode() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "退出"
+                    // Top app bar with search or multi-select toolbar
+                    if (isMultiSelectMode) {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = "${selectedSessions.size} 已选择",
+                                    style = MaterialTheme.typography.titleLarge,
                                 )
-                            }
-                        },
-                        actions = {
-                            IconButton(
-                                onClick = { viewModel.selectAllSessions() }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SelectAll,
-                                    contentDescription = "全选"
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    viewModel.exportSelectedSessions(context) { uris ->
-                                        if (uris.isNotEmpty()) {
-                                            val shareIntent = android.content.Intent().apply {
-                                                action = android.content.Intent.ACTION_SEND_MULTIPLE
-                                                type = "application/json"
-                                                putParcelableArrayListExtra(
-                                                    android.content.Intent.EXTRA_STREAM,
-                                                    ArrayList(uris)
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { viewModel.exitMultiSelectMode() }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "退出",
+                                    )
+                                }
+                            },
+                            actions = {
+                                IconButton(
+                                    onClick = { viewModel.selectAllSessions() },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SelectAll,
+                                        contentDescription = "全选",
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.exportSelectedSessions(context) { uris ->
+                                            if (uris.isNotEmpty()) {
+                                                val shareIntent =
+                                                    android.content.Intent().apply {
+                                                        action = android.content.Intent.ACTION_SEND_MULTIPLE
+                                                        type = "application/json"
+                                                        putParcelableArrayListExtra(
+                                                            android.content.Intent.EXTRA_STREAM,
+                                                            ArrayList(uris),
+                                                        )
+                                                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                context.startActivity(
+                                                    android.content.Intent.createChooser(shareIntent, "导出会话"),
                                                 )
-                                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             }
-                                            context.startActivity(
-                                                android.content.Intent.createChooser(shareIntent, "导出会话")
-                                            )
                                         }
-                                    }
-                                },
-                                enabled = selectedSessions.isNotEmpty()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.FileUpload,
-                                    contentDescription = "导出"
-                                )
-                            }
-                            IconButton(
-                                onClick = { viewModel.deleteSelectedSessions() },
-                                enabled = selectedSessions.isNotEmpty()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "删除",
-                                    tint = if (selectedSessions.isNotEmpty())
-                                        MaterialTheme.colorScheme.error
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface
+                                    },
+                                    enabled = selectedSessions.isNotEmpty(),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.FileUpload,
+                                        contentDescription = "导出",
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.deleteSelectedSessions() },
+                                    enabled = selectedSessions.isNotEmpty(),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "删除",
+                                        tint =
+                                            if (selectedSessions.isNotEmpty()) {
+                                                MaterialTheme.colorScheme.error
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                    )
+                                }
+                            },
+                            colors =
+                                TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
                         )
-                    )
-                } else {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = "暮铃",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                }
-
-                // Search bar
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { viewModel.updateSearchQuery(it) },
-                    onSearch = { },
-                    active = false,
-                    onActiveChange = { },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = {
-                        Text("搜索聊天或角色")
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "搜索"
+                    } else {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = "暮铃",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            },
+                            colors =
+                                TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
                         )
                     }
-                ) { }
-            }
+
+                    // Search bar
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.updateSearchQuery(it) },
+                        onSearch = { },
+                        active = false,
+                        onActiveChange = { },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        placeholder = {
+                            Text("搜索聊天或角色")
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "搜索",
+                            )
+                        },
+                    ) { }
+                }
             }
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNewChatClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "新建聊天"
+                    contentDescription = "新建聊天",
                 )
             }
         },
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = {
-                        viewModel.selectTab(0)
-                        onTabSelected(0)
-                    },
-                    icon = {
-                        Icon(Icons.Default.Chat, contentDescription = null)
-                    },
-                    label = {
-                        Text("聊天")
-                    }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = {
-                        viewModel.selectTab(1)
-                        onTabSelected(1)
-                    },
-                    icon = {
-                        Icon(Icons.Default.Person, contentDescription = null)
-                    },
-                    label = {
-                        Text("角色")
-                    }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = {
-                        viewModel.selectTab(2)
-                        onTabSelected(2)
-                    },
-                    icon = {
-                        Icon(Icons.Default.Book, contentDescription = null)
-                    },
-                    label = {
-                        Text("世界书")
-                    }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = {
-                        viewModel.selectTab(3)
-                        onTabSelected(3)
-                    },
-                    icon = {
-                        Icon(Icons.Default.Settings, contentDescription = null)
-                    },
-                    label = {
-                        Text("设置")
-                    }
-                )
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
+                        onClick = {
+                            viewModel.selectTab(0)
+                            onTabSelected(0)
+                        },
+                        icon = {
+                            Icon(Icons.Default.Chat, contentDescription = null)
+                        },
+                        label = {
+                            Text("聊天")
+                        },
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = {
+                            viewModel.selectTab(1)
+                            onTabSelected(1)
+                        },
+                        icon = {
+                            Icon(Icons.Default.Person, contentDescription = null)
+                        },
+                        label = {
+                            Text("角色")
+                        },
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = {
+                            viewModel.selectTab(2)
+                            onTabSelected(2)
+                        },
+                        icon = {
+                            Icon(Icons.Default.Book, contentDescription = null)
+                        },
+                        label = {
+                            Text("世界书")
+                        },
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 3,
+                        onClick = {
+                            viewModel.selectTab(3)
+                            onTabSelected(3)
+                        },
+                        icon = {
+                            Icon(Icons.Default.Settings, contentDescription = null)
+                        },
+                        label = {
+                            Text("设置")
+                        },
+                    )
+                }
             }
-            }
-        }
+        },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (showTopBar) Modifier.padding(paddingValues) else Modifier.padding(bottom = paddingValues.calculateBottomPadding()))
-                .then(if (!showTopBar) Modifier.statusBarsPadding() else Modifier),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (showTopBar) {
+                            Modifier.padding(
+                                paddingValues,
+                            )
+                        } else {
+                            Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+                        },
+                    )
+                    .then(if (!showTopBar) Modifier.statusBarsPadding() else Modifier),
+            contentPadding = PaddingValues(vertical = 8.dp),
         ) {
             // Section header
             item {
@@ -485,7 +502,7 @@ fun ChatListScreen(
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
 
@@ -520,9 +537,9 @@ fun ChatListScreen(
                             characterId = item.characterId,
                             format = format,
                             fileName = fileName,
-                            onComplete = onDone
+                            onComplete = onDone,
                         )
-                    }
+                    },
                 )
             }
         }
@@ -542,7 +559,7 @@ fun ChatListItemMaterial(
     onRename: (String) -> Unit = {},
     onCopy: () -> Unit = {},
     onDelete: () -> Unit = {},
-    onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -> Unit) -> Unit = { _, _, _ -> }
+    onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -> Unit) -> Unit = { _, _, _ -> },
 ) {
     val context = LocalContext.current
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -553,60 +570,64 @@ fun ChatListItemMaterial(
     var newName by remember { mutableStateOf("") }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    if (!isMultiSelectMode) {
-                        showBottomSheet = true  // 显示底部抽屉菜单
-                    }
-                }
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        if (!isMultiSelectMode) {
+                            showBottomSheet = true // 显示底部抽屉菜单
+                        }
+                    },
+                ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
             ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            }
-        ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Checkbox in multi-select mode
             if (isMultiSelectMode) {
                 Checkbox(
                     checked = isSelected,
                     onCheckedChange = { onClick() },
-                    modifier = Modifier.padding(end = 12.dp)
+                    modifier = Modifier.padding(end = 12.dp),
                 )
             }
 
             CompositeCharacterAvatar(
                 characters = item.participantCharacters,
-                modifier = Modifier.size(56.dp)
+                modifier = Modifier.size(56.dp),
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
             // Content
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         // Pinned icon
                         if (item.isPinned) {
@@ -614,7 +635,7 @@ fun ChatListItemMaterial(
                                 imageVector = Icons.Default.PushPin,
                                 contentDescription = "置顶",
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
@@ -624,7 +645,7 @@ fun ChatListItemMaterial(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         // Muted icon
                         if (item.isMuted) {
@@ -633,28 +654,29 @@ fun ChatListItemMaterial(
                                 imageVector = Icons.Default.VolumeOff,
                                 contentDescription = "免打扰",
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                     Text(
                         text = item.lastMessageTime,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // Show sender label if available
-                    val displayMessage = if (item.lastMessageSender.isNotBlank()) {
-                        "${item.lastMessageSender}: ${item.lastMessage}"
-                    } else {
-                        item.lastMessage
-                    }
+                    val displayMessage =
+                        if (item.lastMessageSender.isNotBlank()) {
+                            "${item.lastMessageSender}: ${item.lastMessage}"
+                        } else {
+                            item.lastMessage
+                        }
 
                     Text(
                         text = displayMessage,
@@ -662,17 +684,17 @@ fun ChatListItemMaterial(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     if (item.unreadCount > 0 && !item.isMuted) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Badge(
                             containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
+                            contentColor = MaterialTheme.colorScheme.onError,
                         ) {
                             Text(
                                 text = item.unreadCount.toString(),
-                                style = MaterialTheme.typography.labelSmall
+                                style = MaterialTheme.typography.labelSmall,
                             )
                         }
                     }
@@ -684,12 +706,13 @@ fun ChatListItemMaterial(
         if (showBottomSheet && !isMultiSelectMode) {
             ModalBottomSheet(
                 onDismissRequest = { showBottomSheet = false },
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 32.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 32.dp),
                 ) {
                     // Pin/Unpin
                     ListItem(
@@ -698,13 +721,14 @@ fun ChatListItemMaterial(
                             Icon(
                                 Icons.Default.PushPin,
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                         },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            onTogglePin()
-                        }
+                        modifier =
+                            Modifier.clickable {
+                                showBottomSheet = false
+                                onTogglePin()
+                            },
                     )
 
                     // Mark as read
@@ -715,13 +739,14 @@ fun ChatListItemMaterial(
                                 Icon(
                                     Icons.Default.DoneAll,
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(24.dp),
                                 )
                             },
-                            modifier = Modifier.clickable {
-                                showBottomSheet = false
-                                onMarkAsRead()
-                            }
+                            modifier =
+                                Modifier.clickable {
+                                    showBottomSheet = false
+                                    onMarkAsRead()
+                                },
                         )
                     }
 
@@ -732,14 +757,15 @@ fun ChatListItemMaterial(
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                         },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            newName = item.sessionTitle.ifBlank { item.characterName }
-                            showRenameDialog = true
-                        }
+                        modifier =
+                            Modifier.clickable {
+                                showBottomSheet = false
+                                newName = item.sessionTitle.ifBlank { item.characterName }
+                                showRenameDialog = true
+                            },
                     )
 
                     // Copy
@@ -749,13 +775,14 @@ fun ChatListItemMaterial(
                             Icon(
                                 Icons.Default.ContentCopy,
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                         },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            onCopy()
-                        }
+                        modifier =
+                            Modifier.clickable {
+                                showBottomSheet = false
+                                onCopy()
+                            },
                     )
 
                     // Export
@@ -765,18 +792,20 @@ fun ChatListItemMaterial(
                             Icon(
                                 Icons.Outlined.FileUpload,
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                         },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            exportFileName = SessionExporter.buildFileName(
-                                item.sessionTitle.ifBlank { item.characterName },
-                                item.sessionId,
-                                SessionExportFormat.JSON.extension
-                            )
-                            showExportDialog = true
-                        }
+                        modifier =
+                            Modifier.clickable {
+                                showBottomSheet = false
+                                exportFileName =
+                                    SessionExporter.buildFileName(
+                                        item.sessionTitle.ifBlank { item.characterName },
+                                        item.sessionId,
+                                        SessionExportFormat.JSON.extension,
+                                    )
+                                showExportDialog = true
+                            },
                     )
 
                     HorizontalDivider()
@@ -786,7 +815,7 @@ fun ChatListItemMaterial(
                         headlineContent = {
                             Text(
                                 "删除",
-                                color = MaterialTheme.colorScheme.error
+                                color = MaterialTheme.colorScheme.error,
                             )
                         },
                         leadingContent = {
@@ -794,13 +823,14 @@ fun ChatListItemMaterial(
                                 Icons.Default.Delete,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                         },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            showDeleteDialog = true
-                        }
+                        modifier =
+                            Modifier.clickable {
+                                showBottomSheet = false
+                                showDeleteDialog = true
+                            },
                     )
                 }
             }
@@ -819,7 +849,7 @@ fun ChatListItemMaterial(
                     label = { Text("新名称") },
                     placeholder = { Text(item.characterName) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
@@ -828,7 +858,7 @@ fun ChatListItemMaterial(
                         showRenameDialog = false
                         onRename(newName)
                     },
-                    enabled = newName.isNotBlank()
+                    enabled = newName.isNotBlank(),
                 ) {
                     Text("确定")
                 }
@@ -837,7 +867,7 @@ fun ChatListItemMaterial(
                 TextButton(onClick = { showRenameDialog = false }) {
                     Text("取消")
                 }
-            }
+            },
         )
     }
 
@@ -850,39 +880,40 @@ fun ChatListItemMaterial(
                     Text(
                         text = "格式：JSON",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     OutlinedTextField(
                         value = exportFileName,
                         onValueChange = { exportFileName = it },
                         label = { Text("文件名") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
                         text = "保存到：${SessionExporter.displayLocation(exportFileName)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val finalName = exportFileName.trim().ifBlank {
-                            SessionExporter.buildFileName(
-                                item.sessionTitle.ifBlank { item.characterName },
-                                item.sessionId,
-                                SessionExportFormat.JSON.extension
-                            )
-                        }
+                        val finalName =
+                            exportFileName.trim().ifBlank {
+                                SessionExporter.buildFileName(
+                                    item.sessionTitle.ifBlank { item.characterName },
+                                    item.sessionId,
+                                    SessionExportFormat.JSON.extension,
+                                )
+                            }
                         showExportDialog = false
                         onExport(SessionExportFormat.JSON, finalName) { result ->
                             result?.let {
                                 Toast.makeText(context, "已保存到 ${it.location}", Toast.LENGTH_SHORT).show()
                             }
                         }
-                    }
+                    },
                 ) {
                     Text("保存")
                 }
@@ -891,7 +922,7 @@ fun ChatListItemMaterial(
                 TextButton(onClick = { showExportDialog = false }) {
                     Text("取消")
                 }
-            }
+            },
         )
     }
 
@@ -913,7 +944,7 @@ fun ChatListItemMaterial(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("取消")
                 }
-            }
+            },
         )
     }
 }

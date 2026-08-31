@@ -11,15 +11,26 @@ import java.util.zip.CRC32
  * 测试内构造最小合法 PNG（签名 + tEXt + IEND），CRC 用 CRC32 现算，不依赖图片资源。
  */
 class PngCardTest {
-
     /** PNG 8 字节文件签名 */
-    private val signature = byteArrayOf(
-        0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-    )
+    private val signature =
+        byteArrayOf(
+            0x89.toByte(),
+            0x50,
+            0x4E,
+            0x47,
+            0x0D,
+            0x0A,
+            0x1A,
+            0x0A,
+        )
 
     /** 按格式拼一个 chunk：len(4BE) + type(4) + data(len) + crc(4BE) */
-    private fun chunk(type: String, data: ByteArray): ByteArray {
+    private fun chunk(
+        type: String,
+        data: ByteArray,
+    ): ByteArray {
         val out = ByteArrayOutputStream()
+
         fun u32(v: Int) {
             out.write(v ushr 24 and 0xFF)
             out.write(v ushr 16 and 0xFF)
@@ -30,10 +41,11 @@ class PngCardTest {
         val typeBytes = type.toByteArray(Charsets.US_ASCII)
         out.write(typeBytes)
         out.write(data)
-        val crc = CRC32().apply {
-            update(typeBytes)
-            update(data)
-        }
+        val crc =
+            CRC32().apply {
+                update(typeBytes)
+                update(data)
+            }
         u32(crc.value.toInt())
         return out.toByteArray()
     }
@@ -44,9 +56,10 @@ class PngCardTest {
         out.write(signature)
         if (textChunk != null) {
             val (kw, value) = textChunk
-            val data = kw.toByteArray(Charsets.ISO_8859_1) +
-                byteArrayOf(0) +
-                value.toByteArray(Charsets.ISO_8859_1)
+            val data =
+                kw.toByteArray(Charsets.ISO_8859_1) +
+                    byteArrayOf(0) +
+                    value.toByteArray(Charsets.ISO_8859_1)
             out.write(chunk("tEXt", data))
         }
         out.write(chunk("IEND", ByteArray(0)))
@@ -81,10 +94,11 @@ class PngCardTest {
         var count = 0
         var offset = signature.size
         while (offset + 8 <= replaced.size) {
-            val length = ((replaced[offset].toInt() and 0xFF) shl 24) or
-                (replaced[offset + 1].toInt() and 0xFF shl 16) or
-                (replaced[offset + 2].toInt() and 0xFF shl 8) or
-                (replaced[offset + 3].toInt() and 0xFF)
+            val length =
+                ((replaced[offset].toInt() and 0xFF) shl 24) or
+                    (replaced[offset + 1].toInt() and 0xFF shl 16) or
+                    (replaced[offset + 2].toInt() and 0xFF shl 8) or
+                    (replaced[offset + 3].toInt() and 0xFF)
             val type = String(replaced, offset + 4, 4, Charsets.US_ASCII)
             if (type == "tEXt") {
                 val data = replaced.copyOfRange(offset + 8, offset + 8 + length)

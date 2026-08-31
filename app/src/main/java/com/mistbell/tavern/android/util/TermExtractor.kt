@@ -10,8 +10,10 @@ package com.mistbell.tavern.android.util
  * - 空串/纯符号输入 → 空表。
  */
 object TermExtractor {
-
-    fun extract(query: String, maxTerms: Int = 6): List<String> {
+    fun extract(
+        query: String,
+        maxTerms: Int = 6,
+    ): List<String> {
         if (query.isBlank()) return emptyList()
 
         val terms = linkedSetOf<String>()

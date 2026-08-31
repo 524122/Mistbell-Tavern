@@ -12,7 +12,7 @@ data class VectorMemory(
     val embeddingModel: String = "text-embedding-3-small",
     val importanceScore: Float = 1.0f,
     val tokenCount: Int?,
-    val createdAt: String
+    val createdAt: String,
 ) {
     companion object {
         // 内容类型
@@ -21,18 +21,20 @@ data class VectorMemory(
             const val AI_MESSAGE = "ai_message"
             const val SUMMARY = "summary"
 
-            fun getDescription(type: String): String = when (type) {
-                USER_MESSAGE -> "用户消息"
-                AI_MESSAGE -> "AI回复"
-                SUMMARY -> "摘要"
-                else -> "未知"
-            }
+            fun getDescription(type: String): String =
+                when (type) {
+                    USER_MESSAGE -> "用户消息"
+                    AI_MESSAGE -> "AI回复"
+                    SUMMARY -> "摘要"
+                    else -> "未知"
+                }
 
-            fun all() = listOf(
-                USER_MESSAGE,
-                AI_MESSAGE,
-                SUMMARY
-            )
+            fun all() =
+                listOf(
+                    USER_MESSAGE,
+                    AI_MESSAGE,
+                    SUMMARY,
+                )
         }
     }
 }

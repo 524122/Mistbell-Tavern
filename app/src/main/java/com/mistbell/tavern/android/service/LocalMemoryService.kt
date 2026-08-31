@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.first
  * 使用简单的关键词匹配替代向量搜索
  */
 class LocalMemoryService(private val context: Context) {
-
     private val db get() = TavernApplication.instance.database
 
     /**
@@ -29,12 +28,13 @@ class LocalMemoryService(private val context: Context) {
         ownerId: String,
         characterId: String,
         sessionId: String,
-        limit: Int = 10
+        limit: Int = 10,
     ): List<MemoryEntity> {
         // 获取所有记忆
-        val allMemories = db.memoryDao()
-            .getBySession(ownerId, characterId, sessionId)
-            .first()
+        val allMemories =
+            db.memoryDao()
+                .getBySession(ownerId, characterId, sessionId)
+                .first()
 
         if (allMemories.isEmpty()) return emptyList()
 
@@ -42,10 +42,11 @@ class LocalMemoryService(private val context: Context) {
         val keywords = extractKeywords(query)
 
         // 计算每个记忆的相关性分数
-        val scoredMemories = allMemories.map { memory ->
-            val score = calculateRelevanceScore(memory, keywords, query)
-            memory to score
-        }
+        val scoredMemories =
+            allMemories.map { memory ->
+                val score = calculateRelevanceScore(memory, keywords, query)
+                memory to score
+            }
 
         // 按分数排序并返回前 N 个
         return scoredMemories
@@ -69,11 +70,12 @@ class LocalMemoryService(private val context: Context) {
         characterId: String,
         sessionId: String,
         threshold: Double = 0.7,
-        limit: Int = 10
+        limit: Int = 10,
     ): List<MemoryEntity> {
-        val allMemories = db.memoryDao()
-            .getBySession(ownerId, characterId, sessionId)
-            .first()
+        val allMemories =
+            db.memoryDao()
+                .getBySession(ownerId, characterId, sessionId)
+                .first()
 
         return allMemories
             .filter { it.importance >= threshold }
@@ -93,11 +95,12 @@ class LocalMemoryService(private val context: Context) {
         tags: List<String>,
         ownerId: String,
         characterId: String,
-        sessionId: String
+        sessionId: String,
     ): List<MemoryEntity> {
-        val allMemories = db.memoryDao()
-            .getBySession(ownerId, characterId, sessionId)
-            .first()
+        val allMemories =
+            db.memoryDao()
+                .getBySession(ownerId, characterId, sessionId)
+                .first()
 
         return allMemories.filter { memory ->
             val memoryTags = decodeList(memory.tags)
@@ -120,11 +123,12 @@ class LocalMemoryService(private val context: Context) {
         layer: String,
         ownerId: String,
         characterId: String,
-        sessionId: String
+        sessionId: String,
     ): List<MemoryEntity> {
-        val allMemories = db.memoryDao()
-            .getBySession(ownerId, characterId, sessionId)
-            .first()
+        val allMemories =
+            db.memoryDao()
+                .getBySession(ownerId, characterId, sessionId)
+                .first()
 
         return allMemories.filter { it.layer == layer }
     }
@@ -151,13 +155,14 @@ class LocalMemoryService(private val context: Context) {
      */
     private fun extractKeywords(text: String): List<String> {
         // 停用词列表（简化版）
-        val stopWords = setOf(
-            "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一",
-            "个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没",
-            "看", "好", "自己", "这", "那", "什么", "怎么", "为什么",
-            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-            "of", "with", "by", "from", "is", "are", "was", "were", "be", "been"
-        )
+        val stopWords =
+            setOf(
+                "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一",
+                "个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没",
+                "看", "好", "自己", "这", "那", "什么", "怎么", "为什么",
+                "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+                "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
+            )
 
         return text
             .split(Regex("[\\s\\p{Punct}]+"))
@@ -177,7 +182,7 @@ class LocalMemoryService(private val context: Context) {
     private fun calculateRelevanceScore(
         memory: MemoryEntity,
         keywords: List<String>,
-        originalQuery: String
+        originalQuery: String,
     ): Double {
         val contentLower = memory.content.lowercase()
         val queryLower = originalQuery.lowercase()
@@ -190,22 +195,25 @@ class LocalMemoryService(private val context: Context) {
         }
 
         // 关键词匹配
-        val matchedKeywords = keywords.count { keyword ->
-            contentLower.contains(keyword)
-        }
+        val matchedKeywords =
+            keywords.count { keyword ->
+                contentLower.contains(keyword)
+            }
         score += matchedKeywords * 2.0
 
         // 别名匹配（先解码 JSON 列表）
         val aliasList = decodeList(memory.aliases)
-        val aliasMatches = aliasList.count { alias ->
-            queryLower.contains(alias.lowercase()) || alias.lowercase().contains(queryLower)
-        }
+        val aliasMatches =
+            aliasList.count { alias ->
+                queryLower.contains(alias.lowercase()) || alias.lowercase().contains(queryLower)
+            }
         score += aliasMatches * 3.0
 
         // 标签匹配（先解码 JSON 列表）
-        val tagMatches = decodeList(memory.tags).count { tag ->
-            queryLower.contains(tag.lowercase())
-        }
+        val tagMatches =
+            decodeList(memory.tags).count { tag ->
+                queryLower.contains(tag.lowercase())
+            }
         score += tagMatches * 2.0
 
         // 重要性加成
@@ -226,22 +234,25 @@ class LocalMemoryService(private val context: Context) {
     private suspend fun calculateTfIdf(
         term: String,
         document: String,
-        allDocuments: List<String>
+        allDocuments: List<String>,
     ): Double {
         // TF: 词频
-        val termCount = document.lowercase().split(Regex("\\s+"))
-            .count { it == term.lowercase() }
+        val termCount =
+            document.lowercase().split(Regex("\\s+"))
+                .count { it == term.lowercase() }
         val tf = termCount.toDouble() / document.split(Regex("\\s+")).size
 
         // IDF: 逆文档频率
-        val documentsContainingTerm = allDocuments.count { doc ->
-            doc.lowercase().contains(term.lowercase())
-        }
-        val idf = if (documentsContainingTerm > 0) {
-            kotlin.math.ln(allDocuments.size.toDouble() / documentsContainingTerm)
-        } else {
-            0.0
-        }
+        val documentsContainingTerm =
+            allDocuments.count { doc ->
+                doc.lowercase().contains(term.lowercase())
+            }
+        val idf =
+            if (documentsContainingTerm > 0) {
+                kotlin.math.ln(allDocuments.size.toDouble() / documentsContainingTerm)
+            } else {
+                0.0
+            }
 
         return tf * idf
     }

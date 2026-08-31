@@ -4,7 +4,6 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -25,17 +24,18 @@ import java.util.concurrent.TimeUnit
 class OpenAIEmbeddingService(
     private val apiKey: String,
     private val baseUrl: String = "https://api.openai.com/v1",
-    private val model: String = "text-embedding-3-small"
+    private val model: String = "text-embedding-3-small",
 ) : EmbeddingService {
+    private val client =
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .build()
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+        }
 
     companion object {
         private const val TAG = "OpenAIEmbedding"
@@ -44,60 +44,64 @@ class OpenAIEmbeddingService(
         private const val INITIAL_RETRY_DELAY_MS = 1000L
     }
 
-    override suspend fun embed(text: String): FloatArray = withContext(Dispatchers.IO) {
-        var lastException: Exception? = null
+    override suspend fun embed(text: String): FloatArray =
+        withContext(Dispatchers.IO) {
+            var lastException: Exception? = null
 
-        repeat(MAX_RETRIES) { attempt ->
-            try {
-                return@withContext executeEmbedRequest(text)
-            } catch (e: SocketTimeoutException) {
-                lastException = e
-                if (attempt < MAX_RETRIES - 1) {
-                    val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                    Log.w(TAG, "Embedding timeout, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
-                    delay(delayMs)
-                }
-            } catch (e: IOException) {
-                lastException = e
-                if (attempt < MAX_RETRIES - 1) {
-                    val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                    Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")
-                    delay(delayMs)
-                }
-            } catch (e: Exception) {
-                if (e.message?.contains("429") == true) {
+            repeat(MAX_RETRIES) { attempt ->
+                try {
+                    return@withContext executeEmbedRequest(text)
+                } catch (e: SocketTimeoutException) {
                     lastException = e
                     if (attempt < MAX_RETRIES - 1) {
-                        val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt) * 2
-                        Log.w(TAG, "Rate limit hit, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
+                        val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
+                        Log.w(TAG, "Embedding timeout, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
                         delay(delayMs)
                     }
-                } else {
-                    throw e
+                } catch (e: IOException) {
+                    lastException = e
+                    if (attempt < MAX_RETRIES - 1) {
+                        val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
+                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")
+                        delay(delayMs)
+                    }
+                } catch (e: Exception) {
+                    if (e.message?.contains("429") == true) {
+                        lastException = e
+                        if (attempt < MAX_RETRIES - 1) {
+                            val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt) * 2
+                            Log.w(TAG, "Rate limit hit, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
+                            delay(delayMs)
+                        }
+                    } else {
+                        throw e
+                    }
                 }
             }
+
+            throw lastException ?: Exception("Embedding request failed after $MAX_RETRIES retries")
         }
 
-        throw lastException ?: Exception("Embedding request failed after $MAX_RETRIES retries")
-    }
-
     private fun executeEmbedRequest(text: String): FloatArray {
-        val requestBody = EmbeddingRequestSingle(
-            input = text,
-            model = model
-        )
+        val requestBody =
+            EmbeddingRequestSingle(
+                input = text,
+                model = model,
+            )
 
-        val jsonBody = json.encodeToString(
-            EmbeddingRequestSingle.serializer(),
-            requestBody
-        )
+        val jsonBody =
+            json.encodeToString(
+                EmbeddingRequestSingle.serializer(),
+                requestBody,
+            )
 
-        val request = Request.Builder()
-            .url("$baseUrl/embeddings")
-            .addHeader("Authorization", "Bearer $apiKey")
-            .addHeader("Content-Type", "application/json")
-            .post(jsonBody.toRequestBody("application/json".toMediaType()))
-            .build()
+        val request =
+            Request.Builder()
+                .url("$baseUrl/embeddings")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Content-Type", "application/json")
+                .post(jsonBody.toRequestBody("application/json".toMediaType()))
+                .build()
 
         val response = client.newCall(request).execute()
 
@@ -106,8 +110,9 @@ class OpenAIEmbeddingService(
             throw Exception("OpenAI API error: ${response.code} - $errorBody")
         }
 
-        val responseBody = response.body?.string()
-            ?: throw Exception("Empty response body")
+        val responseBody =
+            response.body?.string()
+                ?: throw Exception("Empty response body")
 
         val embeddingResponse = json.decodeFromString<EmbeddingResponse>(responseBody)
 
@@ -122,60 +127,64 @@ class OpenAIEmbeddingService(
         return FloatArray(embedding.size) { i -> embedding[i].toFloat() }
     }
 
-    override suspend fun embedBatch(texts: List<String>): List<FloatArray> = withContext(Dispatchers.IO) {
-        var lastException: Exception? = null
+    override suspend fun embedBatch(texts: List<String>): List<FloatArray> =
+        withContext(Dispatchers.IO) {
+            var lastException: Exception? = null
 
-        repeat(MAX_RETRIES) { attempt ->
-            try {
-                return@withContext executeEmbedBatchRequest(texts)
-            } catch (e: SocketTimeoutException) {
-                lastException = e
-                if (attempt < MAX_RETRIES - 1) {
-                    val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                    Log.w(TAG, "Batch embedding timeout, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
-                    delay(delayMs)
-                }
-            } catch (e: IOException) {
-                lastException = e
-                if (attempt < MAX_RETRIES - 1) {
-                    val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                    Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")
-                    delay(delayMs)
-                }
-            } catch (e: Exception) {
-                if (e.message?.contains("429") == true) {
+            repeat(MAX_RETRIES) { attempt ->
+                try {
+                    return@withContext executeEmbedBatchRequest(texts)
+                } catch (e: SocketTimeoutException) {
                     lastException = e
                     if (attempt < MAX_RETRIES - 1) {
-                        val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt) * 2
-                        Log.w(TAG, "Rate limit hit, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
+                        val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
+                        Log.w(TAG, "Batch embedding timeout, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
                         delay(delayMs)
                     }
-                } else {
-                    throw e
+                } catch (e: IOException) {
+                    lastException = e
+                    if (attempt < MAX_RETRIES - 1) {
+                        val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
+                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")
+                        delay(delayMs)
+                    }
+                } catch (e: Exception) {
+                    if (e.message?.contains("429") == true) {
+                        lastException = e
+                        if (attempt < MAX_RETRIES - 1) {
+                            val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt) * 2
+                            Log.w(TAG, "Rate limit hit, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")
+                            delay(delayMs)
+                        }
+                    } else {
+                        throw e
+                    }
                 }
             }
+
+            throw lastException ?: Exception("Batch embedding request failed after $MAX_RETRIES retries")
         }
 
-        throw lastException ?: Exception("Batch embedding request failed after $MAX_RETRIES retries")
-    }
-
     private fun executeEmbedBatchRequest(texts: List<String>): List<FloatArray> {
-        val requestBody = EmbeddingRequestBatch(
-            input = texts,
-            model = model
-        )
+        val requestBody =
+            EmbeddingRequestBatch(
+                input = texts,
+                model = model,
+            )
 
-        val jsonBody = json.encodeToString(
-            EmbeddingRequestBatch.serializer(),
-            requestBody
-        )
+        val jsonBody =
+            json.encodeToString(
+                EmbeddingRequestBatch.serializer(),
+                requestBody,
+            )
 
-        val request = Request.Builder()
-            .url("$baseUrl/embeddings")
-            .addHeader("Authorization", "Bearer $apiKey")
-            .addHeader("Content-Type", "application/json")
-            .post(jsonBody.toRequestBody("application/json".toMediaType()))
-            .build()
+        val request =
+            Request.Builder()
+                .url("$baseUrl/embeddings")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Content-Type", "application/json")
+                .post(jsonBody.toRequestBody("application/json".toMediaType()))
+                .build()
 
         val response = client.newCall(request).execute()
 
@@ -184,8 +193,9 @@ class OpenAIEmbeddingService(
             throw Exception("OpenAI API error: ${response.code} - $errorBody")
         }
 
-        val responseBody = response.body?.string()
-            ?: throw Exception("Empty response body")
+        val responseBody =
+            response.body?.string()
+                ?: throw Exception("Empty response body")
 
         val embeddingResponse = json.decodeFromString<EmbeddingResponse>(responseBody)
 
@@ -205,23 +215,23 @@ class OpenAIEmbeddingService(
     @Serializable
     private data class EmbeddingRequestSingle(
         val input: String,
-        val model: String
+        val model: String,
     )
 
     @Serializable
     private data class EmbeddingRequestBatch(
         val input: List<String>,
-        val model: String
+        val model: String,
     )
 
     @Serializable
     private data class EmbeddingResponse(
-        val data: List<EmbeddingData>
+        val data: List<EmbeddingData>,
     )
 
     @Serializable
     private data class EmbeddingData(
         val embedding: List<Double>,
-        val index: Int
+        val index: Int,
     )
 }

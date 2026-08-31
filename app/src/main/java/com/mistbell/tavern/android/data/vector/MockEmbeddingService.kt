@@ -10,7 +10,6 @@ import kotlin.random.Random
  * 生成随机向量（仅用于测试，不具备实际语义）
  */
 class MockEmbeddingService : EmbeddingService {
-
     companion object {
         private const val TAG = "MockEmbedding"
         private const val DIMENSION = 1536
@@ -24,7 +23,7 @@ class MockEmbeddingService : EmbeddingService {
         val random = Random(seed)
 
         return FloatArray(DIMENSION) {
-            random.nextFloat() * 2 - 1  // [-1, 1] 范围
+            random.nextFloat() * 2 - 1 // [-1, 1] 范围
         }
     }
 

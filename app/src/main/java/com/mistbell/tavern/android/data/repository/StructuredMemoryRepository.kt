@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
-import com.mistbell.tavern.android.data.api.model.VectorMemory
 import com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +17,7 @@ class StructuredMemoryRepository(context: Context) {
 
     companion object {
         private const val TAG = "StructuredMemoryRepo"
-        private const val SYNC_THRESHOLD = 7  // 重要性阈值
+        private const val SYNC_THRESHOLD = 7 // 重要性阈值
     }
 
     // 获取所有记忆
@@ -29,53 +28,80 @@ class StructuredMemoryRepository(context: Context) {
     }
 
     // 按角色获取记忆
-    fun getMemoriesByCharacter(ownerId: String, characterId: String): Flow<List<StructuredMemory>> {
+    fun getMemoriesByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.getByCharacter(ownerId, characterId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     // 按会话获取记忆
-    fun getMemoriesBySession(ownerId: String, characterId: String, sessionId: String): Flow<List<StructuredMemory>> {
+    fun getMemoriesBySession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.getBySession(ownerId, characterId, sessionId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    fun getMemoriesBySession(ownerId: String, sessionId: String): Flow<List<StructuredMemory>> {
+    fun getMemoriesBySession(
+        ownerId: String,
+        sessionId: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.getBySession(ownerId, sessionId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     // 按类型获取记忆
-    fun getMemoriesByType(ownerId: String, memoryType: String): Flow<List<StructuredMemory>> {
+    fun getMemoriesByType(
+        ownerId: String,
+        memoryType: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.getByType(ownerId, memoryType).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    fun getMemoriesBySessionAndType(ownerId: String, sessionId: String, memoryType: String): Flow<List<StructuredMemory>> {
+    fun getMemoriesBySessionAndType(
+        ownerId: String,
+        sessionId: String,
+        memoryType: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.getBySessionAndType(ownerId, sessionId, memoryType).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     // 按重要性获取记忆
-    fun getMemoriesByImportance(ownerId: String, minImportance: Int): Flow<List<StructuredMemory>> {
+    fun getMemoriesByImportance(
+        ownerId: String,
+        minImportance: Int,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.getByImportance(ownerId, minImportance).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     // 搜索记忆
-    fun searchMemories(ownerId: String, query: String): Flow<List<StructuredMemory>> {
+    fun searchMemories(
+        ownerId: String,
+        query: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.search(ownerId, query).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    fun searchMemoriesBySession(ownerId: String, sessionId: String, query: String): Flow<List<StructuredMemory>> {
+    fun searchMemoriesBySession(
+        ownerId: String,
+        sessionId: String,
+        query: String,
+    ): Flow<List<StructuredMemory>> {
         return memoryDao.searchBySession(ownerId, sessionId, query).map { entities ->
             entities.map { it.toDomain() }
         }
@@ -91,12 +117,13 @@ class StructuredMemoryRepository(context: Context) {
     // 创建记忆
     suspend fun createMemory(memory: StructuredMemory): Long {
         return withContext(Dispatchers.IO) {
-            val entity = StructuredMemoryEntity.fromDomain(
-                memory.copy(
-                    createdAt = Instant.now().toString(),
-                    updatedAt = Instant.now().toString()
+            val entity =
+                StructuredMemoryEntity.fromDomain(
+                    memory.copy(
+                        createdAt = Instant.now().toString(),
+                        updatedAt = Instant.now().toString(),
+                    ),
                 )
-            )
             val memoryId = memoryDao.insert(entity)
 
             // 如果重要性 >= 7，同步到向量数据库
@@ -112,9 +139,10 @@ class StructuredMemoryRepository(context: Context) {
     // 更新记忆
     suspend fun updateMemory(memory: StructuredMemory) {
         withContext(Dispatchers.IO) {
-            val entity = StructuredMemoryEntity.fromDomain(
-                memory.copy(updatedAt = Instant.now().toString())
-            )
+            val entity =
+                StructuredMemoryEntity.fromDomain(
+                    memory.copy(updatedAt = Instant.now().toString()),
+                )
             memoryDao.update(entity)
 
             // 如果重要性 >= 7，重新同步到向量数据库
@@ -132,14 +160,20 @@ class StructuredMemoryRepository(context: Context) {
     }
 
     // 按角色删除记忆
-    suspend fun deleteMemoriesByCharacter(ownerId: String, characterId: String) {
+    suspend fun deleteMemoriesByCharacter(
+        ownerId: String,
+        characterId: String,
+    ) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteByCharacter(ownerId, characterId)
         }
     }
 
     // 按会话删除记忆
-    suspend fun deleteMemoriesBySession(ownerId: String, sessionId: String) {
+    suspend fun deleteMemoriesBySession(
+        ownerId: String,
+        sessionId: String,
+    ) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteBySession(ownerId, sessionId)
         }
@@ -160,7 +194,10 @@ class StructuredMemoryRepository(context: Context) {
     }
 
     // 获取角色的记忆数量
-    suspend fun getMemoryCountByCharacter(ownerId: String, characterId: String): Int {
+    suspend fun getMemoryCountByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Int {
         return withContext(Dispatchers.IO) {
             memoryDao.getCountByCharacter(ownerId, characterId)
         }
@@ -184,7 +221,7 @@ class StructuredMemoryRepository(context: Context) {
                 characterId = memory.characterId ?: "unknown",
                 sessionId = memory.sessionId ?: "cross_session",
                 messageId = "structured_memory_${memory.id}",
-                contentType = "summary"  // VectorMemory.ContentType.SUMMARY
+                contentType = "summary", // VectorMemory.ContentType.SUMMARY
             )
 
             Log.d(TAG, "Synced memory ${memory.id} to vector store (importance: ${memory.importance})")

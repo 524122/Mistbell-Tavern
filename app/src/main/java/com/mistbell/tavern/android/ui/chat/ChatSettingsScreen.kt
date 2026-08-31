@@ -42,27 +42,32 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     private val _sessionId = MutableStateFlow<String?>(null)
 
     // 本会话专属主题 ID；"" = 未设置（跟随角色 / 全局）
-    val sessionTheme: StateFlow<String> = _sessionId
-        .filterNotNull()
-        .flatMapLatest { sessionId ->
-            db.sessionDao().observeById(sessionId).map { it?.themeId ?: "" }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val sessionTheme: StateFlow<String> =
+        _sessionId
+            .filterNotNull()
+            .flatMapLatest { sessionId ->
+                db.sessionDao().observeById(sessionId).map { it?.themeId ?: "" }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     // 可选主题包列表
-    val availableThemes: StateFlow<List<ThemePackEntity>> = themeRepo.observePacks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val availableThemes: StateFlow<List<ThemePackEntity>> =
+        themeRepo.observePacks()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val providers: StateFlow<List<ProviderConfig>> = providerRepo.observeProviders()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val providers: StateFlow<List<ProviderConfig>> =
+        providerRepo.observeProviders()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val characters: StateFlow<List<Character>> = db.characterDao()
-        .getAll()
-        .map { entities -> entities.map { it.toDomain() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val characters: StateFlow<List<Character>> =
+        db.characterDao()
+            .getAll()
+            .map { entities -> entities.map { it.toDomain() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val worldBooks: StateFlow<List<WorldBook>> = worldBookRepo.observeWorldBooks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val worldBooks: StateFlow<List<WorldBook>> =
+        worldBookRepo.observeWorldBooks()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedProviderId = MutableStateFlow<String?>(null)
     val selectedProviderId: StateFlow<String?> = _selectedProviderId.asStateFlow()
@@ -84,12 +89,13 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     val selectedWorldBookId: StateFlow<String> = _selectedWorldBookId.asStateFlow()
 
     // 会话附加指令（author_note）；随会话实时回显
-    val authorNote: StateFlow<String> = _sessionId
-        .filterNotNull()
-        .flatMapLatest { sessionId ->
-            db.sessionDao().observeById(sessionId).map { it?.authorNote ?: "" }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val authorNote: StateFlow<String> =
+        _sessionId
+            .filterNotNull()
+            .flatMapLatest { sessionId ->
+                db.sessionDao().observeById(sessionId).map { it?.authorNote ?: "" }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     // 主角色默认世界书 ID（仅用于内部逻辑，UI 不展示）
     private val _characterDefaultWorldBookId = MutableStateFlow<String?>(null)
@@ -115,7 +121,10 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                     _selectedWorldBookId.value = session.worldBookId
                     _characterDefaultWorldBookId.value =
                         db.characterDao().getById(session.characterId)?.worldBookId?.takeIf { it.isNotBlank() }
-                    android.util.Log.d("ChatSettings", "Loaded session settings: providerId=${session.providerId}, modelId=${session.modelId}, enableLongTermMemory=${session.enableLongTermMemory}, contextTokenLimit=${session.contextTokenLimit}, worldBookId=${session.worldBookId}")
+                    android.util.Log.d(
+                        "ChatSettings",
+                        "Loaded session settings: providerId=${session.providerId}, modelId=${session.modelId}, enableLongTermMemory=${session.enableLongTermMemory}, contextTokenLimit=${session.contextTokenLimit}, worldBookId=${session.worldBookId}",
+                    )
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ChatSettings", "Failed to load session settings", e)
@@ -138,8 +147,8 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                             session.copy(
                                 providerId = providerId ?: "",
                                 modelId = modelId,
-                                updatedAt = java.time.Instant.now().toString()
-                            )
+                                updatedAt = java.time.Instant.now().toString(),
+                            ),
                         )
                         android.util.Log.d("ChatSettings", "Updated session: providerId=$providerId, modelId=$modelId")
                     }
@@ -161,10 +170,13 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         db.sessionDao().upsert(
                             session.copy(
                                 worldBookId = worldBookId,
-                                updatedAt = java.time.Instant.now().toString()
-                            )
+                                updatedAt = java.time.Instant.now().toString(),
+                            ),
                         )
-                        android.util.Log.d("ChatSettings", "Updated session worldBookId: ${if (worldBookId.isBlank()) "(none)" else worldBookId}")
+                        android.util.Log.d(
+                            "ChatSettings",
+                            "Updated session worldBookId: ${if (worldBookId.isBlank()) "(none)" else worldBookId}",
+                        )
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("ChatSettings", "Failed to update world book setting", e)
@@ -184,7 +196,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         sessionId = sessionId,
                         ownerId = session.ownerId,
                         characterId = session.characterId,
-                        themeId = themeId
+                        themeId = themeId,
                     )
                     android.util.Log.d("ChatSettings", "Updated session themeId: ${if (themeId.isBlank()) "(follow)" else themeId}")
                 } catch (e: Exception) {
@@ -204,7 +216,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         sessionId = sessionId,
                         ownerId = session.ownerId,
                         characterId = session.characterId,
-                        note = text.trim()
+                        note = text.trim(),
                     )
                     android.util.Log.d("ChatSettings", "Updated authorNote (${text.trim().length} chars)")
                 } catch (e: Exception) {
@@ -225,8 +237,8 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         db.sessionDao().upsert(
                             session.copy(
                                 enableLongTermMemory = _enableLongTermMemory.value,
-                                updatedAt = java.time.Instant.now().toString()
-                            )
+                                updatedAt = java.time.Instant.now().toString(),
+                            ),
                         )
                         android.util.Log.d("ChatSettings", "Updated enableLongTermMemory: ${_enableLongTermMemory.value}")
                     }
@@ -248,8 +260,8 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         db.sessionDao().upsert(
                             session.copy(
                                 contextTokenLimit = normalized,
-                                updatedAt = java.time.Instant.now().toString()
-                            )
+                                updatedAt = java.time.Instant.now().toString(),
+                            ),
                         )
                         android.util.Log.d("ChatSettings", "Updated contextTokenLimit: $normalized")
                     }
@@ -284,11 +296,12 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun saveParticipantCharacters(ids: List<String>) {
-        val normalized = ids
-            .ifEmpty { listOf(mainCharacterId) }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(4)
+        val normalized =
+            ids
+                .ifEmpty { listOf(mainCharacterId) }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(4)
         _selectedCharacterIds.value = normalized
         currentSessionId?.let { sessionId ->
             viewModelScope.launch {
@@ -298,8 +311,8 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         db.sessionDao().upsert(
                             session.copy(
                                 participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(normalized),
-                                updatedAt = java.time.Instant.now().toString()
-                            )
+                                updatedAt = java.time.Instant.now().toString(),
+                            ),
                         )
                     }
                 } catch (e: Exception) {
@@ -316,11 +329,13 @@ fun ChatSettingsScreen(
     onBack: () -> Unit,
     onNavigateToMemoryManagement: () -> Unit,
     sessionId: String? = null,
-    viewModel: ChatSettingsViewModel = viewModel(
-        factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as android.app.Application
-        )
-    )
+    viewModel: ChatSettingsViewModel =
+        viewModel(
+            factory =
+                androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(
+                    LocalContext.current.applicationContext as android.app.Application,
+                ),
+        ),
 ) {
     val providers by viewModel.providers.collectAsState()
     val characters by viewModel.characters.collectAsState()
@@ -341,9 +356,10 @@ fun ChatSettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     // 主题对话框中临时选中的主题 ID（"" = 跟随角色 / 全局）
     var selectedThemeChoice by remember { mutableStateOf("") }
-    val selectedCharacters = remember(characters, selectedCharacterIds) {
-        selectedCharacterIds.mapNotNull { id -> characters.find { it.id == id } }
-    }
+    val selectedCharacters =
+        remember(characters, selectedCharacterIds) {
+            selectedCharacterIds.mapNotNull { id -> characters.find { it.id == id } }
+        }
 
     // 加载当前会话的设置
     LaunchedEffect(sessionId) {
@@ -356,63 +372,67 @@ fun ChatSettingsScreen(
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 "返回",
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                         Text(
                             text = "聊天设置",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                     }
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = "角色",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showCharacterDialog = true }
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showCharacterDialog = true },
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CompositeCharacterAvatar(
                         characters = selectedCharacters,
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(44.dp),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -420,13 +440,13 @@ fun ChatSettingsScreen(
                         Text(
                             text = selectedCharacters.joinToString("、") { it.name }.ifBlank { "未选择" },
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Icon(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -435,19 +455,21 @@ fun ChatSettingsScreen(
             Text(
                 text = "模型",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showProviderDialog = true }
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showProviderDialog = true },
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("当前模型", style = MaterialTheme.typography.bodySmall)
@@ -456,13 +478,13 @@ fun ChatSettingsScreen(
                                 "${provider.name} - ${selectedModelId.ifBlank { provider.selectedModel }}"
                             } ?: "未配置",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Icon(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -471,36 +493,39 @@ fun ChatSettingsScreen(
             Text(
                 text = "世界书",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showWorldBookDialog = true }
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showWorldBookDialog = true },
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("当前世界书", style = MaterialTheme.typography.bodySmall)
                         Text(
-                            text = if (selectedWorldBookId.isBlank()) {
-                                "无"
-                            } else {
-                                worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
-                            },
+                            text =
+                                if (selectedWorldBookId.isBlank()) {
+                                    "无"
+                                } else {
+                                    worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
+                                },
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Icon(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -509,37 +534,40 @@ fun ChatSettingsScreen(
             Text(
                 text = "主题",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        // 打开对话框时同步当前会话主题为初始选中项
-                        selectedThemeChoice = sessionTheme
-                        showThemeDialog = true
-                    }
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            // 打开对话框时同步当前会话主题为初始选中项
+                            selectedThemeChoice = sessionTheme
+                            showThemeDialog = true
+                        },
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("当前主题", style = MaterialTheme.typography.bodySmall)
                         Text(
-                            text = availableThemes.find { it.id == sessionTheme }?.name
-                                ?: "跟随角色 / 全局",
+                            text =
+                                availableThemes.find { it.id == sessionTheme }?.name
+                                    ?: "跟随角色 / 全局",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Icon(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -548,24 +576,25 @@ fun ChatSettingsScreen(
             Text(
                 text = "附加指令",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
             var authorNoteDraft by remember(authorNote) { mutableStateOf(authorNote) }
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                 ) {
                     Text(
                         text = "会话附加指令",
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                     Text(
                         text = "注入在最近对话之后、你的消息之前",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -575,16 +604,16 @@ fun ChatSettingsScreen(
                         placeholder = {
                             Text(
                                 "可选。注入在最近对话之后、你的消息之前，支持 {{char}} 等宏",
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         },
                         minLines = 3,
-                        maxLines = 8
+                        maxLines = 8,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.End,
                     ) {
                         // 清空草稿并保存空值 = 清除附加指令
                         TextButton(
@@ -592,14 +621,14 @@ fun ChatSettingsScreen(
                                 authorNoteDraft = ""
                                 viewModel.saveAuthorNote("")
                             },
-                            enabled = authorNote.isNotBlank() || authorNoteDraft.isNotBlank()
+                            enabled = authorNote.isNotBlank() || authorNoteDraft.isNotBlank(),
                         ) {
                             Text("清除")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = { viewModel.saveAuthorNote(authorNoteDraft) },
-                            enabled = authorNoteDraft.trim() != authorNote
+                            enabled = authorNoteDraft.trim() != authorNote,
                         ) {
                             Text("保存")
                         }
@@ -611,68 +640,71 @@ fun ChatSettingsScreen(
             Text(
                 text = "记忆",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
 
             // 记忆管理
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigateToMemoryManagement() }
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToMemoryManagement() },
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "记忆管理",
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = "查看和编辑结构化记忆",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Icon(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
             // 长期记忆开关
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "长期记忆",
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = "保存对话内容到长期记忆",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Switch(
                         checked = enableLongTermMemory,
-                        onCheckedChange = { viewModel.toggleLongTermMemory() }
+                        onCheckedChange = { viewModel.toggleLongTermMemory() },
                     )
                 }
             }
@@ -681,30 +713,31 @@ fun ChatSettingsScreen(
             Text(
                 text = "高级",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                 ) {
                     Text(
                         text = "上下文长度",
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                     Text(
                         text = "控制 AI 能记住多少对话历史",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "${formatTokenLimit(contextTokenLimit)} tokens",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Slider(
@@ -713,20 +746,21 @@ fun ChatSettingsScreen(
                             viewModel.updateContextTokenLimit(sliderValueToTokenLimit(it))
                         },
                         valueRange = 0f..7f,
-                        steps = 6
+                        steps = 6,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         contextTokenPresets.forEach { preset ->
                             FilterChip(
                                 selected = contextTokenLimit == preset,
                                 onClick = { viewModel.updateContextTokenLimit(preset) },
-                                label = { Text(formatTokenLimit(preset)) }
+                                label = { Text(formatTokenLimit(preset)) },
                             )
                         }
                     }
@@ -742,45 +776,56 @@ fun ChatSettingsScreen(
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         "可选择 1-4 个角色；第一位作为主角色。",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     characters.forEach { character ->
                         val selected = selectedCharacterIds.contains(character.id)
                         val isPrimary = selectedCharacterIds.firstOrNull() == character.id
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.toggleParticipantCharacter(character.id) },
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selected) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                            )
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.toggleParticipantCharacter(character.id) },
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        if (selected) {
+                                            MaterialTheme.colorScheme.secondaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                ),
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 CompositeCharacterAvatar(
                                     characters = listOf(character),
-                                    modifier = Modifier.size(36.dp)
+                                    modifier = Modifier.size(36.dp),
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(character.name, fontWeight = FontWeight.Medium)
                                     Text(
-                                        text = if (isPrimary) "主角色" else if (selected) "参与聊天" else "点击加入",
+                                        text =
+                                            if (isPrimary) {
+                                                "主角色"
+                                            } else if (selected) {
+                                                "参与聊天"
+                                            } else {
+                                                "点击加入"
+                                            },
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 if (selected && !isPrimary) {
@@ -792,7 +837,7 @@ fun ChatSettingsScreen(
                                     Icon(
                                         Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
@@ -804,7 +849,7 @@ fun ChatSettingsScreen(
                 TextButton(onClick = { showCharacterDialog = false }) {
                     Text("完成")
                 }
-            }
+            },
         )
     }
 
@@ -816,41 +861,43 @@ fun ChatSettingsScreen(
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (providers.isEmpty()) {
                         Text(
                             "暂无提供商，请先在设置中添加",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
                         providers.forEach { provider ->
                             Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        viewModel.setSelectedProvider(provider.id)
-                                        showProviderDialog = false
-                                    }
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.setSelectedProvider(provider.id)
+                                            showProviderDialog = false
+                                        },
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             provider.name,
-                                            fontWeight = FontWeight.Medium
+                                            fontWeight = FontWeight.Medium,
                                         )
                                         if (provider.selectedModel.isNotBlank()) {
                                             Text(
                                                 "模型: ${provider.selectedModel}",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
                                     }
@@ -858,7 +905,7 @@ fun ChatSettingsScreen(
                                         Icon(
                                             Icons.Default.Check,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = MaterialTheme.colorScheme.primary,
                                         )
                                     }
                                 }
@@ -871,7 +918,7 @@ fun ChatSettingsScreen(
                 TextButton(onClick = { showProviderDialog = false }) {
                     Text("关闭")
                 }
-            }
+            },
         )
     }
 
@@ -883,30 +930,32 @@ fun ChatSettingsScreen(
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // "无" 选项
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                viewModel.setSelectedWorldBook("")
-                                showWorldBookDialog = false
-                            }
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setSelectedWorldBook("")
+                                    showWorldBookDialog = false
+                                },
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text("无", fontWeight = FontWeight.Medium)
                             if (selectedWorldBookId.isBlank()) {
                                 Icon(
                                     Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -915,26 +964,28 @@ fun ChatSettingsScreen(
                     // 世界书列表
                     worldBooks.forEach { book ->
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    viewModel.setSelectedWorldBook(book.id)
-                                    showWorldBookDialog = false
-                                }
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.setSelectedWorldBook(book.id)
+                                        showWorldBookDialog = false
+                                    },
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(book.name.ifBlank { "未命名世界书" }, fontWeight = FontWeight.Medium)
                                 if (selectedWorldBookId == book.id) {
                                     Icon(
                                         Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
@@ -946,7 +997,7 @@ fun ChatSettingsScreen(
                 TextButton(onClick = { showWorldBookDialog = false }) {
                     Text("关闭")
                 }
-            }
+            },
         )
     }
 
@@ -957,21 +1008,23 @@ fun ChatSettingsScreen(
             title = { Text("选择主题") },
             text = {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // 第一项：跟随角色 / 全局（themeId = ""）
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedThemeChoice = "" },
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedThemeChoice = "" },
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
                             selected = selectedThemeChoice.isBlank(),
-                            onClick = { selectedThemeChoice = "" }
+                            onClick = { selectedThemeChoice = "" },
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("跟随角色 / 全局", fontWeight = FontWeight.Medium)
@@ -979,19 +1032,20 @@ fun ChatSettingsScreen(
                     // 可用主题包列表
                     availableThemes.forEach { theme ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedThemeChoice = theme.id },
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedThemeChoice = theme.id },
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(
                                 selected = selectedThemeChoice == theme.id,
-                                onClick = { selectedThemeChoice = theme.id }
+                                onClick = { selectedThemeChoice = theme.id },
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 theme.name.ifBlank { "未命名主题" },
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
                             )
                         }
                     }
@@ -1002,7 +1056,7 @@ fun ChatSettingsScreen(
                     onClick = {
                         viewModel.setSessionTheme(selectedThemeChoice)
                         showThemeDialog = false
-                    }
+                    },
                 ) {
                     Text("确定")
                 }
@@ -1011,26 +1065,28 @@ fun ChatSettingsScreen(
                 TextButton(onClick = { showThemeDialog = false }) {
                     Text("取消")
                 }
-            }
+            },
         )
     }
 }
 
-private val contextTokenPresets = listOf(
-    2048,
-    4096,
-    8192,
-    16384,
-    32768,
-    65536,
-    131072,
-    1_000_000
-)
+private val contextTokenPresets =
+    listOf(
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        1_000_000,
+    )
 
 private fun tokenLimitToSliderValue(tokenLimit: Int): Float {
-    val index = contextTokenPresets.indexOfFirst { it >= tokenLimit }
-        .takeIf { it >= 0 }
-        ?: (contextTokenPresets.lastIndex)
+    val index =
+        contextTokenPresets.indexOfFirst { it >= tokenLimit }
+            .takeIf { it >= 0 }
+            ?: (contextTokenPresets.lastIndex)
     return index.toFloat()
 }
 

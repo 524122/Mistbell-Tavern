@@ -2,10 +2,10 @@ package com.mistbell.tavern.android.util
 
 import android.content.Context
 import android.net.Uri
+import com.mistbell.tavern.android.data.api.model.CharacterData
 import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
-import com.mistbell.tavern.android.data.api.model.CharacterData
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -24,7 +24,7 @@ data class CharacterImportResult(
     val worldBook: WorldBookEntity?,
     val worldBookEntries: List<WorldBookEntryEntity>,
     // 导入诊断：非阻断性提示（如未映射字段、v1 老格式等），错误不阻断导入
-    val warnings: List<String> = emptyList()
+    val warnings: List<String> = emptyList(),
 )
 
 /**
@@ -32,7 +32,6 @@ data class CharacterImportResult(
  * 支持 SillyTavern 卡片 v2（data/root 双位读取）与 v1 老键名兜底。
  */
 object CardParser {
-
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
@@ -79,24 +78,29 @@ object CardParser {
             val avatarData = getText("avatarData", "avatar")
 
             // extensions 透传保真：优先 data 位，其次 root 位
-            val extensions = dataObject?.get("extensions")?.jsonObject
-                ?: jsonObject["extensions"]?.jsonObject
+            val extensions =
+                dataObject?.get("extensions")?.jsonObject
+                    ?: jsonObject["extensions"]?.jsonObject
             // extensions 非空时提示已透传的扩展命名空间数量
             if (extensions != null && extensions.isNotEmpty()) {
                 warnings.add("已透传 ${extensions.size} 个扩展命名空间")
             }
 
             // alternate_greetings / tags 提取进 CharacterData
-            val alternateGreetings = buildList {
-                val arr = dataObject?.get("alternate_greetings")?.jsonArray
-                    ?: jsonObject["alternate_greetings"]?.jsonArray
-                arr?.forEach { add(it.jsonPrimitive.contentOrNull ?: "") }
-            }
-            val tags = buildList {
-                val arr = dataObject?.get("tags")?.jsonArray
-                    ?: jsonObject["tags"]?.jsonArray
-                arr?.forEach { add(it.jsonPrimitive.contentOrNull ?: "") }
-            }
+            val alternateGreetings =
+                buildList {
+                    val arr =
+                        dataObject?.get("alternate_greetings")?.jsonArray
+                            ?: jsonObject["alternate_greetings"]?.jsonArray
+                    arr?.forEach { add(it.jsonPrimitive.contentOrNull ?: "") }
+                }
+            val tags =
+                buildList {
+                    val arr =
+                        dataObject?.get("tags")?.jsonArray
+                            ?: jsonObject["tags"]?.jsonArray
+                    arr?.forEach { add(it.jsonPrimitive.contentOrNull ?: "") }
+                }
 
             // 解析内嵌世界书
             var worldBookEntity: WorldBookEntity? = null
@@ -104,24 +108,27 @@ object CardParser {
             var worldBookId = ""
 
             // V2 格式：data.character_book；V1 格式：character_book 在根上
-            val characterBook = dataObject?.get("character_book")?.jsonObject
-                ?: jsonObject["character_book"]?.jsonObject
+            val characterBook =
+                dataObject?.get("character_book")?.jsonObject
+                    ?: jsonObject["character_book"]?.jsonObject
 
             if (characterBook != null) {
                 worldBookId = UUID.randomUUID().toString()
                 val bookName = characterBook["name"]?.jsonPrimitive?.content ?: "$name 的世界书"
 
-                worldBookEntity = WorldBookEntity(
-                    id = worldBookId,
-                    name = bookName,
-                    settingsJson = "{}"
-                )
+                worldBookEntity =
+                    WorldBookEntity(
+                        id = worldBookId,
+                        name = bookName,
+                        settingsJson = "{}",
+                    )
 
-                worldBookEntries = parseBookEntries(
-                    entriesElement = characterBook["entries"],
-                    bookId = worldBookId,
-                    warnings = warnings
-                )
+                worldBookEntries =
+                    parseBookEntries(
+                        entriesElement = characterBook["entries"],
+                        bookId = worldBookId,
+                        warnings = warnings,
+                    )
             } else {
                 // 兼容旧格式
                 worldBookId = jsonObject["worldBookId"]?.jsonPrimitive?.content ?: ""
@@ -135,38 +142,40 @@ object CardParser {
             val characterVersion = getText("character_version").ifBlank { "1.0" }
 
             // 构建 CharacterData（带生态互通字段）
-            val characterData = CharacterData(
-                systemPrompt = systemPrompt,
-                postHistoryInstructions = postHistoryInstructions,
-                creatorNotes = creatorNotes,
-                creator = creator,
-                characterVersion = characterVersion,
-                alternateGreetings = alternateGreetings,
-                tags = tags,
-                extensions = extensions
-            )
+            val characterData =
+                CharacterData(
+                    systemPrompt = systemPrompt,
+                    postHistoryInstructions = postHistoryInstructions,
+                    creatorNotes = creatorNotes,
+                    creator = creator,
+                    characterVersion = characterVersion,
+                    alternateGreetings = alternateGreetings,
+                    tags = tags,
+                    extensions = extensions,
+                )
             val dataJson = json.encodeToString(CharacterData.serializer(), characterData)
 
-            val characterEntity = CharacterEntity(
-                id = UUID.randomUUID().toString(),
-                name = name,
-                role = "assistant",
-                description = description,
-                personality = personality,
-                scenario = scenario,
-                firstMes = firstMes,
-                mesExample = mesExample,
-                color = color,
-                avatarData = avatarData,
-                worldBookId = worldBookId,
-                dataJson = dataJson
-            )
+            val characterEntity =
+                CharacterEntity(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    role = "assistant",
+                    description = description,
+                    personality = personality,
+                    scenario = scenario,
+                    firstMes = firstMes,
+                    mesExample = mesExample,
+                    color = color,
+                    avatarData = avatarData,
+                    worldBookId = worldBookId,
+                    dataJson = dataJson,
+                )
 
             CharacterImportResult(
                 character = characterEntity,
                 worldBook = worldBookEntity,
                 worldBookEntries = worldBookEntries,
-                warnings = warnings.toList()
+                warnings = warnings.toList(),
             )
         } catch (e: Exception) {
             // 纯函数不依赖 android.util.Log（JVM 单测环境不可用）；薄壳层负责日志
@@ -182,44 +191,51 @@ object CardParser {
     internal fun parseBookEntries(
         entriesElement: kotlinx.serialization.json.JsonElement?,
         bookId: String,
-        warnings: MutableSet<String> = mutableSetOf()
+        warnings: MutableSet<String> = mutableSetOf(),
     ): List<WorldBookEntryEntity> {
         if (entriesElement == null) return emptyList()
-        val entryObjects: List<Pair<String?, JsonObject>> = when (entriesElement) {
-            is JsonArray -> entriesElement.mapNotNull { el ->
-                (el as? JsonObject)?.let { null to it }
+        val entryObjects: List<Pair<String?, JsonObject>> =
+            when (entriesElement) {
+                is JsonArray ->
+                    entriesElement.mapNotNull { el ->
+                        (el as? JsonObject)?.let { null to it }
+                    }
+                is JsonObject ->
+                    entriesElement.map { (uid, el) ->
+                        (el as? JsonObject)?.let { uid to it } ?: (uid to JsonObject(emptyMap()))
+                    }.filter { it.second.isNotEmpty() }
+                else -> return emptyList()
             }
-            is JsonObject -> entriesElement.map { (uid, el) ->
-                (el as? JsonObject)?.let { uid to it } ?: (uid to JsonObject(emptyMap()))
-            }.filter { it.second.isNotEmpty() }
-            else -> return emptyList()
-        }
         return entryObjects.mapNotNull { (uid, entry) ->
             try {
                 // 条目 id：优先 uid（map 形态的键），其次条目内 id/uid 字段，最后 UUID
-                val entryId = uid
-                    ?: entry["uid"]?.jsonPrimitive?.contentOrNull
-                    ?: entry["id"]?.jsonPrimitive?.contentOrNull
-                    ?: UUID.randomUUID().toString()
+                val entryId =
+                    uid
+                        ?: entry["uid"]?.jsonPrimitive?.contentOrNull
+                        ?: entry["id"]?.jsonPrimitive?.contentOrNull
+                        ?: UUID.randomUUID().toString()
                 val comment = entry["comment"]?.jsonPrimitive?.contentOrNull ?: ""
                 val content = entry["content"]?.jsonPrimitive?.contentOrNull ?: ""
                 val constant = entry["constant"]?.jsonPrimitive?.booleanOrNull ?: false
                 // enabled(布尔)存在时反相为 disable（生态主流字段）；否则退回旧 disable 字段
                 val enabled = entry["enabled"]?.jsonPrimitive?.booleanOrNull
-                val disable = enabled?.not()
-                    ?: entry["disable"]?.jsonPrimitive?.booleanOrNull
-                    ?: false
+                val disable =
+                    enabled?.not()
+                        ?: entry["disable"]?.jsonPrimitive?.booleanOrNull
+                        ?: false
                 // insertion_order 优先于 order
-                val order = entry["insertion_order"]?.jsonPrimitive?.intOrNull
-                    ?: entry["order"]?.jsonPrimitive?.intOrNull
-                    ?: 0
+                val order =
+                    entry["insertion_order"]?.jsonPrimitive?.intOrNull
+                        ?: entry["order"]?.jsonPrimitive?.intOrNull
+                        ?: 0
 
                 // keys 单字符串包成数组
-                val keys = when (val keysElement = entry["key"] ?: entry["keys"]) {
-                    is JsonArray -> keysElement.mapNotNull { it.jsonPrimitive.contentOrNull }
-                    is JsonPrimitive -> listOfNotNull(keysElement.contentOrNull)
-                    else -> emptyList()
-                }
+                val keys =
+                    when (val keysElement = entry["key"] ?: entry["keys"]) {
+                        is JsonArray -> keysElement.mapNotNull { it.jsonPrimitive.contentOrNull }
+                        is JsonPrimitive -> listOfNotNull(keysElement.contentOrNull)
+                        else -> emptyList()
+                    }
                 // TODO: keysecondary（次要关键字）暂不映射，待后续支持
                 // 诊断：条目含 keysecondary / position / probability / depth 等未映射字段时收集提示（不阻断导入）
                 if (entry.containsKey("keysecondary")) {
@@ -229,10 +245,11 @@ object CardParser {
                 if (unmappedFields.isNotEmpty()) {
                     warnings.add("世界书条目包含未映射字段：${unmappedFields.joinToString("/")}")
                 }
-                val keysJson = json.encodeToString(
-                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                    keys
-                )
+                val keysJson =
+                    json.encodeToString(
+                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                        keys,
+                    )
 
                 WorldBookEntryEntity(
                     id = entryId,
@@ -242,7 +259,7 @@ object CardParser {
                     content = content,
                     constant = constant,
                     disable = disable,
-                    order = order
+                    order = order,
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）
@@ -259,7 +276,10 @@ object CharacterImporter {
      * @param uri 文件 URI
      * @return CharacterImportResult 或 null（如果解析失败）
      */
-    fun importFromJson(context: Context, uri: Uri): CharacterImportResult? {
+    fun importFromJson(
+        context: Context,
+        uri: Uri,
+    ): CharacterImportResult? {
         return try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val jsonString = inputStream?.bufferedReader()?.use { it.readText() } ?: return null
@@ -274,10 +294,14 @@ object CharacterImporter {
      * 从 PNG 埋卡导入角色：读取 tEXt("chara") chunk → base64 解码 → 解析卡片 JSON。
      * 无埋卡（或非 PNG）返回 null。
      */
-    fun importFromPng(context: Context, uri: Uri): CharacterImportResult? {
+    fun importFromPng(
+        context: Context,
+        uri: Uri,
+    ): CharacterImportResult? {
         return try {
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: return null
+            val bytes =
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: return null
             val base64Text = PngCard.readTextChunk(bytes) ?: return null
             val jsonString = PngCard.decodeCardJson(base64Text) ?: return null
             CardParser.parse(jsonString)

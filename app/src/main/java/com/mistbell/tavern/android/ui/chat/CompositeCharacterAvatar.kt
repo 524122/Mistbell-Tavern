@@ -27,62 +27,71 @@ import com.mistbell.tavern.android.util.ImageUtils
 @Composable
 fun CompositeCharacterAvatar(
     characters: List<Character>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val visibleCharacters = characters
-        .filter { it.id.isNotBlank() || it.name.isNotBlank() }
-        .take(4)
+    val visibleCharacters =
+        characters
+            .filter { it.id.isNotBlank() || it.name.isNotBlank() }
+            .take(4)
 
     Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+        contentAlignment = Alignment.Center,
     ) {
         when (visibleCharacters.size) {
-            0 -> Text(
-                text = "?",
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp
-            )
-            1 -> CharacterAvatarSegment(
-                character = visibleCharacters[0],
-                modifier = Modifier.fillMaxSize()
-            )
-            2, 3 -> Row(Modifier.fillMaxSize()) {
-                visibleCharacters.forEach { character ->
-                    CharacterAvatarSegment(
-                        character = character,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxSize()
-                    )
-                }
-            }
-            else -> Column(Modifier.fillMaxSize()) {
-                Row(Modifier.weight(1f)) {
-                    visibleCharacters.take(2).forEach { character ->
+            0 ->
+                Text(
+                    text = "?",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                )
+            1 ->
+                CharacterAvatarSegment(
+                    character = visibleCharacters[0],
+                    modifier = Modifier.fillMaxSize(),
+                )
+            2, 3 ->
+                Row(Modifier.fillMaxSize()) {
+                    visibleCharacters.forEach { character ->
                         CharacterAvatarSegment(
                             character = character,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize()
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxSize(),
                         )
                     }
                 }
-                Row(Modifier.weight(1f)) {
-                    visibleCharacters.drop(2).take(2).forEach { character ->
-                        CharacterAvatarSegment(
-                            character = character,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize()
-                        )
+            else ->
+                Column(Modifier.fillMaxSize()) {
+                    Row(Modifier.weight(1f)) {
+                        visibleCharacters.take(2).forEach { character ->
+                            CharacterAvatarSegment(
+                                character = character,
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .fillMaxSize(),
+                            )
+                        }
+                    }
+                    Row(Modifier.weight(1f)) {
+                        visibleCharacters.drop(2).take(2).forEach { character ->
+                            CharacterAvatarSegment(
+                                character = character,
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .fillMaxSize(),
+                            )
+                        }
                     }
                 }
-            }
         }
     }
 }
@@ -90,30 +99,31 @@ fun CompositeCharacterAvatar(
 @Composable
 private fun CharacterAvatarSegment(
     character: Character,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val color = parseCharacterColor(character.color)
-    val bitmap = remember(character.avatarData) {
-        ImageUtils.dataUriToBitmap(character.avatarData)
-    }
+    val bitmap =
+        remember(character.avatarData) {
+            ImageUtils.dataUriToBitmap(character.avatarData)
+        }
 
     Box(
         modifier = modifier.background(color),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         if (bitmap != null) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = character.name,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
             )
         } else {
             Text(
                 text = character.name.take(1).ifBlank { "?" },
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = if (character.name.length <= 1) 16.sp else 14.sp
+                fontSize = if (character.name.length <= 1) 16.sp else 14.sp,
             )
         }
     }

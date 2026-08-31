@@ -9,7 +9,7 @@ fun ConfirmDeleteDialog(
     message: String = "此操作不可撤销，确定要删除吗？",
     confirmText: String = "删除",
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -24,6 +24,6 @@ fun ConfirmDeleteDialog(
             TextButton(onClick = onDismiss) {
                 Text("取消")
             }
-        }
+        },
     )
 }

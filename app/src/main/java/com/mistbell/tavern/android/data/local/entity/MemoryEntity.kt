@@ -22,20 +22,30 @@ data class MemoryEntity(
     val status: String,
     @ColumnInfo(name = "access_count") val accessCount: Int,
     val tags: String,
-    val aliases: String
+    val aliases: String,
 ) {
     fun toDomain(): Memory {
-        val tagList = try {
-            if (tags.isNotBlank())
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(tags)
-            else emptyList()
-        } catch (_: Exception) { emptyList() }
+        val tagList =
+            try {
+                if (tags.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(tags)
+                } else {
+                    emptyList()
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
 
-        val aliasList = try {
-            if (aliases.isNotBlank())
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(aliases)
-            else emptyList()
-        } catch (_: Exception) { emptyList() }
+        val aliasList =
+            try {
+                if (aliases.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(aliases)
+                } else {
+                    emptyList()
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
 
         return Memory(
             id = id,
@@ -50,12 +60,17 @@ data class MemoryEntity(
             status = status,
             accessCount = accessCount,
             tags = tagList,
-            aliases = aliasList
+            aliases = aliasList,
         )
     }
 
     companion object {
-        fun fromDomain(m: Memory, ownerId: String, characterId: String, sessionId: String = ""): MemoryEntity {
+        fun fromDomain(
+            m: Memory,
+            ownerId: String,
+            characterId: String,
+            sessionId: String = "",
+        ): MemoryEntity {
             val json = kotlinx.serialization.json.Json
             val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
             val tagsStr = json.encodeToString(stringListSerializer, m.tags)
@@ -76,7 +91,7 @@ data class MemoryEntity(
                 status = m.status,
                 accessCount = m.accessCount,
                 tags = tagsStr,
-                aliases = aliasesStr
+                aliases = aliasesStr,
             )
         }
     }

@@ -12,10 +12,10 @@ import org.junit.Test
  * insertion_order 优先、缺失字段默认值、书名 fallback。
  */
 class WorldBookParserTest {
-
     @Test
     fun `uid-map主流形态解析`() {
-        val json = """
+        val json =
+            """
             {
               "name": "学院世界书",
               "entries": {
@@ -25,7 +25,7 @@ class WorldBookParserTest {
                 "2": { "content": "院长室", "keys": ["院长"], "disable": true, "order": 8 }
               }
             }
-        """.trimIndent()
+            """.trimIndent()
         val (book, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
         assertEquals("学院世界书", book.name)
         assertEquals(2, entries.size)
@@ -43,14 +43,15 @@ class WorldBookParserTest {
 
     @Test
     fun `entries数组形态解析`() {
-        val json = """
+        val json =
+            """
             {
               "entries": [
                 { "uid": 5, "comment": "甲", "content": "内容甲", "keys": ["a"] },
                 { "uid": 3, "comment": "乙", "content": "内容乙", "keys": ["b"] }
               ]
             }
-        """.trimIndent()
+            """.trimIndent()
         val (book, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
         assertEquals(2, entries.size)
         assertEquals(setOf("5", "3"), entries.map { it.id }.toSet())
@@ -58,46 +59,52 @@ class WorldBookParserTest {
 
     @Test
     fun `key单字符串规整成单元素数组`() {
-        val json = """
+        val json =
+            """
             { "entries": { "1": { "content": "c", "key": "单键" } } }
-        """.trimIndent()
+            """.trimIndent()
         val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
-        val keys = kotlinx.serialization.json.Json
-            .decodeFromString<List<String>>(entries.single().keysJson)
+        val keys =
+            kotlinx.serialization.json.Json
+                .decodeFromString<List<String>>(entries.single().keysJson)
         assertEquals(listOf("单键"), keys)
     }
 
     @Test
     fun `key数组保持多元素`() {
-        val json = """
+        val json =
+            """
             { "entries": { "1": { "content": "c", "key": ["k1", "k2", "k3"] } } }
-        """.trimIndent()
+            """.trimIndent()
         val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
-        val keys = kotlinx.serialization.json.Json
-            .decodeFromString<List<String>>(entries.single().keysJson)
+        val keys =
+            kotlinx.serialization.json.Json
+                .decodeFromString<List<String>>(entries.single().keysJson)
         assertEquals(listOf("k1", "k2", "k3"), keys)
     }
 
     @Test
     fun `缺失字段取默认值`() {
-        val json = """
+        val json =
+            """
             { "entries": { "1": { "content": "只有内容" } } }
-        """.trimIndent()
+            """.trimIndent()
         val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
         val entry = entries.single()
         assertEquals("", entry.comment)
         assertEquals("[]", entry.keysJson)
         assertEquals("只有内容", entry.content)
         assertEquals(false, entry.constant) // 默认非常驻
-        assertEquals(false, entry.disable)  // 默认启用
-        assertEquals(0, entry.order)        // 默认顺序
+        assertEquals(false, entry.disable) // 默认启用
+        assertEquals(0, entry.order) // 默认顺序
     }
 
     @Test
     fun `无uid时生成非空id`() {
-        val json = """
+        val json =
+            """
             { "entries": [ { "content": "甲" }, { "content": "乙" } ] }
-        """.trimIndent()
+            """.trimIndent()
         val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
         assertEquals(2, entries.size)
         assertTrue(entries.all { it.id.isNotBlank() })
@@ -107,14 +114,18 @@ class WorldBookParserTest {
 
     @Test
     fun `书名取name字段否则用fallback`() {
-        val withName = WorldBookParser.parse(
-            """{ "name": "有名字", "entries": {} }""", "fallback"
-        )
+        val withName =
+            WorldBookParser.parse(
+                """{ "name": "有名字", "entries": {} }""",
+                "fallback",
+            )
         assertEquals("有名字", withName?.first?.name)
 
-        val withoutName = WorldBookParser.parse(
-            """{ "entries": { "1": { "content": "c" } } }""", "备用书名"
-        )
+        val withoutName =
+            WorldBookParser.parse(
+                """{ "entries": { "1": { "content": "c" } } }""",
+                "备用书名",
+            )
         assertNotNull(withoutName)
         assertEquals("备用书名", withoutName!!.first.name)
     }

@@ -16,7 +16,7 @@ data class WorldBookEntryForm(
     val constant: Boolean = false,
     val disable: Boolean = false,
     val insertPosition: String = "before_prompt",
-    val depth: Int = 1
+    val depth: Int = 1,
 )
 
 class WorldBookEditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -25,30 +25,33 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    private val _allWorldBooks: StateFlow<List<WorldBook>> = repo.observeWorldBooks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    private val _allWorldBooks: StateFlow<List<WorldBook>> =
+        repo.observeWorldBooks()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val worldBooks: StateFlow<List<WorldBook>> = combine(_allWorldBooks, _searchQuery) { books, query ->
-        if (query.isBlank()) {
-            books
-        } else {
-            books.filter { book ->
-                book.name.contains(query, ignoreCase = true) ||
-                book.entries.any { entry ->
-                    entry.comment.contains(query, ignoreCase = true) ||
-                    entry.content.contains(query, ignoreCase = true) ||
-                    entry.key.any { it.contains(query, ignoreCase = true) }
+    val worldBooks: StateFlow<List<WorldBook>> =
+        combine(_allWorldBooks, _searchQuery) { books, query ->
+            if (query.isBlank()) {
+                books
+            } else {
+                books.filter { book ->
+                    book.name.contains(query, ignoreCase = true) ||
+                        book.entries.any { entry ->
+                            entry.comment.contains(query, ignoreCase = true) ||
+                                entry.content.contains(query, ignoreCase = true) ||
+                                entry.key.any { it.contains(query, ignoreCase = true) }
+                        }
                 }
             }
-        }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _selectedBookId = MutableStateFlow<String?>(null)
     val selectedBookId: StateFlow<String?> = _selectedBookId
 
-    val entries: StateFlow<List<WorldBookEntry>> = _selectedBookId.filterNotNull().flatMapLatest { bookId ->
-        repo.observeEntries(bookId)
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val entries: StateFlow<List<WorldBookEntry>> =
+        _selectedBookId.filterNotNull().flatMapLatest { bookId ->
+            repo.observeEntries(bookId)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _showEntryForm = MutableStateFlow(false)
     val showEntryForm: StateFlow<Boolean> = _showEntryForm
@@ -84,8 +87,11 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
     fun createWorldBook(name: String) {
         viewModelScope.launch {
             val book = repo.createWorldBook(name)
-            if (book != null) _message.value = "世界书已创建"
-            else _message.value = "创建失败"
+            if (book != null) {
+                _message.value = "世界书已创建"
+            } else {
+                _message.value = "创建失败"
+            }
         }
     }
 
@@ -104,15 +110,16 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
 
     fun showEditEntryForm(entry: WorldBookEntry) {
         _editingEntryId.value = entry.id
-        _entryForm.value = WorldBookEntryForm(
-            comment = entry.comment,
-            keys = entry.key.joinToString(", "),
-            content = entry.content,
-            constant = entry.constant,
-            disable = entry.disable,
-            insertPosition = entry.insertPosition,
-            depth = entry.depth
-        )
+        _entryForm.value =
+            WorldBookEntryForm(
+                comment = entry.comment,
+                keys = entry.key.joinToString(", "),
+                content = entry.content,
+                constant = entry.constant,
+                disable = entry.disable,
+                insertPosition = entry.insertPosition,
+                depth = entry.depth,
+            )
         _showEntryForm.value = true
     }
 
@@ -133,14 +140,15 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
 
         viewModelScope.launch {
             if (_editingEntryId.value != null) {
-                val patch = kotlinx.serialization.json.buildJsonObject {
-                    put("comment", kotlinx.serialization.json.JsonPrimitive(form.comment))
-                    put("content", kotlinx.serialization.json.JsonPrimitive(form.content))
-                    put("constant", kotlinx.serialization.json.JsonPrimitive(form.constant))
-                    put("disable", kotlinx.serialization.json.JsonPrimitive(form.disable))
-                    put("insertPosition", kotlinx.serialization.json.JsonPrimitive(form.insertPosition))
-                    put("depth", kotlinx.serialization.json.JsonPrimitive(form.depth))
-                }
+                val patch =
+                    kotlinx.serialization.json.buildJsonObject {
+                        put("comment", kotlinx.serialization.json.JsonPrimitive(form.comment))
+                        put("content", kotlinx.serialization.json.JsonPrimitive(form.content))
+                        put("constant", kotlinx.serialization.json.JsonPrimitive(form.constant))
+                        put("disable", kotlinx.serialization.json.JsonPrimitive(form.disable))
+                        put("insertPosition", kotlinx.serialization.json.JsonPrimitive(form.insertPosition))
+                        put("depth", kotlinx.serialization.json.JsonPrimitive(form.depth))
+                    }
                 repo.updateEntry(_editingEntryId.value!!, patch)
             } else {
                 repo.createEntry(
@@ -151,7 +159,7 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                     constant = form.constant,
                     disable = form.disable,
                     insertPosition = form.insertPosition,
-                    depth = form.depth
+                    depth = form.depth,
                 )
             }
             _showEntryForm.value = false
@@ -162,9 +170,14 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch { repo.deleteEntry(entryId) }
     }
 
-    fun updateEntry(entryId: String, patch: kotlinx.serialization.json.JsonObject) {
+    fun updateEntry(
+        entryId: String,
+        patch: kotlinx.serialization.json.JsonObject,
+    ) {
         viewModelScope.launch { repo.updateEntry(entryId, patch) }
     }
 
-    fun clearMessage() { _message.value = null }
+    fun clearMessage() {
+        _message.value = null
+    }
 }

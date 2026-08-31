@@ -12,16 +12,16 @@ import kotlin.random.Random
  * {{#if}} 条件块、未知宏原样、注释宏、newline、null/空串入参、异常回退。
  */
 class MacroEngineTest {
-
     /** 通用上下文：字段各不相同，便于断言替换来源。 */
-    private val ctx = MacroContext(
-        char = "爱丽丝",
-        user = "小明",
-        description = "银发少女",
-        personality = "温柔",
-        scenario = "旧书店",
-        persona = "数学老师"
-    )
+    private val ctx =
+        MacroContext(
+            char = "爱丽丝",
+            user = "小明",
+            description = "银发少女",
+            personality = "温柔",
+            scenario = "旧书店",
+            persona = "数学老师",
+        )
 
     // ---------- 身份宏 ----------
 
@@ -41,8 +41,10 @@ class MacroEngineTest {
 
     @Test
     fun `字段宏替换为上下文字段`() {
-        assertEquals("银发少女|温柔|旧书店|数学老师",
-            MacroEngine.render("{{description}}|{{personality}}|{{scenario}}|{{persona}}", ctx))
+        assertEquals(
+            "银发少女|温柔|旧书店|数学老师",
+            MacroEngine.render("{{description}}|{{personality}}|{{scenario}}|{{persona}}", ctx),
+        )
     }
 
     @Test
@@ -181,11 +183,12 @@ class MacroEngineTest {
     fun `畸形嵌套不崩溃返回原文`() {
         val nasty = "{{#if:char}}{{random::}}{{/if}}<CHAR>{{roll::"
         // 不抛异常；结果为原文或安全渲染后的文本，但绝不能崩溃
-        val out = try {
-            MacroEngine.render(nasty, ctx, Random(42))
-        } catch (e: Exception) {
-            throw AssertionError("渲染不应抛异常", e)
-        }
+        val out =
+            try {
+                MacroEngine.render(nasty, ctx, Random(42))
+            } catch (e: Exception) {
+                throw AssertionError("渲染不应抛异常", e)
+            }
         // 未命中条件块剔除后剩余文本中不再含条件块标记（内容安全），且不含畸形 roll 的求值
         assertFalse(out.contains("{{#if:"))
     }

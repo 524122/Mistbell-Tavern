@@ -1,19 +1,21 @@
 package com.mistbell.tavern.android.data.sync
 
-import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.model.StateResponse
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.*
-import kotlinx.coroutines.flow.first
 
 class SyncManager(
     private val db: AppDatabase,
-    private val api: com.mistbell.tavern.android.data.api.TavernApi
+    private val api: com.mistbell.tavern.android.data.api.TavernApi,
 ) {
     /**
      * Full sync: fetch /api/state and upsert all data into Room.
      */
-    suspend fun fullSync(ownerId: String, characterId: String?, sessionId: String?) {
+    suspend fun fullSync(
+        ownerId: String,
+        characterId: String?,
+        sessionId: String?,
+    ) {
         try {
             val state = api.getState(ownerId, characterId, sessionId)
             upsertState(state, ownerId, characterId, sessionId)
@@ -22,7 +24,12 @@ class SyncManager(
         }
     }
 
-    private suspend fun upsertState(state: StateResponse, ownerId: String, characterId: String?, sessionId: String?) {
+    private suspend fun upsertState(
+        state: StateResponse,
+        ownerId: String,
+        characterId: String?,
+        sessionId: String?,
+    ) {
         // Characters
         val charEntities = state.characters.map { CharacterEntity.fromDomain(it) }
         db.characterDao().upsertAll(charEntities)
@@ -43,9 +50,10 @@ class SyncManager(
         val charId = characterId ?: state.characters.firstOrNull()?.id ?: ""
         val sessId = sessionId ?: state.activeSessionId
         if (charId.isNotBlank() && sessId.isNotBlank()) {
-            val msgEntities = state.conversation.map {
-                MessageEntity.fromDomain(it, sessId, ownerId, charId)
-            }
+            val msgEntities =
+                state.conversation.map {
+                    MessageEntity.fromDomain(it, sessId, ownerId, charId)
+                }
             db.messageDao().deleteBySession(sessId, ownerId, charId)
             db.messageDao().upsertAll(msgEntities)
         }
@@ -57,21 +65,23 @@ class SyncManager(
 
         // World book
         state.worldBook?.let { wb ->
-            val bookEntity = WorldBookEntity(
-                id = wb.id,
-                name = wb.name,
-                settingsJson = ""
-            )
+            val bookEntity =
+                WorldBookEntity(
+                    id = wb.id,
+                    name = wb.name,
+                    settingsJson = "",
+                )
             val entryEntities = wb.entries.map { WorldBookEntryEntity.fromDomain(it, wb.id) }
             db.worldBookDao().upsertBook(bookEntity)
             db.worldBookDao().upsertEntries(entryEntities)
 
             wb.books.forEach { subBook ->
-                val subBookEntity = WorldBookEntity(
-                    id = subBook.id,
-                    name = subBook.name,
-                    settingsJson = ""
-                )
+                val subBookEntity =
+                    WorldBookEntity(
+                        id = subBook.id,
+                        name = subBook.name,
+                        settingsJson = "",
+                    )
                 val subEntries = subBook.entries.map { WorldBookEntryEntity.fromDomain(it, subBook.id) }
                 db.worldBookDao().upsertBook(subBookEntity)
                 db.worldBookDao().upsertEntries(subEntries)

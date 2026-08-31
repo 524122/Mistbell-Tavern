@@ -11,5 +11,5 @@ data class PendingSyncEntity(
     @ColumnInfo(name = "entity_id") val entityId: String,
     val action: String,
     @ColumnInfo(name = "payload_json") val payloadJson: String,
-    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
 )

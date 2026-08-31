@@ -14,8 +14,10 @@ import org.junit.Test
  * 2. 最新一条无条件纳入——保持历史实现"预算极小也带上最近一轮"的行为。
  */
 class PromptBuilderHistoryBudgetTest {
-
-    private fun msg(id: String, content: String) = MessageEntity(
+    private fun msg(
+        id: String,
+        content: String,
+    ) = MessageEntity(
         id = id,
         sessionId = "s",
         ownerId = "o",
@@ -27,32 +29,34 @@ class PromptBuilderHistoryBudgetTest {
         memoryIdsJson = "",
         swipesJson = "",
         swipeIndex = 0,
-        thinkingSwipesJson = ""
+        thinkingSwipesJson = "",
     )
 
-    private val small = "a".repeat(16)          // 远小于预算下限
-    private val huge = "x".repeat(20_000)       // 远超预算下限(256 token ≈ 1024 ASCII 字符)
+    private val small = "a".repeat(16) // 远小于预算下限
+    private val huge = "x".repeat(20_000) // 远超预算下限(256 token ≈ 1024 ASCII 字符)
 
     @Test
     fun `预算充足时全部历史按时间序保留`() {
         val history = listOf(msg("m1", small), msg("m2", small), msg("m3", small))
-        val selected = PromptBuilder.selectHistoryWithinBudget(
-            recentMessages = history,
-            currentMessages = listOf(ChatMessage("system", small)),
-            currentUserMessage = small,
-            contextTokenLimit = 8192
-        )
+        val selected =
+            PromptBuilder.selectHistoryWithinBudget(
+                recentMessages = history,
+                currentMessages = listOf(ChatMessage("system", small)),
+                currentUserMessage = small,
+                contextTokenLimit = 8192,
+            )
         assertEquals(listOf("m1", "m2", "m3"), selected.map { it.id })
     }
 
     @Test
     fun `空历史返回空`() {
-        val selected = PromptBuilder.selectHistoryWithinBudget(
-            recentMessages = emptyList(),
-            currentMessages = listOf(ChatMessage("system", small)),
-            currentUserMessage = small,
-            contextTokenLimit = 4096
-        )
+        val selected =
+            PromptBuilder.selectHistoryWithinBudget(
+                recentMessages = emptyList(),
+                currentMessages = listOf(ChatMessage("system", small)),
+                currentUserMessage = small,
+                contextTokenLimit = 4096,
+            )
         assertEquals(0, selected.size)
     }
 
@@ -60,12 +64,13 @@ class PromptBuilderHistoryBudgetTest {
     fun `预算极小时最新一条仍被纳入`() {
         // 三条都远超 256 token 下限；预算耗尽也应保留最新的那条
         val history = listOf(msg("old", huge), msg("mid", huge), msg("new", huge))
-        val selected = PromptBuilder.selectHistoryWithinBudget(
-            recentMessages = history,
-            currentMessages = listOf(ChatMessage("system", small)),
-            currentUserMessage = small,
-            contextTokenLimit = 512
-        )
+        val selected =
+            PromptBuilder.selectHistoryWithinBudget(
+                recentMessages = history,
+                currentMessages = listOf(ChatMessage("system", small)),
+                currentUserMessage = small,
+                contextTokenLimit = 512,
+            )
         assertEquals(listOf("new"), selected.map { it.id })
     }
 
@@ -74,12 +79,13 @@ class PromptBuilderHistoryBudgetTest {
         // 最新与中间消息很小能装下，最旧的消息巨大装不下：
         // 连续前缀语义 => [mid, new]；跳选（旧缺陷）=> 可能出现 [old, new] 之类非连续结果
         val history = listOf(msg("old", huge), msg("mid", small), msg("new", small))
-        val selected = PromptBuilder.selectHistoryWithinBudget(
-            recentMessages = history,
-            currentMessages = listOf(ChatMessage("system", small)),
-            currentUserMessage = small,
-            contextTokenLimit = 512
-        )
+        val selected =
+            PromptBuilder.selectHistoryWithinBudget(
+                recentMessages = history,
+                currentMessages = listOf(ChatMessage("system", small)),
+                currentUserMessage = small,
+                contextTokenLimit = 512,
+            )
         assertEquals(listOf("mid", "new"), selected.map { it.id })
     }
 
@@ -87,13 +93,17 @@ class PromptBuilderHistoryBudgetTest {
     fun `中间放不下的消息之后不再选更旧消息`() {
         // 最新小；中间巨大（放不下）；最旧又变小（若恢复"跳过继续选"的旧行为会被选中）
         val history = listOf(msg("old-small", small), msg("mid-huge", huge), msg("new", small))
-        val selected = PromptBuilder.selectHistoryWithinBudget(
-            recentMessages = history,
-            currentMessages = listOf(ChatMessage("system", small)),
-            currentUserMessage = small,
-            contextTokenLimit = 512
+        val selected =
+            PromptBuilder.selectHistoryWithinBudget(
+                recentMessages = history,
+                currentMessages = listOf(ChatMessage("system", small)),
+                currentUserMessage = small,
+                contextTokenLimit = 512,
+            )
+        assertEquals(
+            "预算在 mid-huge 处耗尽后必须停止，不允许再捡回更旧的 old-small",
+            listOf("new"),
+            selected.map { it.id },
         )
-        assertEquals("预算在 mid-huge 处耗尽后必须停止，不允许再捡回更旧的 old-small",
-            listOf("new"), selected.map { it.id })
     }
 }

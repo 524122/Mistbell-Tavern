@@ -67,9 +67,10 @@ val AiBubbleDark = Color(0xFF374151)
 val AiTextDark = Color(0xFFF9FAFB)
 
 // Character colors (shared palette)
-val CharColors = listOf(
-    Color(0xFF6C5CE7), Color(0xFF00B894), Color(0xFFE17055), Color(0xFFA29BFE),
-    Color(0xFF0984E3), Color(0xFFFD79A8), Color(0xFF00CEC9), Color(0xFFE84393),
-    Color(0xFF55EFC4), Color(0xFFFDCB6E), Color(0xFF74B9FF), Color(0xFFFAB1A0),
-    Color(0xFF636E72), Color(0xFF2D3436), Color(0xFFD63031), Color(0xFFE17D60)
-)
+val CharColors =
+    listOf(
+        Color(0xFF6C5CE7), Color(0xFF00B894), Color(0xFFE17055), Color(0xFFA29BFE),
+        Color(0xFF0984E3), Color(0xFFFD79A8), Color(0xFF00CEC9), Color(0xFFE84393),
+        Color(0xFF55EFC4), Color(0xFFFDCB6E), Color(0xFF74B9FF), Color(0xFFFAB1A0),
+        Color(0xFF636E72), Color(0xFF2D3436), Color(0xFFD63031), Color(0xFFE17D60),
+    )

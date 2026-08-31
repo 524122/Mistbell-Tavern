@@ -20,7 +20,7 @@ import kotlinx.serialization.json.*
 @Composable
 fun PromptPreviewScreen(
     onBack: () -> Unit,
-    viewModel: PromptPreviewViewModel = viewModel()
+    viewModel: PromptPreviewViewModel = viewModel(),
 ) {
     val characters by viewModel.characters.collectAsState()
     val worldBooks by viewModel.worldBooks.collectAsState()
@@ -33,7 +33,10 @@ fun PromptPreviewScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(message) {
-        message?.let { snackbarHostState.showSnackbar(it); viewModel.clearMessage() }
+        message?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
     }
 
     Scaffold(
@@ -42,25 +45,29 @@ fun PromptPreviewScreen(
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", modifier = Modifier.size(22.dp))
                         }
-                        Text("提示词预览", style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(
+                            "提示词预览",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(paddingValues).imePadding(),
             contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Character selector
             item {
@@ -76,12 +83,13 @@ fun PromptPreviewScreen(
                         label = { Text("角色") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = charExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     )
                     ExposedDropdownMenu(expanded = charExpanded, onDismissRequest = { charExpanded = false }) {
                         characters.forEach { char ->
                             DropdownMenuItem(text = { Text(char.name) }, onClick = {
-                                viewModel.setSelectedCharacterId(char.id); charExpanded = false
+                                viewModel.setSelectedCharacterId(char.id)
+                                charExpanded = false
                             })
                         }
                     }
@@ -102,15 +110,17 @@ fun PromptPreviewScreen(
                         label = { Text("世界书") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = wbExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     )
                     ExposedDropdownMenu(expanded = wbExpanded, onDismissRequest = { wbExpanded = false }) {
                         DropdownMenuItem(text = { Text("无") }, onClick = {
-                            viewModel.setSelectedWorldBookId(""); wbExpanded = false
+                            viewModel.setSelectedWorldBookId("")
+                            wbExpanded = false
                         })
                         worldBooks.forEach { wb ->
                             DropdownMenuItem(text = { Text(wb.name) }, onClick = {
-                                viewModel.setSelectedWorldBookId(wb.id); wbExpanded = false
+                                viewModel.setSelectedWorldBookId(wb.id)
+                                wbExpanded = false
                             })
                         }
                     }
@@ -126,7 +136,7 @@ fun PromptPreviewScreen(
                     onValueChange = { viewModel.setTestMessage(it) },
                     label = "输入测试消息",
                     placeholder = "你好！",
-                    minLines = 2
+                    minLines = 2,
                 )
             }
 
@@ -136,10 +146,14 @@ fun PromptPreviewScreen(
                     onClick = { viewModel.preview() },
                     enabled = !isLoading && selectedCharacterId.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text("生成预览")
@@ -167,22 +181,33 @@ fun PromptPreviewScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (included) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                            )
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor =
+                                        if (included) {
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        } else {
+                                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                                        },
+                                ),
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(if (included) "✓" else "✗", modifier = Modifier.width(24.dp),
-                                    color = if (included) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                                Text(
+                                    if (included) "✓" else "✗",
+                                    modifier = Modifier.width(24.dp),
+                                    color = if (included) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                 }
-                                Text("~${tokens} tokens", style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "~$tokens tokens",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
@@ -196,12 +221,12 @@ fun PromptPreviewScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                         ) {
                             Text(
                                 text = it,
                                 style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(12.dp)
+                                modifier = Modifier.padding(12.dp),
                             )
                         }
                     }
@@ -222,8 +247,11 @@ fun PromptPreviewScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(content, style = MaterialTheme.typography.bodySmall, maxLines = 2)
                                 }
-                                Text("%.2f".format(score), style = MaterialTheme.typography.labelSmall,
-                                    color = AccentBlue)
+                                Text(
+                                    "%.2f".format(score),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AccentBlue,
+                                )
                             }
                         }
                     }
@@ -243,8 +271,12 @@ fun PromptPreviewScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(comment, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodySmall)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(content, style = MaterialTheme.typography.bodySmall, maxLines = 3,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    content,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 3,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
@@ -262,8 +294,12 @@ fun PromptPreviewScreen(
                         val content = msg["content"]?.jsonPrimitive?.content ?: ""
                         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text(role.uppercase(), style = MaterialTheme.typography.labelSmall,
-                                    color = AccentBlue, fontWeight = FontWeight.Bold)
+                                Text(
+                                    role.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AccentBlue,
+                                    fontWeight = FontWeight.Bold,
+                                )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(content, style = MaterialTheme.typography.bodySmall, maxLines = 5)
                             }

@@ -20,7 +20,7 @@ data class MemoryForm(
     val objectValue: String = "",
     val tags: List<String> = emptyList(),
     val aliases: List<String> = emptyList(),
-    val emotionalAtmosphere: String = ""
+    val emotionalAtmosphere: String = "",
 )
 
 class MemoryViewModel(application: Application) : AndroidViewModel(application) {
@@ -50,11 +50,15 @@ class MemoryViewModel(application: Application) : AndroidViewModel(application) 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
-    val filteredMemories: StateFlow<List<Memory>> = combine(_memories, _layerFilter) { memories, layer ->
-        if (layer != null) memories.filter { it.layer == layer } else memories
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val filteredMemories: StateFlow<List<Memory>> =
+        combine(_memories, _layerFilter) { memories, layer ->
+            if (layer != null) memories.filter { it.layer == layer } else memories
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun init(ownerId: String, characterId: String) {
+    fun init(
+        ownerId: String,
+        characterId: String,
+    ) {
         _ownerId.value = ownerId
         _characterId.value = characterId
         loadFromServer()
@@ -81,18 +85,19 @@ class MemoryViewModel(application: Application) : AndroidViewModel(application) 
 
     fun showEditForm(memory: Memory) {
         _editingMemoryId.value = memory.id
-        _form.value = MemoryForm(
-            content = memory.content,
-            layer = memory.layer,
-            type = memory.type,
-            importance = memory.importance,
-            stability = memory.stability,
-            subject = memory.subject,
-            relation = memory.relation,
-            objectValue = memory.`object`,
-            tags = memory.tags,
-            aliases = memory.aliases
-        )
+        _form.value =
+            MemoryForm(
+                content = memory.content,
+                layer = memory.layer,
+                type = memory.type,
+                importance = memory.importance,
+                stability = memory.stability,
+                subject = memory.subject,
+                relation = memory.relation,
+                objectValue = memory.`object`,
+                tags = memory.tags,
+                aliases = memory.aliases,
+            )
         _showForm.value = true
     }
 
@@ -109,35 +114,37 @@ class MemoryViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             if (_editingMemoryId.value != null) {
-                val patch = buildJsonObject {
-                    put("content", f.content)
-                    put("layer", f.layer)
-                    put("type", f.type)
-                    put("importance", f.importance)
-                    put("stability", f.stability)
-                    put("subject", f.subject)
-                    put("relation", f.relation)
-                    put("object", f.objectValue)
-                    put("tags", JsonArray(f.tags.map { JsonPrimitive(it) }))
-                    put("aliases", JsonArray(f.aliases.map { JsonPrimitive(it) }))
-                }
+                val patch =
+                    buildJsonObject {
+                        put("content", f.content)
+                        put("layer", f.layer)
+                        put("type", f.type)
+                        put("importance", f.importance)
+                        put("stability", f.stability)
+                        put("subject", f.subject)
+                        put("relation", f.relation)
+                        put("object", f.objectValue)
+                        put("tags", JsonArray(f.tags.map { JsonPrimitive(it) }))
+                        put("aliases", JsonArray(f.aliases.map { JsonPrimitive(it) }))
+                    }
                 repo.updateMemory(_editingMemoryId.value!!, patch)
             } else {
-                val body = buildJsonObject {
-                    put("ownerId", _ownerId.value)
-                    put("characterId", _characterId.value)
-                    put("content", f.content)
-                    put("layer", f.layer)
-                    put("type", f.type)
-                    put("importance", f.importance)
-                    put("stability", f.stability)
-                    put("subject", f.subject)
-                    put("relation", f.relation)
-                    put("object", f.objectValue)
-                    put("tags", JsonArray(f.tags.map { JsonPrimitive(it) }))
-                    put("aliases", JsonArray(f.aliases.map { JsonPrimitive(it) }))
-                    put("emotionalAtmosphere", f.emotionalAtmosphere)
-                }
+                val body =
+                    buildJsonObject {
+                        put("ownerId", _ownerId.value)
+                        put("characterId", _characterId.value)
+                        put("content", f.content)
+                        put("layer", f.layer)
+                        put("type", f.type)
+                        put("importance", f.importance)
+                        put("stability", f.stability)
+                        put("subject", f.subject)
+                        put("relation", f.relation)
+                        put("object", f.objectValue)
+                        put("tags", JsonArray(f.tags.map { JsonPrimitive(it) }))
+                        put("aliases", JsonArray(f.aliases.map { JsonPrimitive(it) }))
+                        put("emotionalAtmosphere", f.emotionalAtmosphere)
+                    }
                 repo.createMemory(body)
             }
             _showForm.value = false
@@ -166,5 +173,7 @@ class MemoryViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun clearMessage() { _message.value = null }
+    fun clearMessage() {
+        _message.value = null
+    }
 }

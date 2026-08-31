@@ -22,7 +22,7 @@ fun FormTextField(
     isPassword: Boolean = false,
     singleLine: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -31,7 +31,7 @@ fun FormTextField(
         placeholder = {
             Text(
                 placeholder,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             )
         },
         modifier = modifier.fillMaxWidth(),
@@ -40,13 +40,14 @@ fun FormTextField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = trailingIcon,
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            focusedBorderColor = AccentBlue,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledBorderColor = MaterialTheme.colorScheme.outline
-        )
+        colors =
+            OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedBorderColor = AccentBlue,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+            ),
     )
 }

@@ -1,6 +1,5 @@
 package com.mistbell.tavern.android.data.theme
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.mistbell.tavern.android.data.local.entity.ThemePackEntity
 import kotlinx.serialization.encodeToString
@@ -15,8 +14,11 @@ import org.junit.Test
  * 覆盖 parseHexColor / parseTokens / resolved / resolveTokens 纯函数链。
  */
 class ThemeModelsTest {
-
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
 
     // ---- parseHexColor ----
 
@@ -35,7 +37,7 @@ class ThemeModelsTest {
     fun `大写小写等价`() {
         assertEquals(
             ThemeSupport.parseHexColor("#abcdef")!!.toArgb(),
-            ThemeSupport.parseHexColor("#ABCDEF")!!.toArgb()
+            ThemeSupport.parseHexColor("#ABCDEF")!!.toArgb(),
         )
     }
 
@@ -61,11 +63,12 @@ class ThemeModelsTest {
 
     @Test
     fun `合法JSON全字段解析`() {
-        val s = """
+        val s =
+            """
             {"colors":{"primary":"#FF0000","userBubble":"#00FF00","onUserBubble":"#FFFFFF"},
              "dark":{"background":"#111111"},
              "background":"bg.png"}
-        """.trimIndent()
+            """.trimIndent()
         val t = ThemeSupport.parseTokens(s)
         assertNotNull(t)
         assertEquals("#FF0000", t!!.colors.primary)
@@ -102,10 +105,11 @@ class ThemeModelsTest {
 
     @Test
     fun `浅色模式不含dark覆盖`() {
-        val tokens = ThemeTokens(
-            colors = ThemeColors(primary = "#FF0000", background = "#EEEEEE"),
-            dark = ThemeColors(primary = "#00FF00", background = "#111111")
-        )
+        val tokens =
+            ThemeTokens(
+                colors = ThemeColors(primary = "#FF0000", background = "#EEEEEE"),
+                dark = ThemeColors(primary = "#00FF00", background = "#111111"),
+            )
         val light = tokens.resolved(isDark = false)
         assertEquals(0xFFFF0000.toInt(), light.primary!!.toArgb())
         assertEquals(0xFFEEEEEE.toInt(), light.background!!.toArgb())
@@ -113,10 +117,11 @@ class ThemeModelsTest {
 
     @Test
     fun `深色模式应用dark覆盖`() {
-        val tokens = ThemeTokens(
-            colors = ThemeColors(primary = "#FF0000", background = "#EEEEEE"),
-            dark = ThemeColors(primary = "#00FF00", background = "#111111")
-        )
+        val tokens =
+            ThemeTokens(
+                colors = ThemeColors(primary = "#FF0000", background = "#EEEEEE"),
+                dark = ThemeColors(primary = "#00FF00", background = "#111111"),
+            )
         val dark = tokens.resolved(isDark = true)
         assertEquals(0xFF00FF00.toInt(), dark.primary!!.toArgb())
         assertEquals(0xFF111111.toInt(), dark.background!!.toArgb())
@@ -124,13 +129,18 @@ class ThemeModelsTest {
 
     @Test
     fun `userBubble覆盖primary且assistantBubble覆盖surface`() {
-        val tokens = ThemeTokens(
-            colors = ThemeColors(
-                primary = "#FF0000", surface = "#0000FF",
-                userBubble = "#00FF00", assistantBubble = "#FFFF00",
-                onUserBubble = "#333333", onAssistantBubble = "#444444"
+        val tokens =
+            ThemeTokens(
+                colors =
+                    ThemeColors(
+                        primary = "#FF0000",
+                        surface = "#0000FF",
+                        userBubble = "#00FF00",
+                        assistantBubble = "#FFFF00",
+                        onUserBubble = "#333333",
+                        onAssistantBubble = "#444444",
+                    ),
             )
-        )
         val r = tokens.resolved(isDark = false)
         assertEquals(0xFF00FF00.toInt(), r.primary!!.toArgb())
         assertEquals(0xFFFFFF00.toInt(), r.surface!!.toArgb())
@@ -162,38 +172,57 @@ class ThemeModelsTest {
 
     // ---- resolveTokens ----
 
-    private fun pack(id: String, tokens: ThemeTokens): ThemePackEntity {
+    private fun pack(
+        id: String,
+        tokens: ThemeTokens,
+    ): ThemePackEntity {
         val tokensJson = json.encodeToString(tokens)
         return ThemePackEntity(
-            id = id, name = id, author = "tester", version = "1.0",
-            tokensJson = tokensJson, backgroundFile = null, createdAt = "2026-01-01"
+            id = id,
+            name = id,
+            author = "tester",
+            version = "1.0",
+            tokensJson = tokensJson,
+            backgroundFile = null,
+            createdAt = "2026-01-01",
         )
     }
 
-    private fun badPack(id: String): ThemePackEntity = ThemePackEntity(
-        id = id, name = id, author = "tester", version = "1.0",
-        tokensJson = "{this is not valid json", backgroundFile = null, createdAt = "2026-01-01"
-    )
+    private fun badPack(id: String): ThemePackEntity =
+        ThemePackEntity(
+            id = id,
+            name = id,
+            author = "tester",
+            version = "1.0",
+            tokensJson = "{this is not valid json",
+            backgroundFile = null,
+            createdAt = "2026-01-01",
+        )
 
     @Test
     fun `角色主题tokens解析失败时回落全局而非打死应用链`() {
-        val packs = mapOf(
-            "bad-char-theme" to badPack("bad-char-theme"),
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = null,
-            characterThemeId = "bad-char-theme", activeThemeId = "global", packs = packs
-        )
+        val packs =
+            mapOf(
+                "bad-char-theme" to badPack("bad-char-theme"),
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = null,
+                characterThemeId = "bad-char-theme",
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("坏包必须让位给全局主题", "#00FF00", t!!.colors.primary)
     }
 
     @Test
     fun `resolvePackId与resolveTokens判定一致`() {
-        val packs = mapOf(
-            "bad-char-theme" to badPack("bad-char-theme"),
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
+        val packs =
+            mapOf(
+                "bad-char-theme" to badPack("bad-char-theme"),
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
         assertEquals("global", ThemeSupport.resolvePackId(null, "bad-char-theme", "global", packs))
         assertEquals("char", ThemeSupport.resolvePackId(null, "char", "global", mapOf("char" to pack("char", ThemeTokens()))))
         assertNull(ThemeSupport.resolvePackId(null, "missing", "also-missing", packs))
@@ -201,39 +230,51 @@ class ThemeModelsTest {
 
     @Test
     fun `角色主题优先于全局`() {
-        val packs = mapOf(
-            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#FF0000"))),
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = null,
-            characterThemeId = "char-theme", activeThemeId = "global", packs = packs
-        )
+        val packs =
+            mapOf(
+                "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#FF0000"))),
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = null,
+                characterThemeId = "char-theme",
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("#FF0000", t!!.colors.primary)
     }
 
     @Test
     fun `无角色主题时回落全局`() {
-        val packs = mapOf(
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = null,
-            characterThemeId = "char-theme", activeThemeId = "global", packs = packs
-        )
+        val packs =
+            mapOf(
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = null,
+                characterThemeId = "char-theme",
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("#00FF00", t!!.colors.primary)
     }
 
     @Test
     fun `角色主题命中但包缺失时回落全局`() {
-        val packs = mapOf(
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
+        val packs =
+            mapOf(
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
         // characterThemeId 指向不存在的包
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = null,
-            characterThemeId = "missing", activeThemeId = "global", packs = packs
-        )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = null,
+                characterThemeId = "missing",
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("#00FF00", t!!.colors.primary)
     }
 
@@ -246,15 +287,16 @@ class ThemeModelsTest {
 
     @Test
     fun `activeThemeId空白不命中`() {
-        val packs = mapOf(
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
+        val packs =
+            mapOf(
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
         assertNull(ThemeSupport.resolveTokens(null, null, "", packs))
         assertNull(ThemeSupport.resolveTokens(null, null, "   ", packs))
         // 角色主题空白 → 正常回落全局（应用链设计），而非返回 null
         assertEquals(
             "#00FF00",
-            ThemeSupport.resolveTokens(null, "", "global", packs)!!.colors.primary
+            ThemeSupport.resolveTokens(null, "", "global", packs)!!.colors.primary,
         )
     }
 
@@ -262,63 +304,76 @@ class ThemeModelsTest {
 
     @Test
     fun `会话主题优先于角色与全局`() {
-        val packs = mapOf(
-            "session-theme" to pack("session-theme", ThemeTokens(colors = ThemeColors(primary = "#FF0000"))),
-            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF")))
-        )
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = "session-theme",
-            characterThemeId = "char-theme", activeThemeId = "global", packs = packs
-        )
+        val packs =
+            mapOf(
+                "session-theme" to pack("session-theme", ThemeTokens(colors = ThemeColors(primary = "#FF0000"))),
+                "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF"))),
+            )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = "session-theme",
+                characterThemeId = "char-theme",
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("会话层主题应最高优先", "#FF0000", t!!.colors.primary)
         assertEquals(
             "session-theme",
-            ThemeSupport.resolvePackId("session-theme", "char-theme", "global", packs)
+            ThemeSupport.resolvePackId("session-theme", "char-theme", "global", packs),
         )
     }
 
     @Test
     fun `会话主题包存在但tokens坏时回落角色层`() {
-        val packs = mapOf(
-            "bad-session-theme" to badPack("bad-session-theme"),
-            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF")))
-        )
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = "bad-session-theme",
-            characterThemeId = "char-theme", activeThemeId = "global", packs = packs
-        )
+        val packs =
+            mapOf(
+                "bad-session-theme" to badPack("bad-session-theme"),
+                "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF"))),
+            )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = "bad-session-theme",
+                characterThemeId = "char-theme",
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("坏会话包应回落到角色主题", "#00FF00", t!!.colors.primary)
     }
 
     @Test
     fun `会话themeId空白时走角色层`() {
-        val packs = mapOf(
-            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF")))
-        )
+        val packs =
+            mapOf(
+                "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF"))),
+            )
         // 空白会话 themeId（"" 与纯空白）均应跳过会话层
         assertEquals(
             "#00FF00",
-            ThemeSupport.resolveTokens("", "char-theme", "global", packs)!!.colors.primary
+            ThemeSupport.resolveTokens("", "char-theme", "global", packs)!!.colors.primary,
         )
         assertEquals(
             "#00FF00",
-            ThemeSupport.resolveTokens("   ", "char-theme", "global", packs)!!.colors.primary
+            ThemeSupport.resolveTokens("   ", "char-theme", "global", packs)!!.colors.primary,
         )
     }
 
     @Test
     fun `会话指向缺失包时回落全局`() {
-        val packs = mapOf(
-            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
-        )
+        val packs =
+            mapOf(
+                "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            )
         // sessionThemeId 指向不存在的包，且无角色主题 → 回落全局
-        val t = ThemeSupport.resolveTokens(
-            sessionThemeId = "missing",
-            characterThemeId = null, activeThemeId = "global", packs = packs
-        )
+        val t =
+            ThemeSupport.resolveTokens(
+                sessionThemeId = "missing",
+                characterThemeId = null,
+                activeThemeId = "global",
+                packs = packs,
+            )
         assertEquals("#00FF00", t!!.colors.primary)
     }
 }

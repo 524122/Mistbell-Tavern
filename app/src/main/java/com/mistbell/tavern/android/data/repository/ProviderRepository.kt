@@ -24,7 +24,9 @@ class ProviderRepository(private val context: Context) {
             val json = SecureStore.unwrap(map["providers_json"] ?: "[]")
             try {
                 Json.decodeFromString(ListSerializer(ProviderConfig.serializer()), json)
-            } catch (_: Exception) { emptyList() }
+            } catch (_: Exception) {
+                emptyList()
+            }
         }
     }
 
@@ -62,7 +64,7 @@ class ProviderRepository(private val context: Context) {
                     "llm_top_p" to activeProvider.topP,
                     "llm_top_k" to activeProvider.topK,
                     "llm_frequency_penalty" to activeProvider.frequencyPenalty,
-                    "llm_max_tokens" to activeProvider.maxTokens
+                    "llm_max_tokens" to activeProvider.maxTokens,
                 ).forEach { (key, value) ->
                     db.settingsDao().upsert(SettingsEntity(key, value?.toString() ?: ""))
                 }
@@ -70,33 +72,43 @@ class ProviderRepository(private val context: Context) {
         }
     }
 
-    suspend fun setActiveProvider(providerId: String, modelId: String) {
+    suspend fun setActiveProvider(
+        providerId: String,
+        modelId: String,
+    ) {
         withContext(Dispatchers.IO) {
             db.settingsDao().upsert(SettingsEntity("active_provider_id", providerId))
             db.settingsDao().upsert(SettingsEntity("active_model_id", modelId))
         }
     }
 
-    suspend fun fetchModels(endpoint: String, apiKey: String, type: String): List<String> {
+    suspend fun fetchModels(
+        endpoint: String,
+        apiKey: String,
+        type: String,
+    ): List<String> {
         return withContext(Dispatchers.IO) {
             try {
                 // 直接调用 LLM API 的 /models 端点
-                val modelsUrl = when {
-                    endpoint.endsWith("/") -> "${endpoint}models"
-                    else -> "$endpoint/models"
-                }
+                val modelsUrl =
+                    when {
+                        endpoint.endsWith("/") -> "${endpoint}models"
+                        else -> "$endpoint/models"
+                    }
 
-                val client = okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .build()
+                val client =
+                    okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
 
-                val request = okhttp3.Request.Builder()
-                    .url(modelsUrl)
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .get()
-                    .build()
+                val request =
+                    okhttp3.Request.Builder()
+                        .url(modelsUrl)
+                        .addHeader("Authorization", "Bearer $apiKey")
+                        .addHeader("Content-Type", "application/json")
+                        .get()
+                        .build()
 
                 val response = client.newCall(request).execute()
                 if (!response.isSuccessful) {
@@ -125,26 +137,33 @@ class ProviderRepository(private val context: Context) {
         }
     }
 
-    suspend fun testConnection(endpoint: String, apiKey: String, type: String): Boolean {
+    suspend fun testConnection(
+        endpoint: String,
+        apiKey: String,
+        type: String,
+    ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 // 直接调用 LLM API 的 /models 端点来测试连接
-                val modelsUrl = when {
-                    endpoint.endsWith("/") -> "${endpoint}models"
-                    else -> "$endpoint/models"
-                }
+                val modelsUrl =
+                    when {
+                        endpoint.endsWith("/") -> "${endpoint}models"
+                        else -> "$endpoint/models"
+                    }
 
-                val client = okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                    .build()
+                val client =
+                    okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
 
-                val request = okhttp3.Request.Builder()
-                    .url(modelsUrl)
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("Content-Type", "application/json")
-                    .get()
-                    .build()
+                val request =
+                    okhttp3.Request.Builder()
+                        .url(modelsUrl)
+                        .addHeader("Authorization", "Bearer $apiKey")
+                        .addHeader("Content-Type", "application/json")
+                        .get()
+                        .build()
 
                 val response = client.newCall(request).execute()
                 val success = response.isSuccessful

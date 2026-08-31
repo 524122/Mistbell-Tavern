@@ -17,11 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,11 +30,13 @@ fun ChatSetupScreen(
     initialCharacterId: String? = null,
     onBack: () -> Unit,
     onStartChat: (sessionId: String, characterIds: Set<String>) -> Unit,
-    viewModel: ChatSetupViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as android.app.Application
-        )
-    )
+    viewModel: ChatSetupViewModel =
+        viewModel(
+            factory =
+                ViewModelProvider.AndroidViewModelFactory.getInstance(
+                    LocalContext.current.applicationContext as android.app.Application,
+                ),
+        ),
 ) {
     val characters by viewModel.characters.collectAsState()
     val providers by viewModel.providers.collectAsState()
@@ -69,7 +71,7 @@ fun ChatSetupScreen(
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", modifier = Modifier.size(22.dp))
@@ -78,7 +80,7 @@ fun ChatSetupScreen(
                             text = "创建聊天",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         Button(
                             onClick = {
@@ -91,7 +93,7 @@ fun ChatSetupScreen(
                                     viewModel.showToast("请至少选择一个角色")
                                 }
                             },
-                            enabled = selectedCharacterIds.isNotEmpty()
+                            enabled = selectedCharacterIds.isNotEmpty(),
                         ) {
                             Text("开始聊天")
                         }
@@ -101,35 +103,39 @@ fun ChatSetupScreen(
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             // 选择角色
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = if (selectedCharacterIds.size > 1)
-                            "选择角色 (${selectedCharacterIds.size} 人群聊)"
-                        else "选择角色 (${selectedCharacterIds.size} 已选)",
+                        text =
+                            if (selectedCharacterIds.size > 1) {
+                                "选择角色 (${selectedCharacterIds.size} 人群聊)"
+                            } else {
+                                "选择角色 (${selectedCharacterIds.size} 已选)"
+                            },
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
 
                     if (characters.isEmpty()) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            )
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                ),
                         ) {
                             Text(
                                 "暂无角色，请先创建或导入角色",
                                 modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.onErrorContainer,
                             )
                         }
                     }
@@ -140,7 +146,7 @@ fun ChatSetupScreen(
                 CharacterCard(
                     character = character,
                     isSelected = selectedCharacterIds.contains(character.id),
-                    onClick = { viewModel.toggleCharacter(character.id) }
+                    onClick = { viewModel.toggleCharacter(character.id) },
                 )
             }
 
@@ -150,27 +156,28 @@ fun ChatSetupScreen(
                     Text(
                         text = "选择模型",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
 
                     ExposedDropdownMenuBox(
                         expanded = showProviderDropdown,
-                        onExpandedChange = { showProviderDropdown = it }
+                        onExpandedChange = { showProviderDropdown = it },
                     ) {
                         OutlinedTextField(
                             value = providers.find { it.id == selectedProviderId }?.name ?: "选择提供商",
                             onValueChange = {},
                             readOnly = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProviderDropdown) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         )
 
                         ExposedDropdownMenu(
                             expanded = showProviderDropdown,
-                            onDismissRequest = { showProviderDropdown = false }
+                            onDismissRequest = { showProviderDropdown = false },
                         ) {
                             providers.forEach { provider ->
                                 DropdownMenuItem(
@@ -181,7 +188,7 @@ fun ChatSetupScreen(
                                                 Text(
                                                     "模型: ${provider.selectedModel}",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 )
                                             }
                                         }
@@ -190,9 +197,12 @@ fun ChatSetupScreen(
                                         viewModel.setSelectedProvider(provider.id)
                                         showProviderDropdown = false
                                     },
-                                    leadingIcon = if (selectedProviderId == provider.id) {
-                                        { Icon(Icons.Default.Check, contentDescription = null) }
-                                    } else null
+                                    leadingIcon =
+                                        if (selectedProviderId == provider.id) {
+                                            { Icon(Icons.Default.Check, contentDescription = null) }
+                                        } else {
+                                            null
+                                        },
                                 )
                             }
                         }
@@ -206,33 +216,35 @@ fun ChatSetupScreen(
                     Text(
                         text = "世界书",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
 
-                    val fieldValue = if (selectedWorldBookId.isBlank()) {
-                        "无"
-                    } else {
-                        worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
-                    }
+                    val fieldValue =
+                        if (selectedWorldBookId.isBlank()) {
+                            "无"
+                        } else {
+                            worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
+                        }
 
                     ExposedDropdownMenuBox(
                         expanded = showWorldBookDropdown,
-                        onExpandedChange = { showWorldBookDropdown = it }
+                        onExpandedChange = { showWorldBookDropdown = it },
                     ) {
                         OutlinedTextField(
                             value = fieldValue,
                             onValueChange = {},
                             readOnly = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showWorldBookDropdown) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         )
 
                         ExposedDropdownMenu(
                             expanded = showWorldBookDropdown,
-                            onDismissRequest = { showWorldBookDropdown = false }
+                            onDismissRequest = { showWorldBookDropdown = false },
                         ) {
                             // "无" 选项
                             DropdownMenuItem(
@@ -241,9 +253,12 @@ fun ChatSetupScreen(
                                     viewModel.setSelectedWorldBook("")
                                     showWorldBookDropdown = false
                                 },
-                                leadingIcon = if (selectedWorldBookId.isBlank()) {
-                                    { Icon(Icons.Default.Check, contentDescription = null) }
-                                } else null
+                                leadingIcon =
+                                    if (selectedWorldBookId.isBlank()) {
+                                        { Icon(Icons.Default.Check, contentDescription = null) }
+                                    } else {
+                                        null
+                                    },
                             )
 
                             // 世界书列表
@@ -254,9 +269,12 @@ fun ChatSetupScreen(
                                         viewModel.setSelectedWorldBook(book.id)
                                         showWorldBookDropdown = false
                                     },
-                                    leadingIcon = if (selectedWorldBookId == book.id) {
-                                        { Icon(Icons.Default.Check, contentDescription = null) }
-                                    } else null
+                                    leadingIcon =
+                                        if (selectedWorldBookId == book.id) {
+                                            { Icon(Icons.Default.Check, contentDescription = null) }
+                                        } else {
+                                            null
+                                        },
                                 )
                             }
                         }
@@ -268,36 +286,36 @@ fun ChatSetupScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "长期记忆",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
                             )
                             Text(
                                 text = "保存对话内容到长期记忆中",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Switch(
                             checked = enableLongTermMemory,
-                            onCheckedChange = { viewModel.toggleLongTermMemory() }
+                            onCheckedChange = { viewModel.toggleLongTermMemory() },
                         )
                     }
                 }
             }
         }
-
     }
 }
 
@@ -305,48 +323,57 @@ fun ChatSetupScreen(
 private fun CharacterCard(
     character: com.mistbell.tavern.android.data.api.model.Character,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected)
-                MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surface
-        ),
-        border = if (isSelected)
-            androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
-        else null
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+            ),
+        border =
+            if (isSelected) {
+                androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+            } else {
+                null
+            },
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 头像
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        character.color?.let {
-                            try {
-                                Color(android.graphics.Color.parseColor(it))
-                            } catch (_: Exception) {
-                                MaterialTheme.colorScheme.primary
-                            }
-                        } ?: MaterialTheme.colorScheme.primary
-                    ),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            character.color?.let {
+                                try {
+                                    Color(android.graphics.Color.parseColor(it))
+                                } catch (_: Exception) {
+                                    MaterialTheme.colorScheme.primary
+                                }
+                            } ?: MaterialTheme.colorScheme.primary,
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = character.name.take(1),
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
             }
 
@@ -354,7 +381,7 @@ private fun CharacterCard(
                 Text(
                     text = character.name,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
                 if (character.description.isNotBlank()) {
                     Text(
@@ -362,24 +389,25 @@ private fun CharacterCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
             }
 
             if (isSelected) {
                 Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Default.Check,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSecondary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }

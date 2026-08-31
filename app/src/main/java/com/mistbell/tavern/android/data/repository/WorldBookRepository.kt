@@ -9,7 +9,6 @@ import com.mistbell.tavern.android.data.local.entity.WorldBookEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
@@ -62,24 +61,26 @@ class WorldBookRepository(private val context: Context) {
         constant: Boolean = false,
         disable: Boolean = false,
         insertPosition: String = "before_prompt",
-        depth: Int = 1
+        depth: Int = 1,
     ): WorldBookEntry? {
         return withContext(Dispatchers.IO) {
             val id = UUID.randomUUID().toString()
-            val keysJson = Json.encodeToString(
-                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                keys
-            )
-            val entity = WorldBookEntryEntity(
-                id = id,
-                bookId = bookId,
-                comment = comment,
-                keysJson = keysJson,
-                content = content,
-                constant = constant,
-                disable = disable,
-                order = 100
-            )
+            val keysJson =
+                Json.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                    keys,
+                )
+            val entity =
+                WorldBookEntryEntity(
+                    id = id,
+                    bookId = bookId,
+                    comment = comment,
+                    keysJson = keysJson,
+                    content = content,
+                    constant = constant,
+                    disable = disable,
+                    order = 100,
+                )
             db.worldBookDao().upsertEntries(listOf(entity))
             WorldBookEntry(
                 id = id,
@@ -90,12 +91,15 @@ class WorldBookRepository(private val context: Context) {
                 disable = disable,
                 insertPosition = insertPosition,
                 depth = depth,
-                order = 100
+                order = 100,
             )
         }
     }
 
-    suspend fun updateEntry(entryId: String, patch: JsonObject) {
+    suspend fun updateEntry(
+        entryId: String,
+        patch: JsonObject,
+    ) {
         withContext(Dispatchers.IO) {
             db.worldBookDao().getEntryById(entryId)?.let { existing ->
                 db.worldBookDao().upsertEntries(listOf(existing.applyPatch(patch)))
@@ -113,7 +117,9 @@ class WorldBookRepository(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 api.exportWorldBook()
-            } catch (_: Exception) { null }
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 
@@ -122,19 +128,20 @@ class WorldBookRepository(private val context: Context) {
      * 只覆盖 patch 中实际提供的字段；实体不支持的字段（insertPosition/depth）沿用既有限制。
      */
     private fun WorldBookEntryEntity.applyPatch(patch: JsonObject): WorldBookEntryEntity {
-        val keysJson = (patch["key"] as? JsonArray)?.let { arr ->
-            Json.encodeToString(
-                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                arr.map { it.jsonPrimitive.content }
-            )
-        } ?: this.keysJson
+        val keysJson =
+            (patch["key"] as? JsonArray)?.let { arr ->
+                Json.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                    arr.map { it.jsonPrimitive.content },
+                )
+            } ?: this.keysJson
         return copy(
-            comment  = patch["comment"]?.jsonPrimitive?.content ?: comment,
-            content  = patch["content"]?.jsonPrimitive?.content ?: content,
+            comment = patch["comment"]?.jsonPrimitive?.content ?: comment,
+            content = patch["content"]?.jsonPrimitive?.content ?: content,
             constant = patch["constant"]?.jsonPrimitive?.booleanOrNull ?: constant,
-            disable  = patch["disable"]?.jsonPrimitive?.booleanOrNull ?: disable,
-            order    = patch["order"]?.jsonPrimitive?.intOrNull ?: order,
-            keysJson = keysJson
+            disable = patch["disable"]?.jsonPrimitive?.booleanOrNull ?: disable,
+            order = patch["order"]?.jsonPrimitive?.intOrNull ?: order,
+            keysJson = keysJson,
         )
     }
 }

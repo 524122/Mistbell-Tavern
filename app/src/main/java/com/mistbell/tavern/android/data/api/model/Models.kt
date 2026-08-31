@@ -12,7 +12,7 @@ data class StateResponse(
     @SerialName("recentSessions") val recentSessions: List<SessionSummary> = emptyList(),
     val conversation: List<Message> = emptyList(),
     val memories: List<Memory> = emptyList(),
-    val worldBook: WorldBook? = null
+    val worldBook: WorldBook? = null,
 )
 
 @Serializable
@@ -29,7 +29,7 @@ data class Character(
     @SerialName("avatarData") val avatarData: String = "",
     @SerialName("worldBookId") val worldBookId: String = "",
     @SerialName("themeId") val themeId: String = "",
-    val data: CharacterData? = null
+    val data: CharacterData? = null,
 )
 
 @Serializable
@@ -44,7 +44,7 @@ data class CharacterData(
     // 标签列表
     val tags: List<String> = emptyList(),
     // 生态扩展命名空间：原样透传保真，不做字段展开
-    val extensions: JsonObject? = null
+    val extensions: JsonObject? = null,
 )
 
 @Serializable
@@ -55,7 +55,7 @@ data class SessionSummary(
     @SerialName("updatedAt") val updatedAt: String = "",
     @SerialName("messageCount") val messageCount: Int = 0,
     @SerialName("characterId") val characterId: String? = null,
-    @SerialName("characterName") val characterName: String? = null
+    @SerialName("characterName") val characterName: String? = null,
 )
 
 @Serializable
@@ -67,7 +67,7 @@ data class Message(
     @SerialName("createdAt") val createdAt: String = "",
     @SerialName("memoryIds") val memoryIds: List<String>? = null,
     val swipes: List<String>? = null,
-    @SerialName("swipeIndex") val swipeIndex: Int = 0
+    @SerialName("swipeIndex") val swipeIndex: Int = 0,
 )
 
 @Serializable
@@ -84,7 +84,7 @@ data class Memory(
     val status: String = "active",
     @SerialName("accessCount") val accessCount: Int = 0,
     val tags: List<String> = emptyList(),
-    val aliases: List<String> = emptyList()
+    val aliases: List<String> = emptyList(),
 )
 
 @Serializable
@@ -92,7 +92,7 @@ data class WorldBook(
     val id: String = "",
     val name: String = "",
     val entries: List<WorldBookEntry> = emptyList(),
-    val books: List<WorldBook> = emptyList()
+    val books: List<WorldBook> = emptyList(),
 )
 
 @Serializable
@@ -105,7 +105,7 @@ data class WorldBookEntry(
     val disable: Boolean = false,
     val order: Int = 100,
     @SerialName("insertPosition") val insertPosition: String = "before_prompt",
-    val depth: Int = 1
+    val depth: Int = 1,
 )
 
 @Serializable
@@ -127,12 +127,12 @@ data class ProviderConfig(
     @SerialName("top_p") val topP: Double? = null,
     @SerialName("top_k") val topK: Int? = null,
     @SerialName("frequency_penalty") val frequencyPenalty: Double? = null,
-    @SerialName("max_tokens") val maxTokens: Int? = null
+    @SerialName("max_tokens") val maxTokens: Int? = null,
 )
 
 @Serializable
 data class SessionConfig(
     @SerialName("providerId") val providerId: String = "",
     @SerialName("modelId") val modelId: String = "",
-    @SerialName("worldBookId") val worldBookId: String = ""
+    @SerialName("worldBookId") val worldBookId: String = "",
 )

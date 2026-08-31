@@ -7,7 +7,6 @@ package com.mistbell.tavern.android.data.vector
  * 移植自后端 EmbeddingService.java
  */
 interface EmbeddingService {
-
     /**
      * 将文本转换为向量
      *

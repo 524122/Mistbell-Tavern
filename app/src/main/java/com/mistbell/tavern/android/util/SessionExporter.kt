@@ -10,41 +10,46 @@ import android.provider.MediaStore
 import com.mistbell.tavern.android.data.api.model.Message
 import com.mistbell.tavern.android.data.api.model.SessionSummary
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 
 @Serializable
 data class SessionExportData(
     val session: SessionSummary,
-    val messages: List<Message>
+    val messages: List<Message>,
 )
 
 enum class SessionExportFormat(
     val label: String,
     val extension: String,
-    val mimeType: String
+    val mimeType: String,
 ) {
-    JSON("JSON", "json", "application/json")
+    JSON("JSON", "json", "application/json"),
 }
 
 data class SessionExportResult(
     val uri: Uri,
     val fileName: String,
     val location: String,
-    val mimeType: String
+    val mimeType: String,
 )
 
 object SessionExporter {
     private const val EXPORT_FOLDER = "LongMemoryAIChat"
 
-    fun buildFileName(title: String, sessionId: String, extension: String): String {
-        val safeTitle = title
-            .ifBlank { "session" }
-            .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]+"), "_")
-            .trim()
-            .take(28)
-            .ifBlank { "session" }
+    fun buildFileName(
+        title: String,
+        sessionId: String,
+        extension: String,
+    ): String {
+        val safeTitle =
+            title
+                .ifBlank { "session" }
+                .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]+"), "_")
+                .trim()
+                .take(28)
+                .ifBlank { "session" }
         val shortId = sessionId.take(8).ifBlank { System.currentTimeMillis().toString() }
         return "${safeTitle}_${shortId}_${System.currentTimeMillis()}.$extension"
     }
@@ -64,25 +69,27 @@ object SessionExporter {
         context: Context,
         session: SessionSummary,
         messages: List<Message>,
-        fileName: String = buildFileName(session.title, session.id, SessionExportFormat.JSON.extension)
+        fileName: String = buildFileName(session.title, session.id, SessionExportFormat.JSON.extension),
     ): SessionExportResult? {
         return try {
-            val exportData = SessionExportData(
-                session = session,
-                messages = messages
-            )
+            val exportData =
+                SessionExportData(
+                    session = session,
+                    messages = messages,
+                )
 
-            val json = Json {
-                prettyPrint = true
-                ignoreUnknownKeys = true
-            }
+            val json =
+                Json {
+                    prettyPrint = true
+                    ignoreUnknownKeys = true
+                }
             val jsonString = json.encodeToString(exportData)
 
             saveBytes(
                 context = context,
                 fileName = fileName,
                 mimeType = SessionExportFormat.JSON.mimeType,
-                bytes = jsonString.toByteArray(Charsets.UTF_8)
+                bytes = jsonString.toByteArray(Charsets.UTF_8),
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -94,17 +101,18 @@ object SessionExporter {
         context: Context,
         fileName: String,
         mimeType: String,
-        bytes: ByteArray
+        bytes: ByteArray,
     ): SessionExportResult? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                put(
-                    MediaStore.MediaColumns.RELATIVE_PATH,
-                    "${Environment.DIRECTORY_DOWNLOADS}/$EXPORT_FOLDER"
-                )
-            }
+            val values =
+                ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    put(
+                        MediaStore.MediaColumns.RELATIVE_PATH,
+                        "${Environment.DIRECTORY_DOWNLOADS}/$EXPORT_FOLDER",
+                    )
+                }
             val resolver = context.contentResolver
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
             resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return null
@@ -113,13 +121,14 @@ object SessionExporter {
                 uri = uri,
                 fileName = fileName,
                 location = displayLocation(fileName),
-                mimeType = mimeType
+                mimeType = mimeType,
             )
         } else {
-            val dir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                EXPORT_FOLDER
-            )
+            val dir =
+                File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    EXPORT_FOLDER,
+                )
             if (!dir.exists()) dir.mkdirs()
             val file = File(dir, fileName)
             file.writeBytes(bytes)
@@ -128,7 +137,7 @@ object SessionExporter {
                 uri = Uri.fromFile(file),
                 fileName = fileName,
                 location = displayLocation(fileName),
-                mimeType = mimeType
+                mimeType = mimeType,
             )
         }
     }
@@ -136,7 +145,10 @@ object SessionExporter {
     /**
      * 创建分享 Intent
      */
-    fun createShareIntent(context: Context, uri: Uri): Intent {
+    fun createShareIntent(
+        context: Context,
+        uri: Uri,
+    ): Intent {
         return Intent(Intent.ACTION_SEND).apply {
             type = "application/json"
             putExtra(Intent.EXTRA_STREAM, uri)

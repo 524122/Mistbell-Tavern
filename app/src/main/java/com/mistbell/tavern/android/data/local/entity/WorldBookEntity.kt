@@ -10,18 +10,19 @@ import com.mistbell.tavern.android.data.api.model.WorldBookEntry
 data class WorldBookEntity(
     @PrimaryKey val id: String,
     val name: String,
-    @ColumnInfo(name = "settings_json") val settingsJson: String
+    @ColumnInfo(name = "settings_json") val settingsJson: String,
 ) {
-    fun toDomain(entries: List<WorldBookEntryEntity>): WorldBook = WorldBook(
-        id = id,
-        name = name,
-        entries = entries.map { it.toDomain() }
-    )
+    fun toDomain(entries: List<WorldBookEntryEntity>): WorldBook =
+        WorldBook(
+            id = id,
+            name = name,
+            entries = entries.map { it.toDomain() },
+        )
 }
 
 @Entity(
     tableName = "world_book_entries",
-    primaryKeys = ["id", "book_id"]
+    primaryKeys = ["id", "book_id"],
 )
 data class WorldBookEntryEntity(
     val id: String,
@@ -31,14 +32,19 @@ data class WorldBookEntryEntity(
     val content: String,
     val constant: Boolean,
     val disable: Boolean,
-    val order: Int
+    val order: Int,
 ) {
     fun toDomain(): WorldBookEntry {
-        val keyList = try {
-            if (keysJson.isNotBlank())
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(keysJson)
-            else emptyList()
-        } catch (_: Exception) { emptyList() }
+        val keyList =
+            try {
+                if (keysJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(keysJson)
+                } else {
+                    emptyList()
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
 
         return WorldBookEntry(
             id = id,
@@ -47,12 +53,15 @@ data class WorldBookEntryEntity(
             content = content,
             constant = constant,
             disable = disable,
-            order = order
+            order = order,
         )
     }
 
     companion object {
-        fun fromDomain(e: WorldBookEntry, bookId: String): WorldBookEntryEntity {
+        fun fromDomain(
+            e: WorldBookEntry,
+            bookId: String,
+        ): WorldBookEntryEntity {
             val json = kotlinx.serialization.json.Json
             val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
             val keysStr = json.encodeToString(stringListSerializer, e.key)
@@ -64,7 +73,7 @@ data class WorldBookEntryEntity(
                 content = e.content,
                 constant = e.constant,
                 disable = e.disable,
-                order = e.order
+                order = e.order,
             )
         }
     }

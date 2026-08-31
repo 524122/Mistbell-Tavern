@@ -6,7 +6,6 @@ import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.model.Character
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
@@ -25,27 +24,37 @@ class CharacterRepository(private val context: Context) {
         try {
             val result = api.getCharacters()
             if (result is JsonArray) {
-                val characters = result.mapNotNull { element ->
-                    try {
-                        kotlinx.serialization.json.Json.decodeFromJsonElement<Character>(element)
-                    } catch (_: Exception) { null }
-                }
-                val entities = characters.map {
-                    com.mistbell.tavern.android.data.local.entity.CharacterEntity.fromDomain(it)
-                }
+                val characters =
+                    result.mapNotNull { element ->
+                        try {
+                            kotlinx.serialization.json.Json.decodeFromJsonElement<Character>(element)
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                val entities =
+                    characters.map {
+                        com.mistbell.tavern.android.data.local.entity.CharacterEntity.fromDomain(it)
+                    }
                 db.characterDao().upsertAll(entities)
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
 
-    suspend fun createCharacter(name: String, description: String = "", color: String = "") {
+    suspend fun createCharacter(
+        name: String,
+        description: String = "",
+        color: String = "",
+    ) {
         withContext(Dispatchers.IO) {
             try {
-                val data = buildJsonObject {
-                    put("name", name)
-                    put("description", description)
-                    put("color", color)
-                }
+                val data =
+                    buildJsonObject {
+                        put("name", name)
+                        put("description", description)
+                        put("color", color)
+                    }
                 val body = buildJsonObject { put("data", data) }
                 api.createCharacter(body)
                 // Refresh from server
@@ -69,7 +78,10 @@ class CharacterRepository(private val context: Context) {
         }
     }
 
-    suspend fun updateCharacter(id: String, patch: JsonObject) {
+    suspend fun updateCharacter(
+        id: String,
+        patch: JsonObject,
+    ) {
         withContext(Dispatchers.IO) {
             try {
                 api.updateCharacter(id, patch)

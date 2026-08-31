@@ -7,7 +7,6 @@ package com.mistbell.tavern.android.data.vector
  * 移植自后端 VectorStore.java
  */
 interface VectorStore {
-
     /**
      * 添加向量到存储
      *
@@ -15,7 +14,11 @@ interface VectorStore {
      * @param vector 向量数据（通常是 1536 维的浮点数组）
      * @param metadata 元数据（包含 content、ownerId、characterId 等）
      */
-    suspend fun add(id: String, vector: FloatArray, metadata: Map<String, Any>)
+    suspend fun add(
+        id: String,
+        vector: FloatArray,
+        metadata: Map<String, Any>,
+    )
 
     /**
      * 批量添加向量
@@ -33,7 +36,7 @@ interface VectorStore {
     suspend fun search(
         queryVector: FloatArray,
         topK: Int,
-        filters: Map<String, Any> = emptyMap()
+        filters: Map<String, Any> = emptyMap(),
     ): List<SearchResult>
 
     /**
@@ -67,7 +70,7 @@ interface VectorStore {
     data class VectorEntry(
         val id: String,
         val vector: FloatArray,
-        val metadata: Map<String, Any>
+        val metadata: Map<String, Any>,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -95,8 +98,8 @@ interface VectorStore {
      */
     data class SearchResult(
         val id: String,
-        val score: Float,  // 相似度分数 (0-1)
+        val score: Float, // 相似度分数 (0-1)
         val content: String,
-        val metadata: Map<String, Any>
+        val metadata: Map<String, Any>,
     )
 }

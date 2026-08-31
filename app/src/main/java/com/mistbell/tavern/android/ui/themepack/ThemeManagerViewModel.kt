@@ -17,14 +17,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ThemeManagerViewModel(application: Application) : AndroidViewModel(application) {
-
     private val themeRepo = ThemePackRepository(application)
 
-    val packs: StateFlow<List<ThemePackEntity>> = themeRepo.observePacks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val packs: StateFlow<List<ThemePackEntity>> =
+        themeRepo.observePacks()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val activeThemeId: StateFlow<String?> = themeRepo.observeActiveThemeId()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val activeThemeId: StateFlow<String?> =
+        themeRepo.observeActiveThemeId()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -73,21 +74,24 @@ class ThemeManagerViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val file = themeRepo.exportPack(id)
                 val context = getApplication<Application>()
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/zip"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_TITLE, file.name)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
+                val uri =
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file,
+                    )
+                val intent =
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "application/zip"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_TITLE, file.name)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
                 // Application context 启动 Activity 必须加 NEW_TASK，否则抛 SecurityException；
                 // 授权标志同时加在 chooser 上（部分实现要求在最终启动的 intent 上）
-                val chooser = Intent.createChooser(intent, "分享主题包")
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val chooser =
+                    Intent.createChooser(intent, "分享主题包")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 context.startActivity(chooser)
             } catch (e: Exception) {
                 _message.value = "分享失败: ${e.message}"

@@ -23,19 +23,20 @@ suspend fun sendMessageWithVectorMemory(
     ownerId: String,
     characterId: String,
     sessionId: String,
-    message: String
+    message: String,
 ): Message {
     // ========== 步骤 1: 保存用户消息 ==========
-    val userMessage = Message(
-        id = java.util.UUID.randomUUID().toString(),
-        role = "user",
-        content = message,
-        thinking = null,
-        createdAt = java.time.Instant.now().toString(),
-        memoryIds = null,
-        swipes = null,
-        swipeIndex = 0
-    )
+    val userMessage =
+        Message(
+            id = java.util.UUID.randomUUID().toString(),
+            role = "user",
+            content = message,
+            thinking = null,
+            createdAt = java.time.Instant.now().toString(),
+            memoryIds = null,
+            swipes = null,
+            swipeIndex = 0,
+        )
 
     // 保存到数据库
     // db.messageDao().upsert(MessageEntity.fromDomain(userMessage, sessionId, ownerId, characterId))
@@ -46,29 +47,32 @@ suspend fun sendMessageWithVectorMemory(
         ownerId = ownerId,
         characterId = characterId,
         sessionId = sessionId,
-        messageId = userMessage.id
+        messageId = userMessage.id,
     )
 
     // ========== 步骤 3: 检索记忆（用于生成 AI 回复） ==========
     // 3.1 检索结构化记忆（仅当前会话）
-    val structuredMemoryRepo = com.mistbell.tavern.android.data.repository.StructuredMemoryRepository(
-        TavernApplication.instance
-    )
-    val structuredMemories = structuredMemoryRepo.retrieveForConversation(
-        ownerId = ownerId,
-        characterId = characterId,
-        userMessage = message
-    )
+    val structuredMemoryRepo =
+        com.mistbell.tavern.android.data.repository.StructuredMemoryRepository(
+            TavernApplication.instance,
+        )
+    val structuredMemories =
+        structuredMemoryRepo.retrieveForConversation(
+            ownerId = ownerId,
+            characterId = characterId,
+            userMessage = message,
+        )
 
     // 3.2 检索向量记忆（仅当前会话 - 限定 sessionId）
     val vectorMemoryService = TavernApplication.instance.vectorMemoryService
-    val vectorResults = vectorMemoryService.searchRelevantMemories(
-        query = message,
-        ownerId = ownerId,
-        characterId = characterId,
-        sessionId = sessionId,  // 限定当前会话，不跨会话检索
-        topK = 5
-    )
+    val vectorResults =
+        vectorMemoryService.searchRelevantMemories(
+            query = message,
+            ownerId = ownerId,
+            characterId = characterId,
+            sessionId = sessionId, // 限定当前会话，不跨会话检索
+            topK = 5,
+        )
 
     // 3.3 构建记忆上下文
     val structuredMemoryContext = buildStructuredMemoryContext(structuredMemories)
@@ -85,19 +89,20 @@ suspend fun sendMessageWithVectorMemory(
 
     // val aiReply = LlmClient.chat(llmConfig, prompt)
 
-    val aiReply = "AI 回复示例"  // 实际调用 LLM
+    val aiReply = "AI 回复示例" // 实际调用 LLM
 
     // ========== 步骤 5: 保存 AI 回复 ==========
-    val assistantMessage = Message(
-        id = java.util.UUID.randomUUID().toString(),
-        role = "assistant",
-        content = aiReply,
-        thinking = null,
-        createdAt = java.time.Instant.now().toString(),
-        memoryIds = null,
-        swipes = null,
-        swipeIndex = 0
-    )
+    val assistantMessage =
+        Message(
+            id = java.util.UUID.randomUUID().toString(),
+            role = "assistant",
+            content = aiReply,
+            thinking = null,
+            createdAt = java.time.Instant.now().toString(),
+            memoryIds = null,
+            swipes = null,
+            swipeIndex = 0,
+        )
 
     // 保存到数据库
     // db.messageDao().upsert(MessageEntity.fromDomain(assistantMessage, sessionId, ownerId, characterId))
@@ -108,7 +113,7 @@ suspend fun sendMessageWithVectorMemory(
         ownerId = ownerId,
         characterId = characterId,
         sessionId = sessionId,
-        messageId = assistantMessage.id
+        messageId = assistantMessage.id,
     )
 
     // ========== 步骤 7: 后台提取记忆（可选） ==========

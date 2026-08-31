@@ -10,10 +10,19 @@ interface VectorMemoryDao {
     fun getAll(ownerId: String): Flow<List<VectorMemoryEntity>>
 
     @Query("SELECT * FROM vector_memory WHERE owner_id = :ownerId AND character_id = :characterId ORDER BY created_at DESC")
-    fun getByCharacter(ownerId: String, characterId: String): Flow<List<VectorMemoryEntity>>
+    fun getByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Flow<List<VectorMemoryEntity>>
 
-    @Query("SELECT * FROM vector_memory WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId ORDER BY created_at DESC")
-    fun getBySession(ownerId: String, characterId: String, sessionId: String): Flow<List<VectorMemoryEntity>>
+    @Query(
+        "SELECT * FROM vector_memory WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId ORDER BY created_at DESC",
+    )
+    fun getBySession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Flow<List<VectorMemoryEntity>>
 
     @Query("SELECT * FROM vector_memory WHERE id = :id")
     suspend fun getById(id: Long): VectorMemoryEntity?
@@ -25,7 +34,10 @@ interface VectorMemoryDao {
     suspend fun getByVectorId(vectorId: String): VectorMemoryEntity?
 
     @Query("SELECT * FROM vector_memory WHERE owner_id = :ownerId AND content_type = :contentType ORDER BY created_at DESC")
-    fun getByContentType(ownerId: String, contentType: String): Flow<List<VectorMemoryEntity>>
+    fun getByContentType(
+        ownerId: String,
+        contentType: String,
+    ): Flow<List<VectorMemoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(memory: VectorMemoryEntity): Long
@@ -40,10 +52,16 @@ interface VectorMemoryDao {
     suspend fun deleteById(id: Long)
 
     @Query("DELETE FROM vector_memory WHERE owner_id = :ownerId AND character_id = :characterId")
-    suspend fun deleteByCharacter(ownerId: String, characterId: String)
+    suspend fun deleteByCharacter(
+        ownerId: String,
+        characterId: String,
+    )
 
     @Query("DELETE FROM vector_memory WHERE owner_id = :ownerId AND session_id = :sessionId")
-    suspend fun deleteBySession(ownerId: String, sessionId: String)
+    suspend fun deleteBySession(
+        ownerId: String,
+        sessionId: String,
+    )
 
     @Query("DELETE FROM vector_memory WHERE message_id = :messageId")
     suspend fun deleteByMessageId(messageId: String)
@@ -55,8 +73,15 @@ interface VectorMemoryDao {
     suspend fun getCount(ownerId: String): Int
 
     @Query("SELECT COUNT(*) FROM vector_memory WHERE owner_id = :ownerId AND character_id = :characterId")
-    suspend fun getCountByCharacter(ownerId: String, characterId: String): Int
+    suspend fun getCountByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): Int
 
     @Query("SELECT COUNT(*) FROM vector_memory WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId")
-    suspend fun getCountBySession(ownerId: String, characterId: String, sessionId: String): Int
+    suspend fun getCountBySession(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ): Int
 }

@@ -41,36 +41,43 @@ fun DrawerContent(
     onNewCharacter: () -> Unit = {},
     onNewChat: () -> Unit,
     onSessionSelected: (String) -> Unit,
-    onSessionDeleted: (String) -> Unit
+    onSessionDeleted: (String) -> Unit,
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredCharacters = if (searchQuery.isBlank()) characters
-    else characters.filter {
-        it.name.contains(searchQuery, ignoreCase = true) ||
-        it.description.contains(searchQuery, ignoreCase = true)
-    }
+    val filteredCharacters =
+        if (searchQuery.isBlank()) {
+            characters
+        } else {
+            characters.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.description.contains(searchQuery, ignoreCase = true)
+            }
+        }
 
     Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(300.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .statusBarsPadding()
+        modifier =
+            Modifier
+                .fillMaxHeight()
+                .width(300.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .statusBarsPadding(),
     ) {
         // Header
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(26.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AccentBlue),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(AccentBlue),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(text = "🔔", fontSize = 14.sp)
             }
@@ -79,16 +86,17 @@ fun DrawerContent(
                 text = "暮铃",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 17.sp,
-                letterSpacing = (-0.02).sp
+                letterSpacing = (-0.02).sp,
             )
         }
 
         // Character section header with + button
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "角色",
@@ -96,11 +104,15 @@ fun DrawerContent(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.06.sp,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onNewCharacter, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Add, contentDescription = "新建角色", modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "新建角色",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 
@@ -109,10 +121,19 @@ fun DrawerContent(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             placeholder = {
-                Text("搜索角色...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                Text(
+                    "搜索角色...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
             },
             leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
             },
             trailingIcon = {
                 if (searchQuery.isNotBlank()) {
@@ -121,19 +142,21 @@ fun DrawerContent(
                     }
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(34.dp)
-                .padding(start = 12.dp, end = 12.dp)
-                .clip(RoundedCornerShape(8.dp)),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                unfocusedContainerColor = LightInput,
-                focusedBorderColor = AccentBlue,
-                focusedContainerColor = MaterialTheme.colorScheme.surface
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(34.dp)
+                    .padding(start = 12.dp, end = 12.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+            colors =
+                OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    unfocusedContainerColor = LightInput,
+                    focusedBorderColor = AccentBlue,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                ),
             textStyle = MaterialTheme.typography.bodySmall,
-            singleLine = true
+            singleLine = true,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -141,7 +164,7 @@ fun DrawerContent(
         // Character list
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 8.dp)
+            contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
             items(filteredCharacters) { character ->
                 CharacterItem(
@@ -150,7 +173,7 @@ fun DrawerContent(
                     onClick = { onCharacterSelected(character) },
                     onLongClick = { onCharacterEdit(character) },
                     onDelete = { onCharacterDelete(character) },
-                    onExport = { onCharacterExport(character) }
+                    onExport = { onCharacterExport(character) },
                 )
             }
         }
@@ -160,7 +183,7 @@ fun DrawerContent(
             HorizontalDivider(
                 thickness = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             )
 
             Text(
@@ -169,12 +192,12 @@ fun DrawerContent(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.06.sp,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 6.dp)
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 6.dp),
             )
 
             LazyColumn(
                 modifier = Modifier.heightIn(max = 200.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp)
+                contentPadding = PaddingValues(horizontal = 8.dp),
             ) {
                 items(recentSessions) { session ->
                     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -182,7 +205,7 @@ fun DrawerContent(
                         session = session,
                         isActive = false,
                         onClick = { onSessionSelected(session.id) },
-                        onDelete = { showDeleteConfirm = true }
+                        onDelete = { showDeleteConfirm = true },
                     )
                     if (showDeleteConfirm) {
                         AlertDialog(
@@ -190,13 +213,16 @@ fun DrawerContent(
                             title = { Text("删除会话") },
                             text = { Text("确定删除「${session.title.ifBlank { "新会话" }}」？") },
                             confirmButton = {
-                                TextButton(onClick = { showDeleteConfirm = false; onSessionDeleted(session.id) }) {
+                                TextButton(onClick = {
+                                    showDeleteConfirm = false
+                                    onSessionDeleted(session.id)
+                                }) {
                                     Text("删除", color = MaterialTheme.colorScheme.error)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") }
-                            }
+                            },
                         )
                     }
                 }
@@ -208,13 +234,14 @@ fun DrawerContent(
 
         OutlinedButton(
             onClick = onNewChat,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-                .height(38.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .height(38.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = ButtonDefaults.outlinedButtonBorder
+            border = ButtonDefaults.outlinedButtonBorder,
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
@@ -231,29 +258,31 @@ private fun CharacterItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
     onDelete: () -> Unit = {},
-    onExport: () -> Unit = {}
+    onExport: () -> Unit = {},
 ) {
-    val charColor = try {
-        Color(android.graphics.Color.parseColor(character.color))
-    } catch (_: Exception) {
-        AccentBlue
-    }
+    val charColor =
+        try {
+            Color(android.graphics.Color.parseColor(character.color))
+        } catch (_: Exception) {
+            AccentBlue
+        }
 
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) LightActive else Color.Transparent)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showMenu = true }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (isSelected) LightActive else Color.Transparent)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { showMenu = true },
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Avatar
         Box {
@@ -261,36 +290,39 @@ private fun CharacterItem(
                 AsyncImage(
                     model = character.avatarData,
                     contentDescription = character.name,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .shadow(2.dp, CircleShape)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    modifier =
+                        Modifier
+                            .size(38.dp)
+                            .shadow(2.dp, CircleShape)
+                            .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
                 )
             } else {
                 Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .shadow(2.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(charColor),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(38.dp)
+                            .shadow(2.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(charColor),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = character.name.take(1),
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
                     )
                 }
             }
             Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(AccentGreen)
-                    .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(AccentGreen)
+                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
             )
         }
 
@@ -303,7 +335,7 @@ private fun CharacterItem(
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             if (character.description.isNotBlank()) {
                 Text(
@@ -312,7 +344,7 @@ private fun CharacterItem(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             // Show session count hint
@@ -320,29 +352,38 @@ private fun CharacterItem(
                 text = "长按编辑",
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             )
         }
 
         // Long-press menu
         DropdownMenu(
             expanded = showMenu,
-            onDismissRequest = { showMenu = false }
+            onDismissRequest = { showMenu = false },
         ) {
             DropdownMenuItem(
                 text = { Text("编辑") },
-                onClick = { showMenu = false; onLongClick() },
-                leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp)) }
+                onClick = {
+                    showMenu = false
+                    onLongClick()
+                },
+                leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp)) },
             )
             DropdownMenuItem(
                 text = { Text("导出") },
-                onClick = { showMenu = false; onExport() },
-                leadingIcon = { Icon(Icons.Default.FileUpload, null, modifier = Modifier.size(18.dp)) }
+                onClick = {
+                    showMenu = false
+                    onExport()
+                },
+                leadingIcon = { Icon(Icons.Default.FileUpload, null, modifier = Modifier.size(18.dp)) },
             )
             DropdownMenuItem(
                 text = { Text("删除", color = MaterialTheme.colorScheme.error) },
-                onClick = { showMenu = false; showDeleteConfirm = true },
-                leadingIcon = { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
+                onClick = {
+                    showMenu = false
+                    showDeleteConfirm = true
+                },
+                leadingIcon = { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) },
             )
         }
     }
@@ -353,13 +394,16 @@ private fun CharacterItem(
             title = { Text("删除角色") },
             text = { Text("确定删除「${character.name}」？此操作不可撤销。") },
             confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    onDelete()
+                }) {
                     Text("删除", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("取消") }
-            }
+            },
         )
     }
 }
@@ -370,21 +414,25 @@ private fun SessionItem(
     session: SessionSummary,
     isActive: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) AccentBlueLight else Color.Transparent)
-            .then(
-                if (isActive) Modifier.border(1.dp, AccentBlue, RoundedCornerShape(8.dp))
-                else Modifier
-            )
-            .combinedClickable(onClick = onClick, onLongClick = {})
-            .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isActive) AccentBlueLight else Color.Transparent)
+                .then(
+                    if (isActive) {
+                        Modifier.border(1.dp, AccentBlue, RoundedCornerShape(8.dp))
+                    } else {
+                        Modifier
+                    },
+                )
+                .combinedClickable(onClick = onClick, onLongClick = {})
+                .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -393,13 +441,13 @@ private fun SessionItem(
                 fontSize = 13.sp,
                 color = if (isActive) AccentBlue else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "${session.messageCount} 条消息",
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 

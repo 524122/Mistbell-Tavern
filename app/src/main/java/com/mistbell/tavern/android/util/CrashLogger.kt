@@ -37,25 +37,27 @@ object CrashLogger {
     private const val LOG_DIR = "logs"
     private const val LOG_FILE = "crash_log.txt"
     private const val EXPORT_DIR = "exports"
+
     // 日志文件大小上限（字节），超出后只保留最近的内容，避免无限增长
     private const val MAX_LOG_SIZE = 256 * 1024
 
     // logcat 抓取时整条丢弃的 tag 黑名单：这些 tag 已知会打印聊天/记忆内容，
     // 或回显服务器响应体，可能含聊天片段，因此从导出报告中排除以保护隐私。
-    private val CONTENT_TAGS = setOf(
-        "ChatViewModel",
-        "MemoryExtractionService",
-        "ChatSettings",
-        "VectorMemoryService",
-        "VectorMemoryTest",
-        "OpenAIEmbedding",
-        "LlmClient",
-        // OkHttp 默认 tag：BODY 级日志会回显完整请求头（含 Authorization 密钥）与请求体
-        "okhttp.OkHttpClient",
-        "CharacterImporter",
-        "CharacterEditor",
-        "SecureStore"
-    )
+    private val CONTENT_TAGS =
+        setOf(
+            "ChatViewModel",
+            "MemoryExtractionService",
+            "ChatSettings",
+            "VectorMemoryService",
+            "VectorMemoryTest",
+            "OpenAIEmbedding",
+            "LlmClient",
+            // OkHttp 默认 tag：BODY 级日志会回显完整请求头（含 Authorization 密钥）与请求体
+            "okhttp.OkHttpClient",
+            "CharacterImporter",
+            "CharacterEditor",
+            "SecureStore",
+        )
 
     // threadtime 格式日志首行：日期 时间 PID TID 优先级 TAG: 消息
     // 例：06-24 12:00:00.123  1234  1250 D AppNavigation: 导航到...
@@ -91,12 +93,15 @@ object CrashLogger {
         }
     }
 
-    private fun logDir(context: Context): File =
-        File(context.filesDir, LOG_DIR).apply { if (!exists()) mkdirs() }
+    private fun logDir(context: Context): File = File(context.filesDir, LOG_DIR).apply { if (!exists()) mkdirs() }
 
     private fun logFile(context: Context): File = File(logDir(context), LOG_FILE)
 
-    private fun writeCrash(context: Context, thread: Thread, throwable: Throwable) {
+    private fun writeCrash(
+        context: Context,
+        thread: Thread,
+        throwable: Throwable,
+    ) {
         val sb = StringBuilder()
         sb.append("========== 崩溃记录 ==========\n")
         sb.append("时间: ${timeFormat.format(Date(System.currentTimeMillis()))}\n")
@@ -153,9 +158,15 @@ object CrashLogger {
             val pid = Process.myPid().toString()
             // -d 一次性导出后退出；-v threadtime 带 PID/TID/优先级/tag；
             // --pid 仅本进程（API 24+，本应用 minSdk 26 满足）。
-            val process = ProcessBuilder(
-                "logcat", "-d", "-v", "threadtime", "--pid", pid
-            ).redirectErrorStream(true).start()
+            val process =
+                ProcessBuilder(
+                    "logcat",
+                    "-d",
+                    "-v",
+                    "threadtime",
+                    "--pid",
+                    pid,
+                ).redirectErrorStream(true).start()
 
             val filtered = StringBuilder()
             // 当前 entry 是否属于被丢弃的 tag：决定无前缀续行（堆栈）的去留
@@ -226,7 +237,10 @@ object CrashLogger {
      * 入参为 [buildDiagnosticReport] 的结果，避免在导出时重复抓取 logcat。
      * @return 可用于分享的 URI，内容为空或写入失败时返回 null
      */
-    fun exportReport(context: Context, content: String): Uri? {
+    fun exportReport(
+        context: Context,
+        content: String,
+    ): Uri? {
         if (content.isBlank()) return null
         return try {
             val exportDir = File(context.cacheDir, EXPORT_DIR).apply { if (!exists()) mkdirs() }
@@ -236,7 +250,7 @@ object CrashLogger {
             FileProvider.getUriForFile(
                 context,
                 "${BuildConfig.APPLICATION_ID}.fileprovider",
-                exportFile
+                exportFile,
             )
         } catch (e: Exception) {
             android.util.Log.e("CrashLogger", "导出日志失败: ${e.message}", e)

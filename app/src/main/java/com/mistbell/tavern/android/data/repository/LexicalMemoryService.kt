@@ -4,11 +4,11 @@ import android.content.Context
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.util.TermExtractor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * F3-FTS：词法（LIKE 关键词）长期记忆召回服务。
@@ -17,7 +17,6 @@ import kotlinx.coroutines.withContext
  * 用诚实的词法匹配替代 BM25 伪向量——不再假装有语义相似度。
  */
 class LexicalMemoryService(private val context: Context) {
-
     private val db get() = TavernApplication.instance.database
 
     /**
@@ -32,28 +31,29 @@ class LexicalMemoryService(private val context: Context) {
         sessionId: String,
         query: String,
         topK: Int = 5,
-        recentWindow: Int = 40
-    ): List<MessageEntity> = withContext(Dispatchers.IO) {
-        val excludedIds = db.messageDao().latestIdsBySession(sessionId, ownerId, characterId, recentWindow)
-        val terms = TermExtractor.extract(query)
-        if (terms.isEmpty()) return@withContext emptyList()
+        recentWindow: Int = 40,
+    ): List<MessageEntity> =
+        withContext(Dispatchers.IO) {
+            val excludedIds = db.messageDao().latestIdsBySession(sessionId, ownerId, characterId, recentWindow)
+            val terms = TermExtractor.extract(query)
+            if (terms.isEmpty()) return@withContext emptyList()
 
-        // 契约：固定 6 个词位，未用词位填充 "~~nomatch~~%"（LIKE 不匹配任何真实内容）
-        val slots = List(6) { i -> terms.getOrNull(i) ?: NO_MATCH }
-        db.messageDao().searchByContentTerms(
-            sessionId = sessionId,
-            ownerId = ownerId,
-            characterId = characterId,
-            excludedIds = excludedIds,
-            t1 = like(slots[0]),
-            t2 = like(slots[1]),
-            t3 = like(slots[2]),
-            t4 = like(slots[3]),
-            t5 = like(slots[4]),
-            t6 = like(slots[5]),
-            resultLimit = topK
-        )
-    }
+            // 契约：固定 6 个词位，未用词位填充 "~~nomatch~~%"（LIKE 不匹配任何真实内容）
+            val slots = List(6) { i -> terms.getOrNull(i) ?: NO_MATCH }
+            db.messageDao().searchByContentTerms(
+                sessionId = sessionId,
+                ownerId = ownerId,
+                characterId = characterId,
+                excludedIds = excludedIds,
+                t1 = like(slots[0]),
+                t2 = like(slots[1]),
+                t3 = like(slots[2]),
+                t4 = like(slots[3]),
+                t5 = like(slots[4]),
+                t6 = like(slots[5]),
+                resultLimit = topK,
+            )
+        }
 
     /**
      * 将召回结果格式化为注入 prompt 的文本；
@@ -80,9 +80,10 @@ class LexicalMemoryService(private val context: Context) {
     }
 
     // createdAt 存的是 ISO-8601 字符串；解析失败时原样输出
-    private fun formatTimestamp(createdAt: String): String = try {
-        TIME_FORMAT.format(Instant.parse(createdAt).atZone(ZoneId.systemDefault()))
-    } catch (_: Exception) {
-        createdAt
-    }
+    private fun formatTimestamp(createdAt: String): String =
+        try {
+            TIME_FORMAT.format(Instant.parse(createdAt).atZone(ZoneId.systemDefault()))
+        } catch (_: Exception) {
+            createdAt
+        }
 }

@@ -36,7 +36,7 @@ fun MainScreen(
     onNavigateToChatSetup: (String) -> Unit,
     onNavigateToVersionChangelog: () -> Unit,
     onNavigateToAbout: () -> Unit,
-    onNavigateToThemeManager: () -> Unit = {}
+    onNavigateToThemeManager: () -> Unit = {},
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
 
@@ -48,7 +48,7 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
@@ -58,7 +58,7 @@ fun MainScreen(
                     },
                     label = {
                         Text("聊天")
-                    }
+                    },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
@@ -68,7 +68,7 @@ fun MainScreen(
                     },
                     label = {
                         Text("角色")
-                    }
+                    },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
@@ -78,7 +78,7 @@ fun MainScreen(
                     },
                     label = {
                         Text("世界书")
-                    }
+                    },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
@@ -88,75 +88,87 @@ fun MainScreen(
                     },
                     label = {
                         Text("设置")
-                    }
+                    },
                 )
             }
-        }
+        },
     ) { paddingValues ->
         androidx.compose.animation.AnimatedContent(
             targetState = selectedTab,
             transitionSpec = {
-                val enter = if (targetState > initialState) {
-                    // 向右滑动：新页面从右边进入
-                    androidx.compose.animation.slideInHorizontally { width -> width } +
-                    androidx.compose.animation.fadeIn()
-                } else {
-                    // 向左滑动：新页面从左边进入
-                    androidx.compose.animation.slideInHorizontally { width -> -width } +
-                    androidx.compose.animation.fadeIn()
-                }
+                val enter =
+                    if (targetState > initialState) {
+                        // 向右滑动：新页面从右边进入
+                        androidx.compose.animation.slideInHorizontally { width -> width } +
+                            androidx.compose.animation.fadeIn()
+                    } else {
+                        // 向左滑动：新页面从左边进入
+                        androidx.compose.animation.slideInHorizontally { width -> -width } +
+                            androidx.compose.animation.fadeIn()
+                    }
 
-                val exit = if (targetState > initialState) {
-                    androidx.compose.animation.slideOutHorizontally { width -> -width } +
-                    androidx.compose.animation.fadeOut()
-                } else {
-                    androidx.compose.animation.slideOutHorizontally { width -> width } +
-                    androidx.compose.animation.fadeOut()
-                }
+                val exit =
+                    if (targetState > initialState) {
+                        androidx.compose.animation.slideOutHorizontally { width -> -width } +
+                            androidx.compose.animation.fadeOut()
+                    } else {
+                        androidx.compose.animation.slideOutHorizontally { width -> width } +
+                            androidx.compose.animation.fadeOut()
+                    }
 
                 androidx.compose.animation.ContentTransform(enter, exit)
             },
-            label = "tab_transition"
+            label = "tab_transition",
         ) { tab ->
             when (tab) {
-                0 -> ChatListScreen(
-                    onChatClick = onChatClick,
-                    onNewChatClick = onNewChatClick,
-                    showBottomBar = false,
-                    showTopBar = false,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = paddingValues.calculateBottomPadding())
-                )
-                1 -> CharacterListScreen(
-                    onCharacterClick = { character ->
-                        scope.launch {
-                            val latestSession = database.sessionDao()
-                                .getLatestByCharacter("local-user", character.id)
+                0 ->
+                    ChatListScreen(
+                        onChatClick = onChatClick,
+                        onNewChatClick = onNewChatClick,
+                        showBottomBar = false,
+                        showTopBar = false,
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                    )
+                1 ->
+                    CharacterListScreen(
+                        onCharacterClick = { character ->
+                            scope.launch {
+                                val latestSession =
+                                    database.sessionDao()
+                                        .getLatestByCharacter("local-user", character.id)
 
-                            if (latestSession != null) {
-                                android.util.Log.d("MainScreen", "Opening latest session: ${latestSession.id} for character: ${character.id}")
-                                onChatClick(latestSession.id, character.id)
-                            } else {
-                                android.util.Log.d("MainScreen", "No session, navigating to chat setup for character: ${character.id}")
-                                onNavigateToChatSetup(character.id)
+                                if (latestSession != null) {
+                                    android.util.Log.d(
+                                        "MainScreen",
+                                        "Opening latest session: ${latestSession.id} for character: ${character.id}",
+                                    )
+                                    onChatClick(latestSession.id, character.id)
+                                } else {
+                                    android.util.Log.d("MainScreen", "No session, navigating to chat setup for character: ${character.id}")
+                                    onNavigateToChatSetup(character.id)
+                                }
                             }
-                        }
-                    },
-                    onEditCharacter = onEditCharacter,
-                    onNewCharacter = onNewCharacter,
-                    showTopBarBackButton = false,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = paddingValues.calculateBottomPadding())
-                )
-                2 -> WorldBookListScreen(
-                    showBackButton = false,
-                    onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = paddingValues.calculateBottomPadding())
-                )
+                        },
+                        onEditCharacter = onEditCharacter,
+                        onNewCharacter = onNewCharacter,
+                        showTopBarBackButton = false,
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                    )
+                2 ->
+                    WorldBookListScreen(
+                        showBackButton = false,
+                        onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                    )
                 3 -> {
                     val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
                     SettingsScreen(
@@ -169,9 +181,10 @@ fun MainScreen(
                         onNavigateToAbout = onNavigateToAbout,
                         onNavigateToThemeManager = onNavigateToThemeManager,
                         showBackButton = false,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = paddingValues.calculateBottomPadding())
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(bottom = paddingValues.calculateBottomPadding()),
                     )
                 }
             }

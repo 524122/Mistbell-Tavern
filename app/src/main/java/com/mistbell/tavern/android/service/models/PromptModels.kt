@@ -25,7 +25,7 @@ data class PromptSections(
     val postHistory: String,
     val depthEntries: List<DepthEntry>,
     val recentMessages: List<Message>,
-    val activatedWorldInfo: List<ActivatedEntry>
+    val activatedWorldInfo: List<ActivatedEntry>,
 ) {
     /**
      * 组合最终的系统提示词
@@ -131,7 +131,7 @@ data class PromptSections(
  */
 data class DepthEntry(
     val depth: Int,
-    val content: String
+    val content: String,
 )
 
 /**
@@ -142,19 +142,19 @@ data class ActivatedEntry(
     val comment: String,
     val content: String,
     val keys: List<String>,
-    val position: String,  // "before", "after", "exampleBefore", "exampleAfter", "authorTop", "authorBottom"
+    val position: String, // "before", "after", "exampleBefore", "exampleAfter", "authorTop", "authorBottom"
     val depth: Int?,
     val order: Int,
     val probability: Double,
-    val enabled: Boolean
+    val enabled: Boolean,
 )
 
 /**
  * 聊天消息（用于本地服务）
  */
 data class LocalChatMessage(
-    val role: String,  // "system", "user", "assistant"
-    val content: String
+    val role: String, // "system", "user", "assistant"
+    val content: String,
 )
 
 /**
@@ -165,16 +165,16 @@ data class PromptAudit(
     val messages: List<MessageAudit>,
     val stableTokens: Int,
     val dynamicTokens: Int,
-    val totalTokens: Int
+    val totalTokens: Int,
 )
 
 data class SectionAudit(
     val name: String,
     val label: String,
-    val type: String,  // "stable" or "dynamic"
+    val type: String, // "stable" or "dynamic"
     val chars: Int,
     val estimatedTokens: Int,
-    val included: Boolean
+    val included: Boolean,
 )
 
 data class MessageAudit(
@@ -182,5 +182,5 @@ data class MessageAudit(
     val role: String,
     val chars: Int,
     val estimatedTokens: Int,
-    val dynamic: Boolean
+    val dynamic: Boolean,
 )

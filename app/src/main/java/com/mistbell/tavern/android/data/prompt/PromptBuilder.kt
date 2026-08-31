@@ -1,19 +1,18 @@
 package com.mistbell.tavern.android.data.prompt
 
+import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ChatMessage
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
-import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.repository.LexicalMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.util.MacroContext
 import com.mistbell.tavern.android.util.MacroEngine
-import java.time.Instant
 import kotlinx.coroutines.flow.first
+import java.time.Instant
 
 object PromptBuilder {
-
     suspend fun buildPrompt(
         db: AppDatabase,
         ownerId: String,
@@ -23,34 +22,36 @@ object PromptBuilder {
         currentMessageId: String? = null,
         // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序），
         // 保证正要被替换的旧 assistant 回复不进入上下文
-        excludeFromMessageId: String? = null
+        excludeFromMessageId: String? = null,
     ): List<ChatMessage> {
         val messages = mutableListOf<ChatMessage>()
 
         val session = db.sessionDao().get(sessionId, ownerId, characterId)
         val contextTokenLimit = session?.contextTokenLimit?.coerceIn(1024, 1_000_000) ?: 4096
         val participantCharacterIds = session?.participantCharacterIds() ?: listOf(characterId)
-        val participantCharacters = participantCharacterIds
-            .mapNotNull { db.characterDao().getById(it) }
-            .ifEmpty { db.characterDao().getById(characterId)?.let { listOf(it) } ?: emptyList() }
+        val participantCharacters =
+            participantCharacterIds
+                .mapNotNull { db.characterDao().getById(it) }
+                .ifEmpty { db.characterDao().getById(characterId)?.let { listOf(it) } ?: emptyList() }
         val character = participantCharacters.firstOrNull() ?: db.characterDao().getById(characterId)
         // F2.1 宏引擎上下文（契约 B）：用户名统一取 settings 的 "user_name"，缺省 "User"；
         // persona 字段此处不注入（S3 persona 批次再补）
-        val mctx = MacroContext(
-            char = character?.name ?: "",
-            user = db.settingsDao().getValue("user_name") ?: "User",
-            description = character?.description ?: "",
-            personality = character?.personality ?: "",
-            scenario = character?.scenario ?: "",
-            persona = ""
-        )
+        val mctx =
+            MacroContext(
+                char = character?.name ?: "",
+                user = db.settingsDao().getValue("user_name") ?: "User",
+                description = character?.description ?: "",
+                personality = character?.personality ?: "",
+                scenario = character?.scenario ?: "",
+                persona = "",
+            )
         if (character != null) {
             val systemParts = mutableListOf<String>()
             if (participantCharacters.size > 1) {
                 systemParts.add(
                     "This is a multi-character chat. Primary speaker: ${character.name}. " +
                         "Other selected characters may participate when appropriate: " +
-                        participantCharacters.drop(1).joinToString(", ") { it.name } + "."
+                        participantCharacters.drop(1).joinToString(", ") { it.name } + ".",
                 )
             }
             participantCharacters.forEachIndexed { index, participant ->
@@ -59,13 +60,17 @@ object PromptBuilder {
                 characterParts.add("$roleLabel: ${participant.name}")
                 // 参与组装的角色文本先过宏引擎渲染（{{char}}/{{user}} 等）
                 if (participant.description.isNotBlank()) characterParts.add(MacroEngine.render(participant.description, mctx))
-                if (participant.personality.isNotBlank()) characterParts.add("Personality: ${MacroEngine.render(participant.personality, mctx)}")
+                if (participant.personality.isNotBlank()) {
+                    characterParts.add(
+                        "Personality: ${MacroEngine.render(participant.personality, mctx)}",
+                    )
+                }
                 if (participant.scenario.isNotBlank()) characterParts.add("Scenario: ${MacroEngine.render(participant.scenario, mctx)}")
                 if (participant.dataJson.isNotBlank()) {
                     try {
                         val charData =
                             kotlinx.serialization.json.Json.decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(
-                                participant.dataJson
+                                participant.dataJson,
                             )
                         if (charData.systemPrompt.isNotBlank()) characterParts.add(1, MacroEngine.render(charData.systemPrompt, mctx))
                     } catch (_: Exception) {
@@ -79,10 +84,11 @@ object PromptBuilder {
         }
 
         if (session?.enableLongTermMemory == true) {
-            val memories = db.structuredMemoryDao()
-                .getByCharacter(ownerId, characterId)
-                .first()
-                .map { it.toDomain() }
+            val memories =
+                db.structuredMemoryDao()
+                    .getByCharacter(ownerId, characterId)
+                    .first()
+                    .map { it.toDomain() }
 
             val recalledMemories = selectRelevantMemories(memories, userMessage)
             if (recalledMemories.isNotEmpty()) {
@@ -95,8 +101,8 @@ object PromptBuilder {
                 messages.add(
                     ChatMessage(
                         role = "system",
-                        content = "## Known Information\n${formatStructuredMemoryContext(recalledMemories)}"
-                    )
+                        content = "## Known Information\n${formatStructuredMemoryContext(recalledMemories)}",
+                    ),
                 )
             }
 
@@ -105,13 +111,14 @@ object PromptBuilder {
                 val vectorMemoryService = TavernApplication.instance.vectorMemoryService
                 if (vectorMemoryService.available) {
                     // 原向量检索逻辑不动
-                    val vectorResults = vectorMemoryService.searchRelevantMemories(
-                        query = userMessage,
-                        ownerId = ownerId,
-                        characterId = characterId,
-                        sessionId = sessionId,
-                        topK = 5
-                    )
+                    val vectorResults =
+                        vectorMemoryService.searchRelevantMemories(
+                            query = userMessage,
+                            ownerId = ownerId,
+                            characterId = characterId,
+                            sessionId = sessionId,
+                            topK = 5,
+                        )
 
                     if (vectorResults.isNotEmpty()) {
                         val vectorContext = buildVectorMemoryContextForPrompt(vectorResults)
@@ -119,8 +126,8 @@ object PromptBuilder {
                             messages.add(
                                 ChatMessage(
                                     role = "system",
-                                    content = vectorContext
-                                )
+                                    content = vectorContext,
+                                ),
                             )
                         }
                     }
@@ -140,9 +147,10 @@ object PromptBuilder {
         }
 
         // 会话级世界书优先；其次回退到角色卡默认；最后回退到全局 "main"。
-        val worldBookId = session?.worldBookId?.takeIf { it.isNotBlank() }
-            ?: character?.worldBookId?.takeIf { it.isNotBlank() }
-            ?: "main"
+        val worldBookId =
+            session?.worldBookId?.takeIf { it.isNotBlank() }
+                ?: character?.worldBookId?.takeIf { it.isNotBlank() }
+                ?: "main"
         val entries = db.worldBookDao().getEntriesList(worldBookId)
         val constantEntries = entries.filter { it.constant && !it.disable }
         if (constantEntries.isNotEmpty()) {
@@ -151,11 +159,13 @@ object PromptBuilder {
             messages.add(ChatMessage(role = "system", content = "World Info:\n$worldContent"))
         }
 
-        val activatedEntries = entries.filter { entry ->
-            !entry.constant && !entry.disable && entry.toDomain().key.any { keyword ->
-                userMessage.contains(keyword, ignoreCase = true)
+        val activatedEntries =
+            entries.filter { entry ->
+                !entry.constant && !entry.disable &&
+                    entry.toDomain().key.any { keyword ->
+                        userMessage.contains(keyword, ignoreCase = true)
+                    }
             }
-        }
         if (activatedEntries.isNotEmpty()) {
             // 世界书条目内容同样过宏渲染（activated 关键词激活条目）
             val activatedContent = activatedEntries.joinToString("\n\n") { "[${it.comment}] ${MacroEngine.render(it.content, mctx)}" }
@@ -169,21 +179,24 @@ object PromptBuilder {
                 historySource = historySource.subList(0, idx)
             }
         }
-        val recentMessages = historySource
-            // 过滤掉刚落库的当前用户消息，避免同一条消息在 prompt 中重复出现
-            .filter { currentMessageId == null || it.id != currentMessageId }
-        val history: List<MessageEntity> = selectHistoryWithinBudget(
-            recentMessages = recentMessages,
-            currentMessages = messages,
-            currentUserMessage = userMessage,
-            contextTokenLimit = contextTokenLimit
-        )
+        val recentMessages =
+            historySource
+                // 过滤掉刚落库的当前用户消息，避免同一条消息在 prompt 中重复出现
+                .filter { currentMessageId == null || it.id != currentMessageId }
+        val history: List<MessageEntity> =
+            selectHistoryWithinBudget(
+                recentMessages = recentMessages,
+                currentMessages = messages,
+                currentUserMessage = userMessage,
+                contextTokenLimit = contextTokenLimit,
+            )
         history.forEach { msg: MessageEntity ->
             // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
             // 思考型模型的历史推理不进上下文（展示层不动）
-            val cleanContent = msg.content
-                .replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "")
-                .trim()
+            val cleanContent =
+                msg.content
+                    .replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "")
+                    .trim()
             messages.add(ChatMessage(role = msg.role, content = cleanContent))
         }
 
@@ -204,13 +217,14 @@ object PromptBuilder {
         recentMessages: List<MessageEntity>,
         currentMessages: List<ChatMessage>,
         currentUserMessage: String,
-        contextTokenLimit: Int
+        contextTokenLimit: Int,
     ): List<MessageEntity> {
         val reservedForReply = 768
         val fixedTokens = currentMessages.sumOf { estimateTokens(it.content) }
         val currentUserTokens = estimateTokens(currentUserMessage)
-        val historyBudget = (contextTokenLimit - fixedTokens - currentUserTokens - reservedForReply)
-            .coerceAtLeast(256)
+        val historyBudget =
+            (contextTokenLimit - fixedTokens - currentUserTokens - reservedForReply)
+                .coerceAtLeast(256)
 
         val selected = ArrayDeque<MessageEntity>()
         var usedTokens = 0
@@ -231,7 +245,7 @@ object PromptBuilder {
 
     private fun selectRelevantMemories(
         memories: List<StructuredMemory>,
-        userMessage: String
+        userMessage: String,
     ): List<StructuredMemory> {
         if (memories.isEmpty()) return emptyList()
 
@@ -261,7 +275,7 @@ object PromptBuilder {
                 .sortedWith(
                     compareByDescending<Pair<StructuredMemory, Int>> { it.second }
                         .thenByDescending { it.first.importance }
-                        .thenByDescending { it.first.updatedAt }
+                        .thenByDescending { it.first.updatedAt },
                 )
                 .take(3)
                 .forEach { result[it.first.stableKey()] = it.first }
@@ -273,14 +287,15 @@ object PromptBuilder {
     }
 
     private fun formatStructuredMemoryContext(memories: List<StructuredMemory>): String {
-        val groups = linkedMapOf(
-            "用户信息" to setOf("character_info", "identity", "preference"),
-            "关系" to setOf("relationship"),
-            "重要事件" to setOf("event", "core", "goal"),
-            "情绪与边界" to setOf("emotion"),
-            "相关物品" to setOf("item"),
-            "相关地点" to setOf("location")
-        )
+        val groups =
+            linkedMapOf(
+                "用户信息" to setOf("character_info", "identity", "preference"),
+                "关系" to setOf("relationship"),
+                "重要事件" to setOf("event", "core", "goal"),
+                "情绪与边界" to setOf("emotion"),
+                "相关物品" to setOf("item"),
+                "相关地点" to setOf("location"),
+            )
 
         val usedKeys = mutableSetOf<Long>()
         val lines = mutableListOf<String>()
@@ -308,13 +323,17 @@ object PromptBuilder {
         return lines.joinToString("\n").trim()
     }
 
-    private fun keywordMatchScore(memory: StructuredMemory, queryTokens: Set<String>): Int {
-        val haystack = buildString {
-            append(memory.title.orEmpty()).append(' ')
-            append(memory.content).append(' ')
-            append(memory.tags.joinToString(" ")).append(' ')
-            append(memory.keywords.joinToString(" "))
-        }.lowercase()
+    private fun keywordMatchScore(
+        memory: StructuredMemory,
+        queryTokens: Set<String>,
+    ): Int {
+        val haystack =
+            buildString {
+                append(memory.title.orEmpty()).append(' ')
+                append(memory.content).append(' ')
+                append(memory.tags.joinToString(" ")).append(' ')
+                append(memory.keywords.joinToString(" "))
+            }.lowercase()
 
         var score = 0
         queryTokens.forEach { token ->
@@ -365,17 +384,17 @@ object PromptBuilder {
             .thenByDescending { it.accessCount }
             .thenByDescending { it.updatedAt }
 
-    private fun StructuredMemory.stableKey(): Long =
-        if (id > 0) id else content.hashCode().toLong()
+    private fun StructuredMemory.stableKey(): Long = if (id > 0) id else content.hashCode().toLong()
 
     private fun Char.isCjk(): Boolean = this in '\u4e00'..'\u9fff'
 
-    private val profileMemoryTypes = setOf(
-        "character_info",
-        "identity",
-        "preference",
-        "relationship"
-    )
+    private val profileMemoryTypes =
+        setOf(
+            "character_info",
+            "identity",
+            "preference",
+            "relationship",
+        )
 
     /**
      * 构建向量记忆上下文（用于 Prompt 注入）
@@ -388,7 +407,7 @@ object PromptBuilder {
             appendLine("## Relevant Past Conversations")
             relevantResults.forEachIndexed { index, result ->
                 val similarityPercent = (result.score * 100).toInt()
-                appendLine("${index + 1}. ${result.content} (similarity: ${similarityPercent}%)")
+                appendLine("${index + 1}. ${result.content} (similarity: $similarityPercent%)")
             }
         }
     }

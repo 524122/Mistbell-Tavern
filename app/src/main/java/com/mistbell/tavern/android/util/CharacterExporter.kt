@@ -3,7 +3,6 @@ package com.mistbell.tavern.android.util
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -32,29 +31,34 @@ import kotlin.math.roundToInt
 enum class CharacterExportFormat(
     val label: String,
     val extension: String,
-    val mimeType: String
+    val mimeType: String,
 ) {
     JSON("JSON", "json", "application/json"),
-    PNG("PNG", "png", "image/png")
+    PNG("PNG", "png", "image/png"),
 }
 
 data class CharacterExportResult(
     val uri: Uri,
     val fileName: String,
     val location: String,
-    val mimeType: String
+    val mimeType: String,
 )
 
 object CharacterExporter {
     private const val EXPORT_FOLDER = "LongMemoryAIChat"
 
-    fun buildFileName(name: String, id: String, extension: String): String {
-        val safeName = name
-            .ifBlank { "character" }
-            .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]+"), "_")
-            .trim()
-            .take(28)
-            .ifBlank { "character" }
+    fun buildFileName(
+        name: String,
+        id: String,
+        extension: String,
+    ): String {
+        val safeName =
+            name
+                .ifBlank { "character" }
+                .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]+"), "_")
+                .trim()
+                .take(28)
+                .ifBlank { "character" }
         val shortId = id.take(8).ifBlank { System.currentTimeMillis().toString() }
         return "${safeName}_${shortId}_${System.currentTimeMillis()}.$extension"
     }
@@ -69,32 +73,33 @@ object CharacterExporter {
      */
     fun buildV2Json(character: Character): String {
         val data = character.data
-        val v2 = buildJsonObject {
-            put("spec", "chara_card_v2")
-            put("spec_version", "2.0")
-            putJsonObject("data") {
-                put("name", character.name)
-                put("description", character.description)
-                put("personality", character.personality)
-                put("scenario", character.scenario)
-                put("first_mes", character.firstMes)
-                put("mes_example", character.mesExample)
-                put("creator_notes", data?.creatorNotes ?: "")
-                put("system_prompt", data?.systemPrompt ?: "")
-                put("post_history_instructions", data?.postHistoryInstructions ?: "")
-                putJsonArray("alternate_greetings") {
-                    data?.alternateGreetings?.forEach { add(JsonPrimitive(it)) }
+        val v2 =
+            buildJsonObject {
+                put("spec", "chara_card_v2")
+                put("spec_version", "2.0")
+                putJsonObject("data") {
+                    put("name", character.name)
+                    put("description", character.description)
+                    put("personality", character.personality)
+                    put("scenario", character.scenario)
+                    put("first_mes", character.firstMes)
+                    put("mes_example", character.mesExample)
+                    put("creator_notes", data?.creatorNotes ?: "")
+                    put("system_prompt", data?.systemPrompt ?: "")
+                    put("post_history_instructions", data?.postHistoryInstructions ?: "")
+                    putJsonArray("alternate_greetings") {
+                        data?.alternateGreetings?.forEach { add(JsonPrimitive(it)) }
+                    }
+                    putJsonArray("tags") {
+                        data?.tags?.forEach { add(JsonPrimitive(it)) }
+                    }
+                    put("creator", data?.creator ?: "")
+                    put("character_version", data?.characterVersion ?: "1.0")
+                    // 生态命名空间透传保真：保留原样，可为 null 时直接省略该键
+                    val extensions = data?.extensions
+                    if (extensions != null) put("extensions", extensions)
                 }
-                putJsonArray("tags") {
-                    data?.tags?.forEach { add(JsonPrimitive(it)) }
-                }
-                put("creator", data?.creator ?: "")
-                put("character_version", data?.characterVersion ?: "1.0")
-                // 生态命名空间透传保真：保留原样，可为 null 时直接省略该键
-                val extensions = data?.extensions
-                if (extensions != null) put("extensions", extensions)
             }
-        }
         val json = Json { prettyPrint = true }
         return json.encodeToString(JsonObject.serializer(), v2)
     }
@@ -102,14 +107,14 @@ object CharacterExporter {
     fun exportToJson(
         context: Context,
         character: Character,
-        fileName: String = buildFileName(character.name, character.id, CharacterExportFormat.JSON.extension)
+        fileName: String = buildFileName(character.name, character.id, CharacterExportFormat.JSON.extension),
     ): CharacterExportResult? {
         return try {
             saveBytes(
                 context = context,
                 fileName = fileName,
                 mimeType = CharacterExportFormat.JSON.mimeType,
-                bytes = buildV2Json(character).toByteArray(Charsets.UTF_8)
+                bytes = buildV2Json(character).toByteArray(Charsets.UTF_8),
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -120,7 +125,7 @@ object CharacterExporter {
     fun exportToPng(
         context: Context,
         character: Character,
-        fileName: String = buildFileName(character.name, character.id, CharacterExportFormat.PNG.extension)
+        fileName: String = buildFileName(character.name, character.id, CharacterExportFormat.PNG.extension),
     ): CharacterExportResult? {
         return try {
             val bitmap = renderCharacterBitmap(context, character)
@@ -129,17 +134,18 @@ object CharacterExporter {
             bitmap.recycle()
 
             // 在 PNG 的 tEXt chunk 中埋入 v2 卡片 JSON（Base64），供 SillyTavern 生态导入
-            val pngBytes = PngCard.insertTextChunk(
-                output.toByteArray(),
-                PngCard.CHUNK_KEYWORD,
-                PngCard.encodeCardJson(buildV2Json(character))
-            )
+            val pngBytes =
+                PngCard.insertTextChunk(
+                    output.toByteArray(),
+                    PngCard.CHUNK_KEYWORD,
+                    PngCard.encodeCardJson(buildV2Json(character)),
+                )
 
             saveBytes(
                 context = context,
                 fileName = fileName,
                 mimeType = CharacterExportFormat.PNG.mimeType,
-                bytes = pngBytes
+                bytes = pngBytes,
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -151,26 +157,28 @@ object CharacterExporter {
         context: Context,
         fileName: String,
         mimeType: String,
-        bytes: ByteArray
+        bytes: ByteArray,
     ): CharacterExportResult? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                put(
-                    MediaStore.MediaColumns.RELATIVE_PATH,
-                    "${Environment.DIRECTORY_DOWNLOADS}/$EXPORT_FOLDER"
-                )
-            }
+            val values =
+                ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    put(
+                        MediaStore.MediaColumns.RELATIVE_PATH,
+                        "${Environment.DIRECTORY_DOWNLOADS}/$EXPORT_FOLDER",
+                    )
+                }
             val resolver = context.contentResolver
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
             resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return null
             CharacterExportResult(uri, fileName, displayLocation(fileName), mimeType)
         } else {
-            val dir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                EXPORT_FOLDER
-            )
+            val dir =
+                File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    EXPORT_FOLDER,
+                )
             if (!dir.exists()) dir.mkdirs()
             val file = File(dir, fileName)
             file.writeBytes(bytes)
@@ -178,8 +186,12 @@ object CharacterExporter {
         }
     }
 
-    private fun renderCharacterBitmap(context: Context, character: Character): Bitmap {
+    private fun renderCharacterBitmap(
+        context: Context,
+        character: Character,
+    ): Bitmap {
         val density = context.resources.displayMetrics.density
+
         fun dp(value: Int): Int = (value * density).roundToInt()
 
         val width = 1080
@@ -190,22 +202,29 @@ object CharacterExporter {
         val textStart = cardPadding + avatarSize + dp(24)
         val textWidth = contentWidth - avatarSize - dp(24)
 
-        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(24, 24, 27)
-            textSize = dp(27).toFloat()
-            isFakeBoldText = true
-        }
-        val sectionPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(82, 82, 91)
-            textSize = dp(14).toFloat()
-            isFakeBoldText = true
-        }
-        val bodyPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(63, 63, 70)
-            textSize = dp(16).toFloat()
-        }
+        val titlePaint =
+            TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(24, 24, 27)
+                textSize = dp(27).toFloat()
+                isFakeBoldText = true
+            }
+        val sectionPaint =
+            TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(82, 82, 91)
+                textSize = dp(14).toFloat()
+                isFakeBoldText = true
+            }
+        val bodyPaint =
+            TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(63, 63, 70)
+                textSize = dp(16).toFloat()
+            }
 
-        fun layout(text: String, paint: TextPaint, maxWidth: Int): StaticLayout {
+        fun layout(
+            text: String,
+            paint: TextPaint,
+            maxWidth: Int,
+        ): StaticLayout {
             val safeText = text.ifBlank { " " }
             return StaticLayout.Builder
                 .obtain(safeText, 0, safeText.length, paint, maxWidth)
@@ -233,22 +252,24 @@ object CharacterExporter {
         val avatarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = parseColor(character.color, Color.rgb(103, 80, 164)) }
 
         canvas.drawColor(bgPaint.color)
-        val cardRect = RectF(
-            pagePadding.toFloat(),
-            pagePadding.toFloat(),
-            (width - pagePadding).toFloat(),
-            (pagePadding + cardHeight).toFloat()
-        )
+        val cardRect =
+            RectF(
+                pagePadding.toFloat(),
+                pagePadding.toFloat(),
+                (width - pagePadding).toFloat(),
+                (pagePadding + cardHeight).toFloat(),
+            )
         canvas.drawRoundRect(cardRect, dp(28).toFloat(), dp(28).toFloat(), cardPaint)
 
         val avatarLeft = pagePadding + cardPadding
         val avatarTop = pagePadding + cardPadding
-        val avatarRect = RectF(
-            avatarLeft.toFloat(),
-            avatarTop.toFloat(),
-            (avatarLeft + avatarSize).toFloat(),
-            (avatarTop + avatarSize).toFloat()
-        )
+        val avatarRect =
+            RectF(
+                avatarLeft.toFloat(),
+                avatarTop.toFloat(),
+                (avatarLeft + avatarSize).toFloat(),
+                (avatarTop + avatarSize).toFloat(),
+            )
 
         val avatarBitmap = ImageUtils.dataUriToBitmap(character.avatarData)
         if (avatarBitmap != null) {
@@ -260,21 +281,22 @@ object CharacterExporter {
                         avatarRect,
                         avatarSize / 2f,
                         avatarSize / 2f,
-                        Path.Direction.CW
+                        Path.Direction.CW,
                     )
-                }
+                },
             )
             canvas.drawBitmap(scaled, avatarLeft.toFloat(), avatarTop.toFloat(), null)
             canvas.restore()
             scaled.recycle()
         } else {
             canvas.drawOval(avatarRect, avatarPaint)
-            val initialPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.WHITE
-                textSize = dp(46).toFloat()
-                textAlign = Paint.Align.CENTER
-                isFakeBoldText = true
-            }
+            val initialPaint =
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.WHITE
+                    textSize = dp(46).toFloat()
+                    textAlign = Paint.Align.CENTER
+                    isFakeBoldText = true
+                }
             val centerY = avatarRect.centerY() - (initialPaint.descent() + initialPaint.ascent()) / 2
             canvas.drawText(character.name.take(1).ifBlank { "?" }, avatarRect.centerX(), centerY, initialPaint)
         }
@@ -319,7 +341,10 @@ object CharacterExporter {
         return bitmap
     }
 
-    private fun parseColor(value: String, fallback: Int): Int {
+    private fun parseColor(
+        value: String,
+        fallback: Int,
+    ): Int {
         return try {
             android.graphics.Color.parseColor(value)
         } catch (_: Exception) {

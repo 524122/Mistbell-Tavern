@@ -15,5 +15,5 @@ data class LlmConfig(
     val frequencyPenalty: Double? = null,
     // S1 请求策略：超时秒数（钳制 15..600）与重试次数（钳制 0..5）
     val timeoutSeconds: Int = 90,
-    val retries: Int = 2
+    val retries: Int = 2,
 )

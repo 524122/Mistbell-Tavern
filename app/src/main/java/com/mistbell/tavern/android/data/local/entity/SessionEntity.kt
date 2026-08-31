@@ -11,8 +11,8 @@ import com.mistbell.tavern.android.data.api.model.SessionSummary
     indices = [
         Index(value = ["owner_id", "updated_at"]),
         Index(value = ["owner_id", "is_pinned", "updated_at"]),
-        Index(value = ["owner_id", "character_id", "updated_at"])
-    ]
+        Index(value = ["owner_id", "character_id", "updated_at"]),
+    ],
 )
 data class SessionEntity(
     @ColumnInfo(name = "id") val id: String,
@@ -37,18 +37,19 @@ data class SessionEntity(
     @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = "",
     // 会话附加指令（作者注释）：非空时经宏渲染注入到历史之后、最终用户消息之前；
     // 迁移 DDL 的 DEFAULT '' 必须与此 defaultValue 一致（见 AppDatabase.MIGRATION_11_12）
-    @ColumnInfo(name = "author_note", defaultValue = "") val authorNote: String = ""
+    @ColumnInfo(name = "author_note", defaultValue = "") val authorNote: String = "",
 ) {
     fun participantCharacterIds(): List<String> {
-        val decoded = try {
-            if (participantCharacterIdsJson.isNotBlank()) {
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(participantCharacterIdsJson)
-            } else {
+        val decoded =
+            try {
+                if (participantCharacterIdsJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(participantCharacterIdsJson)
+                } else {
+                    emptyList()
+                }
+            } catch (_: Exception) {
                 emptyList()
             }
-        } catch (_: Exception) {
-            emptyList()
-        }
 
         return (decoded.ifEmpty { listOf(characterId) })
             .filter { it.isNotBlank() }
@@ -57,31 +58,38 @@ data class SessionEntity(
             .ifEmpty { listOf(characterId) }
     }
 
-    fun toDomain(): SessionSummary = SessionSummary(
-        id = id,
-        title = title,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        messageCount = messageCount,
-        characterId = characterId,
-        characterName = null
-    )
+    fun toDomain(): SessionSummary =
+        SessionSummary(
+            id = id,
+            title = title,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            messageCount = messageCount,
+            characterId = characterId,
+            characterName = null,
+        )
 
     companion object {
         private const val MAX_PARTICIPANT_CHARACTERS = 4
 
         fun encodeParticipantCharacterIds(ids: Collection<String>): String {
-            val normalized = ids
-                .filter { it.isNotBlank() }
-                .distinct()
-                .take(MAX_PARTICIPANT_CHARACTERS)
-            val serializer = kotlinx.serialization.builtins.ListSerializer(
-                kotlinx.serialization.serializer<String>()
-            )
+            val normalized =
+                ids
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .take(MAX_PARTICIPANT_CHARACTERS)
+            val serializer =
+                kotlinx.serialization.builtins.ListSerializer(
+                    kotlinx.serialization.serializer<String>(),
+                )
             return kotlinx.serialization.json.Json.encodeToString(serializer, normalized)
         }
 
-        fun fromDomain(s: SessionSummary, ownerId: String, characterId: String): SessionEntity {
+        fun fromDomain(
+            s: SessionSummary,
+            ownerId: String,
+            characterId: String,
+        ): SessionEntity {
             return SessionEntity(
                 id = s.id,
                 ownerId = ownerId,
@@ -93,7 +101,7 @@ data class SessionEntity(
                 providerId = "",
                 modelId = "",
                 worldBookId = "",
-                summaryJson = ""
+                summaryJson = "",
             )
         }
     }

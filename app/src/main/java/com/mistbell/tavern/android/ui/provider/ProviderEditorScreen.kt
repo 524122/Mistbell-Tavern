@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -16,23 +15,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.ui.components.*
-import com.mistbell.tavern.android.ui.theme.AccentBlue
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
 private val TYPE_OPTIONS = listOf("openai" to "OpenAI", "anthropic" to "Anthropic", "google" to "Google", "custom" to "自定义")
-private val ENDPOINT_PLACEHOLDERS = mapOf(
-    "openai" to "https://api.openai.com/v1",
-    "anthropic" to "https://api.anthropic.com",
-    "google" to "https://generativelanguage.googleapis.com/v1",
-    "custom" to "自定义端点地址"
-)
+private val ENDPOINT_PLACEHOLDERS =
+    mapOf(
+        "openai" to "https://api.openai.com/v1",
+        "anthropic" to "https://api.anthropic.com",
+        "google" to "https://generativelanguage.googleapis.com/v1",
+        "custom" to "自定义端点地址",
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProviderEditorScreen(
     providerId: String?,
     onBack: () -> Unit,
-    viewModel: ProviderViewModel = viewModel()
+    viewModel: ProviderViewModel = viewModel(),
 ) {
     val form by viewModel.form.collectAsState()
     val fetchedModels by viewModel.fetchedModels.collectAsState()
@@ -61,19 +60,23 @@ fun ProviderEditorScreen(
     }
 
     LaunchedEffect(message) {
-        message?.let { snackbarHostState.showSnackbar(it); viewModel.clearMessage() }
+        message?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .clearFocusOnTap(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .clearFocusOnTap(),
         topBar = {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", modifier = Modifier.size(22.dp))
@@ -82,12 +85,15 @@ fun ProviderEditorScreen(
                             if (providerId != null && providerId != "new") "编辑提供商" else "新增提供商",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         Button(
-                            onClick = { viewModel.saveProvider(); onBack() },
+                            onClick = {
+                                viewModel.saveProvider()
+                                onBack()
+                            },
                             enabled = form.name.isNotBlank(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
                         ) { Text("保存") }
                     }
                     HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -95,12 +101,12 @@ fun ProviderEditorScreen(
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Name
             item {
@@ -110,7 +116,7 @@ fun ProviderEditorScreen(
                     value = form.name,
                     onValueChange = { viewModel.updateForm { copy(name = it) } },
                     label = "提供商名称",
-                    placeholder = "我的 OpenAI"
+                    placeholder = "我的 OpenAI",
                 )
             }
 
@@ -127,12 +133,13 @@ fun ProviderEditorScreen(
                         label = { Text("接口类型") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     )
                     ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
                         TYPE_OPTIONS.forEach { (key, label) ->
                             DropdownMenuItem(text = { Text(label) }, onClick = {
-                                viewModel.updateForm { copy(type = key) }; typeExpanded = false
+                                viewModel.updateForm { copy(type = key) }
+                                typeExpanded = false
                             })
                         }
                     }
@@ -147,7 +154,7 @@ fun ProviderEditorScreen(
                     value = form.endpoint,
                     onValueChange = { viewModel.updateForm { copy(endpoint = it) } },
                     label = "API 端点",
-                    placeholder = ENDPOINT_PLACEHOLDERS[form.type] ?: ""
+                    placeholder = ENDPOINT_PLACEHOLDERS[form.type] ?: "",
                 )
             }
 
@@ -167,7 +174,7 @@ fun ProviderEditorScreen(
                         TextButton(onClick = { showKey = !showKey }) {
                             Text(if (showKey) "隐藏" else "显示", style = MaterialTheme.typography.labelSmall)
                         }
-                    }
+                    },
                 )
             }
 
@@ -180,10 +187,14 @@ fun ProviderEditorScreen(
                         onClick = { viewModel.fetchModels() },
                         enabled = !isFetchingModels && form.endpoint.isNotBlank() && form.apiKey.isNotBlank(),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         if (isFetchingModels) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
                         } else {
                             Text("获取模型列表")
                         }
@@ -192,7 +203,7 @@ fun ProviderEditorScreen(
                         onClick = { viewModel.testConnection() },
                         enabled = form.endpoint.isNotBlank() && form.apiKey.isNotBlank(),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("测试连接")
                     }
@@ -202,7 +213,7 @@ fun ProviderEditorScreen(
                     Text(
                         if (it) "✓ 连接成功" else "✗ 连接失败",
                         color = if (it) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
@@ -218,12 +229,13 @@ fun ProviderEditorScreen(
                             label = { Text("模型") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
                         )
                         ExposedDropdownMenu(expanded = modelExpanded, onDismissRequest = { modelExpanded = false }) {
                             fetchedModels.forEach { model ->
                                 DropdownMenuItem(text = { Text(model, style = MaterialTheme.typography.bodySmall) }, onClick = {
-                                    viewModel.updateForm { copy(selectedModel = model) }; modelExpanded = false
+                                    viewModel.updateForm { copy(selectedModel = model) }
+                                    modelExpanded = false
                                 })
                             }
                         }
@@ -233,7 +245,7 @@ fun ProviderEditorScreen(
                         value = form.selectedModel,
                         onValueChange = { viewModel.updateForm { copy(selectedModel = it) } },
                         label = "模型名称",
-                        placeholder = "gpt-4o"
+                        placeholder = "gpt-4o",
                     )
                 }
             }
@@ -243,12 +255,12 @@ fun ProviderEditorScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("1M 上下文", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Switch(
                         checked = form.context1M,
-                        onCheckedChange = { viewModel.updateForm { copy(context1M = it) } }
+                        onCheckedChange = { viewModel.updateForm { copy(context1M = it) } },
                     )
                 }
             }
@@ -259,14 +271,14 @@ fun ProviderEditorScreen(
                 var advExpanded by remember { mutableStateOf(false) }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         SectionHeader("高级参数（可选，覆盖全局预设）")
                         Text(
                             "留空表示不覆盖，使用设置页的全局采样预设",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     TextButton(onClick = { advExpanded = !advExpanded }) {
@@ -279,36 +291,40 @@ fun ProviderEditorScreen(
                     SamplingSliderRow(
                         label = "温度 temperature",
                         value = form.temperature,
-                        range = 0f..2f, steps = 39,
-                        onValueChange = { v -> viewModel.updateForm { copy(temperature = v) } }
+                        range = 0f..2f,
+                        steps = 39,
+                        onValueChange = { v -> viewModel.updateForm { copy(temperature = v) } },
                     )
                     // top_p 0..1
                     SamplingSliderRow(
                         label = "top_p",
                         value = form.topP,
-                        range = 0f..1f, steps = 19,
-                        onValueChange = { v -> viewModel.updateForm { copy(topP = v) } }
+                        range = 0f..1f,
+                        steps = 19,
+                        onValueChange = { v -> viewModel.updateForm { copy(topP = v) } },
                     )
                     // top_k 0..200（0 = 不设）
                     SamplingSliderRow(
                         label = "top_k",
                         value = form.topK?.toDouble(),
-                        range = 0f..200f, steps = 39,
+                        range = 0f..200f,
+                        steps = 39,
                         onValueChange = { v ->
                             viewModel.updateForm { copy(topK = v?.toInt()?.takeIf { it > 0 }) }
-                        }
+                        },
                     )
                     // 重复惩罚 0..2
                     SamplingSliderRow(
                         label = "重复惩罚 frequency_penalty",
                         value = form.frequencyPenalty,
-                        range = 0f..2f, steps = 39,
-                        onValueChange = { v -> viewModel.updateForm { copy(frequencyPenalty = v) } }
+                        range = 0f..2f,
+                        steps = 39,
+                        onValueChange = { v -> viewModel.updateForm { copy(frequencyPenalty = v) } },
                     )
                     // max tokens（数值输入，空 = 不设）
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         FormTextField(
                             value = form.maxTokens?.toString() ?: "",
@@ -318,7 +334,7 @@ fun ProviderEditorScreen(
                             label = "max tokens",
                             placeholder = "不限制",
                             keyboardType = KeyboardType.Number,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         if (form.maxTokens != null) {
                             TextButton(onClick = { viewModel.updateForm { copy(maxTokens = null) } }) {
@@ -334,9 +350,11 @@ fun ProviderEditorScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 SectionHeader("高级模型设置")
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("为不同功能配置独立的模型",
+                Text(
+                    "为不同功能配置独立的模型",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             item {
@@ -344,7 +362,7 @@ fun ProviderEditorScreen(
                     value = form.embeddingModel,
                     onValueChange = { viewModel.updateForm { copy(embeddingModel = it) } },
                     label = "嵌入模型",
-                    placeholder = "text-embedding-3-small"
+                    placeholder = "text-embedding-3-small",
                 )
             }
             item {
@@ -352,7 +370,7 @@ fun ProviderEditorScreen(
                     value = form.summaryModel,
                     onValueChange = { viewModel.updateForm { copy(summaryModel = it) } },
                     label = "摘要模型",
-                    placeholder = "gpt-4o-mini"
+                    placeholder = "gpt-4o-mini",
                 )
             }
             item {
@@ -360,7 +378,7 @@ fun ProviderEditorScreen(
                     value = form.memoryModel,
                     onValueChange = { viewModel.updateForm { copy(memoryModel = it) } },
                     label = "记忆模型",
-                    placeholder = "gpt-4o-mini"
+                    placeholder = "gpt-4o-mini",
                 )
             }
         }
@@ -373,13 +391,16 @@ fun ProviderEditorScreen(
             title = { Text("丢弃更改？") },
             text = { Text("你有未保存的更改，确定要离开吗？") },
             confirmButton = {
-                TextButton(onClick = { showDiscardDialog = false; onBack() }) {
+                TextButton(onClick = {
+                    showDiscardDialog = false
+                    onBack()
+                }) {
                     Text("丢弃", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) { Text("继续编辑") }
-            }
+            },
         )
     }
 }
@@ -394,12 +415,12 @@ private fun SamplingSliderRow(
     value: Double?,
     range: ClosedFloatingPointRange<Float>,
     steps: Int,
-    onValueChange: (Double?) -> Unit
+    onValueChange: (Double?) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.weight(1f))
@@ -408,7 +429,7 @@ private fun SamplingSliderRow(
                     if (it == it.toLong().toDouble()) "%d".format(it.toLong()) else "%.2f".format(it)
                 } ?: "未设置",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (value != null) {
                 TextButton(onClick = { onValueChange(null) }) {
@@ -420,7 +441,7 @@ private fun SamplingSliderRow(
             value = (value?.toFloat() ?: range.start).coerceIn(range.start, range.endInclusive),
             onValueChange = { onValueChange(it.toDouble()) },
             valueRange = range,
-            steps = steps
+            steps = steps,
         )
     }
 }

@@ -10,8 +10,8 @@ import com.mistbell.tavern.android.data.api.model.Message
     tableName = "messages",
     indices = [
         Index(value = ["session_id", "created_at"]),
-        Index(value = ["session_id", "owner_id", "character_id"])
-    ]
+        Index(value = ["session_id", "owner_id", "character_id"]),
+    ],
 )
 data class MessageEntity(
     @PrimaryKey val id: String,
@@ -26,20 +26,30 @@ data class MessageEntity(
     @ColumnInfo(name = "swipes_json") val swipesJson: String,
     @ColumnInfo(name = "swipe_index") val swipeIndex: Int,
     @ColumnInfo(name = "thinking_swipes_json") val thinkingSwipesJson: String,
-    @ColumnInfo(name = "is_read", defaultValue = "1") val isRead: Boolean = true
+    @ColumnInfo(name = "is_read", defaultValue = "1") val isRead: Boolean = true,
 ) {
     fun toDomain(): Message {
-        val memoryIds = try {
-            if (memoryIdsJson.isNotBlank())
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(memoryIdsJson)
-            else null
-        } catch (_: Exception) { null }
+        val memoryIds =
+            try {
+                if (memoryIdsJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(memoryIdsJson)
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
 
-        val swipes = try {
-            if (swipesJson.isNotBlank())
-                kotlinx.serialization.json.Json.decodeFromString<List<String>>(swipesJson)
-            else null
-        } catch (_: Exception) { null }
+        val swipes =
+            try {
+                if (swipesJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(swipesJson)
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
 
         return Message(
             id = id,
@@ -49,12 +59,17 @@ data class MessageEntity(
             createdAt = createdAt,
             memoryIds = memoryIds,
             swipes = swipes,
-            swipeIndex = swipeIndex
+            swipeIndex = swipeIndex,
         )
     }
 
     companion object {
-        fun fromDomain(m: Message, sessionId: String, ownerId: String, characterId: String): MessageEntity {
+        fun fromDomain(
+            m: Message,
+            sessionId: String,
+            ownerId: String,
+            characterId: String,
+        ): MessageEntity {
             val json = kotlinx.serialization.json.Json
             val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
             val memIds = m.memoryIds?.let { json.encodeToString(stringListSerializer, it) } ?: ""
@@ -71,7 +86,7 @@ data class MessageEntity(
                 memoryIdsJson = memIds,
                 swipesJson = swipes,
                 swipeIndex = m.swipeIndex,
-                thinkingSwipesJson = ""
+                thinkingSwipesJson = "",
             )
         }
     }

@@ -15,15 +15,25 @@ import java.util.zip.CRC32
  * 故不引入 pngj 依赖（见 docs/FOUNDATION.md 参考纪律——工具件够薄就自持）。
  */
 object PngCard {
-
     const val CHUNK_KEYWORD = "chara"
 
-    private val PNG_SIGNATURE = byteArrayOf(
-        0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-    )
+    private val PNG_SIGNATURE =
+        byteArrayOf(
+            0x89.toByte(),
+            0x50,
+            0x4E,
+            0x47,
+            0x0D,
+            0x0A,
+            0x1A,
+            0x0A,
+        )
 
     /** 读取指定关键字的 tEXt chunk 文本（Latin-1）；无则返回 null；非 PNG/结构损坏抛 IllegalArgumentException */
-    fun readTextChunk(png: ByteArray, keyword: String = CHUNK_KEYWORD): String? {
+    fun readTextChunk(
+        png: ByteArray,
+        keyword: String = CHUNK_KEYWORD,
+    ): String? {
         requireSignature(png)
         var offset = PNG_SIGNATURE.size
         var result: String? = null
@@ -53,7 +63,11 @@ object PngCard {
      * 在 IEND 前插入（或替换同关键字）tEXt chunk，返回新 PNG 字节。
      * 非 PNG / 无 IEND 抛 IllegalArgumentException。
      */
-    fun insertTextChunk(png: ByteArray, keyword: String = CHUNK_KEYWORD, text: String): ByteArray {
+    fun insertTextChunk(
+        png: ByteArray,
+        keyword: String = CHUNK_KEYWORD,
+        text: String,
+    ): ByteArray {
         requireSignature(png)
         // tEXt 是 Latin-1 通道：中文等非 Latin-1 字符会被静默替换成 '?'——
         // 快速失败引导调用方走 base64（真实用法见 encodeCardJson）
@@ -68,7 +82,10 @@ object PngCard {
         while (offset + 8 <= cleaned.size) {
             val length = readU32(cleaned, offset)
             val type = String(cleaned, offset + 4, 4, Charsets.US_ASCII)
-            if (type == "IEND") { iendOffset = offset; break }
+            if (type == "IEND") {
+                iendOffset = offset
+                break
+            }
             offset += 8 + length + 4
         }
         require(iendOffset >= 0) { "PNG 缺少 IEND 结束块" }
@@ -84,9 +101,10 @@ object PngCard {
         writeU32(chunk, 0, data.size)
         System.arraycopy("tEXt".toByteArray(Charsets.US_ASCII), 0, chunk, 4, 4)
         System.arraycopy(data, 0, chunk, 8, data.size)
-        val crc = CRC32().apply {
-            update(chunk, 4, 4 + data.size) // type + data
-        }
+        val crc =
+            CRC32().apply {
+                update(chunk, 4, 4 + data.size) // type + data
+            }
         writeU32(chunk, 8 + data.size, crc.value.toInt())
 
         val out = ByteArray(cleaned.size + chunk.size)
@@ -98,21 +116,26 @@ object PngCard {
     }
 
     /** base64 解码卡片 JSON（容错：仅清理空白字符后重试一次），失败返回 null */
-    fun decodeCardJson(base64Text: String): String? = try {
-        Base64.getDecoder().decode(base64Text).toString(Charsets.UTF_8)
-    } catch (_: IllegalArgumentException) {
+    fun decodeCardJson(base64Text: String): String? =
         try {
-            Base64.getDecoder().decode(base64Text.replace(Regex("\\s"), "")).toString(Charsets.UTF_8)
-        } catch (_: Exception) { null }
-    }
+            Base64.getDecoder().decode(base64Text).toString(Charsets.UTF_8)
+        } catch (_: IllegalArgumentException) {
+            try {
+                Base64.getDecoder().decode(base64Text.replace(Regex("\\s"), "")).toString(Charsets.UTF_8)
+            } catch (_: Exception) {
+                null
+            }
+        }
 
     /** base64 编码（标准无换行，全生态可读） */
-    fun encodeCardJson(json: String): String =
-        Base64.getEncoder().encodeToString(json.toByteArray(Charsets.UTF_8))
+    fun encodeCardJson(json: String): String = Base64.getEncoder().encodeToString(json.toByteArray(Charsets.UTF_8))
 
     // ---- 内部 ----
 
-    private fun removeAllTextChunks(png: ByteArray, keyword: String): ByteArray {
+    private fun removeAllTextChunks(
+        png: ByteArray,
+        keyword: String,
+    ): ByteArray {
         val out = java.io.ByteArrayOutputStream()
         out.write(png, 0, PNG_SIGNATURE.size)
         var offset = PNG_SIGNATURE.size
@@ -140,13 +163,20 @@ object PngCard {
         }
     }
 
-    private fun readU32(bytes: ByteArray, offset: Int): Int =
+    private fun readU32(
+        bytes: ByteArray,
+        offset: Int,
+    ): Int =
         ((bytes[offset].toInt() and 0xFF) shl 24) or
-        ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
-        ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
-        (bytes[offset + 3].toInt() and 0xFF)
+            ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
+            ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
+            (bytes[offset + 3].toInt() and 0xFF)
 
-    private fun writeU32(bytes: ByteArray, offset: Int, value: Int) {
+    private fun writeU32(
+        bytes: ByteArray,
+        offset: Int,
+        value: Int,
+    ) {
         bytes[offset] = (value ushr 24).toByte()
         bytes[offset + 1] = (value ushr 16).toByte()
         bytes[offset + 2] = (value ushr 8).toByte()

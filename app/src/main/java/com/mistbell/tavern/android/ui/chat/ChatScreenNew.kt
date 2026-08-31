@@ -1,7 +1,6 @@
 package com.mistbell.tavern.android.ui.chat
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,7 +31,7 @@ import java.util.*
 fun ChatScreenNew(
     viewModel: ChatViewModel,
     onBack: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
 ) {
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
@@ -51,30 +50,33 @@ fun ChatScreenNew(
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .clearFocusOnTap(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .clearFocusOnTap(),
         containerColor = backgroundColor,
         topBar = {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(surfaceColor)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(surfaceColor),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .height(56.dp)
-                        .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .height(56.dp)
+                            .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // Back button
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
 
@@ -83,25 +85,27 @@ fun ChatScreenNew(
                     // Character avatar with online indicator
                     Box {
                         Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(parseCharColor(currentCharacter?.color)),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(parseCharColor(currentCharacter?.color)),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = getCharacterEmoji(currentCharacter?.name ?: ""),
-                                fontSize = 24.sp
+                                fontSize = 24.sp,
                             )
                         }
 
                         if (isOnline) {
                             Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .align(Alignment.BottomEnd)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF34C759))
+                                modifier =
+                                    Modifier
+                                        .size(10.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF34C759)),
                             )
                         }
                     }
@@ -110,7 +114,7 @@ fun ChatScreenNew(
 
                     // Character name and status
                     Column(
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text(
                             text = currentCharacter?.name ?: "暮铃",
@@ -118,15 +122,15 @@ fun ChatScreenNew(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = if (isOnline) "在线" else "离线",
                                 fontSize = 12.sp,
-                                color = Color(0xFF8E8E93)
+                                color = Color(0xFF8E8E93),
                             )
                             if (currentCharacter?.role?.isNotBlank() == true) {
                                 Text(
@@ -134,7 +138,7 @@ fun ChatScreenNew(
                                     fontSize = 12.sp,
                                     color = Color(0xFF8E8E93),
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
@@ -145,7 +149,7 @@ fun ChatScreenNew(
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "设置",
-                            tint = Color(0xFF8E8E93)
+                            tint = Color(0xFF8E8E93),
                         )
                     }
                 }
@@ -161,18 +165,19 @@ fun ChatScreenNew(
                         messageInput = ""
                     }
                 },
-                enabled = !isTyping
+                enabled = !isTyping,
             )
-        }
+        },
     ) { paddingValues ->
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            contentPadding = PaddingValues(vertical = 16.dp),
         ) {
             // Group messages by date and add date headers
             val groupedMessages = messages.groupBy { getDateGroup(it.createdAt) }
@@ -182,18 +187,19 @@ fun ChatScreenNew(
                     // Date header
                     Box(
                         modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = date,
                             fontSize = 12.sp,
                             color = Color(0xFF8E8E93),
-                            modifier = Modifier
-                                .background(
-                                    color = Color(0xFFE5E5EA),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                            modifier =
+                                Modifier
+                                    .background(
+                                        color = Color(0xFFE5E5EA),
+                                        shape = RoundedCornerShape(12.dp),
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
                 }
@@ -204,7 +210,7 @@ fun ChatScreenNew(
                         characterName = currentCharacter?.name ?: "",
                         characterColor = currentCharacter?.color ?: "",
                         onRegenerate = { viewModel.regenerateMessage(message.id) },
-                        onDelete = { /* Delete message */ }
+                        onDelete = { /* Delete message */ },
                     )
                 }
             }
@@ -212,7 +218,7 @@ fun ChatScreenNew(
             if (isTyping) {
                 item {
                     TypingIndicatorNew(
-                        characterColor = currentCharacter?.color ?: ""
+                        characterColor = currentCharacter?.color ?: "",
                     )
                 }
             }
@@ -226,26 +232,27 @@ fun MessageBubbleNew(
     characterName: String,
     characterColor: String,
     onRegenerate: () -> Unit = {},
-    onDelete: () -> Unit = {}
+    onDelete: () -> Unit = {},
 ) {
     val isUser = message.role == "user"
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         if (!isUser) {
             // AI avatar
             Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(parseCharColor(characterColor)),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(parseCharColor(characterColor)),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = getCharacterEmoji(characterName),
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
                 )
             }
 
@@ -254,27 +261,29 @@ fun MessageBubbleNew(
 
         Column(
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier.widthIn(max = 280.dp),
         ) {
             // Message bubble
             Box(
-                modifier = Modifier
-                    .background(
-                        color = if (isUser) Color(0xFF007AFF) else MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(
-                            topStart = if (isUser) 18.dp else 4.dp,
-                            topEnd = if (isUser) 4.dp else 18.dp,
-                            bottomStart = 18.dp,
-                            bottomEnd = 18.dp
+                modifier =
+                    Modifier
+                        .background(
+                            color = if (isUser) Color(0xFF007AFF) else MaterialTheme.colorScheme.surface,
+                            shape =
+                                RoundedCornerShape(
+                                    topStart = if (isUser) 18.dp else 4.dp,
+                                    topEnd = if (isUser) 4.dp else 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp,
+                                ),
                         )
-                    )
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
                 Text(
                     text = message.content,
                     fontSize = 15.sp,
                     color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 20.sp
+                    lineHeight = 20.sp,
                 )
             }
 
@@ -283,18 +292,18 @@ fun MessageBubbleNew(
             // Time and status
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+                horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
             ) {
                 Text(
                     text = formatMessageTime(message.createdAt),
                     fontSize = 11.sp,
-                    color = Color(0xFF8E8E93)
+                    color = Color(0xFF8E8E93),
                 )
                 if (isUser) {
                     Text(
                         text = " · 已发送",
                         fontSize = 11.sp,
-                        color = Color(0xFF8E8E93)
+                        color = Color(0xFF8E8E93),
                     )
                 }
             }
@@ -303,23 +312,23 @@ fun MessageBubbleNew(
             if (!isUser) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     MessageActionButton(
                         icon = Icons.Default.Refresh,
-                        onClick = onRegenerate
+                        onClick = onRegenerate,
                     )
                     MessageActionButton(
                         icon = Icons.Default.Edit,
-                        onClick = { /* Edit */ }
+                        onClick = { /* Edit */ },
                     )
                     MessageActionButton(
                         icon = Icons.Default.ContentCopy,
-                        onClick = { /* Copy */ }
+                        onClick = { /* Copy */ },
                     )
                     MessageActionButton(
                         icon = Icons.Default.Delete,
-                        onClick = onDelete
+                        onClick = onDelete,
                     )
                 }
             }
@@ -330,17 +339,18 @@ fun MessageBubbleNew(
 
             // User indicator
             Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF007AFF)),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF007AFF)),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "我",
                     fontSize = 14.sp,
                     color = Color.White,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
             }
         }
@@ -350,17 +360,17 @@ fun MessageBubbleNew(
 @Composable
 fun MessageActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(28.dp)
+        modifier = Modifier.size(28.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = Color(0xFFC7C7CC),
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(16.dp),
         )
     }
 }
@@ -370,19 +380,21 @@ fun ChatInputBar(
     message: String,
     onMessageChange: (String) -> Unit,
     onSend: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background),
     ) {
         // Suggestion chips
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SuggestionChip(text = "换个更暖味一点的语气")
             SuggestionChip(text = "继续推进剧情")
@@ -391,20 +403,21 @@ fun ChatInputBar(
 
         // Input row
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Add button
             IconButton(
                 onClick = { /* Add attachment */ },
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "添加",
-                    tint = Color(0xFF8E8E93)
+                    tint = Color(0xFF8E8E93),
                 )
             }
 
@@ -412,29 +425,31 @@ fun ChatInputBar(
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 36.dp, max = 120.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 36.dp, max = 120.dp),
                 placeholder = {
                     Text(
                         text = "输入消息...",
                         fontSize = 15.sp,
-                        color = Color(0xFFC7C7CC)
+                        color = Color(0xFFC7C7CC),
                     )
                 },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    ),
                 shape = RoundedCornerShape(20.dp),
                 enabled = enabled,
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp)
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp),
             )
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -445,12 +460,12 @@ fun ChatInputBar(
                 modifier = Modifier.size(36.dp),
                 containerColor = Color(0xFF007AFF),
                 contentColor = Color.White,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "发送",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
@@ -461,21 +476,23 @@ fun ChatInputBar(
 fun RowScope.SuggestionChip(text: String) {
     Button(
         onClick = { /* Handle suggestion */ },
-        modifier = Modifier
-            .weight(1f)
-            .height(32.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
+        modifier =
+            Modifier
+                .weight(1f)
+                .height(32.dp),
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
         shape = RoundedCornerShape(16.dp),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
     ) {
         Text(
             text = text,
             fontSize = 12.sp,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -484,14 +501,15 @@ fun RowScope.SuggestionChip(text: String) {
 fun TypingIndicatorNew(characterColor: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
+        horizontalArrangement = Arrangement.Start,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(parseCharColor(characterColor)),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(parseCharColor(characterColor)),
+            contentAlignment = Alignment.Center,
         ) {
             Text(text = "...", fontSize = 20.sp)
         }
@@ -499,14 +517,15 @@ fun TypingIndicatorNew(characterColor: String) {
         Spacer(modifier = Modifier.width(8.dp))
 
         Box(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(18.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+            modifier =
+                Modifier
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(18.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             Text(
                 text = "正在输入...",
                 fontSize = 15.sp,
-                color = Color(0xFF8E8E93)
+                color = Color(0xFF8E8E93),
             )
         }
     }
@@ -521,12 +540,13 @@ private fun parseCharColor(colorString: String?): Color {
 }
 
 private fun getCharacterEmoji(name: String): String {
-    val emojiMap = mapOf(
-        "米拉" to "❄️",
-        "个男人的女性修仙界" to "🌍",
-        "Seraphina" to "👩",
-        "酒馆旧梦" to "🍷"
-    )
+    val emojiMap =
+        mapOf(
+            "米拉" to "❄️",
+            "个男人的女性修仙界" to "🌍",
+            "Seraphina" to "👩",
+            "酒馆旧梦" to "🍷",
+        )
     return emojiMap[name] ?: "✨"
 }
 
@@ -541,7 +561,7 @@ private fun getDateGroup(timestamp: String): String {
 
         when {
             now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) &&
-            now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR) ->
+                now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR) ->
                 "今天 · ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)}"
             else -> SimpleDateFormat("M月d日", Locale.getDefault()).format(date)
         }

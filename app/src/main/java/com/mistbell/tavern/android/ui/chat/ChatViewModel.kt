@@ -10,8 +10,6 @@ import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ProviderRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
-import com.mistbell.tavern.android.data.sync.SyncManager
-import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
 import kotlinx.coroutines.CancellationException
@@ -43,7 +41,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val streamingText: StateFlow<String?> = _streamingText.asStateFlow()
 
     // 用户主动停止生成（取消当前 LLM 流式请求）
-    fun stopGeneration() { generationJob?.cancel() }
+    fun stopGeneration() {
+        generationJob?.cancel()
+    }
 
     private val _characters = MutableStateFlow<List<Character>>(emptyList())
     val characters: StateFlow<List<Character>> = _characters
@@ -70,49 +70,62 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _navigationEvent = MutableStateFlow<String?>(null)
     val navigationEvent: StateFlow<String?> = _navigationEvent
 
-    fun navigateTo(route: String) { _navigationEvent.value = route }
-    fun clearNavigationEvent() { _navigationEvent.value = null }
+    fun navigateTo(route: String) {
+        _navigationEvent.value = route
+    }
+
+    fun clearNavigationEvent() {
+        _navigationEvent.value = null
+    }
 
     // Provider/Model state
-    val providers: StateFlow<List<ProviderConfig>> = providerRepo.observeProviders()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val activeModelId: StateFlow<String> = providerRepo.observeActiveModelId()
-        .stateIn(viewModelScope, SharingStarted.Lazily, "")
-    val activeProviderId: StateFlow<String> = providerRepo.observeActiveProviderId()
-        .stateIn(viewModelScope, SharingStarted.Lazily, "")
+    val providers: StateFlow<List<ProviderConfig>> =
+        providerRepo.observeProviders()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val activeModelId: StateFlow<String> =
+        providerRepo.observeActiveModelId()
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+    val activeProviderId: StateFlow<String> =
+        providerRepo.observeActiveProviderId()
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
     // World book state
-    val worldBooks: StateFlow<List<WorldBook>> = worldBookRepo.observeWorldBooks()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val worldBooks: StateFlow<List<WorldBook>> =
+        worldBookRepo.observeWorldBooks()
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     private val _activeWorldBookId = MutableStateFlow("")
     val activeWorldBookId: StateFlow<String> = _activeWorldBookId
 
     // 主题包状态：应用链为 会话 → 角色 → 全局（ThemeSupport 内逐层回落）
     // 双键驱动：会话 id + 角色 id 任一变化都重新解析（tokens / 背景图共用同一条解析链）
-    private val sessionCharacterKey: Flow<Pair<String, String?>> = combine(
-        _activeSessionId,
-        _currentCharacter.map { it?.id }.distinctUntilChanged()
-    ) { sid, cid -> sid to cid }
-        .distinctUntilChanged()
+    private val sessionCharacterKey: Flow<Pair<String, String?>> =
+        combine(
+            _activeSessionId,
+            _currentCharacter.map { it?.id }.distinctUntilChanged(),
+        ) { sid, cid -> sid to cid }
+            .distinctUntilChanged()
 
-    val characterTokens: StateFlow<ThemeTokens?> = sessionCharacterKey
-        .flatMapLatest { (sid, cid) ->
-            themeRepo.observeResolvedPack(sid, cid)
-                .map { pack -> pack?.let { ThemeSupport.parseTokens(it.tokensJson) } }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val characterTokens: StateFlow<ThemeTokens?> =
+        sessionCharacterKey
+            .flatMapLatest { (sid, cid) ->
+                themeRepo.observeResolvedPack(sid, cid)
+                    .map { pack -> pack?.let { ThemeSupport.parseTokens(it.tokensJson) } }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // 背景图与 tokens 走同一条"会话→角色→全局"应用链（解析出命中的包实体再取背景文件）
-    val characterBackgroundFile: StateFlow<java.io.File?> = sessionCharacterKey
-        .flatMapLatest { (sid, cid) ->
-            themeRepo.observeResolvedPack(sid, cid)
-                .map { pack -> pack?.let { themeRepo.backgroundFile(it) } }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val characterBackgroundFile: StateFlow<java.io.File?> =
+        sessionCharacterKey
+            .flatMapLatest { (sid, cid) ->
+                themeRepo.observeResolvedPack(sid, cid)
+                    .map { pack -> pack?.let { themeRepo.backgroundFile(it) } }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val darkModeSetting: StateFlow<String> = db.settingsDao().observeValue("dark_mode")
-        .map { it ?: "system" }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
+    val darkModeSetting: StateFlow<String> =
+        db.settingsDao().observeValue("dark_mode")
+            .map { it ?: "system" }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
 
     var ownerId = "local-user"
         private set
@@ -130,7 +143,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // 用户如果需要同步可以手动触发
     }
 
-    private fun loadLocalState(characterId: String? = null, sessionId: String? = null) {
+    private fun loadLocalState(
+        characterId: String? = null,
+        sessionId: String? = null,
+    ) {
         val charId = characterId ?: _currentCharacterId
 
         // Observe characters
@@ -182,19 +198,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // 统一的消息观察入口：先取消旧 job，再启动新观察，防止多流竞写 _messages
-    private fun startObservingMessages(ownerId: String, characterId: String, sessionId: String) {
+    private fun startObservingMessages(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
         messageObserverJob?.cancel()
-        messageObserverJob = viewModelScope.launch {
-            if (sessionId.isNotBlank() && characterId.isNotBlank()) {
-                repo.observeMessages(ownerId, characterId, sessionId).collect { msgs ->
-                    _messages.value = msgs
+        messageObserverJob =
+            viewModelScope.launch {
+                if (sessionId.isNotBlank() && characterId.isNotBlank()) {
+                    repo.observeMessages(ownerId, characterId, sessionId).collect { msgs ->
+                        _messages.value = msgs
+                    }
                 }
             }
-        }
     }
 
     // 公共方法：加载指定会话
-    fun loadSession(sessionId: String, characterId: String) {
+    fun loadSession(
+        sessionId: String,
+        characterId: String,
+    ) {
         android.util.Log.d("ChatViewModel", "loadSession called: sessionId=$sessionId, characterId=$characterId")
         android.util.Log.d("ChatViewModel", "Before set: _activeSessionId=${_activeSessionId.value}")
 
@@ -207,26 +231,28 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _isSessionExplicitlySet = true
         android.util.Log.d("ChatViewModel", "After set: _activeSessionId=${_activeSessionId.value}")
 
-        characterObserverJob = viewModelScope.launch {
-            combine(
-                repo.observeCharacters(),
-                db.sessionDao().observeById(sessionId)
-            ) { chars, session ->
-                chars to session
-            }.collect { (chars, session) ->
-                _characters.value = chars
-                val target = chars.find { it.id == characterId }
-                if (target != null) {
-                    _currentCharacter.value = target
-                    android.util.Log.d("ChatViewModel", "Character loaded: ${target.name}")
-                }
+        characterObserverJob =
+            viewModelScope.launch {
+                combine(
+                    repo.observeCharacters(),
+                    db.sessionDao().observeById(sessionId),
+                ) { chars, session ->
+                    chars to session
+                }.collect { (chars, session) ->
+                    _characters.value = chars
+                    val target = chars.find { it.id == characterId }
+                    if (target != null) {
+                        _currentCharacter.value = target
+                        android.util.Log.d("ChatViewModel", "Character loaded: ${target.name}")
+                    }
 
-                val participantIds = session?.participantCharacterIds() ?: listOf(characterId)
-                _participantCharacters.value = participantIds
-                    .mapNotNull { id -> chars.find { it.id == id } }
-                    .ifEmpty { target?.let { listOf(it) } ?: emptyList() }
+                    val participantIds = session?.participantCharacterIds() ?: listOf(characterId)
+                    _participantCharacters.value =
+                        participantIds
+                            .mapNotNull { id -> chars.find { it.id == id } }
+                            .ifEmpty { target?.let { listOf(it) } ?: emptyList() }
+                }
             }
-        }
 
         // 加载消息
         startObservingMessages(ownerId, characterId, sessionId)
@@ -242,28 +268,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         android.util.Log.d("ChatViewModel", "  _isSessionExplicitlySet=$_isSessionExplicitlySet")
 
         // 存入 generationJob 以支持"停止生成"；onPartial 把累计全文推给 UI 流式渲染
-        generationJob = viewModelScope.launch {
-            _isTyping.value = true
-            try {
-                repo.sendMessage(
-                    ownerId = ownerId,
-                    characterId = char.id,
-                    sessionId = _activeSessionId.value,
-                    message = content,
-                    onPartial = { _streamingText.value = it }
-                )
-                android.util.Log.d("ChatViewModel", "Message sent successfully")
-            } catch (e: CancellationException) {
-                // 用户主动停止不是错误：直接上抛，不写 _error
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ChatViewModel", "Failed to send message", e)
-                _error.value = "发送失败: ${e.message}"
-            } finally {
-                _isTyping.value = false
-                _streamingText.value = null
+        generationJob =
+            viewModelScope.launch {
+                _isTyping.value = true
+                try {
+                    repo.sendMessage(
+                        ownerId = ownerId,
+                        characterId = char.id,
+                        sessionId = _activeSessionId.value,
+                        message = content,
+                        onPartial = { _streamingText.value = it },
+                    )
+                    android.util.Log.d("ChatViewModel", "Message sent successfully")
+                } catch (e: CancellationException) {
+                    // 用户主动停止不是错误：直接上抛，不写 _error
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ChatViewModel", "Failed to send message", e)
+                    _error.value = "发送失败: ${e.message}"
+                } finally {
+                    _isTyping.value = false
+                    _streamingText.value = null
+                }
             }
-        }
     }
 
     fun undoLastMessage() {
@@ -291,21 +318,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun regenerateMessage(messageId: String) {
         val char = _currentCharacter.value ?: return
         // 存入 generationJob 以支持"停止生成"；onPartial 把累计全文推给 UI 流式渲染
-        generationJob = viewModelScope.launch {
-            _isTyping.value = true
-            try {
-                repo.regenerateMessage(ownerId, char.id, _activeSessionId.value, messageId,
-                    onPartial = { _streamingText.value = it })
-            } catch (e: CancellationException) {
-                // 用户主动停止不是错误：直接上抛，不写 _error
-                throw e
-            } catch (e: Exception) {
-                _error.value = "重新生成失败: ${e.message}"
-            } finally {
-                _isTyping.value = false
-                _streamingText.value = null
+        generationJob =
+            viewModelScope.launch {
+                _isTyping.value = true
+                try {
+                    repo.regenerateMessage(
+                        ownerId, char.id, _activeSessionId.value, messageId,
+                        onPartial = { _streamingText.value = it },
+                    )
+                } catch (e: CancellationException) {
+                    // 用户主动停止不是错误：直接上抛，不写 _error
+                    throw e
+                } catch (e: Exception) {
+                    _error.value = "重新生成失败: ${e.message}"
+                } finally {
+                    _isTyping.value = false
+                    _streamingText.value = null
+                }
             }
-        }
     }
 
     fun continueMessage() {
@@ -322,7 +352,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun swipeMessage(messageId: String, direction: String) {
+    fun swipeMessage(
+        messageId: String,
+        direction: String,
+    ) {
         val char = _currentCharacter.value ?: return
         viewModelScope.launch {
             try {
@@ -382,13 +415,19 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun copyMessage(content: String) {
-        val clipboard = getApplication<Application>().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clipboard =
+            getApplication<Application>().getSystemService(
+                android.content.Context.CLIPBOARD_SERVICE,
+            ) as android.content.ClipboardManager
         val clip = android.content.ClipData.newPlainText("message", content)
         clipboard.setPrimaryClip(clip)
         _toast.value = "已复制"
     }
 
-    fun switchModel(providerId: String, modelId: String) {
+    fun switchModel(
+        providerId: String,
+        modelId: String,
+    ) {
         viewModelScope.launch { providerRepo.setActiveProvider(providerId, modelId) }
     }
 

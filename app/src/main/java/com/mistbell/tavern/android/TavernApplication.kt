@@ -8,7 +8,6 @@ import com.mistbell.tavern.android.data.vector.*
 import com.mistbell.tavern.android.util.SecureStore
 
 class TavernApplication : Application() {
-
     val database: AppDatabase by lazy {
         AppDatabase.getInstance(this)
     }
@@ -43,7 +42,7 @@ class TavernApplication : Application() {
                 OpenAIEmbeddingService(
                     apiKey = apiKey,
                     baseUrl = baseUrl,
-                    model = "text-embedding-3-small"
+                    model = "text-embedding-3-small",
                 )
             } else {
                 // 无 key：不用伪向量，注入 Mock 占位（available=false，调用方走词法回退）
@@ -60,7 +59,7 @@ class TavernApplication : Application() {
         try {
             VectorMemoryService(
                 vectorStore = vectorStore,
-                embeddingService = embeddingService
+                embeddingService = embeddingService,
             ).also {
                 Log.d(TAG, "Vector memory service initialized (lazy)")
             }

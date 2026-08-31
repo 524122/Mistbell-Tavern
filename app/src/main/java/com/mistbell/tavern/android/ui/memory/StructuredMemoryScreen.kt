@@ -1,6 +1,5 @@
 package com.mistbell.tavern.android.ui.memory
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,11 +31,13 @@ fun StructuredMemoryScreen(
     characterId: String? = null,
     sessionId: String? = null,
     onBack: () -> Unit,
-    viewModel: StructuredMemoryViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as android.app.Application
-        )
-    )
+    viewModel: StructuredMemoryViewModel =
+        viewModel(
+            factory =
+                ViewModelProvider.AndroidViewModelFactory.getInstance(
+                    LocalContext.current.applicationContext as android.app.Application,
+                ),
+        ),
 ) {
     val memories by viewModel.memories.collectAsState()
     val typeFilter by viewModel.typeFilter.collectAsState()
@@ -61,53 +62,55 @@ fun StructuredMemoryScreen(
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 "返回",
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                         Text(
                             text = "记忆管理",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                     }
 
                     // 类型过滤器
                     LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         item {
                             FilterChip(
                                 selected = typeFilter == null,
                                 onClick = { viewModel.setTypeFilter(null) },
-                                label = { Text("全部") }
+                                label = { Text("全部") },
                             )
                         }
                         items(MemoryType.getAll()) { type ->
                             FilterChip(
                                 selected = typeFilter == type,
                                 onClick = { viewModel.setTypeFilter(type) },
-                                label = { Text(MemoryType.getDescription(type)) }
+                                label = { Text(MemoryType.getDescription(type)) },
                             )
                         }
                     }
 
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
             }
@@ -116,40 +119,42 @@ fun StructuredMemoryScreen(
             FloatingActionButton(
                 onClick = { viewModel.showCreateDialog() },
                 containerColor = AccentBlue,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
                 Icon(Icons.Default.Add, "新建记忆")
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         if (memories.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "暂无记忆",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(memories) { memory ->
                     MemoryCard(
                         memory = memory,
                         onEdit = { viewModel.editMemory(memory) },
-                        onDelete = { viewModel.deleteMemory(memory.id) }
+                        onDelete = { viewModel.deleteMemory(memory.id) },
                     )
                 }
             }
@@ -166,7 +171,7 @@ fun StructuredMemoryScreen(
                 } else {
                     viewModel.createMemory(type, title, content, importance, tags)
                 }
-            }
+            },
         )
     }
 }
@@ -175,35 +180,36 @@ fun StructuredMemoryScreen(
 fun MemoryCard(
     memory: StructuredMemory,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     // 类型标签
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(4.dp),
                     ) {
                         Text(
                             text = MemoryType.getDescription(memory.memoryType),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         )
                     }
 
@@ -216,7 +222,7 @@ fun MemoryCard(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
@@ -227,25 +233,25 @@ fun MemoryCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
 
                     // 标签
                     if (memory.tags.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             items(memory.tags) { tag ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondaryContainer,
-                                    shape = RoundedCornerShape(4.dp)
+                                    shape = RoundedCornerShape(4.dp),
                                 ) {
                                     Text(
                                         text = tag,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     )
                                 }
                             }
@@ -256,30 +262,30 @@ fun MemoryCard(
 
                     // 元数据
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(
                             text = "重要性: ${memory.importance}/10",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = "访问: ${memory.accessCount}次",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
 
                 // 操作按钮
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     IconButton(onClick = onEdit) {
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "编辑",
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
@@ -287,7 +293,7 @@ fun MemoryCard(
                             Icons.Default.Delete,
                             contentDescription = "删除",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -305,7 +311,7 @@ fun MemoryCard(
                     onClick = {
                         onDelete()
                         showDeleteDialog = false
-                    }
+                    },
                 ) {
                     Text("删除", color = MaterialTheme.colorScheme.error)
                 }
@@ -314,7 +320,7 @@ fun MemoryCard(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("取消")
                 }
-            }
+            },
         )
     }
 }
@@ -324,7 +330,7 @@ fun MemoryCard(
 fun MemoryEditDialog(
     memory: StructuredMemory?,
     onDismiss: () -> Unit,
-    onSave: (type: String, title: String, content: String, importance: Int, tags: List<String>) -> Unit
+    onSave: (type: String, title: String, content: String, importance: Int, tags: List<String>) -> Unit,
 ) {
     var selectedType by remember { mutableStateOf(memory?.memoryType ?: MemoryType.FACT) }
     var title by remember { mutableStateOf(memory?.title ?: "") }
@@ -337,16 +343,17 @@ fun MemoryEditDialog(
         title = { Text(if (memory != null) "编辑记忆" else "新建记忆") },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // 类型选择
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = expanded,
-                    onExpandedChange = { expanded = it }
+                    onExpandedChange = { expanded = it },
                 ) {
                     OutlinedTextField(
                         value = MemoryType.getDescription(selectedType),
@@ -354,14 +361,15 @@ fun MemoryEditDialog(
                         readOnly = true,
                         label = { Text("类型") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     )
 
                     ExposedDropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onDismissRequest = { expanded = false },
                     ) {
                         MemoryType.getAll().forEach { type ->
                             DropdownMenuItem(
@@ -369,7 +377,7 @@ fun MemoryEditDialog(
                                 onClick = {
                                     selectedType = type
                                     expanded = false
-                                }
+                                },
                             )
                         }
                     }
@@ -380,7 +388,7 @@ fun MemoryEditDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("标题（可选）") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 // 内容
@@ -390,20 +398,20 @@ fun MemoryEditDialog(
                     label = { Text("内容") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
-                    maxLines = 5
+                    maxLines = 5,
                 )
 
                 // 重要性
                 Column {
                     Text(
                         text = "重要性: $importance",
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
                     )
                     Slider(
                         value = importance.toFloat(),
                         onValueChange = { importance = it.toInt() },
                         valueRange = 1f..10f,
-                        steps = 8
+                        steps = 8,
                     )
                 }
 
@@ -412,7 +420,7 @@ fun MemoryEditDialog(
                     value = tagsText,
                     onValueChange = { tagsText = it },
                     label = { Text("标签（逗号分隔）") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
@@ -422,7 +430,7 @@ fun MemoryEditDialog(
                     val tags = tagsText.split(",").map { it.trim() }.filter { it.isNotBlank() }
                     onSave(selectedType, title, content, importance, tags)
                 },
-                enabled = content.isNotBlank()
+                enabled = content.isNotBlank(),
             ) {
                 Text("保存")
             }
@@ -431,6 +439,6 @@ fun MemoryEditDialog(
             TextButton(onClick = onDismiss) {
                 Text("取消")
             }
-        }
+        },
     )
 }

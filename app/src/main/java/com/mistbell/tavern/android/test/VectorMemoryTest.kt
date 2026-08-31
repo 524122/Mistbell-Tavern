@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
-import com.mistbell.tavern.android.data.api.model.VectorMemory
 import com.mistbell.tavern.android.data.repository.StructuredMemoryRepository
 import com.mistbell.tavern.android.data.repository.retrieveForConversation
 import kotlinx.coroutines.delay
@@ -16,7 +15,6 @@ import java.time.Instant
  * 用于验证向量存储、Embedding 服务和记忆检索功能
  */
 object VectorMemoryTest {
-
     private const val TAG = "VectorMemoryTest"
 
     /**
@@ -33,22 +31,24 @@ object VectorMemoryTest {
             vectorStore.add(
                 id = "test_vector_1",
                 vector = testVector,
-                metadata = mapOf(
-                    "content" to "这是测试内容",
-                    "owner_id" to "test_user",
-                    "character_id" to "test_char",
-                    "session_id" to "test_session"
-                )
+                metadata =
+                    mapOf(
+                        "content" to "这是测试内容",
+                        "owner_id" to "test_user",
+                        "character_id" to "test_char",
+                        "session_id" to "test_session",
+                    ),
             )
 
             Log.d(TAG, "✓ 向量添加成功")
 
             // 检索向量
-            val results = vectorStore.search(
-                queryVector = testVector,
-                topK = 5,
-                filters = mapOf("owner_id" to "test_user")
-            )
+            val results =
+                vectorStore.search(
+                    queryVector = testVector,
+                    topK = 5,
+                    filters = mapOf("owner_id" to "test_user"),
+                )
 
             Log.d(TAG, "✓ 找到 ${results.size} 个结果")
             results.forEach { result ->
@@ -61,7 +61,6 @@ object VectorMemoryTest {
             } else {
                 Log.e(TAG, "❌ 测试1失败：相似度不正确")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ 测试1失败：${e.message}", e)
         }
@@ -90,7 +89,6 @@ object VectorMemoryTest {
             } else {
                 Log.e(TAG, "❌ 测试2失败：维度不正确")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ 测试2失败：${e.message}", e)
         }
@@ -113,7 +111,7 @@ object VectorMemoryTest {
                 characterId = "test_char",
                 sessionId = "test_session",
                 messageId = messageId1,
-                contentType = "user_message"  // VectorMemory.ContentType.USER_MESSAGE
+                contentType = "user_message", // VectorMemory.ContentType.USER_MESSAGE
             )
 
             Log.d(TAG, "✓ 消息1存储成功")
@@ -125,7 +123,7 @@ object VectorMemoryTest {
                 characterId = "test_char",
                 sessionId = "test_session",
                 messageId = messageId2,
-                contentType = "user_message"  // VectorMemory.ContentType.USER_MESSAGE
+                contentType = "user_message", // VectorMemory.ContentType.USER_MESSAGE
             )
 
             Log.d(TAG, "✓ 消息2存储成功")
@@ -134,13 +132,14 @@ object VectorMemoryTest {
             delay(500)
 
             // 语义检索
-            val results = vectorMemoryService.searchRelevantMemories(
-                query = "你知道我的职业吗？",
-                ownerId = "test_user",
-                characterId = "test_char",
-                sessionId = "test_session",
-                topK = 5
-            )
+            val results =
+                vectorMemoryService.searchRelevantMemories(
+                    query = "你知道我的职业吗？",
+                    ownerId = "test_user",
+                    characterId = "test_char",
+                    sessionId = "test_session",
+                    topK = 5,
+                )
 
             Log.d(TAG, "✓ 找到 ${results.size} 个相关记忆")
             results.forEach { result ->
@@ -153,7 +152,6 @@ object VectorMemoryTest {
             } else {
                 Log.e(TAG, "❌ 测试3失败：未找到相关记忆")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ 测试3失败：${e.message}", e)
         }
@@ -169,25 +167,26 @@ object VectorMemoryTest {
             val structuredMemoryRepo = StructuredMemoryRepository(context)
 
             // 创建测试记忆
-            val memory = StructuredMemory(
-                id = 0,
-                ownerId = "test_user",
-                characterId = "test_char",
-                sessionId = null,
-                title = "用户职业信息",
-                content = "用户是一名资深软件工程师，专注于 Android 开发",
-                memoryType = "character_info",
-                importance = 9,
-                tags = listOf("职业", "技能"),
-                keywords = listOf("软件工程师", "Android"),
-                structuredData = null,
-                createdAt = Instant.now().toString(),
-                updatedAt = Instant.now().toString(),
-                lastAccessedAt = null,
-                accessCount = 0,
-                relatedMessageIds = emptyList(),
-                sourceType = "manual"
-            )
+            val memory =
+                StructuredMemory(
+                    id = 0,
+                    ownerId = "test_user",
+                    characterId = "test_char",
+                    sessionId = null,
+                    title = "用户职业信息",
+                    content = "用户是一名资深软件工程师，专注于 Android 开发",
+                    memoryType = "character_info",
+                    importance = 9,
+                    tags = listOf("职业", "技能"),
+                    keywords = listOf("软件工程师", "Android"),
+                    structuredData = null,
+                    createdAt = Instant.now().toString(),
+                    updatedAt = Instant.now().toString(),
+                    lastAccessedAt = null,
+                    accessCount = 0,
+                    relatedMessageIds = emptyList(),
+                    sourceType = "manual",
+                )
 
             val memoryId = structuredMemoryRepo.createMemory(memory)
             Log.d(TAG, "✓ 创建记忆成功：ID=$memoryId")
@@ -196,11 +195,12 @@ object VectorMemoryTest {
             delay(500)
 
             // 检索记忆
-            val retrieved = structuredMemoryRepo.retrieveForConversation(
-                ownerId = "test_user",
-                characterId = "test_char",
-                userMessage = "我的工作是什么？"
-            )
+            val retrieved =
+                structuredMemoryRepo.retrieveForConversation(
+                    ownerId = "test_user",
+                    characterId = "test_char",
+                    userMessage = "我的工作是什么？",
+                )
 
             Log.d(TAG, "✓ 检索到 ${retrieved.size} 条记忆")
             retrieved.forEach { mem ->
@@ -217,7 +217,6 @@ object VectorMemoryTest {
             } else {
                 Log.e(TAG, "❌ 测试4失败：未检索到创建的记忆")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ 测试4失败：${e.message}", e)
         }
@@ -239,7 +238,7 @@ object VectorMemoryTest {
                 characterId = "test_char",
                 sessionId = "session_A",
                 messageId = "msg_a_1",
-                contentType = "user_message"  // VectorMemory.ContentType.USER_MESSAGE
+                contentType = "user_message", // VectorMemory.ContentType.USER_MESSAGE
             )
 
             Log.d(TAG, "✓ 会话A存储消息")
@@ -251,7 +250,7 @@ object VectorMemoryTest {
                 characterId = "test_char",
                 sessionId = "session_B",
                 messageId = "msg_b_1",
-                contentType = "user_message"  // VectorMemory.ContentType.USER_MESSAGE
+                contentType = "user_message", // VectorMemory.ContentType.USER_MESSAGE
             )
 
             Log.d(TAG, "✓ 会话B存储消息")
@@ -259,13 +258,14 @@ object VectorMemoryTest {
             delay(500)
 
             // 在会话B中检索（不应该找到会话A的消息）
-            val resultsB = vectorMemoryService.searchRelevantMemories(
-                query = "我有什么爱好？",
-                ownerId = "test_user",
-                characterId = "test_char",
-                sessionId = "session_B",  // 限定会话B
-                topK = 5
-            )
+            val resultsB =
+                vectorMemoryService.searchRelevantMemories(
+                    query = "我有什么爱好？",
+                    ownerId = "test_user",
+                    characterId = "test_char",
+                    sessionId = "session_B", // 限定会话B
+                    topK = 5,
+                )
 
             Log.d(TAG, "✓ 会话B检索结果：")
             resultsB.forEach { result ->
@@ -281,7 +281,6 @@ object VectorMemoryTest {
             } else {
                 Log.e(TAG, "❌ 测试5失败：检索到了其他会话的消息")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ 测试5失败：${e.message}", e)
         }

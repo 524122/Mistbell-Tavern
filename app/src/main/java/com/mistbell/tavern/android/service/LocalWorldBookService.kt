@@ -1,6 +1,5 @@
 package com.mistbell.tavern.android.service
 
-import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.service.models.ActivatedEntry
 import kotlin.random.Random
@@ -12,7 +11,6 @@ import kotlin.random.Random
  * 负责根据关键词激活世界书条目
  */
 class LocalWorldBookService {
-
     companion object {
         private const val DEFAULT_PROBABILITY = 1.0
         private const val DEFAULT_MAX_BUDGET = 8000
@@ -29,7 +27,7 @@ class LocalWorldBookService {
     fun activateEntries(
         entries: List<WorldBookEntryEntity>,
         scanText: String,
-        maxBudget: Int = DEFAULT_MAX_BUDGET
+        maxBudget: Int = DEFAULT_MAX_BUDGET,
     ): List<ActivatedEntry> {
         val activated = mutableListOf<ActivatedEntry>()
         var usedBudget = 0
@@ -45,11 +43,16 @@ class LocalWorldBookService {
             val isConstant = entry.constant
 
             // 解析关键词
-            val keys = try {
-                if (entry.keysJson.isNotBlank())
-                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(entry.keysJson)
-                else emptyList()
-            } catch (_: Exception) { emptyList() }
+            val keys =
+                try {
+                    if (entry.keysJson.isNotBlank()) {
+                        kotlinx.serialization.json.Json.decodeFromString<List<String>>(entry.keysJson)
+                    } else {
+                        emptyList()
+                    }
+                } catch (_: Exception) {
+                    emptyList()
+                }
 
             // 检查关键词匹配
             val keyMatched = isConstant || matchKeywords(keys, scanText)
@@ -74,8 +77,8 @@ class LocalWorldBookService {
                     depth = null,
                     order = entry.order,
                     probability = 1.0,
-                    enabled = true
-                )
+                    enabled = true,
+                ),
             )
 
             usedBudget += entrySize
@@ -91,7 +94,10 @@ class LocalWorldBookService {
      * @param text 要搜索的文本
      * @return 是否有任一关键词匹配
      */
-    fun matchKeywords(keys: List<String>, text: String): Boolean {
+    fun matchKeywords(
+        keys: List<String>,
+        text: String,
+    ): Boolean {
         if (keys.isEmpty()) return false
 
         val lowerText = text.lowercase()
@@ -112,9 +118,10 @@ class LocalWorldBookService {
             } else {
                 // 普通字符串匹配（支持通配符 *）
                 if (lowerKey.contains("*")) {
-                    val pattern = lowerKey
-                        .replace("*", ".*")
-                        .let { ".*$it.*" }
+                    val pattern =
+                        lowerKey
+                            .replace("*", ".*")
+                            .let { ".*$it.*" }
                     try {
                         val regex = Regex(pattern, RegexOption.IGNORE_CASE)
                         regex.matches(lowerText)
@@ -184,7 +191,7 @@ class LocalWorldBookService {
     fun buildScanText(
         userMessage: String,
         recentMessages: List<String> = emptyList(),
-        maxMessages: Int = 5
+        maxMessages: Int = 5,
     ): String {
         return buildString {
             // 用户当前消息

@@ -2,7 +2,6 @@ package com.mistbell.tavern.android.data.repository
 
 import android.util.Log
 import com.mistbell.tavern.android.TavernApplication
-import com.mistbell.tavern.android.data.api.model.VectorMemory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +24,7 @@ fun storeUserMessageVector(
     ownerId: String,
     characterId: String,
     sessionId: String,
-    messageId: String
+    messageId: String,
 ) {
     // F3-FTS: 无真实 embedding 服务（available=false）时不写伪向量，杜绝新增坏数据（孤儿向量）
     if (!TavernApplication.instance.vectorMemoryService.available) return
@@ -41,7 +40,7 @@ fun storeUserMessageVector(
                 characterId = characterId,
                 sessionId = sessionId,
                 messageId = messageId,
-                contentType = "user_message"  // VectorMemory.ContentType.USER_MESSAGE
+                contentType = "user_message", // VectorMemory.ContentType.USER_MESSAGE
             )
 
             Log.d(TAG, "Stored user message vector: $messageId")
@@ -60,7 +59,7 @@ fun storeAssistantMessageVector(
     ownerId: String,
     characterId: String,
     sessionId: String,
-    messageId: String
+    messageId: String,
 ) {
     // F3-FTS: 无真实 embedding 服务（available=false）时不写伪向量，杜绝新增坏数据（孤儿向量）
     if (!TavernApplication.instance.vectorMemoryService.available) return
@@ -76,7 +75,7 @@ fun storeAssistantMessageVector(
                 characterId = characterId,
                 sessionId = sessionId,
                 messageId = messageId,
-                contentType = "ai_message"  // VectorMemory.ContentType.AI_MESSAGE
+                contentType = "ai_message", // VectorMemory.ContentType.AI_MESSAGE
             )
 
             Log.d(TAG, "Stored assistant message vector: $messageId")

@@ -12,48 +12,37 @@ import com.mistbell.tavern.android.data.api.model.VectorMemory
         Index(value = ["owner_id", "character_id", "session_id"]),
         Index(value = ["message_id"]),
         Index(value = ["vector_id"]),
-        Index(value = ["created_at"])
-    ]
+        Index(value = ["created_at"]),
+    ],
 )
 data class VectorMemoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-
     @ColumnInfo(name = "owner_id")
     val ownerId: String,
-
     @ColumnInfo(name = "character_id")
     val characterId: String,
-
     @ColumnInfo(name = "session_id")
     val sessionId: String,
-
     @ColumnInfo(name = "message_id")
     val messageId: String?,
-
     // 内容
     val content: String,
-
     @ColumnInfo(name = "content_type")
     val contentType: String, // user_message, ai_message, summary
-
     // 向量数据引用
     @ColumnInfo(name = "vector_id")
     val vectorId: String?, // Chroma中的ID
-
     @ColumnInfo(name = "embedding_model")
     val embeddingModel: String = "text-embedding-3-small",
-
     // 元数据
     @ColumnInfo(name = "importance_score")
     val importanceScore: Float = 1.0f,
-
     @ColumnInfo(name = "token_count")
     val tokenCount: Int?,
-
     // 时间信息
     @ColumnInfo(name = "created_at")
-    val createdAt: String
+    val createdAt: String,
 ) {
     fun toDomain(): VectorMemory {
         return VectorMemory(
@@ -68,7 +57,7 @@ data class VectorMemoryEntity(
             embeddingModel = embeddingModel,
             importanceScore = importanceScore,
             tokenCount = tokenCount,
-            createdAt = createdAt
+            createdAt = createdAt,
         )
     }
 
@@ -86,7 +75,7 @@ data class VectorMemoryEntity(
                 embeddingModel = memory.embeddingModel,
                 importanceScore = memory.importanceScore,
                 tokenCount = memory.tokenCount,
-                createdAt = memory.createdAt
+                createdAt = memory.createdAt,
             )
         }
     }

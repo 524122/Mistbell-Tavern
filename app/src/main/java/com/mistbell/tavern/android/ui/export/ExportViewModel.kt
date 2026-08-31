@@ -24,11 +24,17 @@ class ExportViewModel(application: Application) : AndroidViewModel(application) 
     val message: StateFlow<String?> = _message
 
     fun exportCharacters() = exportData("characters") { api.exportCharacters() }
+
     fun exportWorldBook() = exportData("worldbook") { api.exportWorldBook() }
+
     fun exportMemories() = exportData("memories") { api.exportMemories() }
+
     fun exportConversations() = exportData("conversations") { api.exportConversations() }
 
-    private fun exportData(name: String, fetch: suspend () -> JsonElement) {
+    private fun exportData(
+        name: String,
+        fetch: suspend () -> JsonElement,
+    ) {
         viewModelScope.launch {
             _isExporting.value = true
             try {
@@ -42,18 +48,20 @@ class ExportViewModel(application: Application) : AndroidViewModel(application) 
                 val file = File(exportDir, fileName)
                 file.writeText(json)
 
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
+                val uri =
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file,
+                    )
 
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/json"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_TITLE, fileName)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
+                val intent =
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_TITLE, fileName)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
                 context.startActivity(Intent.createChooser(intent, "导出 $name"))
 
                 _message.value = "已导出 $fileName"
@@ -65,5 +73,7 @@ class ExportViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun clearMessage() { _message.value = null }
+    fun clearMessage() {
+        _message.value = null
+    }
 }

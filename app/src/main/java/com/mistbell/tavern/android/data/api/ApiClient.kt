@@ -19,14 +19,16 @@ object ApiClient {
     // 否则 check-then-act 竞态会重复创建实例或读到半初始化引用
     @Volatile
     private var retrofit: Retrofit? = null
+
     @Volatile
     private var api: TavernApi? = null
 
-    val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-        coerceInputValues = true
-    }
+    val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            coerceInputValues = true
+        }
 
     fun getApi(context: Context): TavernApi {
         api?.let { return it }
@@ -36,28 +38,32 @@ object ApiClient {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val baseUrl = normalizeUrl(prefs.getString(KEY_SERVER_URL, DEFAULT_URL) ?: DEFAULT_URL)
 
-            val logging = HttpLoggingInterceptor().apply {
-                // BODY 级会把完整请求头（含 Authorization 密钥）与请求体打进 logcat，
-                // 仅在 debug 构建保留 BASIC 级别的诊断信息，release 一律关闭
-                level = if (BuildConfig.DEBUG) {
-                    HttpLoggingInterceptor.Level.BASIC
-                } else {
-                    HttpLoggingInterceptor.Level.NONE
+            val logging =
+                HttpLoggingInterceptor().apply {
+                    // BODY 级会把完整请求头（含 Authorization 密钥）与请求体打进 logcat，
+                    // 仅在 debug 构建保留 BASIC 级别的诊断信息，release 一律关闭
+                    level =
+                        if (BuildConfig.DEBUG) {
+                            HttpLoggingInterceptor.Level.BASIC
+                        } else {
+                            HttpLoggingInterceptor.Level.NONE
+                        }
                 }
-            }
 
-            val client = OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(90, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .addInterceptor(logging)
-                .build()
+            val client =
+                OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(90, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .addInterceptor(logging)
+                    .build()
 
-            retrofit = Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .client(client)
-                .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-                .build()
+            retrofit =
+                Retrofit.Builder()
+                    .baseUrl(baseUrl)
+                    .client(client)
+                    .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+                    .build()
 
             api = retrofit!!.create(TavernApi::class.java)
             api!!
@@ -69,7 +75,10 @@ object ApiClient {
         return normalizeUrl(prefs.getString(KEY_SERVER_URL, DEFAULT_URL) ?: DEFAULT_URL)
     }
 
-    fun setServerUrl(context: Context, url: String) {
+    fun setServerUrl(
+        context: Context,
+        url: String,
+    ) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_SERVER_URL, normalizeUrl(url)).apply()
         // Reset retrofit to use new URL（与 getApi 的锁一致，避免重置与创建竞态）
