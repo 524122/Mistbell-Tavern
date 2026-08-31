@@ -402,7 +402,6 @@
     <ID>MagicNumber:WorldBookListScreen.kt$10</ID>
     <ID>MatchingDeclarationName:AppNavigation.kt$Routes</ID>
     <ID>MatchingDeclarationName:ChatSettingsScreen.kt$ChatSettingsViewModel : AndroidViewModel</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion$.</ID>
     <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_messages_owner_character_created ON messages(owner_id, character_id, created_at)"</ID>
     <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_structured_memory_importance_created ON structured_memory(owner_id, importance, created_at)"</ID>
     <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_structured_memory_session ON structured_memory(owner_id, session_id, created_at)"</ID>
@@ -463,6 +462,14 @@
     <ID>MaxLineLength:MessageEntity.kt$MessageEntity.Companion$val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isEnabled || showStop) AccentBlue.copy(alpha = 0.35f) else Color.Transparent</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isFocused) AccentBlue.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.04f)</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_messages_owner_id_character_id_created_at ON messages(owner_id, character_id, created_at)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_messages_session_id_owner_id_character_id ON messages(session_id, owner_id, character_id)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_sessions_owner_id_character_id_updated_at ON sessions(owner_id, character_id, updated_at)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at ON sessions(owner_id, is_pinned, updated_at)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_character_id ON structured_memory(owner_id, character_id)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_importance_created_at ON structured_memory(owner_id, importance, created_at)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_session_id_created_at ON structured_memory(owner_id, session_id, created_at)"</ID>
+    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$assertTrue("background_file 应可空（无 NOT NULL）", ddl.contains("background_file TEXT,") || ddl.contains("background_file TEXT\n"))</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$if (charData.systemPrompt.isNotBlank()) characterParts.add(1, MacroEngine.render(charData.systemPrompt, mctx))</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$if (participant.description.isNotBlank()) characterParts.add(MacroEngine.render(participant.description, mctx))</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$if (participant.scenario.isNotBlank()) characterParts.add("Scenario: ${MacroEngine.render(participant.scenario, mctx)}")</ID>
@@ -668,6 +675,7 @@
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包非法：manifest.id 不合法（仅允许 1-64 位字母/数字/下划线/连字符）")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包非法：manifest.id 为空")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包非法：条目路径包含 \"..\"（疑似路径穿越）")</ID>
+    <ID>VariableNaming:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$private val v8_9ShortIndexNames = setOf( "index_sessions_owner_updated", "index_sessions_owner_pinned", "index_sessions_character", "index_messages_session_created", "index_messages_session_owner", "index_structured_memory_importance_created", "index_structured_memory_session", )</ID>
     <ID>WildcardImport:AboutScreen.kt$import androidx.compose.foundation.layout.*</ID>
     <ID>WildcardImport:AboutScreen.kt$import androidx.compose.material3.*</ID>
     <ID>WildcardImport:AppDatabase.kt$import com.mistbell.tavern.android.data.local.dao.*</ID>

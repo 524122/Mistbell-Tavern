@@ -24,7 +24,8 @@ import com.mistbell.tavern.android.data.local.entity.*
         ThemePackEntity::class,
     ],
     version = 14,
-    exportSchema = false,
+    // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun characterDao(): CharacterDao
@@ -37,9 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun settingsDao(): SettingsDao
 
-    // M2 清创：MemoryDao 仅保留 deleteBySession/deleteAll（会话删除时的数据清理）；
-    // PendingSyncDao 已随 SyncManager 死代码删除（表暂留 schema，待 v15 DROP）
-
+    // M2 清创：MemoryDao 仅保留 deleteBySession/deleteAll（会话删除时的数据清理）
     abstract fun memoryDao(): MemoryDao
 
     abstract fun structuredMemoryDao(): StructuredMemoryDao
@@ -52,26 +51,19 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        private val MIGRATION_3_4 =
+        // internal 供迁移测试直接引用（不改变运行时行为）
+        internal val MIGRATION_3_4 =
             object : Migration(3, 4) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // 添加 enable_long_term_memory 列。
-                    // 注意：DEFAULT 必须与 SessionEntity 的 @ColumnInfo(defaultValue = "0") 一致——
-                    // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
-                    // "Migration didn't properly handle sessions" 导致升级用户崩溃。
+                    // DEFAULT 必须与 SessionEntity 的 @ColumnInfo(defaultValue = "0") 一致
                     db.execSQL("ALTER TABLE sessions ADD COLUMN enable_long_term_memory INTEGER NOT NULL DEFAULT 0")
                 }
             }
 
-        private val MIGRATION_4_5 =
+        internal val MIGRATION_4_5 =
             object : Migration(4, 5) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // 为 memories 增加 session_id 列。
-                    // 不能用 ALTER TABLE ... ADD COLUMN session_id TEXT NOT NULL DEFAULT ''：
-                    // MemoryEntity 未声明 defaultValue，带 SQL DEFAULT 的列与 Room 迁移后的表结构校验
-                    // （TableInfo 比对列默认值）不一致，v4→v5 升级会抛
-                    // "Migration didn't properly handle memories"。而 ADD COLUMN NOT NULL 又必须带 DEFAULT，
-                    // 因此按实体最终结构整表重建：session_id 不带 SQL 默认值，旧行以 '' 回填。
+                    // 整表重建：session_id 不带 SQL 默认值（实体未声明 defaultValue），旧行以 '' 回填
                     db.execSQL(
                         """
                         CREATE TABLE IF NOT EXISTS memories_new (
@@ -111,44 +103,36 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        private val MIGRATION_5_6 =
+        internal val MIGRATION_5_6 =
             object : Migration(5, 6) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("ALTER TABLE sessions ADD COLUMN context_token_limit INTEGER NOT NULL DEFAULT 4096")
                 }
             }
 
-        private val MIGRATION_6_7 =
+        internal val MIGRATION_6_7 =
             object : Migration(6, 7) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("ALTER TABLE sessions ADD COLUMN participant_character_ids_json TEXT NOT NULL DEFAULT ''")
                 }
             }
 
-        private val MIGRATION_7_8 =
+        internal val MIGRATION_7_8 =
             object : Migration(7, 8) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // 向量记忆系统使用独立的文件存储，不修改数据库 schema
-                    // 此迁移为空，仅用于版本升级
+                    // 空迁移：仅版本号升级
                 }
             }
 
-        private val MIGRATION_8_9 =
+        internal val MIGRATION_8_9 =
             object : Migration(8, 9) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // 添加关键索引以提升查询性能
-                    // 注意：SQLite 索引不支持 ASC/DESC 关键字，只在 ORDER BY 中使用
-
-                    // sessions 表索引：优化会话列表查询
+                    // 性能索引（注意：短名——v14 修正为 Room 默认全列名）
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_updated ON sessions(owner_id, updated_at)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_pinned ON sessions(owner_id, is_pinned, updated_at)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_character ON sessions(owner_id, character_id, updated_at)")
-
-                    // messages 表索引：优化消息查询
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_created ON messages(session_id, created_at)")
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_owner ON messages(session_id, owner_id, character_id)")
-
-                    // structured_memory 表索引：优化记忆查询（补充现有索引）
                     db.execSQL(
                         "CREATE INDEX IF NOT EXISTS index_structured_memory_importance_created ON structured_memory(owner_id, importance, created_at)",
                     )
@@ -158,15 +142,10 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        private val MIGRATION_9_10 =
+        internal val MIGRATION_9_10 =
             object : Migration(9, 10) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // T1 主题包：新建 theme_packs 表，并为 characters 添加 theme_id 列。
-                    // 注意：DDL 必须与实体注解逐列一致（含 defaultValue）——
-                    // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
-                    // "Migration didn't properly handle ..." 导致升级用户崩溃（同 MIGRATION_3_4 教训）。
-                    // theme_packs: background_file 与 @ColumnInfo 可空一致（无 NOT NULL/DEFAULT）；
-                    // characters.theme_id 与 @ColumnInfo(defaultValue = "") 一致，必须带 DEFAULT ''。
+                    // T1 主题包：新建 theme_packs 表 + characters.theme_id
                     db.execSQL(
                         """
                         CREATE TABLE IF NOT EXISTS theme_packs (
@@ -184,60 +163,54 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        private val MIGRATION_10_11 =
+        internal val MIGRATION_10_11 =
             object : Migration(10, 11) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // 会话级主题包：为 sessions 添加 theme_id 列。
-                    // 注意：DEFAULT '' 必须与 SessionEntity 的 @ColumnInfo(defaultValue = "") 一致——
-                    // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
-                    // "Migration didn't properly handle sessions" 导致升级用户崩溃（同 MIGRATION_3_4 教训）。
+                    // 会话级主题
                     db.execSQL("ALTER TABLE sessions ADD COLUMN theme_id TEXT NOT NULL DEFAULT ''")
                 }
             }
 
-        private val MIGRATION_11_12 =
+        internal val MIGRATION_11_12 =
             object : Migration(11, 12) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // 会话附加指令：为 sessions 添加 author_note 列。
-                    // 注意：DEFAULT '' 必须与 SessionEntity 的 @ColumnInfo(defaultValue = "") 一致——
-                    // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
-                    // "Migration didn't properly handle sessions" 导致升级用户崩溃（同 MIGRATION_3_4 教训）。
+                    // 会话附加指令
                     db.execSQL("ALTER TABLE sessions ADD COLUMN author_note TEXT NOT NULL DEFAULT ''")
                 }
             }
 
-        private val MIGRATION_12_13 =
+        internal val MIGRATION_12_13 =
             object : Migration(12, 13) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // F3-FTS：为词法召回补充独立性能索引（owner_id, character_id, created_at）。
-                    // 与实体注解无关（Room 不会自动生成该组合），仅加速 latestIdsBySession /
-                    // searchByContentTerms 这类"按角色过滤 + 按时间排序"的查询；幂等，可安全重复执行。
+                    // F3-FTS 性能索引
                     db.execSQL(
                         "CREATE INDEX IF NOT EXISTS index_messages_owner_character_created ON messages(owner_id, character_id, created_at)",
                     )
                 }
             }
 
-        // v13→v14：修复索引名不匹配导致的升级崩溃（真机实证 2026-09）。
-        // 根因：MIGRATION_8_9 用简写名建索引（如 index_messages_session_created），
-        // 而实体 @Index 未声明 name → Room 校验期待默认全列名（index_messages_session_id_created_at）。
-        // 凡走过 8_9 迁移的存量设备，升级到 ≥13 后校验必抛 "Migration didn't properly handle: messages/sessions/structured_memory"。
-        // 修法：按实体声明逐一补建默认名索引（IF NOT EXISTS 幂等），并清理短名旧索引（避免重复索引的写放大）。
-        private val MIGRATION_13_14 =
+        // v13→v14：修复索引名不匹配导致的升级崩溃（真机实证 2026-09）
+        // MIGRATION_8_9 短名索引 ≠ 实体 @Index 默认全列名 → Room 校验要求索引全集合相等 → 崩溃
+        internal val MIGRATION_13_14 =
             object : Migration(13, 14) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     fun idx(sql: String) = db.execSQL(sql)
 
-                    // messages（实体声明：session_id+created_at、session_id+owner_id+character_id）
+                    // messages
                     idx("CREATE INDEX IF NOT EXISTS index_messages_session_id_created_at ON messages(session_id, created_at)")
                     idx(
                         "CREATE INDEX IF NOT EXISTS index_messages_session_id_owner_id_character_id" +
                             " ON messages(session_id, owner_id, character_id)",
                     )
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_messages_owner_id_character_id_created_at" +
+                            " ON messages(owner_id, character_id, created_at)",
+                    )
                     idx("DROP INDEX IF EXISTS index_messages_session_created")
                     idx("DROP INDEX IF EXISTS index_messages_session_owner")
+                    idx("DROP INDEX IF EXISTS index_messages_owner_character_created")
 
-                    // sessions（实体声明：owner_id+updated_at、owner_id+is_pinned+updated_at、owner_id+character_id+updated_at）
+                    // sessions
                     idx("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_updated_at ON sessions(owner_id, updated_at)")
                     idx(
                         "CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at" +
@@ -251,7 +224,7 @@ abstract class AppDatabase : RoomDatabase() {
                     idx("DROP INDEX IF EXISTS index_sessions_owner_pinned")
                     idx("DROP INDEX IF EXISTS index_sessions_character")
 
-                    // structured_memory（实体声明六个索引的默认全列名）
+                    // structured_memory
                     idx(
                         "CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_character_id" +
                             " ON structured_memory(owner_id, character_id)",
@@ -279,7 +252,19 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tavern.db",
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                    .addMigrations(
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
+                        MIGRATION_9_10,
+                        MIGRATION_10_11,
+                        MIGRATION_11_12,
+                        MIGRATION_12_13,
+                        MIGRATION_13_14,
+                    )
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

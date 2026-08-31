@@ -51,6 +51,12 @@ android {
         jvmTarget = "17"
     }
 
+    // Room schema 导出目录（exportSchema=true 时 KSP 输出到这里，迁移测试消费）
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+        arg("room.incremental", "true")
+    }
+
     buildFeatures {
         compose true
         buildConfig true
@@ -117,6 +123,12 @@ dependencies {
 
     // 单元测试（本地 JVM）
     testImplementation "junit:junit:4.13.2"
+
+    // Room 迁移测试（instrumented）
+    androidTestImplementation "androidx.room:room-testing:$roomVersion"
+    androidTestImplementation "androidx.test:runner:1.6.2"
+    androidTestImplementation "androidx.test.ext:junit:1.2.1"
+    androidTestImplementation "androidx.test:core:1.6.1"
 }
 
 // ---- F0 质量门配置（见 docs/FOUNDATION.md）----
