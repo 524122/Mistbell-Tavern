@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -24,6 +24,9 @@ jobs:
 
       - name: Set up Gradle（缓存与校验）
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Ensure gradlew executable（防御 Windows 提交丢失可执行位）
+        run: chmod +x gradlew
 
       - name: Build & Verify
         # 与本地 `gradlew checkAll` 等价：构建 + 单测 + detekt + ktlint + 许可证红线
