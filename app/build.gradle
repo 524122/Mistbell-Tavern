@@ -110,4 +110,7 @@ dependencies {
     // Paging 3
     implementation "androidx.paging:paging-runtime:3.2.1"
     implementation "androidx.paging:paging-compose:3.2.1"
+
+    // 单元测试（本地 JVM）
+    testImplementation "junit:junit:4.13.2"
 }
