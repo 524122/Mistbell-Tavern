@@ -6,7 +6,8 @@
     <ID>CyclomaticComplexMethod:AppNavigation.kt$@Composable fun AppNavigation(chatViewModel: ChatViewModel? = null)</ID>
     <ID>CyclomaticComplexMethod:CharacterEditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CharacterEditorScreen( characterId: String?, onBack: () -&gt; Unit, viewModel: CharacterEditorViewModel = viewModel() )</ID>
     <ID>CyclomaticComplexMethod:CharacterExporter.kt$CharacterExporter$private fun renderCharacterBitmap(context: Context, character: Character): Bitmap</ID>
-    <ID>CyclomaticComplexMethod:CharacterImporter.kt$CharacterImporter$fun importFromJson(context: Context, uri: Uri): CharacterImportResult?</ID>
+    <ID>CyclomaticComplexMethod:CharacterImporter.kt$CardParser$fun parse(jsonString: String): CharacterImportResult?</ID>
+    <ID>CyclomaticComplexMethod:CharacterImporter.kt$CardParser$internal fun parseBookEntries(entriesElement: kotlinx.serialization.json.JsonElement?, bookId: String): List&lt;WorldBookEntryEntity&gt;</ID>
     <ID>CyclomaticComplexMethod:ChatListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun ChatListItemMaterial( item: ChatListItem, isMultiSelectMode: Boolean = false, isSelected: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onTogglePin: () -&gt; Unit = {}, onMarkAsRead: () -&gt; Unit = {}, onRename: (String) -&gt; Unit = {}, onCopy: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; } )</ID>
     <ID>CyclomaticComplexMethod:ChatListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatListScreen( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier )</ID>
     <ID>CyclomaticComplexMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit )</ID>
@@ -15,6 +16,7 @@
     <ID>CyclomaticComplexMethod:MarkdownRenderer.kt$fun parseMarkdown(content: String): List&lt;MdSegment&gt;</ID>
     <ID>CyclomaticComplexMethod:MemoryListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun MemoryListScreen( onBack: () -&gt; Unit, viewModel: MemoryViewModel = viewModel() )</ID>
     <ID>CyclomaticComplexMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {} )</ID>
+    <ID>CyclomaticComplexMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null )</ID>
     <ID>CyclomaticComplexMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null ): List&lt;ChatMessage&gt;</ID>
     <ID>CyclomaticComplexMethod:PromptModels.kt$PromptSections$fun composeSystemPrompt(): String</ID>
     <ID>CyclomaticComplexMethod:PromptPreviewScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PromptPreviewScreen( onBack: () -&gt; Unit, viewModel: PromptPreviewViewModel = viewModel() )</ID>
@@ -23,6 +25,8 @@
     <ID>CyclomaticComplexMethod:ThemeModels.kt$fun ThemeTokens.resolved(isDark: Boolean): ParsedThemeColors</ID>
     <ID>CyclomaticComplexMethod:ThemePackRepository.kt$ThemePackRepository$suspend fun importFromUri(uri: Uri): String</ID>
     <ID>CyclomaticComplexMethod:WorldBookListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WorldBookListScreen( onBack: () -&gt; Unit = {}, // 可空：传入则导航外跳；为 null（默认/导航图当前用法）则在本屏内联展开条目列表。 // 不能用 `onBookClick: (String)-&gt;Unit = {}` 再拿 `!= {}` 判断——每个 {} 都是新实例， // 比较恒为 true，会导致点击永远走空操作分支、进不去条目（见下方 clickable）。 onBookClick: ((String) -&gt; Unit)? = null, viewModel: WorldBookEditorViewModel = viewModel(), showBackButton: Boolean = true, modifier: Modifier = Modifier )</ID>
+    <ID>CyclomaticComplexMethod:WorldBookParser.kt$WorldBookParser$private fun parseEntry(entry: JsonObject, bookId: String, mapKey: String? = null): WorldBookEntryEntity?</ID>
+    <ID>ForbiddenComment:CharacterImporter.kt$CardParser$// TODO: keysecondary（次要关键字）暂不映射，待后续支持</ID>
     <ID>ForbiddenComment:ChatListScreen.kt$// TODO: 导入对话</ID>
     <ID>ForbiddenComment:ChatRepository.kt$ChatRepository$// TODO: 实现本地 LLM 的 continue 功能</ID>
     <ID>ForbiddenComment:ChatRepository.kt$ChatRepository$// TODO: 实现本地的 swipe 功能</ID>
@@ -33,7 +37,7 @@
     <ID>ForbiddenComment:SettingsScreen.kt$/* TODO: 导航到网络设置页面 */</ID>
     <ID>ForbiddenComment:SettingsScreen.kt$/* TODO: 导航到通知设置页面 */</ID>
     <ID>ForbiddenComment:SettingsScreen.kt$/* TODO: 导航到隐私设置页面 */</ID>
-    <ID>ForbiddenComment:WorldBookListScreen.kt$// TODO: 导入世界书</ID>
+    <ID>ForbiddenComment:WorldBookParser.kt$WorldBookParser$// key 单字符串规整成数组；keysecondary 忽略不映射（TODO: 后续支持次级关键词）</ID>
     <ID>FunctionNaming:AboutScreen.kt$@Composable private fun AppInfoCard()</ID>
     <ID>FunctionNaming:AboutScreen.kt$@Composable private fun InfoRow(label: String, value: String)</ID>
     <ID>FunctionNaming:AboutScreen.kt$@Composable private fun MoreActionsCard(onCheckUpdate: () -&gt; Unit)</ID>
@@ -47,6 +51,7 @@
     <ID>FunctionNaming:CharacterListScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun CharacterListScreen( viewModel: CharacterListViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application ) ), onCharacterClick: (Character) -&gt; Unit = {}, onEditCharacter: (String) -&gt; Unit = {}, onNewCharacter: () -&gt; Unit = {}, onBack: () -&gt; Unit = {}, showTopBarBackButton: Boolean = true, modifier: Modifier = Modifier )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun ChatListItemMaterial( item: ChatListItem, isMultiSelectMode: Boolean = false, isSelected: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onTogglePin: () -&gt; Unit = {}, onMarkAsRead: () -&gt; Unit = {}, onRename: (String) -&gt; Unit = {}, onCopy: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; } )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatListScreen( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ChatScreen.kt$@Composable private fun StreamingBubble(text: String, characterName: String)</ID>
     <ID>FunctionNaming:ChatScreen.kt$@Composable private fun WelcomeScreen(characterName: String)</ID>
     <ID>FunctionNaming:ChatScreen.kt$@Composable private fun WelcomeStep( number: String, title: String, description: String, modifier: Modifier = Modifier )</ID>
     <ID>FunctionNaming:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit )</ID>
@@ -75,7 +80,7 @@
     <ID>FunctionNaming:MemoryListScreen.kt$@Composable private fun StatCard(label: String, value: String, modifier: Modifier = Modifier)</ID>
     <ID>FunctionNaming:MemoryListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun MemoryListScreen( onBack: () -&gt; Unit, viewModel: MemoryViewModel = viewModel() )</ID>
     <ID>FunctionNaming:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {} )</ID>
-    <ID>FunctionNaming:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true )</ID>
+    <ID>FunctionNaming:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null )</ID>
     <ID>FunctionNaming:PromptPreviewScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PromptPreviewScreen( onBack: () -&gt; Unit, viewModel: PromptPreviewViewModel = viewModel() )</ID>
     <ID>FunctionNaming:ProviderEditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProviderEditorScreen( providerId: String?, onBack: () -&gt; Unit, viewModel: ProviderViewModel = viewModel() )</ID>
     <ID>FunctionNaming:ProviderListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProviderListScreen( onBack: () -&gt; Unit, onEditProvider: (String) -&gt; Unit, onNewProvider: () -&gt; Unit, viewModel: ProviderViewModel = viewModel() )</ID>
@@ -115,17 +120,19 @@
     <ID>FunctionNaming:WorldBookListScreen.kt$@Composable private fun StatCard(label: String, value: String, modifier: Modifier = Modifier)</ID>
     <ID>FunctionNaming:WorldBookListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WorldBookListScreen( onBack: () -&gt; Unit = {}, // 可空：传入则导航外跳；为 null（默认/导航图当前用法）则在本屏内联展开条目列表。 // 不能用 `onBookClick: (String)-&gt;Unit = {}` 再拿 `!= {}` 判断——每个 {} 都是新实例， // 比较恒为 true，会导致点击永远走空操作分支、进不去条目（见下方 clickable）。 onBookClick: ((String) -&gt; Unit)? = null, viewModel: WorldBookEditorViewModel = viewModel(), showBackButton: Boolean = true, modifier: Modifier = Modifier )</ID>
     <ID>FunctionOnlyReturningConstant:AppNavigation.kt$Routes$fun themeManager()</ID>
+    <ID>InstanceOfCheckForException:LlmClient.kt$LlmClient$e is IOException</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable private fun ProjectInfoCard(onNavigateToRepo: () -&gt; Unit)</ID>
     <ID>LongMethod:AboutScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AboutScreen( onBack: () -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
     <ID>LongMethod:AppNavigation.kt$@Composable fun AppNavigation(chatViewModel: ChatViewModel? = null)</ID>
     <ID>LongMethod:CharacterEditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CharacterEditorScreen( characterId: String?, onBack: () -&gt; Unit, viewModel: CharacterEditorViewModel = viewModel() )</ID>
     <ID>LongMethod:CharacterExporter.kt$CharacterExporter$private fun renderCharacterBitmap(context: Context, character: Character): Bitmap</ID>
-    <ID>LongMethod:CharacterImporter.kt$CharacterImporter$fun importFromJson(context: Context, uri: Uri): CharacterImportResult?</ID>
+    <ID>LongMethod:CharacterImporter.kt$CardParser$fun parse(jsonString: String): CharacterImportResult?</ID>
     <ID>LongMethod:CharacterListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun CharacterCardItem( character: Character, isPinned: Boolean = false, sessionCount: Int = 0, onClick: () -&gt; Unit, onEdit: () -&gt; Unit, onDelete: () -&gt; Unit, onExport: (CharacterExportFormat, String, (CharacterExportResult?) -&gt; Unit) -&gt; Unit, onTogglePin: () -&gt; Unit = {}, onCopy: () -&gt; Unit = {} )</ID>
     <ID>LongMethod:CharacterListScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun CharacterListScreen( viewModel: CharacterListViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application ) ), onCharacterClick: (Character) -&gt; Unit = {}, onEditCharacter: (String) -&gt; Unit = {}, onNewCharacter: () -&gt; Unit = {}, onBack: () -&gt; Unit = {}, showTopBarBackButton: Boolean = true, modifier: Modifier = Modifier )</ID>
     <ID>LongMethod:ChatListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun ChatListItemMaterial( item: ChatListItem, isMultiSelectMode: Boolean = false, isSelected: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onTogglePin: () -&gt; Unit = {}, onMarkAsRead: () -&gt; Unit = {}, onRename: (String) -&gt; Unit = {}, onCopy: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; } )</ID>
     <ID>LongMethod:ChatListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatListScreen( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier )</ID>
-    <ID>LongMethod:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "" ): Message</ID>
+    <ID>LongMethod:ChatRepository.kt$ChatRepository$suspend fun regenerateMessage( ownerId: String, characterId: String, sessionId: String, messageId: String, onPartial: ((String) -&gt; Unit)? = null )</ID>
+    <ID>LongMethod:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null ): Message</ID>
     <ID>LongMethod:ChatScreen.kt$@Composable private fun WelcomeScreen(characterName: String)</ID>
     <ID>LongMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit )</ID>
     <ID>LongMethod:ChatScreenNew.kt$@Composable fun ChatInputBar( message: String, onMessageChange: (String) -&gt; Unit, onSend: () -&gt; Unit, enabled: Boolean = true )</ID>
@@ -142,7 +149,7 @@
     <ID>LongMethod:MarkdownRenderer.kt$@Composable fun AnnotatedString.Builder.appendInlineMarkdown(text: String)</ID>
     <ID>LongMethod:MemoryListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun MemoryListScreen( onBack: () -&gt; Unit, viewModel: MemoryViewModel = viewModel() )</ID>
     <ID>LongMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {} )</ID>
-    <ID>LongMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true )</ID>
+    <ID>LongMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null )</ID>
     <ID>LongMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null ): List&lt;ChatMessage&gt;</ID>
     <ID>LongMethod:PromptModels.kt$PromptSections$fun composeSystemPrompt(): String</ID>
     <ID>LongMethod:PromptPreviewScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PromptPreviewScreen( onBack: () -&gt; Unit, viewModel: PromptPreviewViewModel = viewModel() )</ID>
@@ -170,6 +177,7 @@
     <ID>LongParameterList:ChatListScreen.kt$( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier )</ID>
     <ID>LongParameterList:ChatListViewModel.kt$ChatListViewModel$( context: Context, sessionId: String, characterId: String, format: SessionExportFormat, fileName: String, onComplete: (SessionExportResult?) -&gt; Unit )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( enabled: Boolean, providerId: String, userMessage: String, assistantMessage: String, ownerId: String, characterId: String, sessionId: String, messageIds: List&lt;String&gt; )</ID>
+    <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, title: String = "", providerId: String = "", enableLongTermMemory: Boolean = false, worldBookId: String = "" )</ID>
     <ID>LongParameterList:DrawerContent.kt$( character: Character, isSelected: Boolean, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: () -&gt; Unit = {} )</ID>
     <ID>LongParameterList:DrawerContent.kt$( characters: List&lt;Character&gt;, recentSessions: List&lt;SessionSummary&gt;, currentCharacter: Character?, onCharacterSelected: (Character) -&gt; Unit, onCharacterEdit: (Character) -&gt; Unit = {}, onCharacterDelete: (Character) -&gt; Unit = {}, onCharacterExport: (Character) -&gt; Unit = {}, onNewCharacter: () -&gt; Unit = {}, onNewChat: () -&gt; Unit, onSessionSelected: (String) -&gt; Unit, onSessionDeleted: (String) -&gt; Unit )</ID>
@@ -332,8 +340,10 @@
     <ID>MagicNumber:ImageUtils.kt$ImageUtils$4</ID>
     <ID>MagicNumber:ImageUtils.kt$ImageUtils$50</ID>
     <ID>MagicNumber:ImageUtils.kt$ImageUtils$90f</ID>
+    <ID>MagicNumber:LlmClient.kt$LlmClient$1000L</ID>
     <ID>MagicNumber:LlmClient.kt$LlmClient$120</ID>
     <ID>MagicNumber:LlmClient.kt$LlmClient$30</ID>
+    <ID>MagicNumber:LlmClient.kt$LlmClient.&lt;no name provided&gt;$300</ID>
     <ID>MagicNumber:LocalMemoryService.kt$LocalMemoryService$0.5</ID>
     <ID>MagicNumber:LocalMemoryService.kt$LocalMemoryService$10.0</ID>
     <ID>MagicNumber:LocalMemoryService.kt$LocalMemoryService$3.0</ID>
@@ -364,6 +374,18 @@
     <ID>MagicNumber:MemoryExtractionService.kt$MemoryExtractionService$80</ID>
     <ID>MagicNumber:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$30</ID>
     <ID>MagicNumber:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$60</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$0x0A</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$0x1A</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$0x47</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$0x4E</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$0x50</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$0xFF</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$12</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$16</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$24</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$3</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$4</ID>
+    <ID>MagicNumber:PngCard.kt$PngCard$8</ID>
     <ID>MagicNumber:PromptBuilder.kt$PromptBuilder$0.5</ID>
     <ID>MagicNumber:PromptBuilder.kt$PromptBuilder$1.6</ID>
     <ID>MagicNumber:PromptBuilder.kt$PromptBuilder$10</ID>
@@ -429,8 +451,7 @@
     <ID>MaxLineLength:CharacterEditorScreen.kt$viewModel.updateForm { copy(customGreetings = customGreetings.filterIndexed { i, _ -&gt; i != index }) }</ID>
     <ID>MaxLineLength:CharacterEditorScreen.kt$}</ID>
     <ID>MaxLineLength:CharacterExporter.kt$CharacterExporter$val avatarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = parseColor(character.color, Color.rgb(103, 80, 164)) }</ID>
-    <ID>MaxLineLength:CharacterImporter.kt$CharacterImporter$android.util.Log.d("CharacterImporter", "entries array found: ${entriesArray != null}, size: ${entriesArray?.size ?: 0}")</ID>
-    <ID>MaxLineLength:CharacterImporter.kt$CharacterImporter$kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
+    <ID>MaxLineLength:CharacterImporter.kt$CardParser$internal</ID>
     <ID>MaxLineLength:CharacterListViewModel.kt$CharacterListViewModel$android.util.Log.d("CharacterImport", "Saving world book: ${importResult.worldBook.name} with ${importResult.worldBookEntries.size} entries")</ID>
     <ID>MaxLineLength:ChatListScreen.kt$.</ID>
     <ID>MaxLineLength:ChatListScreen.kt$onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; }</ID>
@@ -461,6 +482,9 @@
     <ID>MaxLineLength:LlmClient.kt$LlmClient$android.util.Log.w("LlmClient", "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")</ID>
     <ID>MaxLineLength:LlmClient.kt$LlmClient$android.util.Log.w("LlmClient", "Rate limit hit, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")</ID>
     <ID>MaxLineLength:LlmClient.kt$LlmClient$android.util.Log.w("LlmClient", "Request timeout, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms")</ID>
+    <ID>MaxLineLength:LlmClient.kt$LlmClient$android.util.Log.w("LlmClient", "Stream failed before first token, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${e.message}")</ID>
+    <ID>MaxLineLength:LlmClient.kt$LlmClient.&lt;no name provided&gt;$close(IllegalStateException("流式响应 Content-Type 不受支持（$message）：该网关可能不兼容 SSE 流式，请在模型设置中关闭流式输出（降级为普通请求）。"))</ID>
+    <ID>MaxLineLength:LlmClient.kt$LlmClient.&lt;no name provided&gt;$if</ID>
     <ID>MaxLineLength:LocalTavernService.kt$LocalTavernService$suspend</ID>
     <ID>MaxLineLength:LocalTavernService.kt$LocalTavernService$val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
     <ID>MaxLineLength:MainScreen.kt$android.util.Log.d("MainScreen", "No session, navigating to chat setup for character: ${character.id}")</ID>
@@ -477,6 +501,7 @@
     <ID>MaxLineLength:MessageDao.kt$MessageDao$@Query("SELECT COUNT(*) FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId AND is_read = 0")</ID>
     <ID>MaxLineLength:MessageDao.kt$MessageDao$@Query("UPDATE messages SET is_read = 1 WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")</ID>
     <ID>MaxLineLength:MessageEntity.kt$MessageEntity.Companion$val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
+    <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isEnabled || showStop) AccentBlue.copy(alpha = 0.35f) else Color.Transparent</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isFocused) AccentBlue.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.04f)</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$kotlinx.serialization.json.Json</ID>
     <ID>MaxLineLength:PromptPreviewScreen.kt$CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)</ID>
@@ -537,12 +562,12 @@
     <ID>MaxLineLength:WorldBookListScreen.kt$put("disable", kotlinx.serialization.json.JsonPrimitive(!enabled))</ID>
     <ID>MaxLineLength:WorldBookListScreen.kt$viewModel.updateEntryForm { copy(insertPosition = "after_prompt") }; positionExpanded = false</ID>
     <ID>MaxLineLength:WorldBookListScreen.kt$viewModel.updateEntryForm { copy(insertPosition = "before_prompt") }; positionExpanded = false</ID>
-    <ID>NestedBlockDepth:CharacterImporter.kt$CharacterImporter$fun importFromJson(context: Context, uri: Uri): CharacterImportResult?</ID>
+    <ID>NestedBlockDepth:CharacterImporter.kt$CardParser$fun parse(jsonString: String): CharacterImportResult?</ID>
     <ID>NestedBlockDepth:MemoryExtractionService.kt$MemoryExtractionService$private fun tokenSetForSimilarity(text: String): Set&lt;String&gt;</ID>
+    <ID>NestedBlockDepth:PngCard.kt$PngCard$fun readTextChunk(png: ByteArray, keyword: String = CHUNK_KEYWORD): String?</ID>
     <ID>NestedBlockDepth:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null ): List&lt;ChatMessage&gt;</ID>
     <ID>NestedBlockDepth:SettingsRepository.kt$SettingsRepository$suspend fun loadAndCacheSettings()</ID>
     <ID>PrintStackTrace:CharacterExporter.kt$CharacterExporter$e</ID>
-    <ID>PrintStackTrace:CharacterImporter.kt$CharacterImporter$e</ID>
     <ID>PrintStackTrace:ChatListViewModel.kt$ChatListViewModel$e</ID>
     <ID>PrintStackTrace:ImageUtils.kt$ImageUtils$e</ID>
     <ID>PrintStackTrace:SessionExporter.kt$SessionExporter$e</ID>
@@ -550,9 +575,12 @@
     <ID>RethrowCaughtException:CharacterRepository.kt$CharacterRepository$throw e</ID>
     <ID>ReturnCount:ApiClient.kt$ApiClient$fun getApi(context: Context): TavernApi</ID>
     <ID>ReturnCount:CharacterExporter.kt$CharacterExporter$private fun saveBytes( context: Context, fileName: String, mimeType: String, bytes: ByteArray ): CharacterExportResult?</ID>
-    <ID>ReturnCount:CharacterImporter.kt$CharacterImporter$fun getText(vararg keys: String): String</ID>
+    <ID>ReturnCount:CharacterImporter.kt$CardParser$fun getText(vararg keys: String): String</ID>
+    <ID>ReturnCount:CharacterImporter.kt$CardParser$internal fun parseBookEntries(entriesElement: kotlinx.serialization.json.JsonElement?, bookId: String): List&lt;WorldBookEntryEntity&gt;</ID>
+    <ID>ReturnCount:CharacterImporter.kt$CharacterImporter$fun importFromPng(context: Context, uri: Uri): CharacterImportResult?</ID>
     <ID>ReturnCount:ImageUtils.kt$ImageUtils$fun dataUriToBitmap(dataUri: String): Bitmap?</ID>
     <ID>ReturnCount:ImageUtils.kt$ImageUtils$fun processImage( context: Context, uri: Uri, maxSize: Int = 0, // 改为0表示不缩放，保留原图 quality: Int = 85 ): String?</ID>
+    <ID>ReturnCount:LlmClient.kt$SseParser$fun contentDelta(dataLine: String): String?</ID>
     <ID>ReturnCount:LocalPromptServiceExt.kt$fun buildVectorMemoryContext(searchResults: List&lt;VectorStore.SearchResult&gt;): String</ID>
     <ID>ReturnCount:LocalTavernService.kt$LocalTavernService$suspend fun swipeMessage( sessionId: String, ownerId: String, messageId: String, direction: SwipeDirection ): Message?</ID>
     <ID>ReturnCount:LocalWorldBookService.kt$LocalWorldBookService$private fun checkProbability(probability: Double): Boolean</ID>
@@ -563,6 +591,8 @@
     <ID>ReturnCount:SessionExporter.kt$SessionExporter$private fun saveBytes( context: Context, fileName: String, mimeType: String, bytes: ByteArray ): SessionExportResult?</ID>
     <ID>ReturnCount:ThemeModels.kt$ThemeSupport$fun resolvePackId( sessionThemeId: String?, characterThemeId: String?, activeThemeId: String?, packs: Map&lt;String, ThemePackEntity&gt; ): String?</ID>
     <ID>ReturnCount:ThemeModels.kt$ThemeSupport$fun resolveTokens( sessionThemeId: String?, characterThemeId: String?, activeThemeId: String?, packs: Map&lt;String, ThemePackEntity&gt; ): ThemeTokens?</ID>
+    <ID>ReturnCount:WorldBookParser.kt$WorldBookParser$fun parse(jsonString: String, fallbackName: String): Pair&lt;WorldBookEntity, List&lt;WorldBookEntryEntity&gt;&gt;?</ID>
+    <ID>SwallowedException:CharacterImporter.kt$CardParser$e: Exception</ID>
     <ID>SwallowedException:CharacterListScreen.kt$e: Exception</ID>
     <ID>SwallowedException:ChatListViewModel.kt$ChatListViewModel$e: Exception</ID>
     <ID>SwallowedException:ChatScreenNew.kt$e: Exception</ID>
@@ -574,11 +604,14 @@
     <ID>SwallowedException:MessageBubble.kt$e: Exception</ID>
     <ID>SwallowedException:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
     <ID>SwallowedException:ThemePackRepository.kt$ThemePackRepository$e: Exception</ID>
+    <ID>ThrowsCount:ChatRepository.kt$ChatRepository$suspend fun regenerateMessage( ownerId: String, characterId: String, sessionId: String, messageId: String, onPartial: ((String) -&gt; Unit)? = null )</ID>
+    <ID>ThrowsCount:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null ): Message</ID>
     <ID>ThrowsCount:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$private fun executeEmbedBatchRequest(texts: List&lt;String&gt;): List&lt;FloatArray&gt;</ID>
     <ID>ThrowsCount:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$private fun executeEmbedRequest(text: String): FloatArray</ID>
     <ID>TooGenericExceptionCaught:AboutScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CharacterEditorViewModel.kt$CharacterEditorViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CharacterExporter.kt$CharacterExporter$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CharacterImporter.kt$CardParser$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CharacterImporter.kt$CharacterImporter$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CharacterListScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CharacterListViewModel.kt$CharacterListViewModel$e: Exception</ID>
@@ -614,6 +647,7 @@
     <ID>TooGenericExceptionCaught:ThemeManagerViewModel.kt$ThemeManagerViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ThemePackRepository.kt$ThemePackRepository$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VectorMemoryService.kt$VectorMemoryService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:WorldBookListScreen.kt$e: Exception</ID>
     <ID>TooGenericExceptionThrown:ChatRepository.kt$ChatRepository$throw Exception("LLM 未配置：请在设置中配置 API 密钥")</ID>
     <ID>TooGenericExceptionThrown:LlmClient.kt$LlmClient$throw Exception("Empty response")</ID>
     <ID>TooGenericExceptionThrown:LlmClient.kt$LlmClient$throw Exception("LLM API error: ${response.code} ${response.message} - $errorBody")</ID>
@@ -687,6 +721,7 @@
     <ID>UseCheckOrError:ChatRepository.kt$ChatRepository$throw IllegalStateException("没有可重新生成的用户消息")</ID>
     <ID>UseCheckOrError:LocalTavernService.kt$LocalTavernService$throw IllegalStateException("Character not found: $characterId")</ID>
     <ID>UseCheckOrError:LocalTavernService.kt$LocalTavernService$throw IllegalStateException("Session not found: $sessionId")</ID>
+    <ID>UseRequire:PngCard.kt$PngCard$throw IllegalArgumentException("PNG chunk 结构损坏（length 越界）")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包无效：theme.json 无法解析为有效的主题定义")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包无效：zip 内没有任何文件")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包无效：缺少 theme.json")</ID>
@@ -703,7 +738,6 @@
     <ID>WildcardImport:CharacterEditorScreen.kt$import com.mistbell.tavern.android.ui.components.*</ID>
     <ID>WildcardImport:CharacterEditorViewModel.kt$import kotlinx.coroutines.flow.*</ID>
     <ID>WildcardImport:CharacterEditorViewModel.kt$import kotlinx.serialization.json.*</ID>
-    <ID>WildcardImport:CharacterImporter.kt$import kotlinx.serialization.json.*</ID>
     <ID>WildcardImport:CharacterListScreen.kt$import androidx.compose.foundation.layout.*</ID>
     <ID>WildcardImport:CharacterListScreen.kt$import androidx.compose.material3.*</ID>
     <ID>WildcardImport:CharacterListScreen.kt$import androidx.compose.runtime.*</ID>

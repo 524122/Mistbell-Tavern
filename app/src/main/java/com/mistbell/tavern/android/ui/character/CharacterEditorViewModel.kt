@@ -65,12 +65,17 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
 
     private var editingCharacterId: String? = null
 
+    // 编辑前角色携带的生态扩展，表单不编辑该字段，保存时原样透传避免丢失
+    private var loadedExtensions: JsonObject? = null
+
     fun loadCharacter(id: String) {
         viewModelScope.launch {
             // 直接从本地数据库加载角色
             characterRepo.observeCharacters().first().find { it.id == id }?.let { char ->
                 editingCharacterId = char.id
                 _isEditing.value = true
+                // 保留编辑前的扩展字段，保存时透传回去
+                loadedExtensions = char.data?.extensions
                 _form.value = CharacterForm(
                     name = char.name,
                     description = char.description,
@@ -86,7 +91,10 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
                     creator = char.data?.creator ?: "",
                     characterVersion = char.data?.characterVersion ?: "1.0",
                     worldBookId = char.worldBookId,
-                    themeId = char.themeId
+                    themeId = char.themeId,
+                    // 从 char.data 填充备用问候语与标签，避免编辑后丢失（修复 NH-4）
+                    customGreetings = char.data?.alternateGreetings ?: emptyList(),
+                    tags = char.data?.tags ?: emptyList()
                 )
             }
         }
@@ -111,7 +119,11 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
                     postHistoryInstructions = f.postHistoryInstructions,
                     creatorNotes = f.creatorNotes,
                     creator = f.creator,
-                    characterVersion = f.characterVersion
+                    characterVersion = f.characterVersion,
+                    // 带上备用问候语与标签；扩展字段透传保留（表单不编辑）
+                    alternateGreetings = f.customGreetings,
+                    tags = f.tags,
+                    extensions = loadedExtensions
                 )
 
                 val character = Character(

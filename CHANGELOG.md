@@ -10,6 +10,13 @@
 ## [未发布]
 
 ### 🆕 新增
+- **F2 生态互通**（docs/FOUNDATION.md）：
+  - 角色卡导入：v2（spec/data 包裹）与 v1（char_name 等老键名）容错解析；**PNG 埋卡导入**（tEXt "chara" chunk，自研零依赖编解码器）；alternate_greetings/tags/extensions 透传保真；内嵌世界书兼容数组与 uid-map 两形态
+  - 修复 ST 生态字段映射：`enabled` 反相为 disable（原只读 disable 是 bug）、`insertion_order` 优先映射
+  - 角色卡导出：规范 v2 JSON（不携带 app 私有字段）+ PNG 埋卡——导出的卡可直接在 SillyTavern/RisuAI/Chub 使用
+  - 独立世界书导入（ST World Info JSON）："导入世界书"入口兑现（原空 TODO）
+  - `CharacterData` 补 alternate_greetings/tags/extensions 字段——**顺带修复角色编辑器"其它问候语"保存丢失的旧缺陷**
+  - 27 条互通单元测试（PNG 编解码 roundtrip/替换语义、卡片解析全形态、世界书解析），总 81 条全绿
 - **F1 真流式输出**（docs/FOUNDATION.md）：
   - `LlmClient.chatStream`：okhttp-sse 流式接收，逐 token 发射；首个 token 前失败自动退避重试（1s/2s，429 翻倍），已开始输出后不重试；网关 Content-Type 不兼容时给出明确降级提示
   - 聊天界面流式气泡：Markdown 实时渲染累计回复 + "生成中…"；发送按钮在生成中变为**停止按钮**（取消双保险：协程取消 + 连接断开）

@@ -65,7 +65,14 @@ F1 真流式 ✅（已完成）
    + 聊天流式气泡（MarkdownRenderer 渲染累计文本）+ 发送按钮生成中变停止
    + SseParser 纯函数解析器与 8 条单测（总 54 条）
    注：continueMessage 仍为非流式占位（TODO 实装时统一走 chatStream）
-F2 生态互通              pngj + v2/v1 卡片容错导入导出 + 世界书 JSON 格式 + extensions 透传
+F2 生态互通 ✅（已完成）
+   自研 PngCard 编解码（PNG tEXt "chara" 埋卡，~140 行零依赖替代 pngj——参考纪律实践）
+   + CardParser 容错导入（v2 data/root 双位、v1 老键名、entries 数组/uid-map 双形态、
+     enabled→disable 反相、insertion_order 优先、extensions/alternate_greetings/tags 透传）
+   + 导出 v2 规范化（buildV2Json：spec/data 包裹、无私有字段、PNG 埋卡）
+   + WorldBookParser 独立世界书导入（WorldBookListScreen 空 TODO 兑现）
+   + CharacterData 补 alternate_greetings/tags/extensions 字段（顺带修复问候语编辑丢失 NH-4）
+   + 27 条互通单测（总 81 条全绿）；detekt 基线 860 条（F1/F2 复杂度债入账，M2 清创烧掉）
 F3 记忆确定性            ONNX 本地向量替换 BM25 伪向量（与 ROADMAP M2-5 合并为同一件事）
 F4 规模升级（按需）      sqlite-vec 向量存储（消息过万再动）；ACRA 崩溃上报
 F5 打磨（按需）          compose-richtext 替换手写 Markdown

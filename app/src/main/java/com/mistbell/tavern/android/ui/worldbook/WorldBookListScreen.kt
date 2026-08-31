@@ -19,11 +19,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.ui.components.*
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
+import com.mistbell.tavern.android.util.WorldBookParser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +69,57 @@ fun WorldBookListScreen(
     )
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // 导入世界书：SAF 选 JSON → WorldBookParser 解析 → 落库（参照角色导入的提示风格）
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val result = withContext(Dispatchers.IO) {
+                    try {
+                        val jsonString = context.contentResolver.openInputStream(uri)
+                            ?.bufferedReader()?.use { it.readText() }
+                        if (jsonString != null) {
+                            // 兜底书名：取文件显示名去后缀，取不到用固定文案
+                            val fallbackName = queryDisplayName(context, uri)
+                                ?.substringBeforeLast('.')
+                                ?.takeIf { it.isNotBlank() }
+                                ?: "导入的世界书"
+                            WorldBookParser.parse(jsonString, fallbackName)
+                        } else null
+                    } catch (e: Exception) {
+                        android.util.Log.e("WorldBookImport", "导入世界书失败", e)
+                        null
+                    }
+                }
+                if (result != null) {
+                    val (book, entryList) = result
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val db = TavernApplication.instance.database
+                            db.worldBookDao().upsertBook(book)
+                            if (entryList.isNotEmpty()) {
+                                db.worldBookDao().upsertEntries(entryList)
+                            }
+                        }
+                        snackbarHostState.showSnackbar(
+                            "成功导入世界书：${book.name}（${entryList.size} 条条目）"
+                        )
+                        // 刷新列表
+                        viewModel.loadFromServer()
+                    } catch (e: Exception) {
+                        android.util.Log.e("WorldBookImport", "保存世界书失败", e)
+                        snackbarHostState.showSnackbar("导入失败: ${e.message}")
+                    }
+                } else {
+                    snackbarHostState.showSnackbar("导入失败：无法解析世界书文件")
+                }
+            }
+        }
+    }
 
     // Back handler: if viewing entries, go back to book list; otherwise exit
     BackHandler {
@@ -182,7 +241,10 @@ fun WorldBookListScreen(
                                 SmallFloatingActionButton(
                                     onClick = {
                                         fabExpanded = false
-                                        // TODO: 导入世界书
+                                        // SAF 选择 JSON 世界书文件
+                                        importLauncher.launch(
+                                            arrayOf("application/json", "application/octet-stream")
+                                        )
                                     },
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -665,5 +727,17 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/** 查询 SAF 文件的显示名（用于世界书导入的书名兜底），失败返回 null */
+private fun queryDisplayName(context: android.content.Context, uri: android.net.Uri): String? {
+    return try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+        }
+    } catch (_: Exception) {
+        null
     }
 }

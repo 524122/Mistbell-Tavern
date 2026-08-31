@@ -2,6 +2,7 @@ package com.mistbell.tavern.android.data.api.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class StateResponse(
@@ -37,7 +38,13 @@ data class CharacterData(
     @SerialName("post_history_instructions") val postHistoryInstructions: String = "",
     @SerialName("creator_notes") val creatorNotes: String = "",
     val creator: String = "",
-    @SerialName("character_version") val characterVersion: String = "1.0"
+    @SerialName("character_version") val characterVersion: String = "1.0",
+    // 备用问候语（SillyTavern v2 规范字段），默认空列表保证旧 JSON 兼容
+    @SerialName("alternate_greetings") val alternateGreetings: List<String> = emptyList(),
+    // 标签列表
+    val tags: List<String> = emptyList(),
+    // 生态扩展命名空间：原样透传保真，不做字段展开
+    val extensions: JsonObject? = null
 )
 
 @Serializable

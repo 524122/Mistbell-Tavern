@@ -17,8 +17,14 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import com.mistbell.tavern.android.data.api.model.Character
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.math.roundToInt
@@ -57,21 +63,53 @@ object CharacterExporter {
         return "下载/$EXPORT_FOLDER/$fileName"
     }
 
+    /**
+     * 纯函数：把应用内角色构建为 SillyTavern 兼容的 chara_card_v2 JSON 字符串。
+     * 只输出生态标准字段，不携带 avatarData/themeId 等 app 私有字段，保持卡片干净。
+     */
+    fun buildV2Json(character: Character): String {
+        val data = character.data
+        val v2 = buildJsonObject {
+            put("spec", "chara_card_v2")
+            put("spec_version", "2.0")
+            putJsonObject("data") {
+                put("name", character.name)
+                put("description", character.description)
+                put("personality", character.personality)
+                put("scenario", character.scenario)
+                put("first_mes", character.firstMes)
+                put("mes_example", character.mesExample)
+                put("creator_notes", data?.creatorNotes ?: "")
+                put("system_prompt", data?.systemPrompt ?: "")
+                put("post_history_instructions", data?.postHistoryInstructions ?: "")
+                putJsonArray("alternate_greetings") {
+                    data?.alternateGreetings?.forEach { add(JsonPrimitive(it)) }
+                }
+                putJsonArray("tags") {
+                    data?.tags?.forEach { add(JsonPrimitive(it)) }
+                }
+                put("creator", data?.creator ?: "")
+                put("character_version", data?.characterVersion ?: "1.0")
+                // 生态命名空间透传保真：保留原样，可为 null 时直接省略该键
+                val extensions = data?.extensions
+                if (extensions != null) put("extensions", extensions)
+            }
+        }
+        val json = Json { prettyPrint = true }
+        return json.encodeToString(JsonObject.serializer(), v2)
+    }
+
     fun exportToJson(
         context: Context,
         character: Character,
         fileName: String = buildFileName(character.name, character.id, CharacterExportFormat.JSON.extension)
     ): CharacterExportResult? {
         return try {
-            val json = Json {
-                prettyPrint = true
-                ignoreUnknownKeys = true
-            }
             saveBytes(
                 context = context,
                 fileName = fileName,
                 mimeType = CharacterExportFormat.JSON.mimeType,
-                bytes = json.encodeToString(character).toByteArray(Charsets.UTF_8)
+                bytes = buildV2Json(character).toByteArray(Charsets.UTF_8)
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -90,11 +128,18 @@ object CharacterExporter {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
             bitmap.recycle()
 
+            // 在 PNG 的 tEXt chunk 中埋入 v2 卡片 JSON（Base64），供 SillyTavern 生态导入
+            val pngBytes = PngCard.insertTextChunk(
+                output.toByteArray(),
+                PngCard.CHUNK_KEYWORD,
+                PngCard.encodeCardJson(buildV2Json(character))
+            )
+
             saveBytes(
                 context = context,
                 fileName = fileName,
                 mimeType = CharacterExportFormat.PNG.mimeType,
-                bytes = output.toByteArray()
+                bytes = pngBytes
             )
         } catch (e: Exception) {
             e.printStackTrace()
