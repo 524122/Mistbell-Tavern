@@ -9,7 +9,37 @@
 
 ## [未发布]
 
+### 🐛 修复
+- 修复消息回溯/重新生成可能删错消息的严重缺陷：`MessageDao.deleteAfter` 原实现对 UUID 主键做字符串比较（与时间序无关），现改为按 `created_at` 时间序删除，并列时间戳以 rowid 插入序决胜（ROADMAP M1-1）
+- 修复"重新生成"后旧 assistant 消息残留导致重复回复的问题：新增 `MessageDao.deleteById`，重新生成前先删除旧消息
+- 修复当前用户消息在每次请求的提示词中重复出现两次的问题：`PromptBuilder.buildPrompt` 新增 `currentMessageId` 参数过滤刚落库的当前消息（多代理审查新发现）
+- 修复"重新生成"把正要被替换的旧回复纳入提示词上下文导致模型复述旧答案的问题：`buildPrompt` 新增 `excludeFromMessageId` 截断参数，且删除/替换/计数回写改为单事务原子完成（ROADMAP M1-5 相关）
+- 修复两处数据库迁移崩溃雷（多代理审查新发现）：`MIGRATION_3_4` 的 `DEFAULT 1` 与实体声明 `defaultValue="0"` 不一致、`MIGRATION_4_5` 给 `memories.session_id` 加 `DEFAULT ''` 与实体无默认值不匹配——两者都会在 Room 迁移后表结构校验时抛异常；现分别改为 `DEFAULT 0` 与按实体最终结构整表重建
+- 修复"重新生成"先删旧消息再调 LLM、失败被 `catch(_){}` 静默吞掉导致数据丢失且无任何提示的问题：重排为先取上下文与配置（配置缺失在删除前即抛出），LLM 成功后才在事务内完成替换（ROADMAP M1-5 相关）
+- 修复发送消息 LLM 失败后用户消息残留、计数虚增的问题：失败时在事务内删除用户消息（含已插入的部分结果）并按真实行数重算计数，同时清理自动生成的会话标题（ROADMAP M1-5）
+- 修复撤销消息全删重插且不回写计数的问题：改为事务内单条删除 + 计数回写（ROADMAP M1-5）
+- 修复角色创建/更新吞掉全部异常导致编辑器永远提示"保存成功"的问题（多代理审查新发现）
+- 修复 ChatViewModel 多个入口各自启动永不取消的消息观察流、互相竞写导致串台/闪烁的问题：统一为可取消的单一观察入口（多代理审查新发现）
+- 修复深色模式切换需重启才生效的问题：`SettingsDao` 新增 `observeValue` 响应式查询，主题改为观察数据库变化（ROADMAP M1-2）
+- 修复聊天列表手写 equals 漏掉展示字段导致角色改名/换头像后列表陈旧的问题：恢复 data class 全字段比较（ROADMAP M1-3）
+- 修复角色卡对话数硬编码"23"的问题：`SessionDao` 新增按角色分组统计并接入 UI（ROADMAP M1-4）
+- 修复记忆标签/别名为 JSON 字符串却被当作集合使用（子串误匹配、逐字符迭代）的问题（ROADMAP M1-6）
+- 修复历史消息 token 预算截断可能产生非连续片段的问题：改为从最新往回的连续前缀选取，且最新一条始终纳入
+- 修复 `ChatRepositoryIntegrationExample` 调用 `buildPrompt` 时使用已不存在的命名参数导致无法编译的问题
+
+### 🔒 安全
+- API Key 三处明文存储（Room `llm_api_key`、`providers_json`、SharedPreferences embedding key）统一接入 AndroidKeyStore AES/GCM 加密（新增 `util/SecureStore`）；历史明文自动兼容读取，下次写入时自然完成加密迁移（ROADMAP M1-7）
+- 配置云备份与设备迁移排除规则（`backup_rules.xml` / `data_extraction_rules`）：数据库与两个偏好文件不再随备份外泄（ROADMAP M1-8）
+- 日志泄漏收敛：OkHttp 日志 release 构建降为 NONE（debug 为 BASIC，不再使用记录完整请求体的 BODY 级别）、崩溃报告黑名单补齐 `okhttp.OkHttpClient` 等遗漏 tag、删除角色导入/编辑器/记忆提取中打印用户内容与 LLM 响应原文的日志（ROADMAP M1-9）
+- `ApiClient` 单例改为 `@Volatile` + 同步双检锁，消除并发重复创建/半初始化读取（ROADMAP M1-10）
+
+### 🧪 测试
+- 建立 `app/src/test` 单元测试骨架并补 JUnit 依赖（ROADMAP M2-2 起步）：首批 21 条测试全绿——
+  VectorUtils 边界（零向量/维度不匹配）、ChatListItem 全字段相等性回归（防 M1-3 类"equals 裁剪优化"复发）、
+  PromptBuilder 历史截断（连续前缀 + 最新一条无条件纳入）
+
 ### 📝 文档更新
+- 新增 `docs/ROADMAP.md`：M1/M2/M3 三阶段工作规划（正确性修复 + 安全加固 / 清创 + 测试骨架 / 工程化 + 功能补全）
 - 新增贡献指南、Issue/PR 模板、发布说明模板
 - 清理冗余的开发过程文档与调试截图
 
