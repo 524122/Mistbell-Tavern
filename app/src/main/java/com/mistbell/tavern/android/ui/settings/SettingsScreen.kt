@@ -183,35 +183,90 @@ fun SettingsScreen(
                 }
             }
 
+            // === 对话生成 ===
+            SectionHeader("对话生成")
+
+            SettingsCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val streamingEnabled by viewModel.streamingEnabled.collectAsState()
+                    val defaultContextTokens by viewModel.defaultContextTokens.collectAsState()
+                    val defaultLtmEnabled by viewModel.defaultLtmEnabled.collectAsState()
+
+                    // 流式输出开关：关闭后回复整包返回，适用于不支持 SSE 的网关
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("流式输出", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("关闭后回复整包返回，适用于不支持 SSE 的网关",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = streamingEnabled,
+                            onCheckedChange = { viewModel.setStreamingEnabled(it) }
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 上下文长度：新会话的默认上下文 token 预算（1024..32768，步进 512）
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("上下文长度", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                                Text("新会话的默认上下文 token 预算",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(
+                                text = defaultContextTokens.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = defaultContextTokens.toFloat(),
+                            onValueChange = { viewModel.setDefaultContextTokens((it / 512).toInt() * 512) },
+                            valueRange = 1024f..32768f,
+                            steps = (32768 - 1024) / 512 - 1
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 长期记忆（实验性）：新会话默认开启记忆抽取
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("长期记忆（实验性）", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("新会话默认开启记忆抽取；向量记忆处于实验阶段",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = defaultLtmEnabled,
+                            onCheckedChange = { viewModel.setDefaultLtmEnabled(it) }
+                        )
+                    }
+                }
+            }
+
             // === 主要设置 ===
             SectionHeader("主要设置")
 
             SettingsCard {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SettingsNavItem(
-                        title = "模型与生成",
-                        subtitle = "LLM配置、生成参数",
-                        onClick = { /* TODO: 导航到模型设置页面 */ }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    SettingsNavItem(
-                        title = "对话行为",
-                        subtitle = "流式输出、自动保存、上下文管理",
-                        onClick = { /* TODO: 导航到对话设置页面 */ }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    SettingsNavItem(
-                        title = "外观与显示",
-                        subtitle = "主题色、字体大小、消息样式",
-                        onClick = onNavigateToThemeManager
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    SettingsNavItem(
-                        title = "通知与声音",
-                        subtitle = "消息通知、震动反馈",
-                        onClick = { /* TODO: 导航到通知设置页面 */ }
-                    )
-                }
+                SettingsNavItem(
+                    title = "外观与显示",
+                    subtitle = "主题色、字体大小、消息样式",
+                    onClick = onNavigateToThemeManager
+                )
             }
 
             // === 高级设置 ===
@@ -247,19 +302,6 @@ fun SettingsScreen(
 
             SettingsCard {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SettingsNavItem(
-                        title = "隐私与安全",
-                        subtitle = "本地加密、历史清理",
-                        onClick = { /* TODO: 导航到隐私设置页面 */ }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    SettingsNavItem(
-                        title = "网络与性能",
-                        subtitle = "代理设置、超时配置",
-                        onClick = { /* TODO: 导航到网络设置页面 */ }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
                     var showCrashLogDialog by remember { mutableStateOf(false) }
                     SettingsNavItem(
                         title = "问题反馈与日志",

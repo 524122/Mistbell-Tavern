@@ -10,6 +10,7 @@ import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.repository.ProviderRepository
+import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,6 +20,7 @@ import java.util.UUID
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.database
     private val providerRepo = ProviderRepository(application)
+    private val settingsRepo = SettingsRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
 
     // 所有角色
@@ -59,6 +61,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
+        // 长期记忆开关初始值取全局默认；此后用户在界面上手动切换则尊重用户选择
+        viewModelScope.launch {
+            _enableLongTermMemory.value = settingsRepo.defaultLtmEnabled()
+        }
         // 当角色选择变化时，自动更新世界书默认值（仅在用户未手动选择时）
         viewModelScope.launch {
             characterDefaultWorldBookId.collect { defaultId ->
@@ -158,7 +164,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
             isPinned = false,
             pinnedAt = null,
             isMuted = false,
+            // 长期记忆：优先尊重用户在设置页的显式开关；初始缺省值已在 init 中读全局默认
             enableLongTermMemory = _enableLongTermMemory.value,
+            // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
+            contextTokenLimit = settingsRepo.defaultContextTokens(),
             participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(characterIds)
         )
 

@@ -230,6 +230,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                         val newSessionId = java.util.UUID.randomUUID().toString()
                         val now = java.time.Instant.now().toString()
 
+                        // 读取全局设置默认值（上下文 token 预算 / 长期记忆开关）
+                        val settingsRepo = com.mistbell.tavern.android.data.repository.SettingsRepository(app)
+
                         val session = com.mistbell.tavern.android.data.local.entity.SessionEntity(
                             id = newSessionId,
                             ownerId = "local-user",
@@ -246,7 +249,10 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                             isPinned = false,
                             pinnedAt = null,
                             isMuted = false,
-                            enableLongTermMemory = false  // 默认关闭长期记忆
+                            // 长期记忆：由全局设置默认值决定（原硬编码 false）
+                            enableLongTermMemory = settingsRepo.defaultLtmEnabled(),
+                            // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
+                            contextTokenLimit = settingsRepo.defaultContextTokens()
                         )
                         db.sessionDao().upsert(session)
 

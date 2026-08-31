@@ -27,6 +27,7 @@ class ChatRepository(private val context: Context) {
     private val db get() = TavernApplication.instance.database
     private val api get() = ApiClient.getApi(context)
     private val providerRepo = ProviderRepository(context)
+    private val settingsRepo = SettingsRepository(context)
     private val structuredMemoryRepo = StructuredMemoryRepository(context)
     private val memoryExtractionService = MemoryExtractionService(context, structuredMemoryRepo)
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -127,10 +128,15 @@ class ChatRepository(private val context: Context) {
                 val llmConfig = loadLlmConfig()
                 if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
                     val promptMessages = PromptBuilder.buildPrompt(db, ownerId, characterId, sessionId, message, currentMessageId = msgId)
-                    // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
-                    LlmClient.chatStream(llmConfig, promptMessages).collect { delta ->
-                        sb.append(delta)
-                        onPartial?.invoke(sb.toString())
+                    if (settingsRepo.isStreamingEnabled()) {
+                        // 流式开：SSE 真流式，逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
+                        LlmClient.chatStream(llmConfig, promptMessages).collect { delta ->
+                            sb.append(delta)
+                            onPartial?.invoke(sb.toString())
+                        }
+                    } else {
+                        // 流式关：整包返回，不调 onPartial
+                        sb.append(LlmClient.chat(llmConfig, promptMessages))
                     }
                     val reply = sb.toString()
                     val assistantMsg = Message(
@@ -289,9 +295,15 @@ class ChatRepository(private val context: Context) {
             // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
             val sb = StringBuilder()
             try {
-                LlmClient.chatStream(llmConfig, prompt).collect { delta ->
-                    sb.append(delta)
-                    onPartial?.invoke(sb.toString())
+                if (settingsRepo.isStreamingEnabled()) {
+                    // 流式开：SSE 真流式，逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
+                    LlmClient.chatStream(llmConfig, prompt).collect { delta ->
+                        sb.append(delta)
+                        onPartial?.invoke(sb.toString())
+                    }
+                } else {
+                    // 流式关：整包返回，不调 onPartial
+                    sb.append(LlmClient.chat(llmConfig, prompt))
                 }
             } catch (e: CancellationException) {
                 // 用户主动停止重新生成：不删旧消息、不触发失败回滚。

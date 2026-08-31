@@ -39,6 +39,23 @@ class SettingsRepository(private val context: Context) {
         dao.upsert(SettingsEntity("max_tokens", config.maxTokens.toString()))
     }
 
+    // --- 生成与记忆默认值（settings KV）---
+
+    // 流式输出开关：缺省视为开启（仅显式写 "0" 才关闭）
+    suspend fun isStreamingEnabled(): Boolean = withContext(Dispatchers.IO) {
+        db.settingsDao().getValue("streaming_enabled") != "0"
+    }
+
+    // 新会话默认上下文 token 预算：非法或缺省回退 4096
+    suspend fun defaultContextTokens(): Int = withContext(Dispatchers.IO) {
+        db.settingsDao().getValue("default_context_tokens")?.toIntOrNull() ?: 4096
+    }
+
+    // 新会话默认长期记忆开关：缺省关闭（仅显式写 "1" 才开启）
+    suspend fun defaultLtmEnabled(): Boolean = withContext(Dispatchers.IO) {
+        db.settingsDao().getValue("default_ltm_enabled") == "1"
+    }
+
     // --- Server settings (sync from API) ---
 
     fun observeSettings(): Flow<JsonObject?> {

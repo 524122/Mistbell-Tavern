@@ -10,6 +10,9 @@
 ## [未发布]
 
 ### 🆕 新增
+- **设置补全（合理性驱动）**：
+  - "对话生成"区块：**流式输出开关**（兑现 F1 错误提示的降级承诺，兼容不支持 SSE 的网关）、**新会话默认上下文长度**（1024-32768，替代硬编码 4096）、**新会话默认长期记忆（实验性）**（落实 FOUNDATION"向量记忆标注实验性"决策）
+  - 砍掉四个无功能支撑的空入口：模型设置（与提供商管理重复）/通知/隐私/网络——ROADMAP"空入口收敛"兑现，设置页不再有死按钮
 - **F2 生态互通**（docs/FOUNDATION.md）：
   - 角色卡导入：v2（spec/data 包裹）与 v1（char_name 等老键名）容错解析；**PNG 埋卡导入**（tEXt "chara" chunk，自研零依赖编解码器）；alternate_greetings/tags/extensions 透传保真；内嵌世界书兼容数组与 uid-map 两形态
   - 修复 ST 生态字段映射：`enabled` 反相为 disable（原只读 disable 是 bug）、`insertion_order` 优先映射

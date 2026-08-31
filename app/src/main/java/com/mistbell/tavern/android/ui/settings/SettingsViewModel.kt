@@ -34,11 +34,68 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _memoryExtractionPrompt = MutableStateFlow("")
     val memoryExtractionPrompt: StateFlow<String> = _memoryExtractionPrompt
 
+    // --- 对话生成设置（KV 缺省值：流式开 / 上下文 4096 / 长期记忆默认关） ---
+    private val _streamingEnabled = MutableStateFlow(true)
+    val streamingEnabled: StateFlow<Boolean> = _streamingEnabled
+
+    private val _defaultContextTokens = MutableStateFlow(4096)
+    val defaultContextTokens: StateFlow<Int> = _defaultContextTokens
+
+    private val _defaultLtmEnabled = MutableStateFlow(false)
+    val defaultLtmEnabled: StateFlow<Boolean> = _defaultLtmEnabled
+
     init {
         loadSettings()
         loadLlmConfig()
         loadDarkMode()
         loadMemoryExtractionPrompt()
+        observeGenerationSettings()
+    }
+
+    // 从 settings 表观察三个对话生成相关 KV 键并解析灌入 StateFlow
+    private fun observeGenerationSettings() {
+        viewModelScope.launch {
+            db.settingsDao().observeValue("streaming_enabled")
+                .map { it != "0" } // 缺省/null 均视为开启
+                .collect { _streamingEnabled.value = it }
+        }
+        viewModelScope.launch {
+            db.settingsDao().observeValue("default_context_tokens")
+                .map { it?.toIntOrNull() ?: 4096 }
+                .collect { _defaultContextTokens.value = it }
+        }
+        viewModelScope.launch {
+            db.settingsDao().observeValue("default_ltm_enabled")
+                .map { it == "1" } // 缺省/null 视为关闭
+                .collect { _defaultLtmEnabled.value = it }
+        }
+    }
+
+    fun setStreamingEnabled(v: Boolean) {
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("streaming_enabled", if (v) "1" else "0")
+            )
+            _streamingEnabled.value = v
+        }
+    }
+
+    fun setDefaultContextTokens(n: Int) {
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("default_context_tokens", n.toString())
+            )
+            _defaultContextTokens.value = n
+        }
+    }
+
+    fun setDefaultLtmEnabled(v: Boolean) {
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("default_ltm_enabled", if (v) "1" else "0")
+            )
+            _defaultLtmEnabled.value = v
+        }
     }
 
     private fun loadDarkMode() {
