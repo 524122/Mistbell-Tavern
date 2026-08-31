@@ -1,8 +1,13 @@
+// 阿里云镜像仅作本地/国内加速；CI（海外 runner）直连官方源，避免镜像抖动导致解析失败
+def isCi = System.getenv('CI') != null
+
 pluginManagement {
     repositories {
-        maven { url "https://maven.aliyun.com/repository/google" }
-        maven { url "https://maven.aliyun.com/repository/gradle-plugin" }
-        maven { url "https://maven.aliyun.com/repository/public" }
+        if (!isCi) {
+            maven { url "https://maven.aliyun.com/repository/google" }
+            maven { url "https://maven.aliyun.com/repository/gradle-plugin" }
+            maven { url "https://maven.aliyun.com/repository/public" }
+        }
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -12,8 +17,10 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        maven { url "https://maven.aliyun.com/repository/google" }
-        maven { url "https://maven.aliyun.com/repository/public" }
+        if (!isCi) {
+            maven { url "https://maven.aliyun.com/repository/google" }
+            maven { url "https://maven.aliyun.com/repository/public" }
+        }
         google()
         mavenCentral()
     }
