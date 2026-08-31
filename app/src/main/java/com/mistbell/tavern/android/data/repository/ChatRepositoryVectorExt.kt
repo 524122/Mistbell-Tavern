@@ -27,6 +27,9 @@ fun storeUserMessageVector(
     sessionId: String,
     messageId: String
 ) {
+    // F3-FTS: 无真实 embedding 服务（available=false）时不写伪向量，杜绝新增坏数据（孤儿向量）
+    if (!TavernApplication.instance.vectorMemoryService.available) return
+
     // 异步存储，不阻塞主流程
     backgroundScope.launch {
         try {
@@ -59,6 +62,9 @@ fun storeAssistantMessageVector(
     sessionId: String,
     messageId: String
 ) {
+    // F3-FTS: 无真实 embedding 服务（available=false）时不写伪向量，杜绝新增坏数据（孤儿向量）
+    if (!TavernApplication.instance.vectorMemoryService.available) return
+
     // 异步存储，不阻塞主流程
     backgroundScope.launch {
         try {

@@ -73,7 +73,11 @@ F2 生态互通 ✅（已完成）
    + WorldBookParser 独立世界书导入（WorldBookListScreen 空 TODO 兑现）
    + CharacterData 补 alternate_greetings/tags/extensions 字段（顺带修复问候语编辑丢失 NH-4）
    + 27 条互通单测（总 81 条全绿）；detekt 基线 860 条（F1/F2 复杂度债入账，M2 清创烧掉）
-F3 记忆确定性            ONNX 本地向量替换 BM25 伪向量（与 ROADMAP M2-5 合并为同一件事）
+F3 记忆确定性 ✅（词法先行，已完成）
+   TermExtractor（CJK bigram + ASCII 词）+ LexicalMemoryService（会话内 LIKE 召回、排除近期窗口、"往事回响"注入）
+   + VectorMemoryService.available 开关（BM25 伪向量退出回退位与写入位，孤儿向量增量根治）
+   + v13 性能索引 messages(owner_id, character_id, created_at)
+   ONNX 本地语义向量保持后置（设备分级与模型分发方案另议）；FTS4 表方案否决（中文分词在 Android 不可靠）
 F4 规模升级（按需）      sqlite-vec 向量存储（消息过万再动）；ACRA 崩溃上报
 F5 打磨（按需）          compose-richtext 替换手写 Markdown
 ```

@@ -69,4 +69,14 @@ interface MessageDao {
         WHERE m.owner_id = :ownerId
     """)
     suspend fun getLatestMessagesByOwner(ownerId: String): List<MessageEntity>
+
+    // F3-FTS 词法召回：取会话内最近 N 条消息的 id，作为"近期窗口"排除集——
+    // 这些消息本来就在上下文里，历史召回时不应重复出现。
+    @Query("SELECT id FROM messages WHERE session_id=:sessionId AND owner_id=:ownerId AND character_id=:characterId ORDER BY created_at DESC LIMIT :limit")
+    suspend fun latestIdsBySession(sessionId: String, ownerId: String, characterId: String, limit: Int): List<String>
+
+    // F3-FTS 词法召回：按关键词（LIKE）检索历史消息，排除近期窗口内的 id。
+    // 未用满的词位由调用方填充 "~~nomatch~~%"（不会匹配任何真实内容），LIKE 对 % 无需转义（模式固定）。
+    @Query("SELECT * FROM messages WHERE session_id=:sessionId AND owner_id=:ownerId AND character_id=:characterId AND id NOT IN (:excludedIds) AND (content LIKE :t1 OR content LIKE :t2 OR content LIKE :t3 OR content LIKE :t4 OR content LIKE :t5 OR content LIKE :t6) ORDER BY created_at DESC LIMIT :resultLimit")
+    suspend fun searchByContentTerms(sessionId: String, ownerId: String, characterId: String, excludedIds: List<String>, t1: String, t2: String, t3: String, t4: String, t5: String, t6: String, resultLimit: Int): List<MessageEntity>
 }

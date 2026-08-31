@@ -10,6 +10,11 @@
 ## [未发布]
 
 ### 🆕 新增
+- **F3-FTS 词法召回先行**（诚实检索路线，ONNX 语义向量后置）：
+  - 无 embedding API 时的记忆回退从 BM25 伪向量（数学上不成立、非确定）换为**词法召回**：CJK bigram + ASCII 词分词（`TermExtractor` 纯函数）→ 会话内 LIKE 检索 → 排除近期 40 条（已在上下文中）→ "往事回响"注入
+  - `VectorMemoryService.available` 开关：仅真实 API embedding 可用；BM25 退出引用（文件留待 M2 清创）；无可用服务时不再写伪向量——**孤儿向量增量根治**
+  - v13 迁移：messages(owner_id, character_id, created_at) 性能索引
+  - 8 条分词单测（总 123 条全绿）
 - **S1 采样与生成设置**（docs/SETTINGS.md S1 批次）：
   - **采样预设三档**（创意/平衡/精确/自定义）：设置页一键切换，提供商级高级参数可逐项覆盖（temperature/top_p/top_k/重复惩罚/max tokens，滑条+清除）
   - **请求超时/重试可配**（15..600 秒 / 0..5 次，默认 90s/2）；超时经 callTimeout 生效于流式与非流式

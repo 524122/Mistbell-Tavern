@@ -5,6 +5,7 @@ import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.TavernApplication
+import com.mistbell.tavern.android.data.repository.LexicalMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.util.MacroContext
 import com.mistbell.tavern.android.util.MacroEngine
@@ -99,31 +100,42 @@ object PromptBuilder {
                 )
             }
 
-            // 向量记忆检索
+            // 记忆检索：有真实 embedding 服务 → 向量检索；否则词法回退（F3-FTS）
             try {
                 val vectorMemoryService = TavernApplication.instance.vectorMemoryService
-                val vectorResults = vectorMemoryService.searchRelevantMemories(
-                    query = userMessage,
-                    ownerId = ownerId,
-                    characterId = characterId,
-                    sessionId = sessionId,
-                    topK = 5
-                )
+                if (vectorMemoryService.available) {
+                    // 原向量检索逻辑不动
+                    val vectorResults = vectorMemoryService.searchRelevantMemories(
+                        query = userMessage,
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        sessionId = sessionId,
+                        topK = 5
+                    )
 
-                if (vectorResults.isNotEmpty()) {
-                    val vectorContext = buildVectorMemoryContextForPrompt(vectorResults)
-                    if (vectorContext.isNotBlank()) {
-                        messages.add(
-                            ChatMessage(
-                                role = "system",
-                                content = vectorContext
+                    if (vectorResults.isNotEmpty()) {
+                        val vectorContext = buildVectorMemoryContextForPrompt(vectorResults)
+                        if (vectorContext.isNotBlank()) {
+                            messages.add(
+                                ChatMessage(
+                                    role = "system",
+                                    content = vectorContext
+                                )
                             )
-                        )
+                        }
+                    }
+                } else {
+                    // 无 embedding API：诚实的关键词词法召回（OMate 式历史全文检索思路）
+                    val lexical = LexicalMemoryService(TavernApplication.instance)
+                    val items = lexical.searchRelevantHistory(ownerId, characterId, sessionId, userMessage)
+                    val lexicalContext = lexical.formatHistory(items)
+                    if (lexicalContext.isNotBlank()) {
+                        messages.add(ChatMessage("system", lexicalContext))
                     }
                 }
             } catch (e: Exception) {
-                // 向量检索失败不应阻塞对话
-                android.util.Log.e("PromptBuilder", "Vector memory search failed: ${e.message}", e)
+                // 检索失败不应阻塞对话
+                android.util.Log.e("PromptBuilder", "Memory search failed: ${e.message}", e)
             }
         }
 

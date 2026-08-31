@@ -27,6 +27,12 @@ class TavernApplication : Application() {
         }
     }
 
+    /**
+     * Embedding 服务（延迟初始化）
+     *
+     * F3-FTS: 有 API key → OpenAI 真实向量服务；无 key → Mock 占位（vectorMemoryService.available=false），
+     * 不再使用 BM25 伪向量（数学上不成立，记忆回退改走词法召回）。
+     */
     val embeddingService: EmbeddingService by lazy {
         try {
             val apiKey = getEmbeddingApiKey()
@@ -40,12 +46,13 @@ class TavernApplication : Application() {
                     model = "text-embedding-3-small"
                 )
             } else {
-                Log.d(TAG, "Using BM25 Embedding Service (lazy)")
-                BM25EmbeddingService()
+                // 无 key：不用伪向量，注入 Mock 占位（available=false，调用方走词法回退）
+                Log.d(TAG, "No embedding API key, vector memory unavailable (lexical fallback)")
+                MockEmbeddingService()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize embedding service: ${e.message}", e)
-            BM25EmbeddingService()
+            MockEmbeddingService()
         }
     }
 

@@ -23,6 +23,17 @@ class VectorMemoryService(
     }
 
     /**
+     * 向量能力可用性开关
+     *
+     * 由构造时注入的 embedding 服务决定：
+     * - 真实 API embedding 服务（如 OpenAIEmbeddingService）→ true
+     * - 本地伪向量服务（BM25/Mock 等）→ false
+     *
+     * available=false 时调用方应跳过向量写入/检索，改走词法回退（LexicalMemoryService）。
+     */
+    val available: Boolean = embeddingService is OpenAIEmbeddingService
+
+    /**
      * 存储消息到向量数据库
      *
      * @param content 消息内容
