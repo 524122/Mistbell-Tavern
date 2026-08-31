@@ -42,14 +42,54 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // 添加 enable_long_term_memory 列，默认值为 1 (true)
-                db.execSQL("ALTER TABLE sessions ADD COLUMN enable_long_term_memory INTEGER NOT NULL DEFAULT 1")
+                // 添加 enable_long_term_memory 列。
+                // 注意：DEFAULT 必须与 SessionEntity 的 @ColumnInfo(defaultValue = "0") 一致——
+                // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
+                // "Migration didn't properly handle sessions" 导致升级用户崩溃。
+                db.execSQL("ALTER TABLE sessions ADD COLUMN enable_long_term_memory INTEGER NOT NULL DEFAULT 0")
             }
         }
 
         private val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE memories ADD COLUMN session_id TEXT NOT NULL DEFAULT ''")
+                // 为 memories 增加 session_id 列。
+                // 不能用 ALTER TABLE ... ADD COLUMN session_id TEXT NOT NULL DEFAULT ''：
+                // MemoryEntity 未声明 defaultValue，带 SQL DEFAULT 的列与 Room 迁移后的表结构校验
+                // （TableInfo 比对列默认值）不一致，v4→v5 升级会抛
+                // "Migration didn't properly handle memories"。而 ADD COLUMN NOT NULL 又必须带 DEFAULT，
+                // 因此按实体最终结构整表重建：session_id 不带 SQL 默认值，旧行以 '' 回填。
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS memories_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        owner_id TEXT NOT NULL,
+                        character_id TEXT NOT NULL,
+                        session_id TEXT NOT NULL,
+                        layer TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        subject TEXT NOT NULL,
+                        relation TEXT NOT NULL,
+                        `object` TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        importance REAL NOT NULL,
+                        stability REAL NOT NULL,
+                        status TEXT NOT NULL,
+                        access_count INTEGER NOT NULL,
+                        tags TEXT NOT NULL,
+                        aliases TEXT NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO memories_new (
+                        id, owner_id, character_id, session_id, layer, type, subject, relation,
+                        `object`, content, importance, stability, status, access_count, tags, aliases
+                    )
+                    SELECT
+                        id, owner_id, character_id, '', layer, type, subject, relation,
+                        `object`, content, importance, stability, status, access_count, tags, aliases
+                    FROM memories
+                """.trimIndent())
+                db.execSQL("DROP TABLE memories")
+                db.execSQL("ALTER TABLE memories_new RENAME TO memories")
             }
         }
 

@@ -60,6 +60,7 @@ fun CharacterListScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val filteredCharacters by viewModel.filteredCharacters.collectAsState()
+    val sessionCounts by viewModel.sessionCounts.collectAsState()
     val pinnedCharacterIds by viewModel.pinnedCharacterIds.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val message by viewModel.message.collectAsState()
@@ -288,6 +289,7 @@ fun CharacterListScreen(
                     CharacterCardItem(
                         character = character,
                         isPinned = pinnedCharacterIds.contains(character.id),
+                        sessionCount = sessionCounts[character.id] ?: 0,
                         onClick = { onCharacterClick(character) },
                         onEdit = { onEditCharacter(character.id) },
                         onDelete = { viewModel.deleteCharacter(character.id) },
@@ -314,6 +316,7 @@ fun CharacterListScreen(
 fun CharacterCardItem(
     character: Character,
     isPinned: Boolean = false,
+    sessionCount: Int = 0,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -414,7 +417,7 @@ fun CharacterCardItem(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "23 对话",
+                        text = "$sessionCount 对话",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

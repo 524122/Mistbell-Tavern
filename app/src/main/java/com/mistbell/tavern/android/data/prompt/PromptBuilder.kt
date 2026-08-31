@@ -16,7 +16,11 @@ object PromptBuilder {
         ownerId: String,
         characterId: String,
         sessionId: String,
-        userMessage: String
+        userMessage: String,
+        currentMessageId: String? = null,
+        // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序），
+        // 保证正要被替换的旧 assistant 回复不进入上下文
+        excludeFromMessageId: String? = null
     ): List<ChatMessage> {
         val messages = mutableListOf<ChatMessage>()
 
@@ -131,7 +135,16 @@ object PromptBuilder {
             messages.add(ChatMessage(role = "system", content = "Activated World Info:\n$activatedContent"))
         }
 
-        val recentMessages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
+        var historySource: List<MessageEntity> = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
+        if (excludeFromMessageId != null) {
+            val idx = historySource.indexOfFirst { it.id == excludeFromMessageId }
+            if (idx >= 0) {
+                historySource = historySource.subList(0, idx)
+            }
+        }
+        val recentMessages = historySource
+            // 过滤掉刚落库的当前用户消息，避免同一条消息在 prompt 中重复出现
+            .filter { currentMessageId == null || it.id != currentMessageId }
         val history: List<MessageEntity> = selectHistoryWithinBudget(
             recentMessages = recentMessages,
             currentMessages = messages,
@@ -147,7 +160,8 @@ object PromptBuilder {
         return messages
     }
 
-    private fun selectHistoryWithinBudget(
+    // internal 仅为单元测试开放（ROADMAP M2-2：token 预算截断逻辑需要回归测试）
+    internal fun selectHistoryWithinBudget(
         recentMessages: List<MessageEntity>,
         currentMessages: List<ChatMessage>,
         currentUserMessage: String,
@@ -162,15 +176,15 @@ object PromptBuilder {
         val selected = ArrayDeque<MessageEntity>()
         var usedTokens = 0
 
-        recentMessages.asReversed().forEach { message ->
+        // 从最新往回连续选取，预算耗尽即停止，保证历史片段连续；
+        // 最新一条无条件纳入（与历史实现一致：预算极小时也带上最近一轮的上下文）
+        for ((i, message) in recentMessages.asReversed().withIndex()) {
             val messageTokens = estimateTokens(message.content) + 4
-            if (selected.isNotEmpty() && usedTokens + messageTokens > historyBudget) {
-                return@forEach
+            if (i > 0 && usedTokens + messageTokens > historyBudget) {
+                break
             }
-            if (selected.isEmpty() || usedTokens + messageTokens <= historyBudget) {
-                selected.addFirst(message)
-                usedTokens += messageTokens
-            }
+            selected.addFirst(message)
+            usedTokens += messageTokens
         }
 
         return selected.toList()

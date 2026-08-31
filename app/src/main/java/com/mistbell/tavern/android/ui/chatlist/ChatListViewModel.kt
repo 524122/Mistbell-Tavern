@@ -34,31 +34,7 @@ data class ChatListItem(
     val isPinned: Boolean = false,
     val isMuted: Boolean = false,
     val lastMessageSender: String = ""
-) {
-    // 使用 equals/hashCode 优化，避免不必要的重组
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as ChatListItem
-        // 只比较影响显示的关键字段
-        return sessionId == other.sessionId &&
-                lastMessage == other.lastMessage &&
-                lastMessageTime == other.lastMessageTime &&
-                unreadCount == other.unreadCount &&
-                isPinned == other.isPinned &&
-                isMuted == other.isMuted
-    }
-
-    override fun hashCode(): Int {
-        var result = sessionId.hashCode()
-        result = 31 * result + lastMessage.hashCode()
-        result = 31 * result + lastMessageTime.hashCode()
-        result = 31 * result + unreadCount
-        result = 31 * result + isPinned.hashCode()
-        result = 31 * result + isMuted.hashCode()
-        return result
-    }
-}
+)
 
 class ChatListViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.database
@@ -75,9 +51,6 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
 
     private val _selectedSessions = MutableStateFlow<Set<Pair<String, String>>>(emptySet())
     val selectedSessions: StateFlow<Set<Pair<String, String>>> = _selectedSessions.asStateFlow()
-
-    // 缓存时间戳格式化结果，避免重复计算
-    private val timestampCache = mutableMapOf<String, String>()
 
     val chatListItems: StateFlow<List<ChatListItem>> = combine(
         db.sessionDao().getRecent("local-user"),
@@ -128,9 +101,7 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                 characterAvatarData = character.avatarData,
                 participantCharacters = participantCharacters,
                 lastMessage = lastMessage.ifBlank { session.title },
-                lastMessageTime = timestampCache.getOrPut(session.updatedAt) {
-                    formatTimestamp(session.updatedAt)
-                },
+                lastMessageTime = formatTimestamp(session.updatedAt),
                 unreadCount = session.unreadCount,
                 isOnline = false,
                 isPinned = session.isPinned,

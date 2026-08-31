@@ -5,6 +5,7 @@ import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
+import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -18,21 +19,21 @@ class SettingsRepository(private val context: Context) {
 
     // --- LLM Config (local) ---
 
-    suspend fun getLlmConfig(): LlmConfig {
+    suspend fun getLlmConfig(): LlmConfig = withContext(Dispatchers.IO) {
         val dao = db.settingsDao()
-        return LlmConfig(
+        LlmConfig(
             baseUrl = dao.getValue("llm_base_url") ?: "",
-            apiKey = dao.getValue("llm_api_key") ?: "",
+            apiKey = SecureStore.unwrap(dao.getValue("llm_api_key") ?: ""),
             model = dao.getValue("llm_model") ?: "",
             temperature = dao.getValue("temperature")?.toDoubleOrNull() ?: 0.8,
             maxTokens = dao.getValue("max_tokens")?.toIntOrNull() ?: 1024
         )
     }
 
-    suspend fun saveLlmConfig(config: LlmConfig) {
+    suspend fun saveLlmConfig(config: LlmConfig) = withContext(Dispatchers.IO) {
         val dao = db.settingsDao()
         dao.upsert(SettingsEntity("llm_base_url", config.baseUrl))
-        dao.upsert(SettingsEntity("llm_api_key", config.apiKey))
+        dao.upsert(SettingsEntity("llm_api_key", SecureStore.wrap(config.apiKey)))
         dao.upsert(SettingsEntity("llm_model", config.model))
         dao.upsert(SettingsEntity("temperature", config.temperature.toString()))
         dao.upsert(SettingsEntity("max_tokens", config.maxTokens.toString()))
@@ -61,7 +62,9 @@ class SettingsRepository(private val context: Context) {
                         is JsonPrimitive -> value.content
                         else -> value.toString()
                     }
-                    dao.upsert(SettingsEntity(key, strValue))
+                    // 敏感 key 同样走加密写入，避免服务器同步把已加密值降级为明文落盘
+                    val stored = if (key == "llm_api_key") SecureStore.wrap(strValue) else strValue
+                    dao.upsert(SettingsEntity(key, stored))
                 }
             }
         } catch (_: Exception) {

@@ -79,9 +79,6 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
                     characterVersion = char.data?.characterVersion ?: "1.0",
                     worldBookId = char.worldBookId
                 )
-                android.util.Log.d("CharacterEditor", "Loaded character: ${char.name}")
-                android.util.Log.d("CharacterEditor", "Description: ${char.description}")
-                android.util.Log.d("CharacterEditor", "Personality: ${char.personality}")
             }
         }
     }

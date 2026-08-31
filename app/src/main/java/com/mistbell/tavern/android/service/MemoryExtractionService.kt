@@ -255,8 +255,8 @@ importance 标尺
                 }.getOrNull()
             }
         } catch (e: Exception) {
+            // 注意：不要记录 rawJson 内容，避免 LLM 响应（可能含聊天上下文）进入日志
             Log.e(TAG, "Failed to parse memory extraction result: ${e.message}")
-            Log.e(TAG, "Response preview: ${rawJson.take(500)}")
             emptyList()
         }
     }

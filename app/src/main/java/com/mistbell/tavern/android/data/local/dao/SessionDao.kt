@@ -26,6 +26,9 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE id = :sessionId LIMIT 1")
     fun observeById(sessionId: String): Flow<SessionEntity?>
 
+    @Query("SELECT character_id AS characterId, COUNT(*) AS sessionCount FROM sessions WHERE owner_id = :ownerId GROUP BY character_id")
+    fun observeSessionCounts(ownerId: String): Flow<List<CharacterSessionCount>>
+
     @Upsert
     suspend fun upsert(session: SessionEntity)
 
@@ -47,3 +50,9 @@ interface SessionDao {
     @Query("UPDATE sessions SET is_muted = :muted WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")
     suspend fun updateMuted(sessionId: String, ownerId: String, characterId: String, muted: Boolean)
 }
+
+// 每个角色的真实会话数统计
+data class CharacterSessionCount(
+    val characterId: String,
+    val sessionCount: Int
+)

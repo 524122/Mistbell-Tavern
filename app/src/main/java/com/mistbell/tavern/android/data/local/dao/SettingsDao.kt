@@ -14,6 +14,9 @@ interface SettingsDao {
     @Query("SELECT value FROM settings WHERE `key` = :key LIMIT 1")
     suspend fun getValue(key: String): String?
 
+    @Query("SELECT value FROM settings WHERE `key` = :key LIMIT 1")
+    fun observeValue(key: String): Flow<String?>
+
     @Upsert
     suspend fun upsert(setting: SettingsEntity)
 

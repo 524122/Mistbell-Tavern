@@ -100,7 +100,11 @@ class LocalMemoryService(private val context: Context) {
             .first()
 
         return allMemories.filter { memory ->
-            tags.any { tag -> memory.tags.contains(tag) }
+            val memoryTags = decodeList(memory.tags)
+            // 与 calculateRelevanceScore 保持一致：大小写不敏感、忽略空标签
+            tags.filter { it.isNotBlank() }.any { tag ->
+                memoryTags.any { it.lowercase().contains(tag.lowercase()) }
+            }
         }
     }
 
@@ -123,6 +127,21 @@ class LocalMemoryService(private val context: Context) {
             .first()
 
         return allMemories.filter { it.layer == layer }
+    }
+
+    /**
+     * 解码 JSON 编码的字符串列表（如 ["a","b"]）
+     *
+     * 空串/解析失败返回空列表（与 MemoryEntity.toDomain 的解码语义一致）
+     */
+    private fun decodeList(json: String): List<String> {
+        if (json.isBlank()) return emptyList()
+        return try {
+            val array = org.json.JSONArray(json)
+            List(array.length()) { array.getString(it) }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     /**
@@ -176,14 +195,15 @@ class LocalMemoryService(private val context: Context) {
         }
         score += matchedKeywords * 2.0
 
-        // 别名匹配
-        val aliasMatches = memory.aliases.count { alias ->
+        // 别名匹配（先解码 JSON 列表）
+        val aliasList = decodeList(memory.aliases)
+        val aliasMatches = aliasList.count { alias ->
             queryLower.contains(alias.lowercase()) || alias.lowercase().contains(queryLower)
         }
         score += aliasMatches * 3.0
 
-        // 标签匹配
-        val tagMatches = memory.tags.count { tag ->
+        // 标签匹配（先解码 JSON 列表）
+        val tagMatches = decodeList(memory.tags).count { tag ->
             queryLower.contains(tag.lowercase())
         }
         score += tagMatches * 2.0

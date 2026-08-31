@@ -21,6 +21,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
 class CharacterListViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        // 与 ChatListViewModel 等处保持一致的会话所有者
+        private const val OWNER_ID = "local-user"
+    }
+
     private val repository = CharacterRepository(application)
     private val db = TavernApplication.instance.database
     private val pinnedCharactersKey = "pinned_character_ids"
@@ -60,6 +65,12 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
+
+    // 每个角色的真实会话数（ownerId 与其他会话查询保持一致）
+    val sessionCounts: StateFlow<Map<String, Int>> = db.sessionDao()
+        .observeSessionCounts(OWNER_ID)
+        .map { counts -> counts.associate { it.characterId to it.sessionCount } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
@@ -126,11 +137,8 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
                 val importResult = com.mistbell.tavern.android.util.CharacterImporter.importFromJson(context, uri)
                 if (importResult != null) {
                     val characterEntity = importResult.character
+                    // 注意：不要把角色描述/性格/开场白等全文打进 logcat（隐私）
                     android.util.Log.d("CharacterImport", "Parsed character: ${characterEntity.name}")
-                    android.util.Log.d("CharacterImport", "Description: ${characterEntity.description}")
-                    android.util.Log.d("CharacterImport", "Personality: ${characterEntity.personality}")
-                    android.util.Log.d("CharacterImport", "FirstMes: ${characterEntity.firstMes}")
-                    android.util.Log.d("CharacterImport", "WorldBookId: ${characterEntity.worldBookId}")
 
                     // 保存世界书（如果有）
                     if (importResult.worldBook != null) {

@@ -49,7 +49,12 @@ object CrashLogger {
         "VectorMemoryService",
         "VectorMemoryTest",
         "OpenAIEmbedding",
-        "LlmClient"
+        "LlmClient",
+        // OkHttp 默认 tag：BODY 级日志会回显完整请求头（含 Authorization 密钥）与请求体
+        "okhttp.OkHttpClient",
+        "CharacterImporter",
+        "CharacterEditor",
+        "SecureStore"
     )
 
     // threadtime 格式日志首行：日期 时间 PID TID 优先级 TAG: 消息

@@ -27,8 +27,27 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")
     suspend fun deleteBySession(sessionId: String, ownerId: String, characterId: String)
 
-    @Query("DELETE FROM messages WHERE session_id = :sessionId AND id > :afterMessageId AND owner_id = :ownerId AND character_id = :characterId")
+    // 注意：必须先于 deleteById(target) 调用——本查询通过子查询定位目标消息的时间，
+    // 若目标行已不存在则整条条件为 NULL，不会删除任何消息（安全边界，调用方依赖此语义）。
+    // created_at 为 ISO-8601 字符串，字典序即时间序；同一时间戳的并列消息用 rowid（插入序）决胜，
+    // 保证"目标之后"的语义在导入数据等时间重复场景下依然正确。
+    @Query("""
+        DELETE FROM messages
+        WHERE session_id = :sessionId
+          AND owner_id = :ownerId
+          AND character_id = :characterId
+          AND (
+              created_at > (SELECT target.created_at FROM messages target WHERE target.id = :afterMessageId)
+              OR (
+                  created_at = (SELECT target.created_at FROM messages target WHERE target.id = :afterMessageId)
+                  AND rowid > (SELECT target.rowid FROM messages target WHERE target.id = :afterMessageId)
+              )
+          )
+    """)
     suspend fun deleteAfter(sessionId: String, afterMessageId: String, ownerId: String, characterId: String)
+
+    @Query("DELETE FROM messages WHERE id = :messageId")
+    suspend fun deleteById(messageId: String)
 
     @Query("DELETE FROM messages")
     suspend fun deleteAll()

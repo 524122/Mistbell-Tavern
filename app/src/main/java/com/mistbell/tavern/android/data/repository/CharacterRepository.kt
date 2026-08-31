@@ -50,7 +50,10 @@ class CharacterRepository(private val context: Context) {
                 api.createCharacter(body)
                 // Refresh from server
                 loadCharactersFromServer()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                // 异常上抛，让 UI 能感知保存失败
+                throw e
+            }
         }
     }
 
@@ -59,7 +62,10 @@ class CharacterRepository(private val context: Context) {
             try {
                 val entity = com.mistbell.tavern.android.data.local.entity.CharacterEntity.fromDomain(character)
                 db.characterDao().upsertAll(listOf(entity))
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                // 异常上抛，让 UI 能感知保存失败
+                throw e
+            }
         }
     }
 
@@ -68,7 +74,10 @@ class CharacterRepository(private val context: Context) {
             try {
                 api.updateCharacter(id, patch)
                 loadCharactersFromServer()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                // 异常上抛，让 UI 能感知保存失败
+                throw e
+            }
         }
     }
 

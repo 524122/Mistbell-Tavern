@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.mistbell.tavern.android.TavernApplication
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 private val LightColorScheme = lightColorScheme(
     primary = AccentBlue,
@@ -77,9 +78,7 @@ fun MistbellThemeWithSettings(content: @Composable () -> Unit) {
     val db = TavernApplication.instance.database
 
     // Read dark mode setting from database
-    val darkModeSetting by kotlinx.coroutines.flow.flow {
-        emit(db.settingsDao().getValue("dark_mode") ?: "system")
-    }.collectAsState(initial = "system")
+    val darkModeSetting by db.settingsDao().observeValue("dark_mode").map { it ?: "system" }.collectAsState(initial = "system")
 
     val isDark = when (darkModeSetting) {
         "dark" -> true

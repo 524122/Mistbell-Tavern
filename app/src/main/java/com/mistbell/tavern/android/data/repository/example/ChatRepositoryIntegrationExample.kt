@@ -180,11 +180,10 @@ suspend fun sendMessage(
         try {
             val llmConfig = loadLlmConfig()
             if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
-                // 构建 Prompt 时注入记忆（需要修改 PromptBuilder）
+                // 构建 Prompt（记忆注入由 PromptBuilder 内部完成；
+                // 此前示例使用了不存在的 structuredMemories/vectorResults 命名参数，已按当前签名修正）
                 val promptMessages = PromptBuilder.buildPrompt(
-                    db, ownerId, characterId, sessionId, message,
-                    structuredMemories = structuredMemories,  // 新增参数
-                    vectorResults = vectorResults              // 新增参数
+                    db, ownerId, characterId, sessionId, message
                 )
 
                 val reply = LlmClient.chat(llmConfig, promptMessages)

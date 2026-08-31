@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.vector.*
+import com.mistbell.tavern.android.util.SecureStore
 
 class TavernApplication : Application() {
 
@@ -85,7 +86,7 @@ class TavernApplication : Application() {
      */
     private fun getEmbeddingApiKey(): String {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_EMBEDDING_API_KEY, "") ?: ""
+        return SecureStore.unwrap(prefs.getString(KEY_EMBEDDING_API_KEY, "") ?: "")
     }
 
     /**
@@ -103,7 +104,7 @@ class TavernApplication : Application() {
      */
     fun updateEmbeddingApiKey(apiKey: String) {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_EMBEDDING_API_KEY, apiKey).apply()
+        prefs.edit().putString(KEY_EMBEDDING_API_KEY, SecureStore.wrap(apiKey)).apply()
         Log.d(TAG, "Embedding API key updated (restart required)")
     }
 

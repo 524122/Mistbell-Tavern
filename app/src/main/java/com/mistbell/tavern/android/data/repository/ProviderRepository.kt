@@ -5,6 +5,7 @@ import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.model.ProviderConfig
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
+import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -20,7 +21,7 @@ class ProviderRepository(private val context: Context) {
     fun observeProviders(): Flow<List<ProviderConfig>> {
         return db.settingsDao().getAll().map { entities ->
             val map = entities.associate { it.key to it.value }
-            val json = map["providers_json"] ?: "[]"
+            val json = SecureStore.unwrap(map["providers_json"] ?: "[]")
             try {
                 Json.decodeFromString(ListSerializer(ProviderConfig.serializer()), json)
             } catch (_: Exception) { emptyList() }
@@ -44,7 +45,7 @@ class ProviderRepository(private val context: Context) {
     suspend fun saveProviders(providers: List<ProviderConfig>) {
         withContext(Dispatchers.IO) {
             val json = Json.encodeToString(ListSerializer(ProviderConfig.serializer()), providers)
-            db.settingsDao().upsert(SettingsEntity("providers_json", json))
+            db.settingsDao().upsert(SettingsEntity("providers_json", SecureStore.wrap(json)))
 
             // 同步更新 LLM 配置（使用第一个提供商或当前激活的提供商）
             val activeProviderId = db.settingsDao().getValue("active_provider_id") ?: ""
@@ -52,7 +53,7 @@ class ProviderRepository(private val context: Context) {
 
             if (activeProvider != null) {
                 db.settingsDao().upsert(SettingsEntity("llm_base_url", activeProvider.endpoint))
-                db.settingsDao().upsert(SettingsEntity("llm_api_key", activeProvider.apiKey))
+                db.settingsDao().upsert(SettingsEntity("llm_api_key", SecureStore.wrap(activeProvider.apiKey)))
                 db.settingsDao().upsert(SettingsEntity("llm_model", activeProvider.selectedModel))
             }
         }

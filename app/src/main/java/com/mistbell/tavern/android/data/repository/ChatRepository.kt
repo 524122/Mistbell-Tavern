@@ -1,6 +1,7 @@
 package com.mistbell.tavern.android.data.repository
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.LlmClient
@@ -9,6 +10,7 @@ import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.local.entity.*
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.service.MemoryExtractionService
+import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -116,10 +118,11 @@ class ChatRepository(private val context: Context) {
             }
 
             // 3. Try to get AI response via LLM
+            var insertedAssistantId: String? = null
             try {
                 val llmConfig = loadLlmConfig()
                 if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
-                    val promptMessages = PromptBuilder.buildPrompt(db, ownerId, characterId, sessionId, message)
+                    val promptMessages = PromptBuilder.buildPrompt(db, ownerId, characterId, sessionId, message, currentMessageId = msgId)
                     val reply = LlmClient.chat(llmConfig, promptMessages)
                     val assistantMsg = Message(
                         id = UUID.randomUUID().toString(),
@@ -134,6 +137,7 @@ class ChatRepository(private val context: Context) {
                     db.messageDao().upsert(
                         MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId)
                     )
+                    insertedAssistantId = assistantMsg.id
 
                     // 3.5. 向量化 AI 回复（异步，不阻塞主流程）
                     storeAssistantMessageVector(
@@ -171,7 +175,22 @@ class ChatRepository(private val context: Context) {
                     throw Exception("LLM 未配置：请在设置中配置 API 密钥")
                 }
             } catch (e: Exception) {
-                // LLM 调用失败，抛出异常让 UI 显示错误
+                // LLM 调用或收尾失败：事务内回滚本条消息（用户消息，若已插入还包括回复），
+                // 计数按真实行数重算（自愈，不依赖增量加减），再抛出异常让 UI 显示错误。
+                // 已知残留：已异步写入的向量无法按消息清理（无对应接口，见 ROADMAP 向量双写一致性）
+                db.withTransaction {
+                    db.messageDao().deleteById(msgId)
+                    insertedAssistantId?.let { db.messageDao().deleteById(it) }
+                    val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
+                    if (sessionForRollback != null) {
+                        db.sessionDao().upsert(
+                            sessionForRollback.copy(
+                                messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size,
+                                title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title
+                            )
+                        )
+                    }
+                }
                 throw e
             }
         }
@@ -179,11 +198,15 @@ class ChatRepository(private val context: Context) {
 
     suspend fun undoLastMessage(ownerId: String, characterId: String, sessionId: String) {
         withContext(Dispatchers.IO) {
-            val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
-            if (messages.isNotEmpty()) {
-                db.messageDao().deleteBySession(sessionId, ownerId, characterId)
-                if (messages.size > 1) {
-                    db.messageDao().upsertAll(messages.dropLast(1))
+            // 事务保证删除与计数回写原子完成，避免中途失败导致计数漂移
+            db.withTransaction {
+                val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
+                if (messages.isNotEmpty()) {
+                    db.messageDao().deleteById(messages.last().id)
+                    val session = db.sessionDao().get(sessionId, ownerId, characterId)
+                    if (session != null) {
+                        db.sessionDao().upsert(session.copy(messageCount = messages.size - 1))
+                    }
                 }
             }
         }
@@ -202,36 +225,60 @@ class ChatRepository(private val context: Context) {
     suspend fun regenerateMessage(ownerId: String, characterId: String, sessionId: String, messageId: String) {
         withContext(Dispatchers.IO) {
             val msg = db.messageDao().getById(messageId, sessionId) ?: return@withContext
-            if (msg.role == "assistant") {
-                // Delete the old assistant message
-                db.messageDao().deleteAfter(sessionId, messageId, ownerId, characterId)
-            }
-            // Try to regenerate via LLM
+            if (msg.role != "assistant") return@withContext
+
+            // 先取上下文与配置，任何删除都在拿到新回复成功之后，避免旧消息丢失而新回复没来
             val userMessages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
             val lastUserMsg = userMessages.lastOrNull { it.role == "user" }
-            if (lastUserMsg != null) {
-                try {
-                    val llmConfig = loadLlmConfig()
-                    if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
-                        val prompt = PromptBuilder.buildPrompt(db, ownerId, characterId, sessionId, lastUserMsg.content)
-                        val reply = LlmClient.chat(llmConfig, prompt)
-                        val assistantMsg = Message(
-                            id = UUID.randomUUID().toString(),
-                            role = "assistant",
-                            content = reply,
-                            thinking = null,
-                            createdAt = java.time.Instant.now().toString(),
-                            memoryIds = null,
-                            swipes = null,
-                            swipeIndex = 0
-                        )
-                        db.messageDao().upsert(
-                            MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId)
-                        )
-                        return@withContext
-                    }
-                } catch (_: Exception) {}
+                ?: throw IllegalStateException("没有可重新生成的用户消息")
+            val llmConfig = loadLlmConfig()
+            if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
+                throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
             }
+
+            // excludeFromMessageId：截断目标消息及其之后的历史，
+            // 保证正要被替换的旧回复不进入上下文（否则模型会复述旧答案）
+            val prompt = PromptBuilder.buildPrompt(
+                db, ownerId, characterId, sessionId, lastUserMsg.content,
+                currentMessageId = lastUserMsg.id,
+                excludeFromMessageId = messageId
+            )
+            val reply = LlmClient.chat(llmConfig, prompt)
+
+            val assistantMsg = Message(
+                id = UUID.randomUUID().toString(),
+                role = "assistant",
+                content = reply,
+                thinking = null,
+                createdAt = java.time.Instant.now().toString(),
+                memoryIds = null,
+                swipes = null,
+                swipeIndex = 0
+            )
+
+            // 成功拿到新回复后，在事务内原子完成替换：先删目标之后的消息与目标本身，再插入新回复并回写计数
+            db.withTransaction {
+                db.messageDao().deleteAfter(sessionId, messageId, ownerId, characterId)
+                db.messageDao().deleteById(messageId)
+                db.messageDao().upsert(
+                    MessageEntity.fromDomain(assistantMsg, sessionId, ownerId, characterId)
+                )
+                val session = db.sessionDao().get(sessionId, ownerId, characterId)
+                if (session != null) {
+                    db.sessionDao().upsert(
+                        session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size)
+                    )
+                }
+            }
+            // 向量化新回复（异步，不阻塞主流程）。
+            // 已知残留：被替换的旧消息向量没有按消息删除的接口，暂无法清理（见 ROADMAP 向量双写一致性问题）
+            storeAssistantMessageVector(
+                content = reply,
+                ownerId = ownerId,
+                characterId = characterId,
+                sessionId = sessionId,
+                messageId = assistantMsg.id
+            )
         }
     }
 
@@ -314,7 +361,7 @@ class ChatRepository(private val context: Context) {
         val settingsDao = db.settingsDao()
         return LlmConfig(
             baseUrl = settingsDao.getValue("llm_base_url") ?: "",
-            apiKey = settingsDao.getValue("llm_api_key") ?: "",
+            apiKey = SecureStore.unwrap(settingsDao.getValue("llm_api_key") ?: ""),
             model = settingsDao.getValue("llm_model") ?: "",
             temperature = settingsDao.getValue("temperature")?.toDoubleOrNull() ?: 0.8,
             maxTokens = settingsDao.getValue("max_tokens")?.toIntOrNull() ?: 1024

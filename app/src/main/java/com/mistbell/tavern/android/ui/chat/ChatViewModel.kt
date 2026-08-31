@@ -116,9 +116,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _activeSessionId.value = activeId
             }
             if (_activeSessionId.value.isNotBlank() && charId.isNotBlank()) {
-                repo.observeMessages(ownerId, charId, _activeSessionId.value).collect { msgs ->
-                    _messages.value = msgs
-                }
+                // 统一走 startObservingMessages，与 loadSession/selectCharacter 共用同一个可取消的观察 job
+                startObservingMessages(ownerId, charId, _activeSessionId.value)
             }
         }
     }
@@ -127,11 +126,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _currentCharacter.value = character
         _currentCharacterId = character.id
         _messages.value = emptyList()
+        // 先同步取消旧观察：getActiveSessionId 是挂起调用，期间旧 observer 仍会写 _messages；
+        // 且新角色没有会话时（activeId 为空）也必须保证旧会话观察已停止
+        messageObserverJob?.cancel()
         viewModelScope.launch {
             val activeId = repo.getActiveSessionId(ownerId, character.id)
             _activeSessionId.value = activeId
             if (activeId.isNotBlank()) {
-                repo.observeMessages(ownerId, character.id, activeId).collect { msgs ->
+                startObservingMessages(ownerId, character.id, activeId)
+            }
+        }
+    }
+
+    // 统一的消息观察入口：先取消旧 job，再启动新观察，防止多流竞写 _messages
+    private fun startObservingMessages(ownerId: String, characterId: String, sessionId: String) {
+        messageObserverJob?.cancel()
+        messageObserverJob = viewModelScope.launch {
+            if (sessionId.isNotBlank() && characterId.isNotBlank()) {
+                repo.observeMessages(ownerId, characterId, sessionId).collect { msgs ->
                     _messages.value = msgs
                 }
             }
@@ -174,14 +186,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // 加载消息
-        messageObserverJob = viewModelScope.launch {
-            if (sessionId.isNotBlank() && characterId.isNotBlank()) {
-                repo.observeMessages(ownerId, characterId, sessionId).collect { msgs ->
-                    _messages.value = msgs
-                    android.util.Log.d("ChatViewModel", "Messages loaded: ${msgs.size} messages")
-                }
-            }
-        }
+        startObservingMessages(ownerId, characterId, sessionId)
     }
 
     fun sendMessage(content: String) {
@@ -189,7 +194,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (content.isBlank()) return
 
         android.util.Log.d("ChatViewModel", "sendMessage called")
-        android.util.Log.d("ChatViewModel", "  content=$content")
         android.util.Log.d("ChatViewModel", "  _activeSessionId.value=${_activeSessionId.value}")
         android.util.Log.d("ChatViewModel", "  characterId=${char.id}")
         android.util.Log.d("ChatViewModel", "  _isSessionExplicitlySet=$_isSessionExplicitlySet")
@@ -282,9 +286,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _activeSessionId.value = sessionId
                 _messages.value = emptyList()
                 // Observe new session's messages
-                repo.observeMessages(ownerId, char.id, sessionId).collect { msgs ->
-                    _messages.value = msgs
-                }
+                startObservingMessages(ownerId, char.id, sessionId)
             } catch (e: Exception) {
                 _error.value = "创建会话失败: ${e.message}"
             }
@@ -295,11 +297,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val char = _currentCharacter.value ?: return
         _activeSessionId.value = sessionId
         _messages.value = emptyList()
-        viewModelScope.launch {
-            repo.observeMessages(ownerId, char.id, sessionId).collect { msgs ->
-                _messages.value = msgs
-            }
-        }
+        startObservingMessages(ownerId, char.id, sessionId)
     }
 
     fun deleteSession(sessionId: String) {
@@ -308,8 +306,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 repo.deleteSession(ownerId, char.id, sessionId)
                 if (sessionId == _activeSessionId.value) {
+                    // 删除的是当前会话：回退到新的 activeSessionId 并重建消息观察，
+                    // 否则 observer 仍指向已删除的会话，后续消息 UI 永远看不到
                     val newId = repo.getActiveSessionId(ownerId, char.id)
                     _activeSessionId.value = newId
+                    _messages.value = emptyList()
+                    messageObserverJob?.cancel()
+                    if (newId.isNotBlank()) {
+                        startObservingMessages(ownerId, char.id, newId)
+                    }
                 }
             } catch (e: Exception) {
                 _error.value = "删除会话失败: ${e.message}"

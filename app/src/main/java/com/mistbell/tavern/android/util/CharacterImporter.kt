@@ -59,10 +59,6 @@ object CharacterImporter {
             val mesExample = getText("mes_example", "example")
 
             android.util.Log.d("CharacterImporter", "Raw JSON keys: ${jsonObject.keys.joinToString()}")
-            android.util.Log.d("CharacterImporter", "Parsed name: $name")
-            android.util.Log.d("CharacterImporter", "Parsed description: $description")
-            android.util.Log.d("CharacterImporter", "Parsed personality: $personality")
-            android.util.Log.d("CharacterImporter", "Parsed firstMes: $firstMes")
 
             // 颜色
             val color = getText("color").ifBlank { "#007AFF" }
