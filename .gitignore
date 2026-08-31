@@ -33,3 +33,6 @@ keystore.properties
 # å‘å¸ƒè¯´æ˜æ–‡æ¡£ä¸ä¸Šä¼ (beta é˜¶æ®µ)
 RELEASE_NOTES_*.md
 RELEASE_DESCRIPTION_*.md
+
+# µ÷ÑĞ²İ¸å£¨_research_*£©²»Èë¿â
+_research_*/
