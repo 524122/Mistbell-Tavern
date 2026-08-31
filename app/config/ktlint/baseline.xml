@@ -20,7 +20,7 @@
         <error line="10" column="1" source="standard:no-wildcard-imports" />
         <error line="52" column="21" source="standard:property-naming" />
         <error line="152" column="1" source="standard:max-line-length" />
-        <error line="227" column="1" source="standard:max-line-length" />
+        <error line="281" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/data/local/dao/MemoryDao.kt">
         <error line="26" column="1" source="standard:max-line-length" />
