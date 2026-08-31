@@ -23,7 +23,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         VectorMemoryEntity::class,
         ThemePackEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -157,6 +157,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 会话级主题包：为 sessions 添加 theme_id 列。
+                // 注意：DEFAULT '' 必须与 SessionEntity 的 @ColumnInfo(defaultValue = "") 一致——
+                // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
+                // "Migration didn't properly handle sessions" 导致升级用户崩溃（同 MIGRATION_3_4 教训）。
+                db.execSQL("ALTER TABLE sessions ADD COLUMN theme_id TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -164,7 +174,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tavern.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

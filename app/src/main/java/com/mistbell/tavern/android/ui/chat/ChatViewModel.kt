@@ -12,6 +12,7 @@ import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import com.mistbell.tavern.android.data.sync.SyncManager
 import com.mistbell.tavern.android.data.api.ApiClient
+import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -76,19 +77,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeWorldBookId = MutableStateFlow("")
     val activeWorldBookId: StateFlow<String> = _activeWorldBookId
 
-    // 主题包状态：当前角色的 tokens / 背景图 / 深色模式设置（原始值，system 语义在 UI 侧判定）
-    val characterTokens: StateFlow<ThemeTokens?> = _currentCharacter
-        .map { it?.id }
+    // 主题包状态：应用链为 会话 → 角色 → 全局（ThemeSupport 内逐层回落）
+    // 双键驱动：会话 id + 角色 id 任一变化都重新解析（tokens / 背景图共用同一条解析链）
+    private val sessionCharacterKey: Flow<Pair<String, String?>> = combine(
+        _activeSessionId,
+        _currentCharacter.map { it?.id }.distinctUntilChanged()
+    ) { sid, cid -> sid to cid }
         .distinctUntilChanged()
-        .flatMapLatest { themeRepo.observeTokensForCharacter(it) }
+
+    val characterTokens: StateFlow<ThemeTokens?> = sessionCharacterKey
+        .flatMapLatest { (sid, cid) ->
+            themeRepo.observeResolvedPack(sid, cid)
+                .map { pack -> pack?.let { ThemeSupport.parseTokens(it.tokensJson) } }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // 背景图与 tokens 走同一条"角色→全局"应用链（解析出命中的包实体再取背景文件）
-    val characterBackgroundFile: StateFlow<java.io.File?> = _currentCharacter
-        .map { it?.id }
-        .distinctUntilChanged()
-        .flatMapLatest { characterId ->
-            themeRepo.observeResolvedPackForCharacter(characterId)
+    // 背景图与 tokens 走同一条"会话→角色→全局"应用链（解析出命中的包实体再取背景文件）
+    val characterBackgroundFile: StateFlow<java.io.File?> = sessionCharacterKey
+        .flatMapLatest { (sid, cid) ->
+            themeRepo.observeResolvedPack(sid, cid)
                 .map { pack -> pack?.let { themeRepo.backgroundFile(it) } }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)

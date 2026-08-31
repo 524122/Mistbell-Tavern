@@ -65,12 +65,20 @@ object ThemeSupport {
         null
     }
 
-    /** 应用链（纯函数）：角色主题 → 全局主题 → null；任一层 tokens 解析失败时回落下一层而非打死整条链 */
+    /**
+     * 应用链（纯函数）：会话主题 → 角色主题 → 全局主题 → null；
+     * 任一层"包不存在或 tokens 解析失败（坏包）"时回落下一层而非打死整条链。
+     */
     fun resolveTokens(
+        sessionThemeId: String?,
         characterThemeId: String?,
         activeThemeId: String?,
         packs: Map<String, ThemePackEntity>
     ): ThemeTokens? {
+        val sessionId = sessionThemeId?.trim().orEmpty()
+        if (sessionId.isNotEmpty()) {
+            packs[sessionId]?.let { parseTokens(it.tokensJson)?.let { tokens -> return tokens } }
+        }
         val charId = characterThemeId?.trim().orEmpty()
         if (charId.isNotEmpty()) {
             packs[charId]?.let { parseTokens(it.tokensJson)?.let { tokens -> return tokens } }
@@ -82,12 +90,17 @@ object ThemeSupport {
         return null
     }
 
-    /** 应用链命中的包 id（背景图等制品消费用）：角色 → 全局 → null；判定标准与 resolveTokens 完全一致（包存在且 tokens 可解析） */
+    /** 应用链命中的包 id（背景图等制品消费用）：会话 → 角色 → 全局 → null；判定标准与 resolveTokens 完全一致（包存在且 tokens 可解析） */
     fun resolvePackId(
+        sessionThemeId: String?,
         characterThemeId: String?,
         activeThemeId: String?,
         packs: Map<String, ThemePackEntity>
     ): String? {
+        val sessionId = sessionThemeId?.trim().orEmpty()
+        if (sessionId.isNotEmpty()) {
+            packs[sessionId]?.let { if (parseTokens(it.tokensJson) != null) return sessionId }
+        }
         val charId = characterThemeId?.trim().orEmpty()
         if (charId.isNotEmpty()) {
             packs[charId]?.let { if (parseTokens(it.tokensJson) != null) return charId }

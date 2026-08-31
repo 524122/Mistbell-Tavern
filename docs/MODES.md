@@ -98,7 +98,7 @@ theme-pack.zip
 
 ### 应用链与推荐
 
-会话指定 → 卡片推荐（`recommendedTheme: <id>`，仅提示，缺省回落）→ 全局 → 默认 UI。
+**会话指定（已实现，聊天设置中选取，v11 迁移 sessions.theme_id）** → 卡片推荐（`recommendedTheme: <id>`，仅提示，缺省回落，待卡导入解析支持）→ 全局 → 默认 UI。
 未声明/未安装主题包的卡零成本回落默认聊天 UI。
 
 ### 与模式工作的依赖

@@ -167,8 +167,17 @@ class ThemePackRepository(private val context: Context) {
         return if (f.exists()) f else null
     }
 
-    /** 应用链命中的包实体（角色 → 全局 → null）；tokens 与背景图共用此解析保证语义一致 */
-    fun observeResolvedPackForCharacter(characterId: String?): Flow<ThemePackEntity?> {
+    /**
+     * 应用链命中的包实体（会话 → 角色 → 全局 → null）；tokens 与背景图共用此解析保证语义一致。
+     * sessionId 空白时跳过会话层，不订阅 observeById（避免无谓查询）。
+     */
+    fun observeResolvedPack(sessionId: String?, characterId: String?): Flow<ThemePackEntity?> {
+        val sid = sessionId?.trim().orEmpty()
+        val sessionTheme = if (sid.isEmpty()) {
+            kotlinx.coroutines.flow.flowOf<com.mistbell.tavern.android.data.local.entity.SessionEntity?>(null)
+        } else {
+            db.sessionDao().observeById(sid)
+        }
         val charId = characterId?.trim().orEmpty()
         val characterTheme = if (charId.isEmpty()) {
             kotlinx.coroutines.flow.flowOf<String?>(null)
@@ -176,18 +185,19 @@ class ThemePackRepository(private val context: Context) {
             db.characterDao().getAll().map { list -> list.find { it.id == charId }?.themeId }
         }
         return combine(
+            sessionTheme.map { it?.themeId },
             characterTheme,
             db.themePackDao().observeAll(),
             db.settingsDao().observeValue("active_theme_id")
-        ) { themeId, packs, activeId ->
+        ) { sessionThemeId, charThemeId, packs, activeId ->
             val map = packs.associateBy { it.id }
-            ThemeSupport.resolvePackId(themeId, activeId, map)?.let { map[it] }
+            ThemeSupport.resolvePackId(sessionThemeId, charThemeId, activeId, map)?.let { map[it] }
         }
     }
 
-    /** 角色主题 tokens 流：characterId 空 → 全局主题；无 → null */
+    /** 角色主题 tokens 流（保留原签名，供 Theme.kt 使用）：characterId 空 → 全局主题；无 → null */
     fun observeTokensForCharacter(characterId: String?): Flow<ThemeTokens?> =
-        observeResolvedPackForCharacter(characterId)
+        observeResolvedPack(null, characterId)
             .map { pack -> pack?.let { ThemeSupport.parseTokens(it.tokensJson) } }
 
     /** 重建 zip 到 cacheDir/themes/<id>.zip 供分享，不存在则抛 IllegalArgumentException */

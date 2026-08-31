@@ -182,6 +182,7 @@ class ThemeModelsTest {
             "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
         )
         val t = ThemeSupport.resolveTokens(
+            sessionThemeId = null,
             characterThemeId = "bad-char-theme", activeThemeId = "global", packs = packs
         )
         assertEquals("坏包必须让位给全局主题", "#00FF00", t!!.colors.primary)
@@ -193,9 +194,9 @@ class ThemeModelsTest {
             "bad-char-theme" to badPack("bad-char-theme"),
             "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
         )
-        assertEquals("global", ThemeSupport.resolvePackId("bad-char-theme", "global", packs))
-        assertEquals("char", ThemeSupport.resolvePackId("char", "global", mapOf("char" to pack("char", ThemeTokens()))))
-        assertNull(ThemeSupport.resolvePackId("missing", "also-missing", packs))
+        assertEquals("global", ThemeSupport.resolvePackId(null, "bad-char-theme", "global", packs))
+        assertEquals("char", ThemeSupport.resolvePackId(null, "char", "global", mapOf("char" to pack("char", ThemeTokens()))))
+        assertNull(ThemeSupport.resolvePackId(null, "missing", "also-missing", packs))
     }
 
     @Test
@@ -205,6 +206,7 @@ class ThemeModelsTest {
             "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
         )
         val t = ThemeSupport.resolveTokens(
+            sessionThemeId = null,
             characterThemeId = "char-theme", activeThemeId = "global", packs = packs
         )
         assertEquals("#FF0000", t!!.colors.primary)
@@ -216,6 +218,7 @@ class ThemeModelsTest {
             "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
         )
         val t = ThemeSupport.resolveTokens(
+            sessionThemeId = null,
             characterThemeId = "char-theme", activeThemeId = "global", packs = packs
         )
         assertEquals("#00FF00", t!!.colors.primary)
@@ -228,6 +231,7 @@ class ThemeModelsTest {
         )
         // characterThemeId 指向不存在的包
         val t = ThemeSupport.resolveTokens(
+            sessionThemeId = null,
             characterThemeId = "missing", activeThemeId = "global", packs = packs
         )
         assertEquals("#00FF00", t!!.colors.primary)
@@ -236,8 +240,8 @@ class ThemeModelsTest {
     @Test
     fun `都没有命中返回null`() {
         val packs = emptyMap<String, ThemePackEntity>()
-        assertNull(ThemeSupport.resolveTokens(null, null, packs))
-        assertNull(ThemeSupport.resolveTokens("char-theme", "global", packs))
+        assertNull(ThemeSupport.resolveTokens(null, null, null, packs))
+        assertNull(ThemeSupport.resolveTokens(null, "char-theme", "global", packs))
     }
 
     @Test
@@ -245,12 +249,76 @@ class ThemeModelsTest {
         val packs = mapOf(
             "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
         )
-        assertNull(ThemeSupport.resolveTokens(null, "", packs))
-        assertNull(ThemeSupport.resolveTokens(null, "   ", packs))
+        assertNull(ThemeSupport.resolveTokens(null, null, "", packs))
+        assertNull(ThemeSupport.resolveTokens(null, null, "   ", packs))
         // 角色主题空白 → 正常回落全局（应用链设计），而非返回 null
         assertEquals(
             "#00FF00",
-            ThemeSupport.resolveTokens("", "global", packs)!!.colors.primary
+            ThemeSupport.resolveTokens(null, "", "global", packs)!!.colors.primary
         )
+    }
+
+    // ---- 会话级主题（T2：会话→角色→全局→默认 应用链）----
+
+    @Test
+    fun `会话主题优先于角色与全局`() {
+        val packs = mapOf(
+            "session-theme" to pack("session-theme", ThemeTokens(colors = ThemeColors(primary = "#FF0000"))),
+            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF")))
+        )
+        val t = ThemeSupport.resolveTokens(
+            sessionThemeId = "session-theme",
+            characterThemeId = "char-theme", activeThemeId = "global", packs = packs
+        )
+        assertEquals("会话层主题应最高优先", "#FF0000", t!!.colors.primary)
+        assertEquals(
+            "session-theme",
+            ThemeSupport.resolvePackId("session-theme", "char-theme", "global", packs)
+        )
+    }
+
+    @Test
+    fun `会话主题包存在但tokens坏时回落角色层`() {
+        val packs = mapOf(
+            "bad-session-theme" to badPack("bad-session-theme"),
+            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF")))
+        )
+        val t = ThemeSupport.resolveTokens(
+            sessionThemeId = "bad-session-theme",
+            characterThemeId = "char-theme", activeThemeId = "global", packs = packs
+        )
+        assertEquals("坏会话包应回落到角色主题", "#00FF00", t!!.colors.primary)
+    }
+
+    @Test
+    fun `会话themeId空白时走角色层`() {
+        val packs = mapOf(
+            "char-theme" to pack("char-theme", ThemeTokens(colors = ThemeColors(primary = "#00FF00"))),
+            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#0000FF")))
+        )
+        // 空白会话 themeId（"" 与纯空白）均应跳过会话层
+        assertEquals(
+            "#00FF00",
+            ThemeSupport.resolveTokens("", "char-theme", "global", packs)!!.colors.primary
+        )
+        assertEquals(
+            "#00FF00",
+            ThemeSupport.resolveTokens("   ", "char-theme", "global", packs)!!.colors.primary
+        )
+    }
+
+    @Test
+    fun `会话指向缺失包时回落全局`() {
+        val packs = mapOf(
+            "global" to pack("global", ThemeTokens(colors = ThemeColors(primary = "#00FF00")))
+        )
+        // sessionThemeId 指向不存在的包，且无角色主题 → 回落全局
+        val t = ThemeSupport.resolveTokens(
+            sessionThemeId = "missing",
+            characterThemeId = null, activeThemeId = "global", packs = packs
+        )
+        assertEquals("#00FF00", t!!.colors.primary)
     }
 }

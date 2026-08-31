@@ -49,6 +49,10 @@ interface SessionDao {
 
     @Query("UPDATE sessions SET is_muted = :muted WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")
     suspend fun updateMuted(sessionId: String, ownerId: String, characterId: String, muted: Boolean)
+
+    /** 会话级主题包 id（空 = 跟随角色 / 全局），参照 updatePinned/updateMuted 的复合主键定位 */
+    @Query("UPDATE sessions SET theme_id = :themeId WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")
+    suspend fun updateThemeId(sessionId: String, ownerId: String, characterId: String, themeId: String)
 }
 
 // 每个角色的真实会话数统计

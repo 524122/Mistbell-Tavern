@@ -25,7 +25,9 @@ import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.ProviderConfig
 import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
+import com.mistbell.tavern.android.data.local.entity.ThemePackEntity
 import com.mistbell.tavern.android.data.repository.ProviderRepository
+import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,7 +35,23 @@ import kotlinx.coroutines.launch
 class ChatSettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val providerRepo = ProviderRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
+    private val themeRepo = ThemePackRepository(application)
     private val db = TavernApplication.instance.database
+
+    // 当前会话 ID（用于观察会话级主题）
+    private val _sessionId = MutableStateFlow<String?>(null)
+
+    // 本会话专属主题 ID；"" = 未设置（跟随角色 / 全局）
+    val sessionTheme: StateFlow<String> = _sessionId
+        .filterNotNull()
+        .flatMapLatest { sessionId ->
+            db.sessionDao().observeById(sessionId).map { it?.themeId ?: "" }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    // 可选主题包列表
+    val availableThemes: StateFlow<List<ThemePackEntity>> = themeRepo.observePacks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val providers: StateFlow<List<ProviderConfig>> = providerRepo.observeProviders()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -74,6 +92,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
 
     fun loadSessionSettings(sessionId: String) {
         currentSessionId = sessionId
+        _sessionId.value = sessionId
         viewModelScope.launch {
             try {
                 val session = db.sessionDao().getById(sessionId)
@@ -141,6 +160,27 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("ChatSettings", "Failed to update world book setting", e)
+                }
+            }
+        }
+    }
+
+    // 设置本会话专属主题；"" = 跟随角色 / 全局
+    fun setSessionTheme(themeId: String) {
+        currentSessionId?.let { sessionId ->
+            viewModelScope.launch {
+                try {
+                    val session = db.sessionDao().getById(sessionId) ?: return@launch
+                    // 用 DAO 定向更新，避免整体 upsert 覆盖其他字段
+                    db.sessionDao().updateThemeId(
+                        sessionId = sessionId,
+                        ownerId = session.ownerId,
+                        characterId = session.characterId,
+                        themeId = themeId
+                    )
+                    android.util.Log.d("ChatSettings", "Updated session themeId: ${if (themeId.isBlank()) "(follow)" else themeId}")
+                } catch (e: Exception) {
+                    android.util.Log.e("ChatSettings", "Failed to update session theme", e)
                 }
             }
         }
@@ -260,6 +300,8 @@ fun ChatSettingsScreen(
     val selectedProviderId by viewModel.selectedProviderId.collectAsState()
     val selectedModelId by viewModel.selectedModelId.collectAsState()
     val selectedWorldBookId by viewModel.selectedWorldBookId.collectAsState()
+    val sessionTheme by viewModel.sessionTheme.collectAsState()
+    val availableThemes by viewModel.availableThemes.collectAsState()
     val characterDefaultWorldBookId by viewModel.characterDefaultWorldBookId.collectAsState()
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
     val contextTokenLimit by viewModel.contextTokenLimit.collectAsState()
@@ -267,6 +309,9 @@ fun ChatSettingsScreen(
     var showProviderDialog by remember { mutableStateOf(false) }
     var showCharacterDialog by remember { mutableStateOf(false) }
     var showWorldBookDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
+    // 主题对话框中临时选中的主题 ID（"" = 跟随角色 / 全局）
+    var selectedThemeChoice by remember { mutableStateOf("") }
     val selectedCharacters = remember(characters, selectedCharacterIds) {
         selectedCharacterIds.mapNotNull { id -> characters.find { it.id == id } }
     }
@@ -419,6 +464,45 @@ fun ChatSettingsScreen(
                             } else {
                                 worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
                             },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // 主题设置（本会话专属主题）
+            Text(
+                text = "主题",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        // 打开对话框时同步当前会话主题为初始选中项
+                        selectedThemeChoice = sessionTheme
+                        showThemeDialog = true
+                    }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("当前主题", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = availableThemes.find { it.id == sessionTheme }?.name
+                                ?: "跟随角色 / 全局",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -769,6 +853,71 @@ fun ChatSettingsScreen(
             confirmButton = {
                 TextButton(onClick = { showWorldBookDialog = false }) {
                     Text("关闭")
+                }
+            }
+        )
+    }
+
+    // 主题选择对话框（本会话专属主题；单选）
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("选择主题") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 第一项：跟随角色 / 全局（themeId = ""）
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedThemeChoice = "" },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedThemeChoice.isBlank(),
+                            onClick = { selectedThemeChoice = "" }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("跟随角色 / 全局", fontWeight = FontWeight.Medium)
+                    }
+                    // 可用主题包列表
+                    availableThemes.forEach { theme ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedThemeChoice = theme.id },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedThemeChoice == theme.id,
+                                onClick = { selectedThemeChoice = theme.id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                theme.name.ifBlank { "未命名主题" },
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.setSessionTheme(selectedThemeChoice)
+                        showThemeDialog = false
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text("取消")
                 }
             }
         )

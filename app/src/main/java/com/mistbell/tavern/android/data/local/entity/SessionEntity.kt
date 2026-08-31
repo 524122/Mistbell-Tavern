@@ -32,7 +32,9 @@ data class SessionEntity(
     @ColumnInfo(name = "is_muted", defaultValue = "0") val isMuted: Boolean = false,
     @ColumnInfo(name = "enable_long_term_memory", defaultValue = "0") val enableLongTermMemory: Boolean = false,
     @ColumnInfo(name = "context_token_limit", defaultValue = "4096") val contextTokenLimit: Int = 4096,
-    @ColumnInfo(name = "participant_character_ids_json", defaultValue = "") val participantCharacterIdsJson: String = ""
+    @ColumnInfo(name = "participant_character_ids_json", defaultValue = "") val participantCharacterIdsJson: String = "",
+    // 会话级主题包 id：空 = 跟随角色 / 全局；迁移 DDL 的 DEFAULT '' 必须与此一致（见 AppDatabase.MIGRATION_10_11）
+    @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = ""
 ) {
     fun participantCharacterIds(): List<String> {
         val decoded = try {
