@@ -4,6 +4,8 @@ plugins {
     id "org.jetbrains.kotlin.plugin.compose"
     id "org.jetbrains.kotlin.plugin.serialization"
     id "com.google.devtools.ksp"
+    id "io.gitlab.arturbosch.detekt"
+    id "org.jlleitschuh.gradle.ktlint"
 }
 
 android {
@@ -113,4 +115,25 @@ dependencies {
 
     // 单元测试（本地 JVM）
     testImplementation "junit:junit:4.13.2"
+}
+
+// ---- F0 质量门配置（见 docs/FOUNDATION.md）----
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    // 基线吸收存量告警，新代码零容忍；基线文件入库，随修复逐步清空
+    baseline = file("$rootDir/config/detekt/baseline.xml")
+    reports {
+        html { required.set(true) }
+        xml { required.set(false) }
+        txt { required.set(false) }
+        sarif { required.set(false) }
+    }
+}
+
+ktlint {
+    android.set(true)
+    verbose.set(true)
+    outputToConsole.set(true)
 }

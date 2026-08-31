@@ -52,7 +52,13 @@
 ## 分批落地顺序
 
 ```
-F0 防护网先行（本周）    CI + 许可证扫描 + detekt/ktlint baseline
+F0 防护网先行 ✅（已完成 2026-08）
+   detekt 1.23.8（基线 826 条存量，新代码零容忍）+ ktlint 12.1.1（基线 133 条）
+   + licenseGuard 自研红线任务（当前依赖 0 命中 GPL/AGPL/AFFERO/SSPL）
+   + .github/workflows/ci.yml（JDK17 + 固定 Android SDK + Gradle 缓存，失败自动上传报告）
+   + 本地一键 `gradlew checkAll`（与 CI 同门）
+   已知妥协：jk1 generateLicenseReport 与配置缓存不兼容，已用 notCompatibleWithConfigurationCache 声明退出
+   待办：仓库当前仅在 Gitee——CI 生效需镜像到 GitHub 或开启 Gitee Go 的 Actions 兼容（见决策 1）
 F1 真流式（体验分水岭）  okhttp-sse + LlmClient 流式化 + 停止按钮（顺带解决请求不可取消）
 F2 生态互通              pngj + v2/v1 卡片容错导入导出 + 世界书 JSON 格式 + extensions 透传
 F3 记忆确定性            ONNX 本地向量替换 BM25 伪向量（与 ROADMAP M2-5 合并为同一件事）

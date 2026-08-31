@@ -4,4 +4,65 @@ plugins {
     id "org.jetbrains.kotlin.plugin.compose" version '2.0.21' apply false
     id "org.jetbrains.kotlin.plugin.serialization" version '2.0.21' apply false
     id "com.google.devtools.ksp" version '2.0.21-1.0.28' apply false
+
+    // F0 质量门（见 docs/FOUNDATION.md）：静态检查 + 许可证审计
+    id "io.gitlab.arturbosch.detekt" version "1.23.8" apply false
+    id "org.jlleitschuh.gradle.ktlint" version "12.1.1" apply false
+    id "com.github.jk1.dependency-license-report" version "2.9"
+}
+
+// 依赖许可证报告：只扫 :app（JSON 输出供 licenseGuard 消费）
+licenseReport {
+    projects = [project(':app')]
+    outputDir = "$buildDir/reports/licenses"
+    renderers = [new com.github.jk1.license.render.JsonReportRenderer("index.json", false)]
+}
+
+// jk1 插件任务持有 Project 引用，与配置缓存不兼容（复用缓存条目会 NPE）；
+// 用官方任务级退出机制声明：含此任务的构建不存/不复用配置缓存
+tasks.named('generateLicenseReport') {
+    notCompatibleWithConfigurationCache('jk1 dependency-license-report 尚未适配配置缓存')
+}
+
+// 许可证红线门（观点件自研，格式无关的递归扫描）：
+// 报告中出现 GPL/AGPL/AFFERO/SSPL 即构建失败。正则用 [^A-Za-z]GPL 窄化，
+// 避免 LGPL（JVM 动态链接下可接受）误伤；命中项逐条打印便于人工复核。
+tasks.register('licenseGuard') {
+    dependsOn 'generateLicenseReport'
+    group = 'verification'
+    description = 'Fails if any dependency license hits copyleft red lines (GPL/AGPL/AFFERO/SSPL).'
+    doLast {
+        def forbidden = ~/AGPL|AFFERO|SSPL|(^|[^A-Za-z])GPL/
+        def dir = file("${buildDir}/reports/licenses")
+        if (!dir.isDirectory()) {
+            throw new GradleException("licenseGuard: 许可证报告不存在（$dir）——请先运行 licenseReport")
+        }
+        def violations = []
+        dir.eachFileMatch(~/.+\.json$/) { f ->
+            def parsed = new groovy.json.JsonSlurper().parse(f)
+            def walk
+            walk = { node, path ->
+                if (node instanceof String) {
+                    if (forbidden.matcher(node).find()) violations << "${f.name}${path}: ${node}"
+                } else if (node instanceof Map) {
+                    node.each { k, v -> walk(v, "${path}.${k}") }
+                } else if (node instanceof Collection) {
+                    node.eachWithIndex { v, i -> walk(v, "${path}[${i}]") }
+                }
+            }
+            walk(parsed, "")
+        }
+        if (violations) {
+            violations.each { logger.lifecycle("LICENSE RED LINE: {}", it) }
+            throw new GradleException("licenseGuard: 命中 ${violations.size()} 条 copyleft 许可证红线，详见上方日志")
+        }
+        logger.lifecycle("licenseGuard: OK —— 未发现 GPL/AGPL/AFFERO/SSPL 依赖")
+    }
+}
+
+// 本地一键质量门（与 CI 流水线保持一致）
+tasks.register('checkAll') {
+    group = 'verification'
+    description = 'Full local gate: build + unit tests + detekt + ktlint + license guard.'
+    dependsOn ':app:assembleDebug', ':app:testDebugUnitTest', ':app:detekt', ':app:ktlintCheck', 'licenseGuard'
 }
