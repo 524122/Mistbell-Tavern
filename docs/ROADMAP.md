@@ -172,6 +172,8 @@
 
 ### 工程化
 
+- **地基选型与分批（F0~F5）**：见 [FOUNDATION.md](FOUNDATION.md)——CI/许可证审计/静态检查、okhttp-sse 真流式、pngj 卡片互通、ONNX 本地向量（合并 M2-5 BM25 修复）、sqlite-vec 规模升级、ACRA 崩溃上报。所有选型已核许可证（GPL/AGPL 红线）。
+
 - **文案资源化**：strings.xml 目前只有 app_name 一条，250+ 处文案硬编码（中英混用，如 CharacterEditorScreen 的 "Discard changes?"）。先建分类骨架，随改随迁，不搞一次性大迁移。
 - **Ext 文件收回**：`ChatRepositoryVectorExt` / `StructuredMemoryRepositoryExt` / `LocalPromptServiceExt` 是类被拆成顶层函数的痕迹（隐式依赖 `instance` 与文件级 `backgroundScope`），在 M2-3 完成后回归为类成员。
 - **CI**：GitHub Actions / Gitee Go，流水线 = `gradlew assembleDebug test`，PR 必须绿。
