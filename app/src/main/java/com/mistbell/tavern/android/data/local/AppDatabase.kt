@@ -33,13 +33,14 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
 
-    abstract fun memoryDao(): MemoryDao
-
     abstract fun worldBookDao(): WorldBookDao
 
     abstract fun settingsDao(): SettingsDao
 
-    abstract fun pendingSyncDao(): PendingSyncDao
+    // M2 清创：MemoryDao 仅保留 deleteBySession/deleteAll（会话删除时的数据清理）；
+    // PendingSyncDao 已随 SyncManager 死代码删除（表暂留 schema，待 v15 DROP）
+
+    abstract fun memoryDao(): MemoryDao
 
     abstract fun structuredMemoryDao(): StructuredMemoryDao
 

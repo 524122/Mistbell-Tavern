@@ -49,7 +49,6 @@ object CrashLogger {
             "MemoryExtractionService",
             "ChatSettings",
             "VectorMemoryService",
-            "VectorMemoryTest",
             "OpenAIEmbedding",
             "LlmClient",
             // OkHttp 默认 tag：BODY 级日志会回显完整请求头（含 Authorization 密钥）与请求体

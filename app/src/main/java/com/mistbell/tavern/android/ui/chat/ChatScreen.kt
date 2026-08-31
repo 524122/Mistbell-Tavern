@@ -2,7 +2,6 @@ package com.mistbell.tavern.android.ui.chat
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -33,11 +31,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mistbell.tavern.android.data.theme.resolved
-import com.mistbell.tavern.android.ui.components.ConfirmDeleteDialog
 import com.mistbell.tavern.android.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -113,7 +109,6 @@ fun ChatScreen(
     val activeWorldBookId by viewModel.activeWorldBookId.collectAsState()
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    var showClearChatDialog by remember { mutableStateOf(false) }
     val displayCharacters =
         participantCharacters.ifEmpty {
             currentCharacter?.let { listOf(it) } ?: emptyList()
@@ -525,20 +520,6 @@ fun ChatScreen(
             chatContent()
         }
     }
-
-    // Clear chat confirmation
-    if (showClearChatDialog) {
-        ConfirmDeleteDialog(
-            title = "清除对话",
-            message = "确定要清除当前对话的所有消息吗？此操作不可撤销。",
-            confirmText = "清除",
-            onConfirm = {
-                viewModel.clearChat()
-                showClearChatDialog = false
-            },
-            onDismiss = { showClearChatDialog = false },
-        )
-    }
 }
 
 /**
@@ -572,136 +553,5 @@ private fun StreamingBubble(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun WelcomeScreen(characterName: String) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        // Icon - 135deg gradient
-        Box(
-            modifier =
-                Modifier
-                    .size(72.dp)
-                    .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                            end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-                        ),
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = "💬", fontSize = 32.sp)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "欢迎使用暮铃",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.02).sp,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "一个智能的AI聊天助手，支持多种角色和模型",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 22.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 400.dp),
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 3-step guide
-        Column(
-            modifier =
-                Modifier
-                    .widthIn(max = 600.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                WelcomeStep(
-                    number = "1",
-                    title = "选择角色",
-                    description = "从侧边栏选择一个角色开始对话",
-                    modifier = Modifier.weight(1f),
-                )
-                WelcomeStep(
-                    number = "2",
-                    title = "配置模型",
-                    description = "在设置中配置你的AI模型",
-                    modifier = Modifier.weight(1f),
-                )
-                WelcomeStep(
-                    number = "3",
-                    title = "开始聊天",
-                    description = "输入消息，开始与角色互动",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WelcomeStep(
-    number: String,
-    title: String,
-    description: String,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = number,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
     }
 }

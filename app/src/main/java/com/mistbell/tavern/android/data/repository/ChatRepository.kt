@@ -65,15 +65,6 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun observeMemories(
-        ownerId: String,
-        characterId: String,
-    ): Flow<List<Memory>> {
-        return db.memoryDao().getAll(ownerId, characterId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
-
     suspend fun getActiveSessionId(
         ownerId: String,
         characterId: String,

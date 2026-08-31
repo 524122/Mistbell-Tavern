@@ -18,9 +18,9 @@
     <file name="src/main/java/com/mistbell/tavern/android/data/local/AppDatabase.kt">
         <error line="9" column="1" source="standard:no-wildcard-imports" />
         <error line="10" column="1" source="standard:no-wildcard-imports" />
-        <error line="52" column="21" source="standard:property-naming" />
-        <error line="152" column="1" source="standard:max-line-length" />
-        <error line="281" column="1" source="standard:max-line-length" />
+        <error line="53" column="21" source="standard:property-naming" />
+        <error line="153" column="1" source="standard:max-line-length" />
+        <error line="282" column="1" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/data/local/dao/MemoryDao.kt">
         <error line="26" column="1" source="standard:max-line-length" />
@@ -84,9 +84,6 @@
         <error line="43" column="47" source="standard:discouraged-comment-location" />
         <error line="78" column="45" source="standard:discouraged-comment-location" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/data/repository/MemoryRepository.kt">
-        <error line="12" column="1" source="standard:no-wildcard-imports" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/data/repository/ProviderRepository.kt">
         <error line="15" column="1" source="standard:no-wildcard-imports" />
     </file>
@@ -102,14 +99,6 @@
     <file name="src/main/java/com/mistbell/tavern/android/data/repository/WorldBookRepository.kt">
         <error line="14" column="1" source="standard:no-wildcard-imports" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/data/repository/example/ChatRepositoryIntegrationExample.kt">
-        <error line="17" column="1" source="standard:no-consecutive-comments" />
-        <error line="73" column="36" source="standard:discouraged-comment-location" />
-        <error line="131" column="1" source="standard:no-consecutive-comments" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/data/sync/SyncManager.kt">
-        <error line="5" column="1" source="standard:no-wildcard-imports" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/data/theme/ThemeModels.kt">
         <error line="27" column="36" source="standard:discouraged-comment-location" />
         <error line="28" column="37" source="standard:discouraged-comment-location" />
@@ -120,17 +109,6 @@
     <file name="src/main/java/com/mistbell/tavern/android/navigation/AppNavigation.kt">
         <error line="138" column="5" source="standard:function-naming" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/service/LocalPromptService.kt">
-        <error line="7" column="1" source="standard:no-wildcard-imports" />
-        <error line="45" column="43" source="standard:discouraged-comment-location" />
-        <error line="47" column="39" source="standard:discouraged-comment-location" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/service/LocalPromptServiceExt.kt">
-        <error line="12" column="1" source="standard:no-consecutive-comments" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/service/LocalTavernService.kt">
-        <error line="11" column="1" source="standard:no-wildcard-imports" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/service/LocalWorldBookService.kt">
         <error line="76" column="42" source="standard:discouraged-comment-location" />
     </file>
@@ -138,13 +116,6 @@
         <error line="145" column="27" source="standard:discouraged-comment-location" />
         <error line="156" column="23" source="standard:discouraged-comment-location" />
         <error line="174" column="23" source="standard:discouraged-comment-location" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/test/VectorMemoryTest.kt">
-        <error line="114" column="47" source="standard:discouraged-comment-location" />
-        <error line="126" column="47" source="standard:discouraged-comment-location" />
-        <error line="241" column="47" source="standard:discouraged-comment-location" />
-        <error line="253" column="47" source="standard:discouraged-comment-location" />
-        <error line="266" column="46" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/character/CharacterEditorScreen.kt">
         <error line="11" column="1" source="standard:no-wildcard-imports" />
@@ -173,28 +144,13 @@
         <error line="36" column="17" source="standard:property-naming" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/chat/ChatScreen.kt">
-        <error line="6" column="1" source="standard:no-wildcard-imports" />
-        <error line="16" column="1" source="standard:no-wildcard-imports" />
-        <error line="17" column="1" source="standard:no-wildcard-imports" />
-        <error line="41" column="1" source="standard:no-wildcard-imports" />
-        <error line="98" column="5" source="standard:function-naming" />
-        <error line="224" column="94" source="standard:discouraged-comment-location" />
-        <error line="549" column="13" source="standard:function-naming" />
-        <error line="579" column="13" source="standard:function-naming" />
-        <error line="668" column="13" source="standard:function-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/chat/ChatScreenNew.kt">
-        <error line="4" column="1" source="standard:no-wildcard-imports" />
-        <error line="13" column="1" source="standard:no-wildcard-imports" />
-        <error line="14" column="1" source="standard:no-wildcard-imports" />
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
         <error line="15" column="1" source="standard:no-wildcard-imports" />
-        <error line="27" column="1" source="standard:no-wildcard-imports" />
-        <error line="31" column="5" source="standard:function-naming" />
-        <error line="230" column="5" source="standard:function-naming" />
-        <error line="361" column="5" source="standard:function-naming" />
-        <error line="379" column="5" source="standard:function-naming" />
-        <error line="476" column="14" source="standard:function-naming" />
-        <error line="501" column="5" source="standard:function-naming" />
+        <error line="16" column="1" source="standard:no-wildcard-imports" />
+        <error line="37" column="1" source="standard:no-wildcard-imports" />
+        <error line="94" column="5" source="standard:function-naming" />
+        <error line="219" column="94" source="standard:discouraged-comment-location" />
+        <error line="530" column="13" source="standard:function-naming" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/chat/ChatSettingsScreen.kt">
         <error line="6" column="1" source="standard:no-wildcard-imports" />
@@ -265,10 +221,6 @@
         <error line="17" column="1" source="standard:no-wildcard-imports" />
         <error line="20" column="1" source="standard:no-wildcard-imports" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/components/ColorPickerGrid.kt">
-        <error line="5" column="1" source="standard:no-wildcard-imports" />
-        <error line="20" column="5" source="standard:function-naming" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/components/ConfirmDeleteDialog.kt">
         <error line="3" column="1" source="standard:no-wildcard-imports" />
         <error line="7" column="5" source="standard:function-naming" />
@@ -289,41 +241,8 @@
         <error line="7" column="1" source="standard:no-wildcard-imports" />
         <error line="13" column="5" source="standard:function-naming" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/components/SectionCard.kt">
-        <error line="8" column="1" source="standard:no-wildcard-imports" />
-        <error line="14" column="5" source="standard:function-naming" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/components/SectionHeader.kt">
         <error line="11" column="5" source="standard:function-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/components/SettingsComponents.kt">
-        <error line="11" column="1" source="standard:no-wildcard-imports" />
-        <error line="20" column="1" source="standard:no-wildcard-imports" />
-        <error line="21" column="1" source="standard:no-wildcard-imports" />
-        <error line="34" column="5" source="standard:function-naming" />
-        <error line="103" column="5" source="standard:function-naming" />
-        <error line="175" column="5" source="standard:function-naming" />
-        <error line="179" column="42" source="standard:discouraged-comment-location" />
-        <error line="277" column="5" source="standard:function-naming" />
-        <error line="279" column="53" source="standard:discouraged-comment-location" />
-        <error line="366" column="5" source="standard:function-naming" />
-        <error line="368" column="40" source="standard:discouraged-comment-location" />
-        <error line="427" column="5" source="standard:function-naming" />
-        <error line="463" column="5" source="standard:function-naming" />
-        <error line="519" column="5" source="standard:function-naming" />
-        <error line="592" column="5" source="standard:function-naming" />
-        <error line="663" column="13" source="standard:function-naming" />
-        <error line="705" column="13" source="standard:function-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/drawer/DrawerContent.kt">
-        <error line="7" column="1" source="standard:no-wildcard-imports" />
-        <error line="13" column="1" source="standard:no-wildcard-imports" />
-        <error line="14" column="1" source="standard:no-wildcard-imports" />
-        <error line="15" column="1" source="standard:no-wildcard-imports" />
-        <error line="29" column="1" source="standard:no-wildcard-imports" />
-        <error line="33" column="5" source="standard:function-naming" />
-        <error line="255" column="13" source="standard:function-naming" />
-        <error line="413" column="13" source="standard:function-naming" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/export/ExportViewModel.kt">
         <error line="9" column="1" source="standard:no-wildcard-imports" />
@@ -335,20 +254,6 @@
         <error line="11" column="1" source="standard:no-wildcard-imports" />
         <error line="26" column="5" source="standard:function-naming" />
         <error line="177" column="74" source="standard:discouraged-comment-location" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/memory/MemoryListScreen.kt">
-        <error line="5" column="1" source="standard:no-wildcard-imports" />
-        <error line="15" column="1" source="standard:no-wildcard-imports" />
-        <error line="16" column="1" source="standard:no-wildcard-imports" />
-        <error line="23" column="1" source="standard:no-wildcard-imports" />
-        <error line="42" column="5" source="standard:function-naming" />
-        <error line="498" column="13" source="standard:function-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/memory/MemoryViewModel.kt">
-        <error line="8" column="1" source="standard:no-wildcard-imports" />
-        <error line="10" column="1" source="standard:no-wildcard-imports" />
-        <error line="29" column="17" source="standard:property-naming" />
-        <error line="30" column="17" source="standard:property-naming" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/memory/StructuredMemoryScreen.kt">
         <error line="3" column="1" source="standard:no-wildcard-imports" />
