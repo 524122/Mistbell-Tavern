@@ -10,6 +10,11 @@
 ## [未发布]
 
 ### 🆕 新增
+- **F1 真流式输出**（docs/FOUNDATION.md）：
+  - `LlmClient.chatStream`：okhttp-sse 流式接收，逐 token 发射；首个 token 前失败自动退避重试（1s/2s，429 翻倍），已开始输出后不重试；网关 Content-Type 不兼容时给出明确降级提示
+  - 聊天界面流式气泡：Markdown 实时渲染累计回复 + "生成中…"；发送按钮在生成中变为**停止按钮**（取消双保险：协程取消 + 连接断开）
+  - 取消语义：主动停止时已生成的部分回复正常落库（不触发失败回滚）；网络失败仍走回滚路径
+  - `SseParser` 纯函数解析器 + 8 条单元测试（总 54 条全绿）
 - **F0 质量门上线**（docs/FOUNDATION.md）：
   - detekt 1.23.8 + ktlint 12.1.1 接入（基线吸收存量：detekt 826 条 / ktlint 133 条，新代码零容忍）
   - 自研 `licenseGuard` Gradle 任务：依赖许可证出现 GPL/AGPL/AFFERO/SSPL 即构建失败（当前 0 命中）

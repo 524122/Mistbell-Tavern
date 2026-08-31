@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,12 +27,17 @@ import com.mistbell.tavern.android.ui.theme.*
 @Composable
 fun MessageInput(
     onSend: (String) -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为）
+    isGenerating: Boolean = false,
+    onStop: (() -> Unit)? = null
 ) {
     var text by remember { mutableStateOf("") }
     var isFocused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val isEnabled = text.isNotBlank() && enabled
+    // 生成中且提供了 onStop：右侧按钮作为"停止生成"使用
+    val showStop = isGenerating && onStop != null
 
     Column(
         modifier = Modifier
@@ -95,40 +101,55 @@ fun MessageInput(
                     enabled = enabled
                 )
 
-                // Send button
+                // Send button（生成中变为 Stop 按钮）
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .shadow(
-                            if (isEnabled) 4.dp else 0.dp,
+                            if (isEnabled || showStop) 4.dp else 0.dp,
                             CircleShape,
-                            ambientColor = if (isEnabled) AccentBlue.copy(alpha = 0.35f) else Color.Transparent
+                            ambientColor = if (isEnabled || showStop) AccentBlue.copy(alpha = 0.35f) else Color.Transparent
                         )
                         .clip(CircleShape)
                         .background(
-                            if (isEnabled) AccentBlue
-                            else MaterialTheme.colorScheme.outline
+                            when {
+                                showStop -> AccentOrange
+                                isEnabled -> AccentBlue
+                                else -> MaterialTheme.colorScheme.outline
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     IconButton(
                         onClick = {
-                            if (isEnabled) {
+                            if (showStop) {
+                                onStop?.invoke()
+                            } else if (isEnabled) {
                                 onSend(text.trim())
                                 text = ""
                                 focusManager.clearFocus()
                             }
                         },
-                        enabled = isEnabled,
+                        enabled = isEnabled || showStop,
                         modifier = Modifier.size(40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "发送",
-                            tint = if (isEnabled) Color.White
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(18.dp)
-                        )
+                        if (showStop) {
+                            // 生成中：点击停止当前流式请求
+                            Icon(
+                                imageVector = Icons.Filled.Stop,
+                                contentDescription = "停止生成",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "发送",
+                                tint = if (isEnabled) Color.White
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

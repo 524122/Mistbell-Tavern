@@ -14,7 +14,9 @@ import com.mistbell.tavern.android.data.sync.SyncManager
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -34,6 +36,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isTyping = MutableStateFlow(false)
     val isTyping: StateFlow<Boolean> = _isTyping
+
+    // 流式生成：generationJob 可取消；streamingText 为累计的增量全文（null 表示未在流式输出中）
+    private var generationJob: Job? = null
+    private val _streamingText = MutableStateFlow<String?>(null)
+    val streamingText: StateFlow<String?> = _streamingText.asStateFlow()
+
+    // 用户主动停止生成（取消当前 LLM 流式请求）
+    fun stopGeneration() { generationJob?.cancel() }
 
     private val _characters = MutableStateFlow<List<Character>>(emptyList())
     val characters: StateFlow<List<Character>> = _characters
@@ -231,21 +241,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         android.util.Log.d("ChatViewModel", "  characterId=${char.id}")
         android.util.Log.d("ChatViewModel", "  _isSessionExplicitlySet=$_isSessionExplicitlySet")
 
-        viewModelScope.launch {
+        // 存入 generationJob 以支持"停止生成"；onPartial 把累计全文推给 UI 流式渲染
+        generationJob = viewModelScope.launch {
             _isTyping.value = true
             try {
                 repo.sendMessage(
                     ownerId = ownerId,
                     characterId = char.id,
                     sessionId = _activeSessionId.value,
-                    message = content
+                    message = content,
+                    onPartial = { _streamingText.value = it }
                 )
                 android.util.Log.d("ChatViewModel", "Message sent successfully")
+            } catch (e: CancellationException) {
+                // 用户主动停止不是错误：直接上抛，不写 _error
+                throw e
             } catch (e: Exception) {
                 android.util.Log.e("ChatViewModel", "Failed to send message", e)
                 _error.value = "发送失败: ${e.message}"
             } finally {
                 _isTyping.value = false
+                _streamingText.value = null
             }
         }
     }
@@ -274,14 +290,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun regenerateMessage(messageId: String) {
         val char = _currentCharacter.value ?: return
-        viewModelScope.launch {
+        // 存入 generationJob 以支持"停止生成"；onPartial 把累计全文推给 UI 流式渲染
+        generationJob = viewModelScope.launch {
             _isTyping.value = true
             try {
-                repo.regenerateMessage(ownerId, char.id, _activeSessionId.value, messageId)
+                repo.regenerateMessage(ownerId, char.id, _activeSessionId.value, messageId,
+                    onPartial = { _streamingText.value = it })
+            } catch (e: CancellationException) {
+                // 用户主动停止不是错误：直接上抛，不写 _error
+                throw e
             } catch (e: Exception) {
                 _error.value = "重新生成失败: ${e.message}"
             } finally {
                 _isTyping.value = false
+                _streamingText.value = null
             }
         }
     }

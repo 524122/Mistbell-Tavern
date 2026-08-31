@@ -11,6 +11,7 @@ import com.mistbell.tavern.android.data.local.entity.*
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.service.MemoryExtractionService
 import com.mistbell.tavern.android.util.SecureStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -74,7 +75,8 @@ class ChatRepository(private val context: Context) {
         characterId: String,
         sessionId: String,
         message: String,
-        worldBookId: String = ""
+        worldBookId: String = "",
+        onPartial: ((String) -> Unit)? = null
     ): Message {
         return withContext(Dispatchers.IO) {
             val msgId = UUID.randomUUID().toString()
@@ -119,11 +121,18 @@ class ChatRepository(private val context: Context) {
 
             // 3. Try to get AI response via LLM
             var insertedAssistantId: String? = null
+            // 流式累计缓冲，作用域覆盖整个 try，取消时据此判断是否已有部分回复
+            val sb = StringBuilder()
             try {
                 val llmConfig = loadLlmConfig()
                 if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
                     val promptMessages = PromptBuilder.buildPrompt(db, ownerId, characterId, sessionId, message, currentMessageId = msgId)
-                    val reply = LlmClient.chat(llmConfig, promptMessages)
+                    // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
+                    LlmClient.chatStream(llmConfig, promptMessages).collect { delta ->
+                        sb.append(delta)
+                        onPartial?.invoke(sb.toString())
+                    }
+                    val reply = sb.toString()
                     val assistantMsg = Message(
                         id = UUID.randomUUID().toString(),
                         role = "assistant",
@@ -174,6 +183,34 @@ class ChatRepository(private val context: Context) {
                 } else {
                     throw Exception("LLM 未配置：请在设置中配置 API 密钥")
                 }
+            } catch (e: CancellationException) {
+                // 用户主动停止生成：不同于网络失败，不回滚用户消息。
+                // 已收到部分回复则按成功路径格式落库部分回复并回写计数，然后向上抛出取消。
+                if (sb.isNotEmpty()) {
+                    val partialMsg = Message(
+                        id = UUID.randomUUID().toString(),
+                        role = "assistant",
+                        content = sb.toString(),
+                        thinking = null,
+                        createdAt = java.time.Instant.now().toString(),
+                        memoryIds = null,
+                        swipes = null,
+                        swipeIndex = 0
+                    )
+                    db.messageDao().upsert(
+                        MessageEntity.fromDomain(partialMsg, sessionId, ownerId, characterId)
+                    )
+                    val sessionAfterPartial = db.sessionDao().get(sessionId, ownerId, characterId)
+                    if (sessionAfterPartial != null) {
+                        db.sessionDao().upsert(
+                            sessionAfterPartial.copy(
+                                messageCount = sessionAfterPartial.messageCount + 1,
+                                updatedAt = partialMsg.createdAt
+                            )
+                        )
+                    }
+                }
+                throw e
             } catch (e: Exception) {
                 // LLM 调用或收尾失败：事务内回滚本条消息（用户消息，若已插入还包括回复），
                 // 计数按真实行数重算（自愈，不依赖增量加减），再抛出异常让 UI 显示错误。
@@ -222,7 +259,13 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    suspend fun regenerateMessage(ownerId: String, characterId: String, sessionId: String, messageId: String) {
+    suspend fun regenerateMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageId: String,
+        onPartial: ((String) -> Unit)? = null
+    ) {
         withContext(Dispatchers.IO) {
             val msg = db.messageDao().getById(messageId, sessionId) ?: return@withContext
             if (msg.role != "assistant") return@withContext
@@ -243,7 +286,44 @@ class ChatRepository(private val context: Context) {
                 currentMessageId = lastUserMsg.id,
                 excludeFromMessageId = messageId
             )
-            val reply = LlmClient.chat(llmConfig, prompt)
+            // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
+            val sb = StringBuilder()
+            try {
+                LlmClient.chatStream(llmConfig, prompt).collect { delta ->
+                    sb.append(delta)
+                    onPartial?.invoke(sb.toString())
+                }
+            } catch (e: CancellationException) {
+                // 用户主动停止重新生成：不删旧消息、不触发失败回滚。
+                // 已收到部分回复则按成功路径的替换事务落库部分回复；空则直接上抛取消。
+                if (sb.isNotEmpty()) {
+                    val partialMsg = Message(
+                        id = UUID.randomUUID().toString(),
+                        role = "assistant",
+                        content = sb.toString(),
+                        thinking = null,
+                        createdAt = java.time.Instant.now().toString(),
+                        memoryIds = null,
+                        swipes = null,
+                        swipeIndex = 0
+                    )
+                    db.withTransaction {
+                        db.messageDao().deleteAfter(sessionId, messageId, ownerId, characterId)
+                        db.messageDao().deleteById(messageId)
+                        db.messageDao().upsert(
+                            MessageEntity.fromDomain(partialMsg, sessionId, ownerId, characterId)
+                        )
+                        val session = db.sessionDao().get(sessionId, ownerId, characterId)
+                        if (session != null) {
+                            db.sessionDao().upsert(
+                                session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size)
+                            )
+                        }
+                    }
+                }
+                throw e
+            }
+            val reply = sb.toString()
 
             val assistantMsg = Message(
                 id = UUID.randomUUID().toString(),

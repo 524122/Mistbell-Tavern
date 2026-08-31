@@ -100,6 +100,7 @@ fun ChatScreen(
 ) {
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
+    val streamingText by viewModel.streamingText.collectAsState()
     val currentCharacter by viewModel.currentCharacter.collectAsState()
     val participantCharacters by viewModel.participantCharacters.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -412,7 +413,16 @@ fun ChatScreen(
 
                     if (isTyping) {
                         item {
-                            TypingIndicator(primaryDisplayCharacter?.name ?: "AI")
+                            if (streamingText != null) {
+                                // 流式输出中：显示累计文本的流式气泡
+                                StreamingBubble(
+                                    text = streamingText.orEmpty(),
+                                    characterName = primaryDisplayCharacter?.name ?: "AI"
+                                )
+                            } else {
+                                // 首个 token 未到达：保持原打字指示器
+                                TypingIndicator(primaryDisplayCharacter?.name ?: "AI")
+                            }
                         }
                     }
 
@@ -442,7 +452,10 @@ fun ChatScreen(
                 ) {
                     MessageInput(
                         onSend = { viewModel.sendMessage(it) },
-                        enabled = !isTyping
+                        enabled = !isTyping,
+                        // 生成中：发送按钮变为"停止生成"按钮
+                        isGenerating = isTyping,
+                        onStop = { viewModel.stopGeneration() }
                     )
                 }
             }
@@ -488,6 +501,36 @@ fun ChatScreen(
             onConfirm = { viewModel.clearChat(); showClearChatDialog = false },
             onDismiss = { showClearChatDialog = false }
         )
+    }
+}
+
+/**
+ * 流式回复气泡：渲染累计文本 + 底部"生成中…"小字。
+ * 每个增量都会更新 streamingText，remember(text) 让 Markdown 按 Latest 文本重新解析一次。
+ */
+@Composable
+private fun StreamingBubble(text: String, characterName: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.widthIn(max = 680.dp)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                MarkdownRenderer(content = text)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "生成中…",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
