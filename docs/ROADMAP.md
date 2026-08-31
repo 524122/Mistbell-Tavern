@@ -183,6 +183,8 @@
 
 ### 功能补全
 
+- **设置项路线（S1~S4）**：见 [SETTINGS.md](SETTINGS.md)（基于 ST/RisuAI/Agnai/ChatterUI/PocketPal 调研过滤）——S1 采样参数+预设三档+超时重试+会话附加指令；S2 摘要/向量/世界书设置（随 F3）；S3 Persona 与交互设置（随 MODES）；S4 全量备份。
+
 - **玩法模式框架**：按 [MODES.md](MODES.md) 实施——近期做③群聊（说话者标注/轮转/witness 记忆分账，复用 participantCharacters）与②扮演反转（反转开关+叙事者模板（含代理权保护）+记忆 scope 重定向；骰子/状态等规则包不做）；④导演/⑤卡对卡仅做 schema 级骨架预留（ScopeKey 前缀格式 + 多 speaker 配置结构），不建空 UI 与死代码。
 - **真流式输出**：当前全库无 SSE 解析，回复整包到达才渲染。改 OkHttp streaming + 逐 token 渲染，顺带解决请求不可取消问题。
 - **Paging 3 实际接入**：依赖已引入未使用；`MessageDao.getBySessionPaged`（MessageDao.kt:16）用 `PagingSource<Int, ...>` 却按字符串时间排序，接入前需先修分页键类型。
