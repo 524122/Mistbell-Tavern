@@ -183,6 +183,8 @@
 
 ### 功能补全
 
+- **前辈借鉴（OMate/Tavo 调研）**：见 [PREDECESSORS.md](PREDECESSORS.md)——最高优先：**F2.1 宏引擎**（{{char}}/{{user}}/{{random}}/{{roll}}/{{#if}}，生态卡能跑的底线）+ 导入转化报告 + 上下文调试面板 + think 标签过滤；中期：FTS 词法检索先行并入 F3、预设覆盖栈并入 S1、撤销回滚记忆、卡底稿写回；远期：发现页开放协议（无后端卡片站）。
+
 - **设置项路线（S1~S4）**：见 [SETTINGS.md](SETTINGS.md)（基于 ST/RisuAI/Agnai/ChatterUI/PocketPal 调研过滤）——S1 采样参数+预设三档+超时重试+会话附加指令；S2 摘要/向量/世界书设置（随 F3）；S3 Persona 与交互设置（随 MODES）；S4 全量备份。
 
 - **玩法模式框架**：按 [MODES.md](MODES.md) 实施——近期做③群聊（说话者标注/轮转/witness 记忆分账，复用 participantCharacters）与②扮演反转（反转开关+叙事者模板（含代理权保护）+记忆 scope 重定向；骰子/状态等规则包不做）；④导演/⑤卡对卡仅做 schema 级骨架预留（ScopeKey 前缀格式 + 多 speaker 配置结构），不建空 UI 与死代码。
