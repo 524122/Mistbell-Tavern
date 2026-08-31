@@ -177,6 +177,7 @@
 - **CI**：GitHub Actions / Gitee Go，流水线 = `gradlew assembleDebug test`，PR 必须绿。
 - **数据库防静默清库**：`AppDatabase.kt:103` 的 `fallbackToDestructiveMigration` 会在升级遗漏迁移时清空全部数据。改 `exportSchema=true` + Room 迁移测试，最终移除 destructive fallback。
 - **提交规范**：小步提交（现状仅 2 个大提交），feature 分支 + PR。
+- **Deprecation 清理**（2026-08 盘点，约 37 处编译警告）：`Icons.Filled.ArrowBack/Chat/Undo/VolumeOff/KeyboardArrowRight/ArrowForward` → AutoMirrored 版本（~12 处，纯改名）；`Modifier.menuAnchor()` → 带 MenuAnchorType 的新重载（~15 处）；`outlinedButtonBorder` → 带 enabled 参数版本（~7 处）；协程 `@OptIn(ExperimentalCoroutinesApi)` 缺失 2 处（StructuredMemoryViewModel/WorldBookEditorViewModel）；ExportViewModel 重复创建 Json 实例 1 处提为复用；`ChatListScreen.kt:379` SearchBar 旧 overload → inputField 新结构（唯一需要小重构的）。LocalTavernService 恒真条件随 M2-1 死代码清创一并消失。与 CI 批次同做，清零后可在 CI 开 `-Werror` 防回潮。
 
 ### 功能补全
 
