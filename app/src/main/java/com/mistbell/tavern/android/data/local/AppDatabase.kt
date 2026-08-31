@@ -225,29 +225,49 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_13_14 =
             object : Migration(13, 14) {
                 override fun migrate(db: SupportSQLiteDatabase) {
+                    fun idx(sql: String) = db.execSQL(sql)
+
                     // messages（实体声明：session_id+created_at、session_id+owner_id+character_id）
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_id_created_at ON messages(session_id, created_at)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_id_owner_id_character_id ON messages(session_id, owner_id, character_id)")
-                    db.execSQL("DROP INDEX IF EXISTS index_messages_session_created")
-                    db.execSQL("DROP INDEX IF EXISTS index_messages_session_owner")
+                    idx("CREATE INDEX IF NOT EXISTS index_messages_session_id_created_at ON messages(session_id, created_at)")
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_messages_session_id_owner_id_character_id" +
+                            " ON messages(session_id, owner_id, character_id)",
+                    )
+                    idx("DROP INDEX IF EXISTS index_messages_session_created")
+                    idx("DROP INDEX IF EXISTS index_messages_session_owner")
 
                     // sessions（实体声明：owner_id+updated_at、owner_id+is_pinned+updated_at、owner_id+character_id+updated_at）
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_updated_at ON sessions(owner_id, updated_at)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at ON sessions(owner_id, is_pinned, updated_at)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_character_id_updated_at ON sessions(owner_id, character_id, updated_at)")
-                    db.execSQL("DROP INDEX IF EXISTS index_sessions_owner_updated")
-                    db.execSQL("DROP INDEX IF EXISTS index_sessions_owner_pinned")
-                    db.execSQL("DROP INDEX IF EXISTS index_sessions_character")
+                    idx("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_updated_at ON sessions(owner_id, updated_at)")
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at" +
+                            " ON sessions(owner_id, is_pinned, updated_at)",
+                    )
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_sessions_owner_id_character_id_updated_at" +
+                            " ON sessions(owner_id, character_id, updated_at)",
+                    )
+                    idx("DROP INDEX IF EXISTS index_sessions_owner_updated")
+                    idx("DROP INDEX IF EXISTS index_sessions_owner_pinned")
+                    idx("DROP INDEX IF EXISTS index_sessions_character")
 
                     // structured_memory（实体声明六个索引的默认全列名）
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_character_id ON structured_memory(owner_id, character_id)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_memory_type ON structured_memory(memory_type)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_importance ON structured_memory(importance)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_created_at ON structured_memory(created_at)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_importance_created_at ON structured_memory(owner_id, importance, created_at)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_session_id_created_at ON structured_memory(owner_id, session_id, created_at)")
-                    db.execSQL("DROP INDEX IF EXISTS index_structured_memory_importance_created")
-                    db.execSQL("DROP INDEX IF EXISTS index_structured_memory_session")
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_character_id" +
+                            " ON structured_memory(owner_id, character_id)",
+                    )
+                    idx("CREATE INDEX IF NOT EXISTS index_structured_memory_memory_type ON structured_memory(memory_type)")
+                    idx("CREATE INDEX IF NOT EXISTS index_structured_memory_importance ON structured_memory(importance)")
+                    idx("CREATE INDEX IF NOT EXISTS index_structured_memory_created_at ON structured_memory(created_at)")
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_importance_created_at" +
+                            " ON structured_memory(owner_id, importance, created_at)",
+                    )
+                    idx(
+                        "CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_session_id_created_at" +
+                            " ON structured_memory(owner_id, session_id, created_at)",
+                    )
+                    idx("DROP INDEX IF EXISTS index_structured_memory_importance_created")
+                    idx("DROP INDEX IF EXISTS index_structured_memory_session")
                 }
             }
 
