@@ -175,6 +175,12 @@ object PromptBuilder {
             messages.add(ChatMessage(role = msg.role, content = cleanContent))
         }
 
+        // 会话附加指令（author_note）：非空时经宏渲染，注入在历史之后、最终用户消息之前
+        val authorNote = session?.authorNote?.trim().orEmpty()
+        if (authorNote.isNotEmpty()) {
+            messages.add(ChatMessage(role = "system", content = "【附加指令】\n${MacroEngine.render(authorNote, mctx)}"))
+        }
+
         // 最后的当前用户消息参与宏渲染
         messages.add(ChatMessage(role = "user", content = MacroEngine.render(userMessage, mctx)))
 

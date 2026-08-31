@@ -44,12 +44,73 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _defaultLtmEnabled = MutableStateFlow(false)
     val defaultLtmEnabled: StateFlow<Boolean> = _defaultLtmEnabled
 
+    // --- 生成与采样设置（KV 键与 SettingsRepository.getLlmConfig 的组装约定一致） ---
+    // 采样预设：creative/balanced/precise/custom（custom = 不套预设，去提供商页调参）
+    private val _samplingPreset = MutableStateFlow("balanced")
+    val samplingPreset: StateFlow<String> = _samplingPreset
+
+    // 请求超时（秒，15..600）与重试次数（0..5）
+    private val _requestTimeout = MutableStateFlow(90)
+    val requestTimeout: StateFlow<Int> = _requestTimeout
+
+    private val _requestRetries = MutableStateFlow(2)
+    val requestRetries: StateFlow<Int> = _requestRetries
+
     init {
         loadSettings()
         loadLlmConfig()
         loadDarkMode()
         loadMemoryExtractionPrompt()
         observeGenerationSettings()
+        observeSamplingSettings()
+    }
+
+    // 观察采样预设 / 超时 / 重试三个 KV 键（缺省：balanced / 90s / 2 次）
+    private fun observeSamplingSettings() {
+        viewModelScope.launch {
+            db.settingsDao().observeValue("sampling_preset")
+                .map { it ?: "balanced" }
+                .collect { _samplingPreset.value = it }
+        }
+        viewModelScope.launch {
+            db.settingsDao().observeValue("request_timeout_seconds")
+                .map { (it?.toIntOrNull() ?: 90).coerceIn(15, 600) }
+                .collect { _requestTimeout.value = it }
+        }
+        viewModelScope.launch {
+            db.settingsDao().observeValue("request_retries")
+                .map { (it?.toIntOrNull() ?: 2).coerceIn(0, 5) }
+                .collect { _requestRetries.value = it }
+        }
+    }
+
+    fun setSamplingPreset(name: String) {
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("sampling_preset", name)
+            )
+            _samplingPreset.value = name
+        }
+    }
+
+    fun setRequestTimeout(seconds: Int) {
+        val v = seconds.coerceIn(15, 600)
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("request_timeout_seconds", v.toString())
+            )
+            _requestTimeout.value = v
+        }
+    }
+
+    fun setRequestRetries(n: Int) {
+        val v = n.coerceIn(0, 5)
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("request_retries", v.toString())
+            )
+            _requestRetries.value = v
+        }
     }
 
     // 从 settings 表观察三个对话生成相关 KV 键并解析灌入 StateFlow

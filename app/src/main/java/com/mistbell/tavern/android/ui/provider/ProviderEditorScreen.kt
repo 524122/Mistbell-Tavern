@@ -253,6 +253,82 @@ fun ProviderEditorScreen(
                 }
             }
 
+            // 高级采样参数（可选，覆盖全局预设）
+            item {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                var advExpanded by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        SectionHeader("高级参数（可选，覆盖全局预设）")
+                        Text(
+                            "留空表示不覆盖，使用设置页的全局采样预设",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = { advExpanded = !advExpanded }) {
+                        Text(if (advExpanded) "收起" else "展开")
+                    }
+                }
+                if (advExpanded) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // temperature 0..2，步进 0.05
+                    SamplingSliderRow(
+                        label = "温度 temperature",
+                        value = form.temperature,
+                        range = 0f..2f, steps = 39,
+                        onValueChange = { v -> viewModel.updateForm { copy(temperature = v) } }
+                    )
+                    // top_p 0..1
+                    SamplingSliderRow(
+                        label = "top_p",
+                        value = form.topP,
+                        range = 0f..1f, steps = 19,
+                        onValueChange = { v -> viewModel.updateForm { copy(topP = v) } }
+                    )
+                    // top_k 0..200（0 = 不设）
+                    SamplingSliderRow(
+                        label = "top_k",
+                        value = form.topK?.toDouble(),
+                        range = 0f..200f, steps = 39,
+                        onValueChange = { v ->
+                            viewModel.updateForm { copy(topK = v?.toInt()?.takeIf { it > 0 }) }
+                        }
+                    )
+                    // 重复惩罚 0..2
+                    SamplingSliderRow(
+                        label = "重复惩罚 frequency_penalty",
+                        value = form.frequencyPenalty,
+                        range = 0f..2f, steps = 39,
+                        onValueChange = { v -> viewModel.updateForm { copy(frequencyPenalty = v) } }
+                    )
+                    // max tokens（数值输入，空 = 不设）
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FormTextField(
+                            value = form.maxTokens?.toString() ?: "",
+                            onValueChange = { text ->
+                                viewModel.updateForm { copy(maxTokens = text.toIntOrNull()) }
+                            },
+                            label = "max tokens",
+                            placeholder = "不限制",
+                            keyboardType = KeyboardType.Number,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (form.maxTokens != null) {
+                            TextButton(onClick = { viewModel.updateForm { copy(maxTokens = null) } }) {
+                                Text("清除", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+
             // Advanced models section
             item {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -304,6 +380,47 @@ fun ProviderEditorScreen(
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) { Text("继续编辑") }
             }
+        )
+    }
+}
+
+/**
+ * 采样参数滑条行：滑条取值 + 当前值显示 + "清除"（置空 = 不覆盖全局预设）。
+ * value 为 null 时滑条停在范围起点，拖动即视为设置值。
+ */
+@Composable
+private fun SamplingSliderRow(
+    label: String,
+    value: Double?,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    onValueChange: (Double?) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                value?.let {
+                    if (it == it.toLong().toDouble()) "%d".format(it.toLong()) else "%.2f".format(it)
+                } ?: "未设置",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (value != null) {
+                TextButton(onClick = { onValueChange(null) }) {
+                    Text("清除", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+        Slider(
+            value = (value?.toFloat() ?: range.start).coerceIn(range.start, range.endInclusive),
+            onValueChange = { onValueChange(it.toDouble()) },
+            valueRange = range,
+            steps = steps
         )
     }
 }

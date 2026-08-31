@@ -4,6 +4,7 @@ import android.content.Context
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.LlmConfig
+import com.mistbell.tavern.android.data.api.SamplerPresets
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
@@ -21,13 +22,28 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun getLlmConfig(): LlmConfig = withContext(Dispatchers.IO) {
         val dao = db.settingsDao()
-        LlmConfig(
+        // S1: 采样预设兜底（缺省 balanced）
+        val preset = SamplerPresets.byName(dao.getValue("sampling_preset") ?: "balanced")
+        // S1: 提供商保存时平铺写入的 llm_* 覆盖键（空白=未设）
+        val llmTemp = dao.getValue("llm_temperature")?.trim()?.toDoubleOrNull()
+        val llmTopP = dao.getValue("llm_top_p")?.trim()?.toDoubleOrNull()
+        val llmTopK = dao.getValue("llm_top_k")?.trim()?.toIntOrNull()
+        val llmFreqPenalty = dao.getValue("llm_frequency_penalty")?.trim()?.toDoubleOrNull()
+        val llmMaxTokens = dao.getValue("llm_max_tokens")?.trim()?.toIntOrNull()
+        val base = LlmConfig(
             baseUrl = dao.getValue("llm_base_url") ?: "",
             apiKey = SecureStore.unwrap(dao.getValue("llm_api_key") ?: ""),
             model = dao.getValue("llm_model") ?: "",
-            temperature = dao.getValue("temperature")?.toDoubleOrNull() ?: 0.8,
-            maxTokens = dao.getValue("max_tokens")?.toIntOrNull() ?: 1024
+            temperature = llmTemp ?: preset?.temperature ?: 0.8,
+            maxTokens = llmMaxTokens ?: 1024,
+            topP = llmTopP ?: preset?.topP,
+            topK = llmTopK ?: preset?.topK,
+            frequencyPenalty = llmFreqPenalty ?: preset?.frequencyPenalty,
+            timeoutSeconds = (dao.getValue("request_timeout_seconds")?.toIntOrNull() ?: 90).coerceIn(15, 600),
+            retries = (dao.getValue("request_retries")?.toIntOrNull() ?: 2).coerceIn(0, 5)
         )
+        // S1: 最后过一遍预设解析，保证字段兜底逻辑一致
+        SamplerPresets.resolve(base, preset)
     }
 
     suspend fun saveLlmConfig(config: LlmConfig) = withContext(Dispatchers.IO) {

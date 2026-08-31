@@ -83,6 +83,14 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     private val _selectedWorldBookId = MutableStateFlow<String>("")
     val selectedWorldBookId: StateFlow<String> = _selectedWorldBookId.asStateFlow()
 
+    // 会话附加指令（author_note）；随会话实时回显
+    val authorNote: StateFlow<String> = _sessionId
+        .filterNotNull()
+        .flatMapLatest { sessionId ->
+            db.sessionDao().observeById(sessionId).map { it?.authorNote ?: "" }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     // 主角色默认世界书 ID（仅用于内部逻辑，UI 不展示）
     private val _characterDefaultWorldBookId = MutableStateFlow<String?>(null)
     val characterDefaultWorldBookId: StateFlow<String?> = _characterDefaultWorldBookId.asStateFlow()
@@ -181,6 +189,26 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                     android.util.Log.d("ChatSettings", "Updated session themeId: ${if (themeId.isBlank()) "(follow)" else themeId}")
                 } catch (e: Exception) {
                     android.util.Log.e("ChatSettings", "Failed to update session theme", e)
+                }
+            }
+        }
+    }
+
+    // 保存会话附加指令（定向更新 author_note，避免整体 upsert 覆盖其他字段）
+    fun saveAuthorNote(text: String) {
+        currentSessionId?.let { sessionId ->
+            viewModelScope.launch {
+                try {
+                    val session = db.sessionDao().getById(sessionId) ?: return@launch
+                    db.sessionDao().updateAuthorNote(
+                        sessionId = sessionId,
+                        ownerId = session.ownerId,
+                        characterId = session.characterId,
+                        note = text.trim()
+                    )
+                    android.util.Log.d("ChatSettings", "Updated authorNote (${text.trim().length} chars)")
+                } catch (e: Exception) {
+                    android.util.Log.e("ChatSettings", "Failed to update author note", e)
                 }
             }
         }
@@ -306,6 +334,7 @@ fun ChatSettingsScreen(
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
     val contextTokenLimit by viewModel.contextTokenLimit.collectAsState()
     val selectedCharacterIds by viewModel.selectedCharacterIds.collectAsState()
+    val authorNote by viewModel.authorNote.collectAsState()
     var showProviderDialog by remember { mutableStateOf(false) }
     var showCharacterDialog by remember { mutableStateOf(false) }
     var showWorldBookDialog by remember { mutableStateOf(false) }
@@ -512,6 +541,69 @@ fun ChatSettingsScreen(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            // 附加指令（会话级 author_note）
+            Text(
+                text = "附加指令",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            var authorNoteDraft by remember(authorNote) { mutableStateOf(authorNote) }
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "会话附加指令",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "注入在最近对话之后、你的消息之前",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = authorNoteDraft,
+                        onValueChange = { authorNoteDraft = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                "可选。注入在最近对话之后、你的消息之前，支持 {{char}} 等宏",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
+                        minLines = 3,
+                        maxLines = 8
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        // 清空草稿并保存空值 = 清除附加指令
+                        TextButton(
+                            onClick = {
+                                authorNoteDraft = ""
+                                viewModel.saveAuthorNote("")
+                            },
+                            enabled = authorNote.isNotBlank() || authorNoteDraft.isNotBlank()
+                        ) {
+                            Text("清除")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = { viewModel.saveAuthorNote(authorNoteDraft) },
+                            enabled = authorNoteDraft.trim() != authorNote
+                        ) {
+                            Text("保存")
+                        }
+                    }
                 }
             }
 

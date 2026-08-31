@@ -34,7 +34,10 @@ data class SessionEntity(
     @ColumnInfo(name = "context_token_limit", defaultValue = "4096") val contextTokenLimit: Int = 4096,
     @ColumnInfo(name = "participant_character_ids_json", defaultValue = "") val participantCharacterIdsJson: String = "",
     // 会话级主题包 id：空 = 跟随角色 / 全局；迁移 DDL 的 DEFAULT '' 必须与此一致（见 AppDatabase.MIGRATION_10_11）
-    @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = ""
+    @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = "",
+    // 会话附加指令（作者注释）：非空时经宏渲染注入到历史之后、最终用户消息之前；
+    // 迁移 DDL 的 DEFAULT '' 必须与此 defaultValue 一致（见 AppDatabase.MIGRATION_11_12）
+    @ColumnInfo(name = "author_note", defaultValue = "") val authorNote: String = ""
 ) {
     fun participantCharacterIds(): List<String> {
         val decoded = try {

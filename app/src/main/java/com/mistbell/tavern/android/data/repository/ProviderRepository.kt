@@ -55,6 +55,17 @@ class ProviderRepository(private val context: Context) {
                 db.settingsDao().upsert(SettingsEntity("llm_base_url", activeProvider.endpoint))
                 db.settingsDao().upsert(SettingsEntity("llm_api_key", SecureStore.wrap(activeProvider.apiKey)))
                 db.settingsDao().upsert(SettingsEntity("llm_model", activeProvider.selectedModel))
+
+                // 平铺写入高级采样参数覆盖（null → 空白串 = 未设/清除）
+                listOf(
+                    "llm_temperature" to activeProvider.temperature,
+                    "llm_top_p" to activeProvider.topP,
+                    "llm_top_k" to activeProvider.topK,
+                    "llm_frequency_penalty" to activeProvider.frequencyPenalty,
+                    "llm_max_tokens" to activeProvider.maxTokens
+                ).forEach { (key, value) ->
+                    db.settingsDao().upsert(SettingsEntity(key, value?.toString() ?: ""))
+                }
             }
         }
     }

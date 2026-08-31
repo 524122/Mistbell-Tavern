@@ -125,19 +125,221 @@ fun SettingsScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // === 快速设置 ===
-            SectionHeader("快速设置")
+            // === 生成与采样 ===
+            SectionHeader("生成与采样")
 
-            // 模型管理
+            SettingsCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val samplingPreset by viewModel.samplingPreset.collectAsState()
+                    val requestTimeout by viewModel.requestTimeout.collectAsState()
+                    val requestRetries by viewModel.requestRetries.collectAsState()
+                    val streamingEnabled by viewModel.streamingEnabled.collectAsState()
+
+                    // 采样预设三档 + 自定义：写入 sampling_preset，由 SettingsRepository 组装 LlmConfig 时解析
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("采样预设", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = samplingPreset == "creative",
+                                onClick = { viewModel.setSamplingPreset("creative") },
+                                label = { Text("创意") }
+                            )
+                            FilterChip(
+                                selected = samplingPreset == "balanced",
+                                onClick = { viewModel.setSamplingPreset("balanced") },
+                                label = { Text("平衡") }
+                            )
+                            FilterChip(
+                                selected = samplingPreset == "precise",
+                                onClick = { viewModel.setSamplingPreset("precise") },
+                                label = { Text("精确") }
+                            )
+                            FilterChip(
+                                selected = samplingPreset == "custom",
+                                onClick = { viewModel.setSamplingPreset("custom") },
+                                label = { Text("自定义") }
+                            )
+                        }
+                        if (samplingPreset == "custom") {
+                            Text(
+                                "自定义：请前往「提供商管理」编辑页的高级参数区逐项调参",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 流式输出开关：关闭后回复整包返回，适用于不支持 SSE 的网关
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("流式输出", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("关闭后回复整包返回，适用于不支持 SSE 的网关",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = streamingEnabled,
+                            onCheckedChange = { viewModel.setStreamingEnabled(it) }
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 请求超时：数值输入，范围 15..600 秒（越界自动收敛）
+                    var timeoutText by remember(requestTimeout) { mutableStateOf(requestTimeout.toString()) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("请求超时", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("单次请求最长等待时间（15–600 秒）",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        OutlinedTextField(
+                            value = timeoutText,
+                            onValueChange = { input ->
+                                // 只允许数字；可解析且在范围内时立即落盘
+                                if (input.all { it.isDigit() }) {
+                                    timeoutText = input.take(4)
+                                    input.toIntOrNull()?.let { if (it in 15..600) viewModel.setRequestTimeout(it) }
+                                }
+                            },
+                            modifier = Modifier.width(96.dp),
+                            singleLine = true,
+                            trailingIcon = { Text("秒", style = MaterialTheme.typography.labelMedium) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 重试次数：失败后自动重试，范围 0..5
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("重试次数", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                                Text("请求失败后的自动重试上限",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(
+                                text = requestRetries.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = requestRetries.toFloat(),
+                            onValueChange = { viewModel.setRequestRetries(it.toInt()) },
+                            valueRange = 0f..5f,
+                            steps = 4
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 提供商管理：从原"快速设置"移入本组（提供商级细参数在编辑页）
+                    SettingsNavItem(
+                        title = "提供商管理",
+                        subtitle = "管理 LLM 提供商、模型与高级参数",
+                        onClick = onNavigateToProviderList
+                    )
+                }
+            }
+
+            // === 对话 ===
+            SectionHeader("对话")
+
+            SettingsCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val defaultContextTokens by viewModel.defaultContextTokens.collectAsState()
+                    val defaultLtmEnabled by viewModel.defaultLtmEnabled.collectAsState()
+
+                    // 上下文长度：新会话的默认上下文 token 预算（1024..32768，步进 512）
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("默认上下文长度", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                                Text("新会话的默认上下文 token 预算",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(
+                                text = defaultContextTokens.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = defaultContextTokens.toFloat(),
+                            onValueChange = { viewModel.setDefaultContextTokens((it / 512).toInt() * 512) },
+                            valueRange = 1024f..32768f,
+                            steps = (32768 - 1024) / 512 - 1
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 长期记忆（实验性）：新会话默认开启记忆抽取
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("默认长期记忆（实验性）", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                            Text("新会话默认开启记忆抽取；向量记忆处于实验阶段",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = defaultLtmEnabled,
+                            onCheckedChange = { viewModel.setDefaultLtmEnabled(it) }
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 提示词预览：保留原有调试入口（归入"对话"组）
+                    SettingsNavItem(
+                        title = "提示词预览",
+                        subtitle = "预览和调试提示词构建",
+                        onClick = onNavigateToPromptPreview
+                    )
+                }
+            }
+
+            // === 外观 ===
+            SectionHeader("外观")
+
             SettingsCard {
                 SettingsNavItem(
-                    title = "模型管理",
-                    subtitle = "管理 LLM 提供商和模型",
-                    onClick = onNavigateToProviderList
+                    title = "主题管理",
+                    subtitle = "主题色、字体大小、消息样式",
+                    onClick = onNavigateToThemeManager
                 )
             }
 
-            // 深色模式
             SettingsCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -183,128 +385,43 @@ fun SettingsScreen(
                 }
             }
 
-            // === 对话生成 ===
-            SectionHeader("对话生成")
+            // === 记忆 ===
+            SectionHeader("记忆")
 
             SettingsCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val streamingEnabled by viewModel.streamingEnabled.collectAsState()
-                    val defaultContextTokens by viewModel.defaultContextTokens.collectAsState()
-                    val defaultLtmEnabled by viewModel.defaultLtmEnabled.collectAsState()
-
-                    // 流式输出开关：关闭后回复整包返回，适用于不支持 SSE 的网关
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("流式输出", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                            Text("关闭后回复整包返回，适用于不支持 SSE 的网关",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(
-                            checked = streamingEnabled,
-                            onCheckedChange = { viewModel.setStreamingEnabled(it) }
-                        )
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                    // 上下文长度：新会话的默认上下文 token 预算（1024..32768，步进 512）
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("上下文长度", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                                Text("新会话的默认上下文 token 预算",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text(
-                                text = defaultContextTokens.toString(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Slider(
-                            value = defaultContextTokens.toFloat(),
-                            onValueChange = { viewModel.setDefaultContextTokens((it / 512).toInt() * 512) },
-                            valueRange = 1024f..32768f,
-                            steps = (32768 - 1024) / 512 - 1
-                        )
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                    // 长期记忆（实验性）：新会话默认开启记忆抽取
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("长期记忆（实验性）", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                            Text("新会话默认开启记忆抽取；向量记忆处于实验阶段",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(
-                            checked = defaultLtmEnabled,
-                            onCheckedChange = { viewModel.setDefaultLtmEnabled(it) }
-                        )
-                    }
-                }
-            }
-
-            // === 主要设置 ===
-            SectionHeader("主要设置")
-
-            SettingsCard {
+                var showMemoryPromptDialog by remember { mutableStateOf(false) }
                 SettingsNavItem(
-                    title = "外观与显示",
-                    subtitle = "主题色、字体大小、消息样式",
-                    onClick = onNavigateToThemeManager
+                    title = "记忆提取提示词",
+                    subtitle = "自定义长期记忆提取的提示词",
+                    onClick = { showMemoryPromptDialog = true }
                 )
-            }
 
-            // === 高级设置 ===
-            SectionHeader("高级设置")
-
-            SettingsCard {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SettingsNavItem(
-                        title = "提示词预览",
-                        subtitle = "预览和调试提示词构建",
-                        onClick = onNavigateToPromptPreview
+                if (showMemoryPromptDialog) {
+                    MemoryExtractionPromptDialog(
+                        viewModel = viewModel,
+                        onDismiss = { showMemoryPromptDialog = false }
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                    var showMemoryPromptDialog by remember { mutableStateOf(false) }
-                    SettingsNavItem(
-                        title = "记忆提取提示词",
-                        subtitle = "自定义长期记忆提取的提示词",
-                        onClick = { showMemoryPromptDialog = true }
-                    )
-
-                    if (showMemoryPromptDialog) {
-                        MemoryExtractionPromptDialog(
-                            viewModel = viewModel,
-                            onDismiss = { showMemoryPromptDialog = false }
-                        )
-                    }
                 }
             }
 
-            // === 其他 ===
-            SectionHeader("其他")
+            // === 关于 ===
+            SectionHeader("关于")
 
             SettingsCard {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     var showCrashLogDialog by remember { mutableStateOf(false) }
                     SettingsNavItem(
-                        title = "问题反馈与日志",
+                        title = "版本日志",
+                        subtitle = "v${BuildConfig.VERSION_NAME}",
+                        onClick = {
+                            android.util.Log.d("SettingsScreen", "版本号点击，准备导航")
+                            onNavigateToVersionChangelog()
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    SettingsNavItem(
+                        title = "反馈日志",
                         subtitle = "查看崩溃日志、导出反馈给开发者",
                         onClick = { showCrashLogDialog = true }
                     )
@@ -313,15 +430,6 @@ fun SettingsScreen(
                         CrashLogDialog(onDismiss = { showCrashLogDialog = false })
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    SettingsNavItem(
-                        title = "版本号",
-                        subtitle = "v${BuildConfig.VERSION_NAME}",
-                        onClick = {
-                            android.util.Log.d("SettingsScreen", "版本号点击，准备导航")
-                            onNavigateToVersionChangelog()
-                        }
-                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     SettingsNavItem(
                         title = "关于",

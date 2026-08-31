@@ -121,7 +121,13 @@ data class ProviderConfig(
     @SerialName("summaryModel") val summaryModel: String = "",
     @SerialName("memoryModel") val memoryModel: String = "",
     @SerialName("customParams") val customParams: Map<String, String> = emptyMap(),
-    @SerialName("context1M") val context1M: Boolean = false
+    @SerialName("context1M") val context1M: Boolean = false,
+    // S1 提供商级可选采样覆盖（null = 不覆盖，回落全局预设）
+    val temperature: Double? = null,
+    @SerialName("top_p") val topP: Double? = null,
+    @SerialName("top_k") val topK: Int? = null,
+    @SerialName("frequency_penalty") val frequencyPenalty: Double? = null,
+    @SerialName("max_tokens") val maxTokens: Int? = null
 )
 
 @Serializable

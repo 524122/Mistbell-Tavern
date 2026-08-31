@@ -19,7 +19,13 @@ data class ProviderForm(
     val embeddingModel: String = "",
     val summaryModel: String = "",
     val memoryModel: String = "",
-    val context1M: Boolean = false
+    val context1M: Boolean = false,
+    // 高级采样参数覆盖（null = 不覆盖，交由全局预设）
+    val temperature: Double? = null,
+    val topP: Double? = null,
+    val topK: Int? = null,
+    val frequencyPenalty: Double? = null,
+    val maxTokens: Int? = null
 )
 
 class ProviderViewModel(application: Application) : AndroidViewModel(application) {
@@ -78,7 +84,12 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
                     embeddingModel = provider.embeddingModel,
                     summaryModel = provider.summaryModel,
                     memoryModel = provider.memoryModel,
-                    context1M = provider.context1M
+                    context1M = provider.context1M,
+                    temperature = provider.temperature,
+                    topP = provider.topP,
+                    topK = provider.topK,
+                    frequencyPenalty = provider.frequencyPenalty,
+                    maxTokens = provider.maxTokens
                 )
                 android.util.Log.d("ProviderViewModel", "form updated with name: ${_form.value.name}")
             } else {
@@ -137,7 +148,9 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
                 id = f.id.ifBlank { UUID.randomUUID().toString() },
                 name = f.name, type = f.type, endpoint = f.endpoint, apiKey = f.apiKey,
                 selectedModel = f.selectedModel, embeddingModel = f.embeddingModel,
-                summaryModel = f.summaryModel, memoryModel = f.memoryModel, context1M = f.context1M
+                summaryModel = f.summaryModel, memoryModel = f.memoryModel, context1M = f.context1M,
+                temperature = f.temperature, topP = f.topP, topK = f.topK,
+                frequencyPenalty = f.frequencyPenalty, maxTokens = f.maxTokens
             )
 
             if (existing != null) {
