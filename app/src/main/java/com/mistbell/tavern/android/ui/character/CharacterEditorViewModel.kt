@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.CharacterData
 import com.mistbell.tavern.android.data.api.model.WorldBook
+import com.mistbell.tavern.android.data.local.entity.ThemePackEntity
 import com.mistbell.tavern.android.data.repository.CharacterRepository
+import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -29,6 +31,7 @@ data class CharacterForm(
     val creator: String = "",
     val characterVersion: String = "1.0",
     val worldBookId: String = "",
+    val themeId: String = "",
     val customGreetings: List<String> = emptyList(),
     val tags: List<String> = emptyList()
 )
@@ -55,6 +58,11 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
     val worldBooks: StateFlow<List<WorldBook>> = worldBookRepo.observeWorldBooks()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    private val themePackRepo = ThemePackRepository(application)
+
+    val availableThemes: StateFlow<List<ThemePackEntity>> = themePackRepo.observePacks()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     private var editingCharacterId: String? = null
 
     fun loadCharacter(id: String) {
@@ -77,7 +85,8 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
                     creatorNotes = char.data?.creatorNotes ?: "",
                     creator = char.data?.creator ?: "",
                     characterVersion = char.data?.characterVersion ?: "1.0",
-                    worldBookId = char.worldBookId
+                    worldBookId = char.worldBookId,
+                    themeId = char.themeId
                 )
             }
         }
@@ -117,6 +126,7 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
                     color = f.color,
                     avatarData = f.avatarData,
                     worldBookId = f.worldBookId,
+                    themeId = f.themeId,
                     data = characterData
                 )
 

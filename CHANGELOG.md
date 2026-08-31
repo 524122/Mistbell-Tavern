@@ -9,6 +9,17 @@
 
 ## [未发布]
 
+### 🆕 新增
+- **T1 皮肤级主题包系统**（docs/MODES.md 视图层设计落地）：
+  - 主题包格式：zip（manifest.json + theme.json 颜色 tokens + assets/ 背景图），纯数据无代码执行
+  - 导入/删除/分享（导出 zip）：主题管理界面挂接设置页"外观与显示"入口（原空 TODO 入口兑现）
+  - 应用链：角色专属主题 → 全局主题 → 默认 UI 层层回落；角色编辑器可选专属主题
+  - 聊天界面应用主题色（含深色模式 dark 覆盖）与背景图（异步解码、失败回落）
+  - 健壮性：坏包导入预校验、tokens 解析失败自动回落全局、覆盖安装"先写新后清旧"、zip 路径穿越按段拒绝、分享 intent 补 NEW_TASK/授权标志
+  - 示例主题包：samples/theme-pokemon-battle.zip（宝可梦战斗配色 + 渐变背景）
+  - 数据库 v10 迁移（theme_packs 表 + characters.theme_id 列，默认值与实体注解严格对齐）
+  - 新增 21 条主题模型单元测试（颜色解析/dark 合并/应用链回落/坏包降级）
+
 ### 🐛 修复
 - 修复消息回溯/重新生成可能删错消息的严重缺陷：`MessageDao.deleteAfter` 原实现对 UUID 主键做字符串比较（与时间序无关），现改为按 `created_at` 时间序删除，并列时间戳以 rowid 插入序决胜（ROADMAP M1-1）
 - 修复"重新生成"后旧 assistant 消息残留导致重复回复的问题：新增 `MessageDao.deleteById`，重新生成前先删除旧消息

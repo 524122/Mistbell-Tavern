@@ -25,6 +25,8 @@ import com.mistbell.tavern.android.ui.chat.ChatScreen
 import com.mistbell.tavern.android.ui.chat.ChatViewModel
 import com.mistbell.tavern.android.ui.settings.SettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
+import com.mistbell.tavern.android.ui.themepack.ThemeManagerScreen
+import com.mistbell.tavern.android.ui.themepack.ThemeManagerViewModel
 import kotlinx.coroutines.flow.first
 
 object Routes {
@@ -41,6 +43,7 @@ object Routes {
     const val MEMORY_LIST = "memory_list?sessionId={sessionId}&characterId={characterId}"
     const val PROMPT_PREVIEW = "prompt_preview"
     const val VERSION_CHANGELOG = "version_changelog"
+    const val THEME_MANAGER = "theme_manager"
     const val ABOUT = "about"
 
     fun chat(sessionId: String, characterId: String) = "chat/$sessionId/$characterId"
@@ -57,6 +60,8 @@ object Routes {
         if (providerId != null) "provider_editor/$providerId" else "provider_editor/new"
 
     fun worldBookDetail(bookId: String) = "world_book_detail/$bookId"
+
+    fun themeManager() = "theme_manager"
 
     fun memoryList(sessionId: String? = null, characterId: String? = null): String {
         val params = buildList {
@@ -184,6 +189,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 },
                 onNavigateToAbout = {
                     navController.navigate(Routes.ABOUT)
+                },
+                onNavigateToThemeManager = {
+                    navController.navigate(Routes.themeManager())
                 }
             )
         }
@@ -359,6 +367,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 },
                 onNavigateToAbout = {
                     navController.navigate(Routes.ABOUT)
+                },
+                onNavigateToThemeManager = {
+                    navController.navigate(Routes.themeManager())
                 }
             )
         }
@@ -486,6 +497,18 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
             com.mistbell.tavern.android.ui.settings.VersionChangelogScreen(
                 onBack = { navController.popBackStack() },
                 viewModel = settingsViewModel
+            )
+        }
+
+        composable(
+            route = Routes.THEME_MANAGER,
+            enterTransition = { defaultEnterTransition() },
+            exitTransition = { defaultExitTransition() },
+            popEnterTransition = { defaultPopEnterTransition() },
+            popExitTransition = { defaultPopExitTransition() }
+        ) {
+            ThemeManagerScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 

@@ -46,6 +46,7 @@ fun CharacterEditorScreen(
     val saved by viewModel.saved.collectAsState()
     val message by viewModel.message.collectAsState()
     val worldBooks by viewModel.worldBooks.collectAsState()
+    val availableThemes by viewModel.availableThemes.collectAsState()
 
     val context = LocalContext.current
     var showAdvanced by remember { mutableStateOf(false) }
@@ -53,6 +54,7 @@ fun CharacterEditorScreen(
     var newGreeting by remember { mutableStateOf("") }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showAvatarSheet by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     // Back handler with unsaved changes check
     BackHandler {
@@ -436,6 +438,30 @@ fun CharacterEditorScreen(
                                 }
                             }
                         }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        // 专属主题选择
+                        SectionHeader("专属主题")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val selectedTheme = availableThemes.find { it.id == form.themeId }
+                        OutlinedTextField(
+                            value = selectedTheme?.name ?: "跟随全局",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("主题") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showThemeDialog = true },
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = false,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
                     }
                 }
             }
@@ -521,6 +547,59 @@ fun CharacterEditorScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+
+    // 专属主题选择对话框
+    if (showThemeDialog) {
+        var tempSelection by remember { mutableStateOf(form.themeId) }
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("选择专属主题") },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // 跟随全局
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { tempSelection = "" }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = tempSelection.isBlank(),
+                            onClick = { tempSelection = "" }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("跟随全局")
+                    }
+                    availableThemes.forEach { theme ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { tempSelection = theme.id }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tempSelection == theme.id,
+                                onClick = { tempSelection = theme.id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(theme.name)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateForm { copy(themeId = tempSelection) }
+                    showThemeDialog = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showThemeDialog = false }) { Text("取消") }
+            }
+        )
     }
 
     // Discard changes confirmation

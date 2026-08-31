@@ -20,9 +20,10 @@ import com.mistbell.tavern.android.data.local.entity.*
         SettingsEntity::class,
         PendingSyncEntity::class,
         StructuredMemoryEntity::class,
-        VectorMemoryEntity::class
+        VectorMemoryEntity::class,
+        ThemePackEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingSyncDao(): PendingSyncDao
     abstract fun structuredMemoryDao(): StructuredMemoryDao
     abstract fun vectorMemoryDao(): VectorMemoryDao
+    abstract fun themePackDao(): ThemePackDao
 
     companion object {
         @Volatile
@@ -132,6 +134,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // T1 主题包：新建 theme_packs 表，并为 characters 添加 theme_id 列。
+                // 注意：DDL 必须与实体注解逐列一致（含 defaultValue）——
+                // Room 迁移后的表结构校验（TableInfo）会比对列默认值，不一致会抛
+                // "Migration didn't properly handle ..." 导致升级用户崩溃（同 MIGRATION_3_4 教训）。
+                // theme_packs: background_file 与 @ColumnInfo 可空一致（无 NOT NULL/DEFAULT）；
+                // characters.theme_id 与 @ColumnInfo(defaultValue = "") 一致，必须带 DEFAULT ''。
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS theme_packs (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        author TEXT NOT NULL,
+                        version TEXT NOT NULL,
+                        tokens_json TEXT NOT NULL,
+                        background_file TEXT,
+                        created_at TEXT NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("ALTER TABLE characters ADD COLUMN theme_id TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -139,7 +164,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tavern.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

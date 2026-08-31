@@ -45,6 +45,7 @@ fun SettingsScreen(
     onNavigateToPromptPreview: () -> Unit = {},
     onNavigateToVersionChangelog: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToThemeManager: () -> Unit = {},
     showBackButton: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -202,7 +203,7 @@ fun SettingsScreen(
                     SettingsNavItem(
                         title = "外观与显示",
                         subtitle = "主题色、字体大小、消息样式",
-                        onClick = { /* TODO: 导航到外观设置页面 */ }
+                        onClick = onNavigateToThemeManager
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     SettingsNavItem(

@@ -35,7 +35,8 @@ fun MainScreen(
     onNavigateToPromptPreview: () -> Unit,
     onNavigateToChatSetup: (String) -> Unit,
     onNavigateToVersionChangelog: () -> Unit,
-    onNavigateToAbout: () -> Unit
+    onNavigateToAbout: () -> Unit,
+    onNavigateToThemeManager: () -> Unit = {}
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
 
@@ -166,6 +167,7 @@ fun MainScreen(
                         onNavigateToPromptPreview = onNavigateToPromptPreview,
                         onNavigateToVersionChangelog = onNavigateToVersionChangelog,
                         onNavigateToAbout = onNavigateToAbout,
+                        onNavigateToThemeManager = onNavigateToThemeManager,
                         showBackButton = false,
                         modifier = Modifier
                             .fillMaxSize()

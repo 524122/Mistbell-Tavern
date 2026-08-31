@@ -8,18 +8,23 @@ import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.network.NetworkMonitor
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ProviderRepository
+import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import com.mistbell.tavern.android.data.sync.SyncManager
 import com.mistbell.tavern.android.data.api.ApiClient
+import com.mistbell.tavern.android.data.theme.ThemeTokens
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.database
     private val repo = ChatRepository(application)
     private val networkMonitor = NetworkMonitor(application)
     private val providerRepo = ProviderRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
+    private val themeRepo = ThemePackRepository(application)
 
     val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
 
@@ -70,6 +75,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     private val _activeWorldBookId = MutableStateFlow("")
     val activeWorldBookId: StateFlow<String> = _activeWorldBookId
+
+    // 主题包状态：当前角色的 tokens / 背景图 / 深色模式设置（原始值，system 语义在 UI 侧判定）
+    val characterTokens: StateFlow<ThemeTokens?> = _currentCharacter
+        .map { it?.id }
+        .distinctUntilChanged()
+        .flatMapLatest { themeRepo.observeTokensForCharacter(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // 背景图与 tokens 走同一条"角色→全局"应用链（解析出命中的包实体再取背景文件）
+    val characterBackgroundFile: StateFlow<java.io.File?> = _currentCharacter
+        .map { it?.id }
+        .distinctUntilChanged()
+        .flatMapLatest { characterId ->
+            themeRepo.observeResolvedPackForCharacter(characterId)
+                .map { pack -> pack?.let { themeRepo.backgroundFile(it) } }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val darkModeSetting: StateFlow<String> = db.settingsDao().observeValue("dark_mode")
+        .map { it ?: "system" }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
 
     var ownerId = "local-user"
         private set

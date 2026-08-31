@@ -39,7 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mistbell.tavern.android.data.api.model.Message
 import com.mistbell.tavern.android.ui.components.ConfirmDeleteDialog
+import com.mistbell.tavern.android.data.theme.resolved
 import com.mistbell.tavern.android.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 private fun buildTextAvatar(character: com.mistbell.tavern.android.data.api.model.Character) {
@@ -157,12 +160,40 @@ fun ChatScreen(
         viewModel.markMessagesAsRead()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // 主题包状态：tokens / 背景图 / 深色模式（三态判定与 Theme.kt 保持一致，避免 dark 覆盖错配）
+    val characterTokens by viewModel.characterTokens.collectAsState()
+    val characterBackgroundFile by viewModel.characterBackgroundFile.collectAsState()
+    val darkModeSetting by viewModel.darkModeSetting.collectAsState()
+    val baseScheme = MaterialTheme.colorScheme
+    val isDark = when (darkModeSetting) {
+        "dark" -> true
+        "light" -> false
+        else -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+    val eff = characterTokens?.resolved(isDark)
+
+    // 背景图异步解码（不在组合线程同步解码大图），失败回落无背景
+    val bgBitmap by produceState<android.graphics.Bitmap?>(null, characterBackgroundFile) {
+        value = null
+        val file = characterBackgroundFile ?: return@produceState
+        value = withContext(Dispatchers.Default) {
+            try {
+                if (file.exists()) android.graphics.BitmapFactory.decodeFile(file.absolutePath) else null
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    // 原有聊天内容整体作为 lambda，按需包裹主题覆盖与背景图
+    val chatContent: @Composable () -> Unit = {
+        Box(modifier = Modifier.fillMaxSize()) {
         // Background with character avatar image
+        // 有主题包背景图时此层必须透明，否则会把背景图盖住
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(if (bgBitmap != null) Color.Transparent else MaterialTheme.colorScheme.background)
         ) {
             // Character avatar as faded background
             primaryDisplayCharacter?.let { character ->
@@ -417,6 +448,35 @@ fun ChatScreen(
             }
         }
     }
+    }
+    }
+
+    // 应用主题包：tokens 覆盖 scheme + 背景图铺底
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (bgBitmap != null) {
+            Image(
+                bitmap = bgBitmap!!.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+        }
+        val effScheme = eff?.let { t ->
+            baseScheme.copy(
+                primary = t.primary ?: baseScheme.primary,
+                onPrimary = t.onPrimary ?: baseScheme.onPrimary,
+                background = t.background ?: baseScheme.background,
+                onBackground = t.onBackground ?: baseScheme.onBackground,
+                surface = t.surface ?: baseScheme.surface,
+                onSurface = t.onSurface ?: baseScheme.onSurface,
+                surfaceVariant = t.surfaceVariant ?: baseScheme.surfaceVariant
+            )
+        }
+        // 恒定包裹（无 tokens 时传 baseScheme）：避免 tokens null↔非null 切换时
+        // 组合树结构变化导致内部 remember 状态（如输入框文本）被丢弃
+        MaterialTheme(colorScheme = effScheme ?: baseScheme) {
+            chatContent()
+        }
     }
 
     // Clear chat confirmation

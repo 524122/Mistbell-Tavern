@@ -27,6 +27,7 @@ data class Character(
     val color: String = "",
     @SerialName("avatarData") val avatarData: String = "",
     @SerialName("worldBookId") val worldBookId: String = "",
+    @SerialName("themeId") val themeId: String = "",
     val data: CharacterData? = null
 )
 

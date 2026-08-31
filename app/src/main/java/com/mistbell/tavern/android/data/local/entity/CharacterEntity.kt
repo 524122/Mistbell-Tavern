@@ -19,6 +19,8 @@ data class CharacterEntity(
     val color: String,
     @ColumnInfo(name = "avatar_data") val avatarData: String,
     @ColumnInfo(name = "world_book_id") val worldBookId: String,
+    // defaultValue 必须与 MIGRATION_9_10 的 SQL DEFAULT '' 一致（Room TableInfo 校验列默认值）
+    @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = "",
     @ColumnInfo(name = "data_json") val dataJson: String
 ) {
     fun toDomain(): Character {
@@ -40,6 +42,7 @@ data class CharacterEntity(
             color = color,
             avatarData = avatarData,
             worldBookId = worldBookId,
+            themeId = themeId,
             data = charData
         )
     }
@@ -61,6 +64,7 @@ data class CharacterEntity(
                 color = c.color,
                 avatarData = c.avatarData,
                 worldBookId = c.worldBookId,
+                themeId = c.themeId,
                 dataJson = dataStr
             )
         }

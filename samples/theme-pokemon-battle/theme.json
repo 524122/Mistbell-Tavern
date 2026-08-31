@@ -1,0 +1,21 @@
+{
+  "colors": {
+    "primary": "#EE1515",
+    "background": "#1A1D2E",
+    "surface": "#262B44",
+    "surfaceVariant": "#323A5C",
+    "userBubble": "#EE1515",
+    "assistantBubble": "#323A5C",
+    "onUserBubble": "#FFFFFF",
+    "onAssistantBubble": "#F2F3FA",
+    "onBackground": "#E8EAF2",
+    "onSurface": "#E8EAF2"
+  },
+  "dark": {
+    "background": "#12141F",
+    "surface": "#1E2233",
+    "surfaceVariant": "#2A3049",
+    "onBackground": "#D8DAE4",
+    "onSurface": "#D8DAE4"
+  }
+}
