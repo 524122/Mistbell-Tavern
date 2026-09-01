@@ -63,6 +63,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    // 长期记忆开关（必须声明在 init 块之前——Kotlin 属性按声明顺序初始化）
+    private val _enableLongTermMemory = MutableStateFlow(false)
+    val enableLongTermMemory: StateFlow<Boolean> = _enableLongTermMemory.asStateFlow()
+
     init {
         // 长期记忆开关初始值取全局默认；此后用户在界面上手动切换则尊重用户选择
         viewModelScope.launch {
@@ -77,10 +81,6 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-
-    // 长期记忆开关
-    private val _enableLongTermMemory = MutableStateFlow(false)
-    val enableLongTermMemory: StateFlow<Boolean> = _enableLongTermMemory.asStateFlow()
 
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
