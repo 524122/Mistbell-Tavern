@@ -23,7 +23,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         VectorMemoryEntity::class,
         ThemePackEntity::class,
     ],
-    version = 14,
+    version = 15,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -245,6 +245,19 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v14→v15：v13 创建的 owner_character_created 短名索引修正为实体默认名
+        // （v14 修正了 v8_9 的短名索引但遗漏了 v13 新增的这个）
+        internal val MIGRATION_14_15 =
+            object : Migration(14, 15) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_messages_owner_id_character_id_created_at" +
+                            " ON messages(owner_id, character_id, created_at)",
+                    )
+                    db.execSQL("DROP INDEX IF EXISTS index_messages_owner_character_created")
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -264,6 +277,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_11_12,
                         MIGRATION_12_13,
                         MIGRATION_13_14,
+                        MIGRATION_14_15,
                     )
                     .fallbackToDestructiveMigration()
                     .build()
