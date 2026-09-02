@@ -10,19 +10,21 @@
     <ID>CyclomaticComplexMethod:CharacterImporter.kt$CardParser$internal fun parseBookEntries( entriesElement: kotlinx.serialization.json.JsonElement?, bookId: String, warnings: MutableSet&lt;String&gt; = mutableSetOf(), ): List&lt;WorldBookEntryEntity&gt;</ID>
     <ID>CyclomaticComplexMethod:ChatListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun ChatListItemMaterial( item: ChatListItem, isMultiSelectMode: Boolean = false, isSelected: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onTogglePin: () -&gt; Unit = {}, onMarkAsRead: () -&gt; Unit = {}, onRename: (String) -&gt; Unit = {}, onCopy: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; }, )</ID>
     <ID>CyclomaticComplexMethod:ChatListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatListScreen( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier, )</ID>
-    <ID>CyclomaticComplexMethod:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, ): Message</ID>
+    <ID>CyclomaticComplexMethod:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, // 群聊上下文（跨代理契约 4）：group 模式由 VM 传入（含 @提及 解析出的 targetSpeakerId）； // null = classic 模式（或未传时按会话 mode 兜底构建），提示词与归属行为与改动前完全一致 groupContext: GroupChatContext? = null, ): Message</ID>
     <ID>CyclomaticComplexMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ChatSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSettingsScreen( onBack: () -&gt; Unit, onNavigateToMemoryManagement: () -&gt; Unit, sessionId: String? = null, viewModel: ChatSettingsViewModel = viewModel( factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
+    <ID>CyclomaticComplexMethod:ChatSetupScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSetupScreen( initialCharacterId: String? = null, onBack: () -&gt; Unit, onStartChat: (sessionId: String, characterIds: Set&lt;String&gt;) -&gt; Unit, viewModel: ChatSetupViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
     <ID>CyclomaticComplexMethod:MacroEngine.kt$MacroEngine$private fun resolveName( token: String, ctx: MacroContext, random: Random, ): String?</ID>
     <ID>CyclomaticComplexMethod:MarkdownRenderer.kt$fun AnnotatedString.Builder.appendInlineMarkdown( text: String, darkTheme: Boolean, linkColor: Color, )</ID>
     <ID>CyclomaticComplexMethod:MarkdownRenderer.kt$fun parseMarkdown(content: String): List&lt;MdSegment&gt;</ID>
     <ID>CyclomaticComplexMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null, )</ID>
-    <ID>CyclomaticComplexMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, ): List&lt;ChatMessage&gt;</ID>
+    <ID>CyclomaticComplexMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, // 群聊上下文（默认 null = classic 模式，行为与改动前完全一致） groupContext: GroupChatContext? = null, // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）； // 非 null 时不再追加最终用户消息，改为注入这条 system 消息 groupNudge: String? = null, ): List&lt;ChatMessage&gt;</ID>
     <ID>CyclomaticComplexMethod:PromptModels.kt$PromptSections$fun composeSystemPrompt(): String</ID>
     <ID>CyclomaticComplexMethod:PromptPreviewScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PromptPreviewScreen( onBack: () -&gt; Unit, viewModel: PromptPreviewViewModel = viewModel(), )</ID>
     <ID>CyclomaticComplexMethod:ProviderEditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProviderEditorScreen( providerId: String?, onBack: () -&gt; Unit, viewModel: ProviderViewModel = viewModel(), )</ID>
     <ID>CyclomaticComplexMethod:ProviderListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProviderListScreen( onBack: () -&gt; Unit, onEditProvider: (String) -&gt; Unit, onNewProvider: () -&gt; Unit, viewModel: ProviderViewModel = viewModel(), )</ID>
+    <ID>CyclomaticComplexMethod:SessionImporter.kt$SessionImporter$fun parseSessionData(jsonString: String): Pair&lt;SessionSummary, List&lt;Message&gt;&gt;?</ID>
     <ID>CyclomaticComplexMethod:ThemeModels.kt$fun ThemeTokens.resolved(isDark: Boolean): ParsedThemeColors</ID>
     <ID>CyclomaticComplexMethod:ThemePackRepository.kt$ThemePackRepository$suspend fun importFromUri(uri: Uri): String</ID>
     <ID>CyclomaticComplexMethod:WorldBookListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WorldBookListScreen( onBack: () -&gt; Unit = {}, // 可空：传入则导航外跳；为 null（默认/导航图当前用法）则在本屏内联展开条目列表。 // 不能用 `onBookClick: (String)-&gt;Unit = {}` 再拿 `!= {}` 判断——每个 {} 都是新实例， // 比较恒为 true，会导致点击永远走空操作分支、进不去条目（见下方 clickable）。 onBookClick: ((String) -&gt; Unit)? = null, viewModel: WorldBookEditorViewModel = viewModel(), showBackButton: Boolean = true, modifier: Modifier = Modifier, )</ID>
@@ -50,6 +52,7 @@
     <ID>FunctionNaming:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:ChatSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSettingsScreen( onBack: () -&gt; Unit, onNavigateToMemoryManagement: () -&gt; Unit, sessionId: String? = null, viewModel: ChatSettingsViewModel = viewModel( factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
     <ID>FunctionNaming:ChatSetupScreen.kt$@Composable private fun CharacterCard( character: com.mistbell.tavern.android.data.api.model.Character, isSelected: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ChatSetupScreen.kt$@Composable private fun ModeOption( label: String, description: String, selected: Boolean, onClick: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ChatSetupScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSetupScreen( initialCharacterId: String? = null, onBack: () -&gt; Unit, onStartChat: (sessionId: String, characterIds: Set&lt;String&gt;) -&gt; Unit, viewModel: ChatSetupViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
     <ID>FunctionNaming:CompositeCharacterAvatar.kt$@Composable fun CompositeCharacterAvatar( characters: List&lt;Character&gt;, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:CompositeCharacterAvatar.kt$@Composable private fun CharacterAvatarSegment( character: Character, modifier: Modifier = Modifier, )</ID>
@@ -91,6 +94,7 @@
     <ID>FunctionNaming:WorldBookListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WorldBookListScreen( onBack: () -&gt; Unit = {}, // 可空：传入则导航外跳；为 null（默认/导航图当前用法）则在本屏内联展开条目列表。 // 不能用 `onBookClick: (String)-&gt;Unit = {}` 再拿 `!= {}` 判断——每个 {} 都是新实例， // 比较恒为 true，会导致点击永远走空操作分支、进不去条目（见下方 clickable）。 onBookClick: ((String) -&gt; Unit)? = null, viewModel: WorldBookEditorViewModel = viewModel(), showBackButton: Boolean = true, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionOnlyReturningConstant:AppNavigation.kt$Routes$fun themeManager()</ID>
     <ID>InstanceOfCheckForException:LlmClient.kt$LlmClient$e is IOException</ID>
+    <ID>LargeClass:ChatRepository.kt$ChatRepository</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable private fun ProjectInfoCard(onNavigateToRepo: () -&gt; Unit)</ID>
     <ID>LongMethod:AboutScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AboutScreen( onBack: () -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:AppNavigation.kt$@Composable fun AppNavigation(chatViewModel: ChatViewModel? = null)</ID>
@@ -102,19 +106,20 @@
     <ID>LongMethod:CharacterListScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun CharacterListScreen( viewModel: CharacterListViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application, ), ), onCharacterClick: (Character) -&gt; Unit = {}, onEditCharacter: (String) -&gt; Unit = {}, onNewCharacter: () -&gt; Unit = {}, onBack: () -&gt; Unit = {}, showTopBarBackButton: Boolean = true, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:ChatListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun ChatListItemMaterial( item: ChatListItem, isMultiSelectMode: Boolean = false, isSelected: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onTogglePin: () -&gt; Unit = {}, onMarkAsRead: () -&gt; Unit = {}, onRename: (String) -&gt; Unit = {}, onCopy: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; }, )</ID>
     <ID>LongMethod:ChatListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatListScreen( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:ChatRepository.kt$ChatRepository$private suspend fun persistAssistantReply( fullReply: String, scope: SessionScope, speakerNames: Map&lt;String, String&gt;?, mode: ReplyTailMode, ): Message</ID>
     <ID>LongMethod:ChatRepository.kt$ChatRepository$suspend fun regenerateMessage( ownerId: String, characterId: String, sessionId: String, messageId: String, onPartial: ((String) -&gt; Unit)? = null, )</ID>
-    <ID>LongMethod:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, ): Message</ID>
+    <ID>LongMethod:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, // 群聊上下文（跨代理契约 4）：group 模式由 VM 传入（含 @提及 解析出的 targetSpeakerId）； // null = classic 模式（或未传时按会话 mode 兜底构建），提示词与归属行为与改动前完全一致 groupContext: GroupChatContext? = null, ): Message</ID>
     <ID>LongMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit, )</ID>
     <ID>LongMethod:ChatSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSettingsScreen( onBack: () -&gt; Unit, onNavigateToMemoryManagement: () -&gt; Unit, sessionId: String? = null, viewModel: ChatSettingsViewModel = viewModel( factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
     <ID>LongMethod:ChatSetupScreen.kt$@Composable private fun CharacterCard( character: com.mistbell.tavern.android.data.api.model.Character, isSelected: Boolean, onClick: () -&gt; Unit, )</ID>
     <ID>LongMethod:ChatSetupScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSetupScreen( initialCharacterId: String? = null, onBack: () -&gt; Unit, onStartChat: (sessionId: String, characterIds: Set&lt;String&gt;) -&gt; Unit, viewModel: ChatSetupViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
-    <ID>LongMethod:ChatSetupViewModel.kt$ChatSetupViewModel$private suspend fun createNewSession( characterId: String, characterIds: Set&lt;String&gt;, ownerId: String, ): String</ID>
+    <ID>LongMethod:ChatSetupViewModel.kt$ChatSetupViewModel$private suspend fun createNewSession( characterId: String, characterIds: Set&lt;String&gt;, ownerId: String, mode: String, ): String</ID>
     <ID>LongMethod:CompositeCharacterAvatar.kt$@Composable fun CompositeCharacterAvatar( characters: List&lt;Character&gt;, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:MainScreen.kt$@Composable fun MainScreen( onChatClick: (sessionId: String, characterId: String) -&gt; Unit, onNewChatClick: () -&gt; Unit, onEditCharacter: (String) -&gt; Unit, onNewCharacter: () -&gt; Unit, onNavigateToProviderList: () -&gt; Unit, onNavigateToWorldBookList: () -&gt; Unit, onNavigateToWorldBookDetail: (String) -&gt; Unit, onNavigateToMemoryList: () -&gt; Unit, onNavigateToPromptPreview: () -&gt; Unit, onNavigateToChatSetup: (String) -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, onNavigateToAbout: () -&gt; Unit, onNavigateToThemeManager: () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:MarkdownRenderer.kt$fun AnnotatedString.Builder.appendInlineMarkdown( text: String, darkTheme: Boolean, linkColor: Color, )</ID>
     <ID>LongMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null, )</ID>
-    <ID>LongMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, ): List&lt;ChatMessage&gt;</ID>
+    <ID>LongMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, // 群聊上下文（默认 null = classic 模式，行为与改动前完全一致） groupContext: GroupChatContext? = null, // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）； // 非 null 时不再追加最终用户消息，改为注入这条 system 消息 groupNudge: String? = null, ): List&lt;ChatMessage&gt;</ID>
     <ID>LongMethod:PromptModels.kt$PromptSections$fun composeSystemPrompt(): String</ID>
     <ID>LongMethod:PromptPreviewScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PromptPreviewScreen( onBack: () -&gt; Unit, viewModel: PromptPreviewViewModel = viewModel(), )</ID>
     <ID>LongMethod:ProviderEditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProviderEditorScreen( providerId: String?, onBack: () -&gt; Unit, viewModel: ProviderViewModel = viewModel(), )</ID>
@@ -139,24 +144,23 @@
     <ID>LongParameterList:ChatListScreen.kt$( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier, )</ID>
     <ID>LongParameterList:ChatListViewModel.kt$ChatListViewModel$( context: Context, sessionId: String, characterId: String, format: SessionExportFormat, fileName: String, onComplete: (SessionExportResult?) -&gt; Unit, )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( enabled: Boolean, providerId: String, userMessage: String, assistantMessage: String, ownerId: String, characterId: String, sessionId: String, messageIds: List&lt;String&gt;, )</ID>
-    <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, // 群聊上下文（跨代理契约 4）：group 模式由 VM 传入（含 @提及 解析出的 targetSpeakerId）； // null = classic 模式（或未传时按会话 mode 兜底构建），提示词与归属行为与改动前完全一致 groupContext: GroupChatContext? = null, )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, title: String = "", providerId: String = "", enableLongTermMemory: Boolean = false, worldBookId: String = "", )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( sessionId: String, ownerId: String, characterId: String, beforeCreatedAt: String, beforeId: String, limit: Int, )</ID>
     <ID>LongParameterList:ChatScreen.kt$( viewModel: ChatViewModel, characterName: String, // 修复4：跟随滚动所需状态由调用方传入——本函数仍在列表 item 内组合， // 直接持有同一 listState 即可执行滚动，无需新的订阅 listState: LazyListState, atBottom: Boolean, bottomAnchorIndex: Int, // 修复6：透传应用内三态深浅色给 Markdown 渲染 dark: Boolean, )</ID>
     <ID>LongParameterList:FormTextArea.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", modifier: Modifier = Modifier, minLines: Int = 3, maxLines: Int = 8, )</ID>
     <ID>LongParameterList:FormTextField.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", modifier: Modifier = Modifier, isPassword: Boolean = false, singleLine: Boolean = true, keyboardType: KeyboardType = KeyboardType.Text, trailingIcon: @Composable (() -&gt; Unit)? = null, )</ID>
-    <ID>LongParameterList:LexicalMemoryService.kt$LexicalMemoryService$( ownerId: String, characterId: String, sessionId: String, query: String, topK: Int = 5, recentWindow: Int = 40, )</ID>
+    <ID>LongParameterList:LexicalMemoryService.kt$LexicalMemoryService$( ownerId: String, // 会话级召回后 characterId 不再参与过滤（保留参数位以免破坏调用方， // 未来按 NPC 分账召回时会重新启用） @Suppress("UnusedParameter") characterId: String, sessionId: String, query: String, topK: Int = 5, recentWindow: Int = 40, )</ID>
     <ID>LongParameterList:MainScreen.kt$( onChatClick: (sessionId: String, characterId: String) -&gt; Unit, onNewChatClick: () -&gt; Unit, onEditCharacter: (String) -&gt; Unit, onNewCharacter: () -&gt; Unit, onNavigateToProviderList: () -&gt; Unit, onNavigateToWorldBookList: () -&gt; Unit, onNavigateToWorldBookDetail: (String) -&gt; Unit, onNavigateToMemoryList: () -&gt; Unit, onNavigateToPromptPreview: () -&gt; Unit, onNavigateToChatSetup: (String) -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, onNavigateToAbout: () -&gt; Unit, onNavigateToThemeManager: () -&gt; Unit = {}, )</ID>
     <ID>LongParameterList:MemoryExtractionService.kt$MemoryExtractionService$( userMessage: String, assistantMessage: String, ownerId: String, characterId: String, sessionId: String, messageIds: List&lt;String&gt;, provider: ProviderConfig?, )</ID>
     <ID>LongParameterList:MessageBubble.kt$( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
-    <ID>LongParameterList:MessageDao.kt$MessageDao$( sessionId: String, ownerId: String, characterId: String, beforeCreatedAt: String, beforeId: String, limit: Int, )</ID>
-    <ID>LongParameterList:MessageDao.kt$MessageDao$( sessionId: String, ownerId: String, characterId: String, excludedIds: List&lt;String&gt;, t1: String, t2: String, t3: String, t4: String, t5: String, t6: String, resultLimit: Int, )</ID>
-    <ID>LongParameterList:PromptBuilder.kt$PromptBuilder$( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, )</ID>
+    <ID>LongParameterList:PromptBuilder.kt$PromptBuilder$( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, // 群聊上下文（默认 null = classic 模式，行为与改动前完全一致） groupContext: GroupChatContext? = null, // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）； // 非 null 时不再追加最终用户消息，改为注入这条 system 消息 groupNudge: String? = null, )</ID>
     <ID>LongParameterList:SettingsScreen.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", isPassword: Boolean = false, trailingIcon: @Composable (() -&gt; Unit)? = null, )</ID>
     <ID>LongParameterList:SettingsScreen.kt$( viewModel: SettingsViewModel, onBack: () -&gt; Unit = {}, onNavigateToProviderList: () -&gt; Unit = {}, onNavigateToWorldBookList: () -&gt; Unit = {}, onNavigateToMemoryList: () -&gt; Unit = {}, onNavigateToPromptPreview: () -&gt; Unit = {}, onNavigateToVersionChangelog: () -&gt; Unit = {}, onNavigateToAbout: () -&gt; Unit = {}, onNavigateToThemeManager: () -&gt; Unit = {}, showBackButton: Boolean = true, modifier: Modifier = Modifier, )</ID>
     <ID>LongParameterList:StructuredMemoryViewModel.kt$StructuredMemoryViewModel$( id: Long, memoryType: String, title: String, content: String, importance: Int, tags: List&lt;String&gt;, )</ID>
     <ID>LongParameterList:VectorMemoryService.kt$VectorMemoryService$( content: String, ownerId: String, characterId: String, sessionId: String, messageId: String, contentType: String, )</ID>
     <ID>LongParameterList:WorldBookRepository.kt$WorldBookRepository$( bookId: String, comment: String, keys: List&lt;String&gt;, content: String, constant: Boolean = false, disable: Boolean = false, insertPosition: String = "before_prompt", depth: Int = 1, )</ID>
+    <ID>LoopWithTooManyJumpStatements:GroupSpeaker.kt$for</ID>
     <ID>LoopWithTooManyJumpStatements:LocalWorldBookService.kt$LocalWorldBookService$for</ID>
     <ID>LoopWithTooManyJumpStatements:MarkdownRenderer.kt$while</ID>
     <ID>MagicNumber:ApiClient.kt$ApiClient$30</ID>
@@ -168,6 +172,7 @@
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$14</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$15</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$16</ID>
+    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$17</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$3</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$4</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$5</ID>
@@ -229,7 +234,6 @@
     <ID>MagicNumber:ChatSettingsScreen.kt$ChatSettingsViewModel$4</ID>
     <ID>MagicNumber:ChatSettingsScreen.kt$ChatSettingsViewModel$4096</ID>
     <ID>MagicNumber:ChatSettingsScreen.kt$ChatSettingsViewModel$5000</ID>
-    <ID>MagicNumber:ChatSetupViewModel.kt$ChatSetupViewModel$4</ID>
     <ID>MagicNumber:ChatSetupViewModel.kt$ChatSetupViewModel$5000</ID>
     <ID>MagicNumber:ChatViewModel.kt$ChatViewModel$5000</ID>
     <ID>MagicNumber:Color.kt$0x18EF4444</ID>
@@ -351,7 +355,6 @@
     <ID>MagicNumber:PromptBuilder.kt$PromptBuilder$6</ID>
     <ID>MagicNumber:PromptBuilder.kt$PromptBuilder$768</ID>
     <ID>MagicNumber:PromptBuilder.kt$PromptBuilder$8</ID>
-    <ID>MagicNumber:ProviderRepository.kt$ProviderRepository$10</ID>
     <ID>MagicNumber:ProviderRepository.kt$ProviderRepository$30</ID>
     <ID>MagicNumber:SamplerPresets.kt$SamplerPresets$0.3</ID>
     <ID>MagicNumber:SamplerPresets.kt$SamplerPresets$0.4</ID>
@@ -418,10 +421,7 @@
     <ID>MaxLineLength:ChatListScreen.kt$onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; }</ID>
     <ID>MaxLineLength:ChatRepository.kt$ChatRepository$android.util.Log.i("ChatRepository", "Falling back to first available provider: ${provider.name}")</ID>
     <ID>MaxLineLength:ChatRepository.kt$ChatRepository$android.util.Log.w("ChatRepository", "No LLM providers configured, memory extraction disabled")</ID>
-    <ID>MaxLineLength:ChatRepository.kt$ChatRepository$messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size</ID>
-    <ID>MaxLineLength:ChatRepository.kt$ChatRepository$session.copy(messageCount = db.messageDao().getBySession(sessionId, ownerId, characterId).first().size)</ID>
     <ID>MaxLineLength:ChatRepository.kt$ChatRepository$title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title</ID>
-    <ID>MaxLineLength:ChatRepository.kt$ChatRepository$val promptMessages = PromptBuilder.buildPrompt(db, ownerId, characterId, sessionId, message, currentMessageId = msgId)</ID>
     <ID>MaxLineLength:ChatScreen.kt$Icon(Icons.Default.Warning, contentDescription = null, tint = AccentRed, modifier = Modifier.size(14.dp))</ID>
     <ID>MaxLineLength:ChatSettingsScreen.kt$ChatSettingsViewModel$"Loaded session settings: providerId=${session.providerId}, modelId=${session.modelId}, enableLongTermMemory=${session.enableLongTermMemory}, contextTokenLimit=${session.contextTokenLimit}, worldBookId=${session.worldBookId}"</ID>
     <ID>MaxLineLength:ChatSettingsScreen.kt$ChatSettingsViewModel$android.util.Log.d("ChatSettings", "Updated enableLongTermMemory: ${_enableLongTermMemory.value}")</ID>
@@ -443,10 +443,6 @@
     <ID>MaxLineLength:MemoryDao.kt$MemoryDao$"SELECT * FROM memories WHERE owner_id = :ownerId AND character_id = :characterId AND status = 'active' ORDER BY importance DESC"</ID>
     <ID>MaxLineLength:MemoryEntity.kt$MemoryEntity.Companion$val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
     <ID>MaxLineLength:MemoryExtractionService.kt$MemoryExtractionService$Log.d(TAG, "Extraction complete: ${candidates.size} candidates, ${validated.size} valid, $savedCount saved")</ID>
-    <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT * FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId ORDER BY created_at ASC"</ID>
-    <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT * FROM messages WHERE session_id=:sessionId AND owner_id=:ownerId AND character_id=:characterId AND id NOT IN (:excludedIds) AND (content LIKE :t1 OR content LIKE :t2 OR content LIKE :t3 OR content LIKE :t4 OR content LIKE :t5 OR content LIKE :t6) ORDER BY created_at DESC LIMIT :resultLimit"</ID>
-    <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT COUNT(*) FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId AND is_read = 0"</ID>
-    <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT id FROM messages WHERE session_id=:sessionId AND owner_id=:ownerId AND character_id=:characterId ORDER BY created_at DESC LIMIT :limit"</ID>
     <ID>MaxLineLength:MessageEntity.kt$MessageEntity.Companion$val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isEnabled || showStop) AccentBlue.copy(alpha = 0.35f) else Color.Transparent</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isFocused) AccentBlue.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.04f)</ID>
@@ -462,12 +458,7 @@
     <ID>MaxLineLength:PromptPreviewScreen.kt$colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))</ID>
     <ID>MaxLineLength:ProviderEditorScreen.kt$DropdownMenuItem</ID>
     <ID>MaxLineLength:ProviderEditorScreen.kt$private val TYPE_OPTIONS = listOf("openai" to "OpenAI", "anthropic" to "Anthropic", "google" to "Google", "custom" to "自定义")</ID>
-    <ID>MaxLineLength:ProviderListScreen.kt$if</ID>
     <ID>MaxLineLength:ProviderListScreen.kt$private val TYPE_LABELS = mapOf("openai" to "OpenAI", "anthropic" to "Anthropic", "google" to "Google", "custom" to "自定义")</ID>
-    <ID>MaxLineLength:ProviderListScreen.kt$testingProviderId == provider.id &amp;&amp; testResult != null -&gt; if (testResult == true) "✓" else "✗"</ID>
-    <ID>MaxLineLength:ProviderListScreen.kt$testingProviderId == provider.id &amp;&amp; testResult == false -&gt; MaterialTheme.colorScheme.error</ID>
-    <ID>MaxLineLength:ProviderListScreen.kt$testingProviderId == provider.id &amp;&amp; testResult == true -&gt; MaterialTheme.colorScheme.primary</ID>
-    <ID>MaxLineLength:ProviderListScreen.kt$viewModel.testConnectionForProvider(provider.endpoint, provider.apiKey, provider.type)</ID>
     <ID>MaxLineLength:SessionDao.kt$SessionDao$"SELECT * FROM sessions WHERE owner_id = :ownerId ORDER BY is_pinned DESC, CASE WHEN is_pinned = 1 THEN pinned_at ELSE updated_at END DESC LIMIT 24"</ID>
     <ID>MaxLineLength:SessionDao.kt$SessionDao$"UPDATE sessions SET is_pinned = :pinned, pinned_at = :pinnedAt WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId"</ID>
     <ID>MaxLineLength:SessionDao.kt$SessionDao$"UPDATE sessions SET title = :title, updated_at = :updatedAt WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId"</ID>
@@ -510,7 +501,7 @@
     <ID>NestedBlockDepth:CharacterImporter.kt$CardParser$fun parse(jsonString: String): CharacterImportResult?</ID>
     <ID>NestedBlockDepth:MemoryExtractionService.kt$MemoryExtractionService$private fun tokenSetForSimilarity(text: String): Set&lt;String&gt;</ID>
     <ID>NestedBlockDepth:PngCard.kt$PngCard$fun readTextChunk( png: ByteArray, keyword: String = CHUNK_KEYWORD, ): String?</ID>
-    <ID>NestedBlockDepth:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, ): List&lt;ChatMessage&gt;</ID>
+    <ID>NestedBlockDepth:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, // 群聊上下文（默认 null = classic 模式，行为与改动前完全一致） groupContext: GroupChatContext? = null, // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）； // 非 null 时不再追加最终用户消息，改为注入这条 system 消息 groupNudge: String? = null, ): List&lt;ChatMessage&gt;</ID>
     <ID>NestedBlockDepth:SettingsRepository.kt$SettingsRepository$suspend fun loadAndCacheSettings()</ID>
     <ID>NestedBlockDepth:TermExtractor.kt$TermExtractor$fun extract( query: String, maxTerms: Int = 6, ): List&lt;String&gt;</ID>
     <ID>PrintStackTrace:CharacterExporter.kt$CharacterExporter$e</ID>
@@ -524,6 +515,9 @@
     <ID>ReturnCount:CharacterImporter.kt$CardParser$fun getText(vararg keys: String): String</ID>
     <ID>ReturnCount:CharacterImporter.kt$CardParser$internal fun parseBookEntries( entriesElement: kotlinx.serialization.json.JsonElement?, bookId: String, warnings: MutableSet&lt;String&gt; = mutableSetOf(), ): List&lt;WorldBookEntryEntity&gt;</ID>
     <ID>ReturnCount:CharacterImporter.kt$CharacterImporter$fun importFromPng( context: Context, uri: Uri, ): CharacterImportResult?</ID>
+    <ID>ReturnCount:ChatRepository.kt$ChatRepository$private suspend fun loadGroupContext( ownerId: String, characterId: String, sessionId: String, ): GroupChatContext?</ID>
+    <ID>ReturnCount:ChatViewModel.kt$internal fun resolveMentionTarget( content: String, participants: List&lt;Character&gt;, ): String?</ID>
+    <ID>ReturnCount:GroupSpeaker.kt$internal fun parseGroupSpeaker( content: String, speakerNames: Map&lt;String, String&gt;, ): GroupSpeakerResult?</ID>
     <ID>ReturnCount:ImageUtils.kt$ImageUtils$fun dataUriToBitmap(dataUri: String): Bitmap?</ID>
     <ID>ReturnCount:ImageUtils.kt$ImageUtils$fun processImage( context: Context, uri: Uri, maxSize: Int = 0, // 改为0表示不缩放，保留原图 quality: Int = 85, ): String?</ID>
     <ID>ReturnCount:LlmClient.kt$SseParser$fun contentDelta(dataLine: String): String?</ID>
@@ -546,8 +540,9 @@
     <ID>SwallowedException:MessageBubble.kt$e: Exception</ID>
     <ID>SwallowedException:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
     <ID>SwallowedException:ThemePackRepository.kt$ThemePackRepository$e: Exception</ID>
+    <ID>ThrowsCount:ChatRepository.kt$ChatRepository$suspend fun continueGroupChat( ownerId: String, characterId: String, sessionId: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, ): Message</ID>
     <ID>ThrowsCount:ChatRepository.kt$ChatRepository$suspend fun regenerateMessage( ownerId: String, characterId: String, sessionId: String, messageId: String, onPartial: ((String) -&gt; Unit)? = null, )</ID>
-    <ID>ThrowsCount:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, ): Message</ID>
+    <ID>ThrowsCount:ChatRepository.kt$ChatRepository$suspend fun sendMessage( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, // 群聊上下文（跨代理契约 4）：group 模式由 VM 传入（含 @提及 解析出的 targetSpeakerId）； // null = classic 模式（或未传时按会话 mode 兜底构建），提示词与归属行为与改动前完全一致 groupContext: GroupChatContext? = null, ): Message</ID>
     <ID>ThrowsCount:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$private fun executeEmbedBatchRequest(texts: List&lt;String&gt;): List&lt;FloatArray&gt;</ID>
     <ID>ThrowsCount:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$private fun executeEmbedRequest(text: String): FloatArray</ID>
     <ID>TooGenericExceptionCaught:AboutScreen.kt$e: Exception</ID>
@@ -595,6 +590,7 @@
     <ID>TooGenericExceptionThrown:OpenAIEmbeddingService.kt$OpenAIEmbeddingService$throw Exception("OpenAI API error: ${response.code} - $errorBody")</ID>
     <ID>TooManyFunctions:ChatListViewModel.kt$ChatListViewModel : AndroidViewModel</ID>
     <ID>TooManyFunctions:ChatRepository.kt$ChatRepository</ID>
+    <ID>TooManyFunctions:ChatSetupViewModel.kt$ChatSetupViewModel : AndroidViewModel</ID>
     <ID>TooManyFunctions:ChatViewModel.kt$ChatViewModel : AndroidViewModel</ID>
     <ID>TooManyFunctions:CrashLogger.kt$CrashLogger</ID>
     <ID>TooManyFunctions:ImageUtils.kt$ImageUtils</ID>
@@ -648,6 +644,7 @@
     <ID>UnusedPrivateProperty:WorldBookListScreen.kt$val activeEntries = worldBooks.sumOf { book -&gt; book.entries.count { !it.disable } }</ID>
     <ID>UnusedPrivateProperty:WorldBookListScreen.kt$val totalEntries = worldBooks.sumOf { it.entries.size }</ID>
     <ID>UseCheckOrError:ChatRepository.kt$ChatRepository$throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")</ID>
+    <ID>UseCheckOrError:ChatRepository.kt$ChatRepository$throw IllegalStateException("会话不存在或不是群聊模式，无法推动群聊")</ID>
     <ID>UseCheckOrError:ChatRepository.kt$ChatRepository$throw IllegalStateException("没有可重新生成的用户消息")</ID>
     <ID>UseRequire:PngCard.kt$PngCard$throw IllegalArgumentException("PNG chunk 结构损坏（length 越界）")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包无效：theme.json 无法解析为有效的主题定义")</ID>
@@ -656,7 +653,6 @@
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包非法：manifest.id 不合法（仅允许 1-64 位字母/数字/下划线/连字符）")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包非法：manifest.id 为空")</ID>
     <ID>UseRequire:ThemePackRepository.kt$ThemePackRepository$throw IllegalArgumentException("主题包非法：条目路径包含 \"..\"（疑似路径穿越）")</ID>
-    <ID>VariableNaming:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$private val v8_9ShortIndexNames = setOf( "index_sessions_owner_updated", "index_sessions_owner_pinned", "index_sessions_character", "index_messages_session_created", "index_messages_session_owner", "index_structured_memory_importance_created", "index_structured_memory_session", )</ID>
     <ID>WildcardImport:AboutScreen.kt$import androidx.compose.foundation.layout.*</ID>
     <ID>WildcardImport:AboutScreen.kt$import androidx.compose.material3.*</ID>
     <ID>WildcardImport:AppDatabase.kt$import com.mistbell.tavern.android.data.local.dao.*</ID>

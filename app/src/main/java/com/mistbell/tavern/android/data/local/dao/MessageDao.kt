@@ -6,25 +6,30 @@ import androidx.room.Upsert
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import kotlinx.coroutines.flow.Flow
 
+// ---- 会话级消息读写（数据层审查修复）----
+// 会话是消息的完整归属单元；character_id 仅作说话方元数据（群聊落库时写实际发言 NPC 的 id），
+// 读写一律会话级——群聊 NPC 消息与主角色消息同窗可见。因此下列查询只按
+// (session_id, owner_id) 过滤，不再按 character_id 切分窗口。
+// 索引核验：全部查询的过滤/排序均命中 MessageEntity 既有 (session_id, created_at) 复合索引
+// （等值 session_id 后按 created_at 排序/游标扫描），无需新增索引，数据库 schema 不变。
 @Dao
 interface MessageDao {
+    // 会话全量历史（Flow）：按 created_at ASC 返回，PromptBuilder 构建提示词与计数自愈均走此查询
     @Query(
         """
         SELECT * FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
         ORDER BY created_at ASC
         """,
     )
     fun getBySession(
         sessionId: String,
         ownerId: String,
-        characterId: String,
     ): Flow<List<MessageEntity>>
 
     // 消息窗口分页（v16 性能修复）：仅取最新 limit 条（DESC），仓库层反转为 ASC 展示，
-    // 避免长会话一次性加载全表；查询命中 (session_id, owner_id, character_id, created_at) 复合索引。
+    // 避免长会话一次性加载全表；查询命中 (session_id, created_at) 复合索引。
     // 修复3：ORDER BY 追加 id DESC 做 tie-break——id 是 UUID 字符串、字典序稳定，
     // 导入会话保留原时间戳时同 created_at 的消息有确定次序，不会被 LIMIT 不可预测地切开。
     // PromptBuilder 构建提示词仍走上方 getBySession 全量取历史，语义不变。
@@ -33,7 +38,6 @@ interface MessageDao {
         SELECT * FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
         """,
@@ -41,7 +45,6 @@ interface MessageDao {
     fun getLatestBySession(
         sessionId: String,
         ownerId: String,
-        characterId: String,
         limit: Int,
     ): Flow<List<MessageEntity>>
 
@@ -54,7 +57,6 @@ interface MessageDao {
         SELECT * FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
           AND (created_at < :beforeCreatedAt OR (created_at = :beforeCreatedAt AND id < :beforeId))
         ORDER BY created_at DESC, id DESC
         LIMIT :limit
@@ -63,16 +65,17 @@ interface MessageDao {
     suspend fun getOlderBySession(
         sessionId: String,
         ownerId: String,
-        characterId: String,
         beforeCreatedAt: String,
         beforeId: String,
         limit: Int,
     ): List<MessageEntity>
 
-    @Query("SELECT * FROM messages WHERE id = :messageId AND session_id = :sessionId LIMIT 1")
+    // 单条读取：id + sessionId + ownerId 三重校验（会话级归属），不再区分 character_id
+    @Query("SELECT * FROM messages WHERE id = :messageId AND session_id = :sessionId AND owner_id = :ownerId LIMIT 1")
     suspend fun getById(
         messageId: String,
         sessionId: String,
+        ownerId: String,
     ): MessageEntity?
 
     @Upsert
@@ -81,11 +84,10 @@ interface MessageDao {
     @Upsert
     suspend fun upsertAll(messages: List<MessageEntity>)
 
-    @Query("DELETE FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")
+    @Query("DELETE FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId")
     suspend fun deleteBySession(
         sessionId: String,
         ownerId: String,
-        characterId: String,
     )
 
     // 注意：必须先于 deleteById(target) 调用——本查询通过子查询定位目标消息的时间，
@@ -97,7 +99,6 @@ interface MessageDao {
         DELETE FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
           AND (
               created_at > (SELECT target.created_at FROM messages target WHERE target.id = :afterMessageId)
               OR (
@@ -111,7 +112,6 @@ interface MessageDao {
         sessionId: String,
         afterMessageId: String,
         ownerId: String,
-        characterId: String,
     )
 
     @Query("DELETE FROM messages WHERE id = :messageId")
@@ -127,14 +127,12 @@ interface MessageDao {
         UPDATE messages SET is_read = 1
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
           AND is_read = 0
         """,
     )
     suspend fun markAsRead(
         sessionId: String,
         ownerId: String,
-        characterId: String,
     )
 
     @Query(
@@ -142,14 +140,12 @@ interface MessageDao {
         SELECT COUNT(*) FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
           AND is_read = 0
         """,
     )
     suspend fun getUnreadCount(
         sessionId: String,
         ownerId: String,
-        characterId: String,
     ): Int
 
     @Query(
@@ -173,7 +169,6 @@ interface MessageDao {
         SELECT id FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
         ORDER BY created_at DESC
         LIMIT :limit
         """,
@@ -181,18 +176,19 @@ interface MessageDao {
     suspend fun latestIdsBySession(
         sessionId: String,
         ownerId: String,
-        characterId: String,
         limit: Int,
     ): List<String>
 
     // F3-FTS 词法召回：按关键词（LIKE）检索历史消息，排除近期窗口内的 id。
     // 未用满的词位由调用方填充 "~~nomatch~~%"（不会匹配任何真实内容），LIKE 对 % 无需转义（模式固定）。
+    // 参数即固定 6 个 LIKE 词位 + 排除集 + 结果上限的 SQL 绑定槽位，均为语义必需；
+    // 压缩参数会改变召回行为或引入 @RawQuery 动态拼装，故本地豁免 detekt LongParameterList。
+    @Suppress("LongParameterList")
     @Query(
         """
         SELECT * FROM messages
         WHERE session_id = :sessionId
           AND owner_id = :ownerId
-          AND character_id = :characterId
           AND id NOT IN (:excludedIds)
           AND (content LIKE :t1 OR content LIKE :t2 OR content LIKE :t3
             OR content LIKE :t4 OR content LIKE :t5 OR content LIKE :t6)
@@ -203,7 +199,6 @@ interface MessageDao {
     suspend fun searchByContentTerms(
         sessionId: String,
         ownerId: String,
-        characterId: String,
         excludedIds: List<String>,
         t1: String,
         t2: String,

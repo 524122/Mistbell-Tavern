@@ -392,6 +392,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.7.0-beta",
+                versionCode = 9,
+                releaseDate = "2026-09-02",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "群聊模式：多角色会话（上限 4），AI 轮流以各角色身份发言，气泡按说话者显示名字与配色",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "@名字 指定谁回应；“让TA继续”一键推动下一位角色发言",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "会话模式骨架（v17 迁移）：老会话自动经典模式，无感升级",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "经典模式角色点选收敛修复；群聊消息读写改为会话级（NPC 发言不再丢失）",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.6.0-beta",
                 versionCode = 8,
                 releaseDate = "2026-09-02",

@@ -2,6 +2,7 @@ package com.mistbell.tavern.android.data.prompt
 
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ChatMessage
+import com.mistbell.tavern.android.data.api.model.GroupChatContext
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
@@ -13,6 +14,27 @@ import kotlinx.coroutines.flow.first
 import java.time.Instant
 
 object PromptBuilder {
+    // ---- 群聊模式常量（classic 模式不进入任何 group 分支，提示词一个字符都不变——硬约束）----
+
+    // 群聊行为规范块：紧跟角色 system 文本之后追加；{user} 占位符渲染为宏上下文的用户名。
+    // 必须包含：前缀格式（『角色名:』半角冒号）、不替用户/他人发言、一次只发言一位，
+    // 以及历史前缀格式说明（历史每行已带『名字:』前缀，模型照此格式续写即可提高命中率）
+    private const val GROUP_CHAT_RULES_TEMPLATE =
+        "【群聊规范】本场对话有多位角色在场。你每次只以其中一位角色的身份发言：" +
+            "回复必须以『角色名:』开头（半角冒号），随后是该角色的发言。" +
+            "历史记录中每行已带『名字:』前缀标注发言者。" +
+            "不要替用户（{user}）或其他角色说话，不要旁白多人。一次只发言一位。"
+
+    // GROUP_CHAT_RULES_TEMPLATE 中的用户名占位符
+    private const val GROUP_CHAT_USER_PLACEHOLDER = "{user}"
+
+    // 目标角色推动语模板（targetSpeakerId 非空时追加一行）
+    private const val GROUP_CHAT_TARGET_TEMPLATE = "（接下来请由 %s 回应）"
+
+    // 历史归属兜底：speakerNames 查不到的 character_id 取前 4 位，仍为空则用通用名
+    private const val GROUP_SPEAKER_NAME_FALLBACK_LENGTH = 4
+    private const val GROUP_SPEAKER_FALLBACK_NAME = "角色"
+
     suspend fun buildPrompt(
         db: AppDatabase,
         ownerId: String,
@@ -23,6 +45,11 @@ object PromptBuilder {
         // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序），
         // 保证正要被替换的旧 assistant 回复不进入上下文
         excludeFromMessageId: String? = null,
+        // 群聊上下文（默认 null = classic 模式，行为与改动前完全一致）
+        groupContext: GroupChatContext? = null,
+        // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）；
+        // 非 null 时不再追加最终用户消息，改为注入这条 system 消息
+        groupNudge: String? = null,
     ): List<ChatMessage> {
         val messages = mutableListOf<ChatMessage>()
 
@@ -81,6 +108,19 @@ object PromptBuilder {
             if (systemParts.isNotEmpty()) {
                 messages.add(ChatMessage(role = "system", content = systemParts.joinToString("\n\n")))
             }
+        }
+
+        // 群聊模式：紧跟角色 system 文本追加行为规范块 + 目标角色推动（classic 模式 groupContext 为 null，不进入）
+        if (groupContext != null) {
+            val rules = GROUP_CHAT_RULES_TEMPLATE.replace(GROUP_CHAT_USER_PLACEHOLDER, mctx.user)
+            val targetName = groupContext.targetSpeakerId?.let { groupContext.speakerNames[it] }
+            val groupSystem =
+                if (targetName != null) {
+                    "$rules\n" + GROUP_CHAT_TARGET_TEMPLATE.format(targetName)
+                } else {
+                    rules
+                }
+            messages.add(ChatMessage(role = "system", content = groupSystem))
         }
 
         if (session?.enableLongTermMemory == true) {
@@ -172,7 +212,10 @@ object PromptBuilder {
             messages.add(ChatMessage(role = "system", content = "Activated World Info:\n$activatedContent"))
         }
 
-        var historySource: List<MessageEntity> = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
+        // 历史源会话级读取（跨代理契约 2）：会话是消息的完整归属单元，character_id 仅作
+        // 说话方元数据（群聊），历史一律按 (session_id, owner_id) 全量取——群聊 NPC 消息
+        // 与主角色消息同窗进入上下文，说话方由 annotateGroupHistory 加前缀区分
+        var historySource: List<MessageEntity> = db.messageDao().getBySession(sessionId, ownerId).first()
         if (excludeFromMessageId != null) {
             val idx = historySource.indexOfFirst { it.id == excludeFromMessageId }
             if (idx >= 0) {
@@ -190,14 +233,21 @@ object PromptBuilder {
                 currentUserMessage = userMessage,
                 contextTokenLimit = contextTokenLimit,
             )
-        history.forEach { msg: MessageEntity ->
-            // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
-            // 思考型模型的历史推理不进上下文（展示层不动）
-            val cleanContent =
-                msg.content
-                    .replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "")
-                    .trim()
-            messages.add(ChatMessage(role = msg.role, content = cleanContent))
+        if (groupContext != null) {
+            // 群聊模式：历史消息加说话方前缀（AI 消息按 character_id 查名字，用户消息用 {{user}} 值）
+            messages.addAll(
+                annotateGroupHistory(
+                    history = history,
+                    speakerNames = groupContext.speakerNames,
+                    userName = mctx.user,
+                ),
+            )
+        } else {
+            history.forEach { msg: MessageEntity ->
+                // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
+                // 思考型模型的历史推理不进上下文（展示层不动）
+                messages.add(ChatMessage(role = msg.role, content = stripThinkingBlocks(msg.content)))
+            }
         }
 
         // 会话附加指令（author_note）：非空时经宏渲染，注入在历史之后、最终用户消息之前
@@ -206,11 +256,73 @@ object PromptBuilder {
             messages.add(ChatMessage(role = "system", content = "【附加指令】\n${MacroEngine.render(authorNote, mctx)}"))
         }
 
-        // 最后的当前用户消息参与宏渲染
-        messages.add(ChatMessage(role = "user", content = MacroEngine.render(userMessage, mctx)))
+        // 最后的当前用户消息参与宏渲染；continueGroupChat 场景（groupNudge 非 null）无新用户消息，
+        // 改为注入系统级推动语（classic 路径 groupNudge 恒为 null，零改动）
+        if (groupNudge != null) {
+            messages.add(ChatMessage(role = "system", content = groupNudge))
+        } else {
+            val renderedUserMessage = MacroEngine.render(userMessage, mctx)
+            // 群聊模式：当前用户消息与历史行格式对齐，加 "{user}: " 前缀（历史每行已带
+            // 『名字:』前缀标注发言者，当前消息同样标注可显著提高模型按格式发言的命中率）；
+            // classic 模式保持原样零改动
+            val finalUserMessage =
+                if (groupContext != null) {
+                    groupCurrentUserMessage(userName = mctx.user, renderedUserMessage = renderedUserMessage)
+                } else {
+                    renderedUserMessage
+                }
+            messages.add(ChatMessage(role = "user", content = finalUserMessage))
+        }
 
         return messages
     }
+
+    // 群聊模式当前用户消息组装（internal 仅为单元测试开放）：
+    // 与历史行格式一致加 "{用户名}: " 前缀（跨代理契约 4，提高模型命中率）
+    internal fun groupCurrentUserMessage(
+        userName: String,
+        renderedUserMessage: String,
+    ): String = "$userName: $renderedUserMessage"
+
+    // F2.1 沿用：剔除 <think>…</think> 块并 trim（classic/群聊两条历史路径共用）
+    private fun stripThinkingBlocks(content: String): String {
+        return content.replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "").trim()
+    }
+
+    /**
+     * 群聊历史组装：为每条历史消息加说话方前缀，转成 ChatMessage。
+     * - assistant 消息前加 "{说话角色名}: "（character_id 查 speakerNames，查不到取 id 前 4 位，仍空则"角色"）；
+     *   群聊落库时 character_id 已写为实际发言的 NPC id、内容已剥前缀，此处还原说话方供模型区分角色；
+     * - 其余角色（user）消息前加 "{用户名}: "；
+     * - 同样剔除 <think>…</think> 块。
+     * internal 仅为单元测试开放（JVM 可测：MessageEntity/ChatMessage 均为纯 Kotlin 类型）。
+     */
+    internal fun annotateGroupHistory(
+        history: List<MessageEntity>,
+        speakerNames: Map<String, String>,
+        userName: String,
+    ): List<ChatMessage> =
+        history.map { msg ->
+            val cleanContent = stripThinkingBlocks(msg.content)
+            val annotated =
+                if (msg.role == "assistant") {
+                    "${resolveGroupSpeakerName(msg.characterId, speakerNames)}: $cleanContent"
+                } else {
+                    "$userName: $cleanContent"
+                }
+            ChatMessage(role = msg.role, content = annotated)
+        }
+
+    // 群聊历史归属兜底：speakerNames 查不到时取 character_id 前 4 位；
+    // 不足 4 位的短 id 没有辨识度（如 "x"），用通用名"角色"
+    private fun resolveGroupSpeakerName(
+        characterId: String,
+        speakerNames: Map<String, String>,
+    ): String =
+        speakerNames[characterId]
+            ?: characterId.take(GROUP_SPEAKER_NAME_FALLBACK_LENGTH)
+                .takeIf { it.length == GROUP_SPEAKER_NAME_FALLBACK_LENGTH }
+            ?: GROUP_SPEAKER_FALLBACK_NAME
 
     // internal 仅为单元测试开放（ROADMAP M2-2：token 预算截断逻辑需要回归测试）
     internal fun selectHistoryWithinBudget(

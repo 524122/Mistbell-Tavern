@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mistbell.tavern.android.data.api.model.SESSION_MODE_CLASSIC
+import com.mistbell.tavern.android.data.api.model.SESSION_MODE_GROUP
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +44,7 @@ fun ChatSetupScreen(
     val providers by viewModel.providers.collectAsState()
     val worldBooks by viewModel.worldBooks.collectAsState()
     val selectedCharacterIds by viewModel.selectedCharacterIds.collectAsState()
+    val mode by viewModel.mode.collectAsState()
     val selectedProviderId by viewModel.selectedProviderId.collectAsState()
     val selectedWorldBookId by viewModel.selectedWorldBookId.collectAsState()
     val characterDefaultWorldBookId by viewModel.characterDefaultWorldBookId.collectAsState()
@@ -110,6 +113,34 @@ fun ChatSetupScreen(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            // 聊天模式选择：经典 / 群聊（"扮演反转"与 ④⑤ 骨架一律不露出——不做空入口纪律）。
+            // 默认经典；经典模式下单选角色，群聊模式允许多选（见 ChatSetupViewModel.toggleCharacter）
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "聊天模式",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ModeOption(
+                            label = "经典聊天",
+                            description = "与单个角色一对一对话",
+                            selected = mode == SESSION_MODE_CLASSIC,
+                            onClick = remember { { viewModel.setMode(SESSION_MODE_CLASSIC) } },
+                            modifier = Modifier.weight(1f),
+                        )
+                        ModeOption(
+                            label = "群聊",
+                            description = "多角色轮流回应，发送 @名字 可指定谁接话",
+                            selected = mode == SESSION_MODE_GROUP,
+                            onClick = remember { { viewModel.setMode(SESSION_MODE_GROUP) } },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
             // 选择角色
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -123,6 +154,14 @@ fun ChatSetupScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
+                    // 群聊模式下给出参与者协作提示；经典模式单选无需说明
+                    if (mode == SESSION_MODE_GROUP) {
+                        Text(
+                            text = "已选角色将作为群聊成员轮流回应（最多 $MAX_SELECTABLE_CHARACTERS 个）",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     if (characters.isEmpty()) {
                         Card(
@@ -142,7 +181,7 @@ fun ChatSetupScreen(
                 }
             }
 
-            items(characters) { character ->
+            items(characters, key = { it.id }) { character ->
                 CharacterCard(
                     character = character,
                     isSelected = selectedCharacterIds.contains(character.id),
@@ -411,6 +450,62 @@ private fun CharacterCard(
                     )
                 }
             }
+        }
+    }
+}
+
+// 聊天模式选项卡（分段按钮）：选中态用 secondaryContainer + 描边高亮，样式从简。
+// 用 Box + clickable 而非 Surface(onClick)——避免依赖版本相关的实验性 M3 API
+@Composable
+private fun ModeOption(
+    label: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier =
+            modifier
+                .clip(shape)
+                .background(
+                    if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                )
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color =
+                        if (selected) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant
+                        },
+                    shape = shape,
+                )
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color =
+                    if (selected) {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -27,14 +27,18 @@ class LexicalMemoryService(private val context: Context) {
      */
     suspend fun searchRelevantHistory(
         ownerId: String,
-        characterId: String,
+        // 会话级召回后 characterId 不再参与过滤（保留参数位以免破坏调用方，
+        // 未来按 NPC 分账召回时会重新启用）
+        @Suppress("UnusedParameter") characterId: String,
         sessionId: String,
         query: String,
         topK: Int = 5,
         recentWindow: Int = 40,
     ): List<MessageEntity> =
         withContext(Dispatchers.IO) {
-            val excludedIds = db.messageDao().latestIdsBySession(sessionId, ownerId, characterId, recentWindow)
+            // 会话级召回（跨代理契约 1）：消息读写一律 (session_id, owner_id)，
+            // character_id 仅作说话方元数据，词法召回覆盖群聊 NPC 与主角色的全部消息
+            val excludedIds = db.messageDao().latestIdsBySession(sessionId, ownerId, recentWindow)
             val terms = TermExtractor.extract(query)
             if (terms.isEmpty()) return@withContext emptyList()
 
@@ -43,7 +47,6 @@ class LexicalMemoryService(private val context: Context) {
             db.messageDao().searchByContentTerms(
                 sessionId = sessionId,
                 ownerId = ownerId,
-                characterId = characterId,
                 excludedIds = excludedIds,
                 t1 = like(slots[0]),
                 t2 = like(slots[1]),

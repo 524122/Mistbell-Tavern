@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.ProviderConfig
+import com.mistbell.tavern.android.data.api.model.SESSION_MODE_CLASSIC
+import com.mistbell.tavern.android.data.api.model.SESSION_MODE_GROUP
 import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
@@ -16,6 +18,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
+
+// 单次最多可选角色数（群聊参与者上限，与 SessionEntity.MAX_PARTICIPANT_CHARACTERS 保持一致）；
+// internal：ChatSetupScreen 的模式提示文案复用
+internal const val MAX_SELECTABLE_CHARACTERS = 4
 
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.database
@@ -43,6 +49,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
     // 选中的角色 IDs
     private val _selectedCharacterIds = MutableStateFlow<Set<String>>(emptySet())
     val selectedCharacterIds: StateFlow<Set<String>> = _selectedCharacterIds.asStateFlow()
+
+    // 聊天模式："classic"（经典，默认）| "group"（群聊，多角色轮流回应）。建会话时写入 session.mode
+    private val _mode = MutableStateFlow(SESSION_MODE_CLASSIC)
+    val mode: StateFlow<String> = _mode.asStateFlow()
 
     // 选中的提供商 ID
     private val _selectedProviderId = MutableStateFlow<String?>(null)
@@ -93,17 +103,28 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun toggleCharacter(characterId: String) {
-        val current = _selectedCharacterIds.value.toMutableSet()
-        if (current.contains(characterId)) {
-            current.remove(characterId)
-        } else {
-            if (current.size >= 4) {
-                showToast("最多选择 4 个角色")
-                return
+        val before = _selectedCharacterIds.value
+        // 收敛逻辑抽为顶层纯函数 resolveCharacterSelection（便于 JVM 单测）：
+        // 经典模式 = 「含且仅含该角色则取消，否则收敛为单选该角色」，绝不再走 toggle-off 分支
+        val after = resolveCharacterSelection(before, characterId, _mode.value)
+        if (after == before) {
+            // 选中集无变化只会出现在群聊模式超上限时：提示并维持原选中集；
+            // 经典模式的收敛/取消必然改变选中集，不会走到这里
+            if (_mode.value != SESSION_MODE_CLASSIC && characterId !in before) {
+                showToast("最多选择 $MAX_SELECTABLE_CHARACTERS 个角色")
             }
-            current.add(characterId)
+            return
         }
-        _selectedCharacterIds.value = current
+        _selectedCharacterIds.value = after
+    }
+
+    // 切换聊天模式：回到经典模式时若当前多选，自动收敛为最后选中的一个角色
+    fun setMode(mode: String) {
+        _mode.value = if (mode == SESSION_MODE_GROUP) SESSION_MODE_GROUP else SESSION_MODE_CLASSIC
+        val selected = _selectedCharacterIds.value
+        if (_mode.value == SESSION_MODE_CLASSIC && selected.size > 1) {
+            _selectedCharacterIds.value = setOf(selected.last())
+        }
     }
 
     fun setSelectedProvider(providerId: String?) {
@@ -133,13 +154,15 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
 
         val characterId = characterIds.first() // 使用第一个角色作为主角色
 
-        return createNewSession(characterId, characterIds, ownerId)
+        // 建会话写入所选聊天模式（契约：SessionEntity.mode/modeConfigJson，默认 classic）
+        return createNewSession(characterId, characterIds, ownerId, _mode.value)
     }
 
     private suspend fun createNewSession(
         characterId: String,
         characterIds: Set<String>,
         ownerId: String,
+        mode: String,
     ): String {
         android.util.Log.d("ChatSetup", "Creating new session for character $characterId")
         val sessionId = UUID.randomUUID().toString()
@@ -180,6 +203,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
                 // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
                 contextTokenLimit = settingsRepo.defaultContextTokens(),
                 participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(characterIds),
+                // 聊天模式：classic | group（v17 迁移列，NOT NULL DEFAULT 'classic'）；
+                // mode_config_json 本批无配置内容，固定空串
+                mode = mode,
+                modeConfigJson = "",
             )
 
         db.sessionDao().upsert(session)
@@ -234,3 +261,31 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         _toast.value = null
     }
 }
+
+// 角色点选收敛纯函数（便于单测，无 Android 依赖）：输入当前选中集、目标角色 id、聊天模式，
+// 输出新的选中集。ViewModel 依赖 Application（AndroidViewModel）无法 JVM 测，收敛规则全部收敛在此。
+//
+// 经典模式（契约 6 B'）："已选集恰为 {该角色} 则清空，否则收敛为 {该角色}"——
+// 修复旧实现的自相矛盾：点新角色先被替换成单选、再被 toggle-off 分支删掉，导致清空且无法再选；
+// 新逻辑下经典模式绝不再进入 toggle-off 分支。
+//
+// 群聊模式：保持既有语义——多选 toggle（已选则移除，未选则加入）+ 上限 MAX_SELECTABLE_CHARACTERS；
+// 超上限时原样返回当前集合（拒绝），由 ViewModel 对比前后集合差异并弹出提示。
+internal fun resolveCharacterSelection(
+    current: Set<String>,
+    targetId: String,
+    mode: String,
+): Set<String> =
+    if (mode == SESSION_MODE_CLASSIC) {
+        // 经典模式：唯一选中就是它 → 取消（清空）；否则无论已选什么，收敛为单选该角色
+        if (current == setOf(targetId)) emptySet() else setOf(targetId)
+    } else {
+        when {
+            // 群聊多选：已选中 → 移除（toggle-off）
+            targetId in current -> current - targetId
+            // 群聊上限：已满 4 个且目标未选中 → 拒绝（原样返回，无变化）
+            current.size >= MAX_SELECTABLE_CHARACTERS -> current
+            // 群聊多选：未选中且未满 → 加入
+            else -> current + targetId
+        }
+    }

@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.util
 import android.content.Context
 import android.net.Uri
 import com.mistbell.tavern.android.data.api.model.Message
+import com.mistbell.tavern.android.data.api.model.SESSION_MODE_CLASSIC
 import com.mistbell.tavern.android.data.api.model.SessionSummary
 import kotlinx.serialization.json.*
 import java.io.InputStream
@@ -50,6 +51,8 @@ object SessionImporter {
                     messageCount = sessionObj["messageCount"]?.jsonPrimitive?.intOrNull ?: 0,
                     characterId = sessionObj["characterId"]?.jsonPrimitive?.content,
                     characterName = sessionObj["characterName"]?.jsonPrimitive?.content,
+                    // 契约 6 导入保真：读会话模式，缺失时默认 classic（兼容旧格式导出文件）
+                    mode = sessionObj["mode"]?.jsonPrimitive?.content ?: SESSION_MODE_CLASSIC,
                 )
 
             // 解析消息列表
@@ -62,6 +65,9 @@ object SessionImporter {
                         role = msgObj["role"]?.jsonPrimitive?.content ?: "user",
                         content = msgObj["content"]?.jsonPrimitive?.content ?: "",
                         thinking = msgObj["thinking"]?.jsonPrimitive?.content,
+                        // 契约 6 导入保真：读消息归属（群聊=说话 NPC id），缺失时默认空串
+                        // （空串 = 导入侧按会话主角色处理，与 Message 默认值语义一致）
+                        characterId = msgObj["characterId"]?.jsonPrimitive?.content ?: "",
                         createdAt = msgObj["createdAt"]?.jsonPrimitive?.content ?: "",
                         memoryIds = msgObj["memoryIds"]?.jsonArray?.map { it.jsonPrimitive.content },
                         swipes = msgObj["swipes"]?.jsonArray?.map { it.jsonPrimitive.content },

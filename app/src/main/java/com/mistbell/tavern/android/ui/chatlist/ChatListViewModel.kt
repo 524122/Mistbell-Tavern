@@ -208,7 +208,8 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         characterId: String,
     ) {
         viewModelScope.launch {
-            db.messageDao().markAsRead(sessionId, ownerId, characterId)
+            // 契约 1：markAsRead 会话级化（删除 character_id 过滤与参数），按会话+属主标记已读
+            db.messageDao().markAsRead(sessionId, ownerId)
             db.sessionDao().updateUnreadCount(sessionId, ownerId, characterId, 0)
         }
     }
@@ -242,7 +243,8 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
         db.structuredMemoryDao().deleteBySession(ownerId, sessionId)
         db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
-        db.messageDao().deleteBySession(sessionId, ownerId, characterId)
+        // 契约 1：deleteBySession 会话级化（删除 character_id 过滤与参数）
+        db.messageDao().deleteBySession(sessionId, ownerId)
         db.sessionDao().delete(sessionId, ownerId, characterId)
     }
 
@@ -265,7 +267,8 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
             try {
                 val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@launch
                 val characterName = db.characterDao().getById(characterId)?.name ?: "AI"
-                val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
+                // 契约 1：getBySession 会话级化（删除 character_id 过滤与参数）
+                val messages = db.messageDao().getBySession(sessionId, ownerId).first()
                 val title = session.title.ifBlank { characterName }
                 val content =
                     buildString {
@@ -318,7 +321,8 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
     ): SessionExportResult? {
         return try {
             val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return null
-            val messages = db.messageDao().getBySession(sessionId, ownerId, characterId).first()
+            // 契约 1：getBySession 会话级化（删除 character_id 过滤与参数），导出取整个会话的消息
+            val messages = db.messageDao().getBySession(sessionId, ownerId).first()
             val characterName = db.characterDao().getById(characterId)?.name ?: "AI"
 
             val sessionSummary =
@@ -330,6 +334,9 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                     messageCount = messages.size,
                     characterId = session.characterId,
                     characterName = null,
+                    // 契约 6 导出保真：SessionSummary 补会话模式（classic | group），
+                    // @Serializable 序列化自动带上；旧导入方按默认值 classic 兼容
+                    mode = session.mode,
                 )
 
             val apiMessages =
@@ -339,6 +346,9 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                         role = msg.role,
                         content = msg.content,
                         thinking = msg.thinking,
+                        // 契约 6 导出保真：逐条补消息归属（群聊=说话 NPC id；classic=主角色），
+                        // 导入侧据此还原 character_id，群聊会话导出后归属不丢失
+                        characterId = msg.characterId,
                         createdAt = msg.createdAt,
                         memoryIds =
                             try {

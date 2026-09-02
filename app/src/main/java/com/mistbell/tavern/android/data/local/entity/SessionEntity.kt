@@ -38,6 +38,13 @@ data class SessionEntity(
     // 会话附加指令（作者注释）：非空时经宏渲染注入到历史之后、最终用户消息之前；
     // 迁移 DDL 的 DEFAULT '' 必须与此 defaultValue 一致（见 AppDatabase.MIGRATION_11_12）
     @ColumnInfo(name = "author_note", defaultValue = "") val authorNote: String = "",
+    // 会话模式（v17 骨架，MODES.md：一次表达全部五档，未来加模式零迁移）：
+    // 取值见 Models.kt 的 SESSION_MODE_* 常量，本批仅 classic|group；
+    // 迁移 DDL 的 DEFAULT 'classic' 必须与此 defaultValue 逐字符一致（见 AppDatabase.MIGRATION_16_17）
+    @ColumnInfo(name = "mode", defaultValue = "classic") val mode: String = "classic",
+    // 模式扩展配置 JSON：classic/group 本批恒为空串，narrator 等后续批次启用；
+    // 迁移 DDL 的 DEFAULT '' 必须与此 defaultValue 一致（见 AppDatabase.MIGRATION_16_17）
+    @ColumnInfo(name = "mode_config_json", defaultValue = "") val modeConfigJson: String = "",
 ) {
     fun participantCharacterIds(): List<String> {
         val decoded =
@@ -67,6 +74,7 @@ data class SessionEntity(
             messageCount = messageCount,
             characterId = characterId,
             characterName = null,
+            mode = mode,
         )
 
     companion object {

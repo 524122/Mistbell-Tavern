@@ -196,6 +196,31 @@ class MigrationSchemaAlignmentTest {
     }
 
     @Test
+    fun `v17 迁移真实 SQL 的列默认值与实体注解对齐`() {
+        // sessions.mode / sessions.mode_config_json（v17 模式骨架）：实体注解为
+        // @ColumnInfo(defaultValue = "classic") / @ColumnInfo(defaultValue = "")——
+        // ALTER 语句必须带 DEFAULT 'classic' / DEFAULT ''（Room TableInfo 对 TEXT 默认值逐字符比对）。
+        // 沿用修复5模式：直接断言迁移实际执行的常量，而非测试自拼接的字符串
+        assertEquals(
+            listOf(
+                "ALTER TABLE sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'classic'",
+                "ALTER TABLE sessions ADD COLUMN mode_config_json TEXT NOT NULL DEFAULT ''",
+            ),
+            AppDatabase.MIGRATION_16_17_SQL,
+        )
+    }
+
+    @Test
+    fun `v17 迁移仅新增列不触碰索引`() {
+        // 防呆：v17 是纯加列迁移，不应创建/删除任何索引（避免复现 v14 索引名事故）
+        assertTrue(
+            "v17 迁移不应包含索引 DDL",
+            extractIndexNames(AppDatabase.MIGRATION_16_17_SQL).isEmpty() &&
+                extractDroppedIndexNames(AppDatabase.MIGRATION_16_17_SQL).isEmpty(),
+        )
+    }
+
+    @Test
     fun `theme_packs 表真实 DDL 与实体逐列对齐`() {
         // 这是 v9→v10 新建的表，DDL 必须与 ThemePackEntity 完全一致：
         // id 主键、background_file 可空（无 NOT NULL），其余 NOT NULL，共 7 列

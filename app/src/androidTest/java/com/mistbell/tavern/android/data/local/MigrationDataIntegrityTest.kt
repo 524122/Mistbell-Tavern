@@ -314,7 +314,7 @@ class MigrationDataIntegrityTest {
         raw.close()
     }
 
-    /** 打开数据库并执行迁移（用生产同款迁移链——AppDatabase 伴生对象的 internal 成员，直达最新版本 16） */
+    /** 打开数据库并执行迁移（用生产同款迁移链——AppDatabase 伴生对象的 internal 成员，直达最新版本 17） */
     private fun openWithRoom(): AppDatabase {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         return Room.databaseBuilder(context, AppDatabase::class.java, dbName)
@@ -332,6 +332,7 @@ class MigrationDataIntegrityTest {
                 AppDatabase.Companion.MIGRATION_13_14,
                 AppDatabase.Companion.MIGRATION_14_15,
                 AppDatabase.Companion.MIGRATION_15_16,
+                AppDatabase.Companion.MIGRATION_16_17,
             )
             .allowMainThreadQueries()
             .build()
@@ -427,5 +428,39 @@ class MigrationDataIntegrityTest {
             val session = db.sessionDao().get("sess-1", "local-user", "char-1")
             assertNotNull("会话应存在", session)
             assertEquals("这是一条附加指令", session?.authorNote)
+        }
+
+    @Test
+    fun migrateV11ToV17_modeColumnAddedWithClassicDefault() =
+        runBlocking {
+            createV11Database()
+            db = openWithRoom()
+
+            // v17 模式骨架：sessions.mode 列存在，PRAGMA dflt_value 应为带引号的 'classic'（与实体注解逐字符对齐）
+            db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                val dfltIdx = cursor.getColumnIndex("dflt_value")
+                var modeFound = false
+                var modeConfigFound = false
+                while (cursor.moveToNext()) {
+                    when (cursor.getString(nameIdx)) {
+                        "mode" -> {
+                            modeFound = true
+                            assertEquals("mode 列默认值应为 'classic'", "'classic'", cursor.getString(dfltIdx))
+                        }
+                        "mode_config_json" -> {
+                            modeConfigFound = true
+                            assertEquals("mode_config_json 列默认值应为 ''", "''", cursor.getString(dfltIdx))
+                        }
+                    }
+                }
+                assertTrue("迁移后 sessions.mode 列应存在", modeFound)
+                assertTrue("迁移后 sessions.mode_config_json 列应存在", modeConfigFound)
+            }
+
+            // 旧行经迁移回填后读取为 classic（SessionEntity.mode 默认值路径）
+            val session = db.sessionDao().get("sess-1", "local-user", "char-1")
+            assertNotNull("会话应存在", session)
+            assertEquals("迁移后既有会话的 mode 应回填为 classic", "classic", session?.mode)
         }
 }

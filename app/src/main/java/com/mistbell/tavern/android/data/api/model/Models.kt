@@ -47,6 +47,26 @@ data class CharacterData(
     val extensions: JsonObject? = null,
 )
 
+// ---- 会话模式常量（v17 模式骨架，MODES.md）----
+// 本批取值仅 classic | group；"narrator" 与后续④⑤档为骨架预留
+// （存储层一次表达全部五档，未来加模式零迁移），界面本批不露出。
+// 两侧代理（数据层/UI）必须引用同一份常量，禁止手写字符串字面量。
+const val SESSION_MODE_CLASSIC = "classic"
+const val SESSION_MODE_GROUP = "group"
+
+// 群聊上下文（跨代理契约 3，数据层定义、UI 层只读引用）：
+// speakerNames —— 参与者 id→名字（含主角色）；targetSpeakerId —— 用户 @提及 解析出的目标角色 id，空 = 无指定
+data class GroupChatContext(
+    val speakerNames: Map<String, String>,
+    val targetSpeakerId: String? = null,
+)
+
+// 群聊说话方解析 parseGroupSpeaker（util/GroupSpeaker.kt）的命中结果
+data class GroupSpeakerResult(
+    val speakerId: String,
+    val strippedContent: String,
+)
+
 @Serializable
 data class SessionSummary(
     val id: String = "",
@@ -56,6 +76,8 @@ data class SessionSummary(
     @SerialName("messageCount") val messageCount: Int = 0,
     @SerialName("characterId") val characterId: String? = null,
     @SerialName("characterName") val characterName: String? = null,
+    // 会话模式（v17 骨架）：默认 classic 保持旧 JSON 反序列化兼容
+    val mode: String = SESSION_MODE_CLASSIC,
 )
 
 @Serializable
@@ -64,6 +86,9 @@ data class Message(
     val role: String = "",
     val content: String = "",
     val thinking: String? = null,
+    // 这条消息的归属角色（群聊=说话 NPC id；classic=会话主角色；空串=按主角色处理）。
+    // 默认空串保持旧 JSON 反序列化兼容
+    @SerialName("characterId") val characterId: String = "",
     @SerialName("createdAt") val createdAt: String = "",
     @SerialName("memoryIds") val memoryIds: List<String>? = null,
     val swipes: List<String>? = null,

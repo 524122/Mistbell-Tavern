@@ -85,6 +85,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeSessionId = MutableStateFlow("")
     val activeSessionId: StateFlow<String> = _activeSessionId
 
+    // 群聊模式：沿用现有 session 观察链推导——活跃会话 id 变化（切会话/删会话回退）时重新
+    // 观察会话实体，session.mode == "group" 才为 true；classic 会话与无会话态恒 false。
+    // 轻量 Room Flow 订阅，无组合线程重活；@OptIn(ExperimentalCoroutinesApi) 已在类级声明。
+    // 注意：声明必须位于 _activeSessionId 之后（Kotlin 属性按声明顺序初始化）
+    val groupMode: StateFlow<Boolean> =
+        _activeSessionId
+            .flatMapLatest { sessionId ->
+                if (sessionId.isBlank()) flowOf(null) else db.sessionDao().observeById(sessionId)
+            }.map { session -> session?.mode == SESSION_MODE_GROUP }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
@@ -330,7 +341,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@launch
                 if (session.unreadCount > 0) {
-                    db.messageDao().markAsRead(sessionId, ownerId, characterId)
+                    // 契约 1：markAsRead 会话级化（删除 character_id 过滤与参数），按会话+属主标记已读
+                    db.messageDao().markAsRead(sessionId, ownerId)
                     db.sessionDao().updateUnreadCount(sessionId, ownerId, characterId, 0)
                 }
             } catch (e: Exception) {
@@ -395,31 +407,31 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         android.util.Log.d("ChatViewModel", "  characterId=${char.id}")
         android.util.Log.d("ChatViewModel", "  isSessionExplicitlySet=$isSessionExplicitlySet")
 
-        // 存入 generationJob 以支持"停止生成"；onPartial 经时间窗节流后把累计全文推给 UI 流式渲染
-        generationJob =
-            viewModelScope.launch {
-                _isTyping.value = true
-                lastStreamEmitAt = 0L
-                try {
-                    repo.sendMessage(
-                        ownerId = ownerId,
-                        characterId = char.id,
-                        sessionId = _activeSessionId.value,
-                        message = content,
-                        onPartial = ::emitStreamingTextThrottled,
-                    )
-                    android.util.Log.d("ChatViewModel", "Message sent successfully")
-                } catch (e: CancellationException) {
-                    // 用户主动停止不是错误：直接上抛，不写 _error
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ChatViewModel", "Failed to send message", e)
-                    _error.value = "发送失败: ${e.message}"
-                } finally {
-                    _isTyping.value = false
-                    _streamingText.value = null
-                }
+        // 群聊模式：组装 GroupChatContext（参与者 id→名字 + @提及 解析出的 targetSpeakerId）；
+        // 经典模式传 null（提示词路径零变化）。落库的用户消息内容保留原文——这里不改 content，
+        // 仅把提及目标作为 groupContext 传入，剥前缀与回复归属由仓库层处理
+        val groupContext =
+            if (groupMode.value) {
+                GroupChatContext(
+                    speakerNames = _participantCharacters.value.associate { it.id to it.name },
+                    targetSpeakerId = resolveMentionTarget(content, _participantCharacters.value),
+                )
+            } else {
+                null
             }
+
+        // 存入 generationJob 以支持"停止生成"；onPartial 经时间窗节流后把累计全文推给 UI 流式渲染
+        launchGeneration("发送失败") {
+            repo.sendMessage(
+                ownerId = ownerId,
+                characterId = char.id,
+                sessionId = _activeSessionId.value,
+                message = content,
+                onPartial = ::emitStreamingTextThrottled,
+                groupContext = groupContext,
+            )
+            android.util.Log.d("ChatViewModel", "Message sent successfully")
+        }
     }
 
     fun undoLastMessage() {
@@ -453,27 +465,57 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun regenerateMessage(messageId: String) {
         val char = _currentCharacter.value ?: return
         // 存入 generationJob 以支持"停止生成"；onPartial 经时间窗节流后把累计全文推给 UI 流式渲染
+        launchGeneration("重新生成失败") {
+            repo.regenerateMessage(
+                ownerId,
+                char.id,
+                _activeSessionId.value,
+                messageId,
+                onPartial = ::emitStreamingTextThrottled,
+            )
+            // 修复2：regenerate 的 deleteAfter 同样只删窗口内近期消息，prepended 的
+            // 更旧历史仍有效——保留分页状态，不清空 prependedOlder、不动 hasMoreOlder
+        }
+    }
+
+    // 统一的生成状态机包装：isTyping/streamingText 状态、停止生成支持（generationJob 可取消）、
+    // 错误上报收敛到一处，sendMessage/regenerateMessage/continueGroupChat 复用，避免复制
+    private fun launchGeneration(
+        errorPrefix: String,
+        block: suspend () -> Unit,
+    ) {
         generationJob =
             viewModelScope.launch {
                 _isTyping.value = true
                 lastStreamEmitAt = 0L
                 try {
-                    repo.regenerateMessage(
-                        ownerId, char.id, _activeSessionId.value, messageId,
-                        onPartial = ::emitStreamingTextThrottled,
-                    )
-                    // 修复2：regenerate 的 deleteAfter 同样只删窗口内近期消息，prepended 的
-                    // 更旧历史仍有效——保留分页状态，不清空 prependedOlder、不动 hasMoreOlder
+                    block()
                 } catch (e: CancellationException) {
                     // 用户主动停止不是错误：直接上抛，不写 _error
                     throw e
                 } catch (e: Exception) {
-                    _error.value = "重新生成失败: ${e.message}"
+                    _error.value = "$errorPrefix: ${e.message}"
                 } finally {
                     _isTyping.value = false
                     _streamingText.value = null
                 }
             }
+    }
+
+    // 群聊"让TA继续"：不插入用户消息，由仓库端在提示词中注入系统级推动
+    // （"请让最合适的下一位角色自然接话"）。guard：仅群聊模式且当前未在生成中；
+    // isTyping/streaming 状态机复用 launchGeneration，与 sendMessage 行为一致
+    fun continueGroupChat() {
+        if (!groupMode.value || _isTyping.value) return
+        val char = _currentCharacter.value ?: return
+        launchGeneration("继续失败") {
+            repo.continueGroupChat(
+                ownerId = ownerId,
+                characterId = char.id,
+                sessionId = _activeSessionId.value,
+                onPartial = ::emitStreamingTextThrottled,
+            )
+        }
     }
 
     fun continueMessage() {
@@ -651,4 +693,35 @@ internal fun mergeMessageWindow(
                 it.id !in windowIds
         }
     return prefix + window
+}
+
+// @提及解析纯函数（便于单测）：用户消息以 "@名字" 开头且名字（trim 后）前缀匹配某参与者时，
+// 返回该参与者 id 作为 targetSpeakerId；无匹配返回 null。
+// 名字匹配语义对齐 util/GroupSpeaker.kt 的 parseGroupSpeaker（契约 6）：
+// - 候选名字先 trim 再参与匹配（名字带首尾空白的角色卡同样可被 @提及）；
+// - "@名字" 之后允许 0..n 空白后跟冒号（半角/全角都认，与契约 5 的 parseGroupSpeaker 一致）；
+// - 兼容 @提及 的自然书写习惯：紧跟空白分隔符（"@A 你好"）同样算命中；
+// - "@名字" 后无任何分隔符（如 "@A你好"）不命中，排除 "@AliceBot hi" 对 "Alice" 的误匹配；
+// - 多候选前缀重叠时最长名字优先（detekt ReturnCount：收敛为单出口表达式）
+internal fun resolveMentionTarget(
+    content: String,
+    participants: List<Character>,
+): String? {
+    if (!content.startsWith("@")) return null
+    val candidates =
+        participants.mapNotNull { participant ->
+            // trim 语义对齐 parseGroupSpeaker：候选名先 trim，空名不参与匹配
+            val name = participant.name.trim()
+            if (name.isEmpty() || !content.startsWith("@$name")) null else participant to name
+        }
+    val (target, name) =
+        candidates.maxByOrNull { (_, name) -> name.length } ?: return null
+    // "@名字" 之后的剩余串：紧跟空白（提及习惯分隔）或 0..n 空白后跟冒号（对齐 parseGroupSpeaker）才算命中
+    val rest = content.substring(name.length + 1)
+    val afterBlank = rest.trimStart().firstOrNull()
+    val matched =
+        rest.firstOrNull()?.isWhitespace() == true ||
+            afterBlank == ':' ||
+            afterBlank == '：'
+    return if (matched) target.id else null
 }

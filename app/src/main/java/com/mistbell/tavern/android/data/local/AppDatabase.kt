@@ -23,7 +23,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         VectorMemoryEntity::class,
         ThemePackEntity::class,
     ],
-    version = 16,
+    version = 17,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -308,6 +308,22 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v16→v17：会话模式骨架（MODES.md 决策：一次表达全部五档，未来加模式零迁移）。
+        // 本批取值仅 classic|group（"narrator" 与④⑤档为骨架预留，界面不露出）；
+        // DEFAULT 值必须与 SessionEntity 的 @ColumnInfo(defaultValue = "classic" / "") 逐字符一致
+        internal val MIGRATION_16_17_SQL: List<String> =
+            listOf(
+                "ALTER TABLE sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'classic'",
+                "ALTER TABLE sessions ADD COLUMN mode_config_json TEXT NOT NULL DEFAULT ''",
+            )
+
+        internal val MIGRATION_16_17 =
+            object : Migration(16, 17) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_16_17_SQL.forEach(db::execSQL)
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -329,6 +345,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_13_14,
                         MIGRATION_14_15,
                         MIGRATION_15_16,
+                        MIGRATION_16_17,
                     )
                     .fallbackToDestructiveMigration()
                     .build()

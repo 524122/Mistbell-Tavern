@@ -64,6 +64,7 @@ data class MessageEntity(
             role = role,
             content = content,
             thinking = thinking,
+            characterId = characterId,
             createdAt = createdAt,
             memoryIds = memoryIds,
             swipes = swipes,

@@ -133,6 +133,8 @@ fun ChatScreen(
     val sessionId by viewModel.activeSessionId.collectAsState()
     val currentCharacter by viewModel.currentCharacter.collectAsState()
     val participantCharacters by viewModel.participantCharacters.collectAsState()
+    // 群聊模式：按消息归属渲染说话方 + "让TA继续"入口均以此开关
+    val groupMode by viewModel.groupMode.collectAsState()
     val error by viewModel.error.collectAsState()
     val isOnline by viewModel.isOnline.collectAsState()
     val providers by viewModel.providers.collectAsState()
@@ -146,6 +148,22 @@ fun ChatScreen(
             currentCharacter?.let { listOf(it) } ?: emptyList()
         }
     val primaryDisplayCharacter = displayCharacters.firstOrNull() ?: currentCharacter
+    // 群聊按消息渲染说话方：参与者 id→Character 映射，列表变化时重算一次（associateBy O(n)）
+    val participantById = remember(participantCharacters) { participantCharacters.associateBy { it.id } }
+    // 参与者 id→气泡颜色映射：颜色字符串解析只在参与者列表变化时执行一次，
+    // 不进入每条消息的组合路径；解析失败的角色不出现在映射中，回落主角色颜色
+    val participantColors =
+        remember(participantCharacters) {
+            participantCharacters.mapNotNull { c ->
+                c.color.takeIf { it.isNotBlank() }?.let { colorStr ->
+                    try {
+                        c.id to Color(android.graphics.Color.parseColor(colorStr))
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }.toMap()
+        }
     val chatTitle =
         displayCharacters.joinToString("、") { it.name }.ifBlank {
             currentCharacter?.name ?: "AI"
@@ -457,6 +475,17 @@ fun ChatScreen(
                             items(messages, key = { it.id }) { message ->
                                 val isUser = message.role == "user"
                                 val isLastMsg = message.id == lastMessageId
+                                // 群聊按消息归属渲染说话方：AI 消息按 message.characterId 查参与者
+                                // 映射（名字/颜色），查不到回落主角色（现状）；用户消息不需要查
+                                // （气泡标签恒为"你"），流式占位气泡也保持主角色（见下方 StreamingSlot）
+                                val speaker =
+                                    if (isUser) {
+                                        null
+                                    } else {
+                                        participantById[message.characterId] ?: primaryDisplayCharacter
+                                    }
+                                val speakerName = speaker?.name ?: "AI"
+                                val speakerColor = participantColors[speaker?.id] ?: primaryCharacterColor
                                 // 回调 remember 化：闭包引用稳定，配合稳定参数让 MessageBubble 可跳过重组。
                                 // onCopy 额外以 content 为 key：swipe/重新生成后内容变化需重建闭包，避免复制到旧文本
                                 val onCopy =
@@ -485,8 +514,8 @@ fun ChatScreen(
                                 ) {
                                     MessageBubble(
                                         message = message,
-                                        characterName = primaryDisplayCharacter?.name ?: "AI",
-                                        characterColor = primaryCharacterColor,
+                                        characterName = speakerName,
+                                        characterColor = speakerColor,
                                         // 修复6：传应用内三态深浅色，Markdown 颜色随之同步
                                         dark = isDark,
                                         isUser = isUser,
@@ -598,7 +627,10 @@ fun ChatScreen(
                                 .padding(start = 24.dp, end = 24.dp, bottom = 12.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Box(
+                        // 回调 remember 化：闭包引用稳定（continueGroupChat 在 VM 内部自校验
+                        // 群聊模式与生成中状态，调用时机安全）
+                        val onContinueGroup = remember { { viewModel.continueGroupChat() } }
+                        Column(
                             modifier =
                                 Modifier.onGloballyPositioned { coordinates ->
                                     val measuredHeight = with(density) { coordinates.size.height.toDp() }
@@ -607,6 +639,21 @@ fun ChatScreen(
                                     }
                                 },
                         ) {
+                            // 群聊模式专属入口："让TA继续"（不插入用户消息，由 AI 侧自然接话）；
+                            // 生成中禁用；经典模式不渲染，零布局影响
+                            if (groupMode) {
+                                TextButton(
+                                    onClick = onContinueGroup,
+                                    enabled = !isTyping,
+                                    modifier = Modifier.align(Alignment.End),
+                                ) {
+                                    Text(
+                                        text = "让TA继续",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
                             MessageInput(
                                 onSend = { viewModel.sendMessage(it) },
                                 enabled = !isTyping,
