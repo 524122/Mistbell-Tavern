@@ -16,8 +16,8 @@ android {
         applicationId "com.mistbell.tavern.android"
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName "0.3.0-beta"
+        versionCode 8
+        versionName "0.6.0-beta"
     }
 
     buildTypes {

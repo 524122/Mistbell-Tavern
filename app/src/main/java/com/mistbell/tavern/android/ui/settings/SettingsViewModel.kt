@@ -392,6 +392,90 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.6.0-beta",
+                versionCode = 8,
+                releaseDate = "2026-09-02",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "长会话窗口分页：打开只加载最近 200 条，上滚自动加载更早消息并保持阅读位置",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "冷启动与会话列表提速（新数据库索引 + 重活移出主线程 + 头像位图缓存降采样）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "流式输出 80ms 节流且只刷新流式气泡，长回复生成不再整机发涩",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "滚动体验重做：进会话直达底部，上翻阅读不再被强制拉回",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "撤销/回退/重新生成不再丢失已加载的更早历史；数据库 v16 迁移（分页性能索引）",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.5.0-beta",
+                versionCode = 7,
+                releaseDate = "2026-09-02",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "真流式输出：逐 token 渲染，生成中可停止（已生成部分保留）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "采样预设（创意/平衡/精确）与高级参数、超时重试、会话附加指令",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "长期记忆词法召回：CJK 分词 + 会话内检索，替代伪向量（ONNX 语义向量后置）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "设置页按新信息架构重组；流式开关/默认上下文长度/默认长期记忆可配",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "消息回溯/重新生成/失败回滚等十余项正确性修复；API Key 加密存储",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.4.0-beta",
+                versionCode = 6,
+                releaseDate = "2026-09-02",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "主题包系统（T1）：zip 导入/分享，角色专属/全局主题，聊天页配色与背景",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "会话级主题：会话 → 角色 → 全局 → 默认层层回落",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "SillyTavern 生态互通：角色卡 v1/v2 JSON 与 PNG 埋卡导入导出、世界书导入",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "宏引擎：{{char}}/{{user}}/{{random}}/{{roll::3d6}} 等，未知宏原样保留",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "think 标签提取为折叠思考区；导入诊断报告",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.3.0",
                 versionCode = 5,
                 releaseDate = "2026-06-22",
