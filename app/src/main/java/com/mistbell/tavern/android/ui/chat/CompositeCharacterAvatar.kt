@@ -11,18 +11,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mistbell.tavern.android.data.api.model.Character
-import com.mistbell.tavern.android.util.ImageUtils
+import com.mistbell.tavern.android.ui.common.rememberBitmap
+
+// 列表头像显示尺寸小（36dp 内），256px 解码上限已足够清晰，
+// 无需整图解码原始分辨率的 base64 头像
+private const val AVATAR_MAX_DIM_PX = 256
 
 @Composable
 fun CompositeCharacterAvatar(
@@ -102,10 +104,9 @@ private fun CharacterAvatarSegment(
     modifier: Modifier = Modifier,
 ) {
     val color = parseCharacterColor(character.color)
-    val bitmap =
-        remember(character.avatarData) {
-            ImageUtils.dataUriToBitmap(character.avatarData)
-        }
+    // 异步采样解码 + LRU 缓存：缓存同步命中时直接显示，避免列表滚动时头像闪烁；
+    // 未命中在后台线程解码，不再阻塞组合线程
+    val bitmap = rememberBitmap(character.avatarData, AVATAR_MAX_DIM_PX)
 
     Box(
         modifier = modifier.background(color),
@@ -113,7 +114,7 @@ private fun CharacterAvatarSegment(
     ) {
         if (bitmap != null) {
             Image(
-                bitmap = bitmap.asImageBitmap(),
+                bitmap = bitmap,
                 contentDescription = character.name,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,

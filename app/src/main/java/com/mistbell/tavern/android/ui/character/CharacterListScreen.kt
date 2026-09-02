@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,10 +36,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.data.api.model.Character
+import com.mistbell.tavern.android.ui.common.rememberBitmap
 import com.mistbell.tavern.android.util.CharacterExportFormat
 import com.mistbell.tavern.android.util.CharacterExportResult
 import com.mistbell.tavern.android.util.CharacterExporter
 import kotlin.math.absoluteValue
+
+// 列表头像显示尺寸小（56dp），256px 解码上限已足够清晰，
+// 无需整图解码原始分辨率的 base64 头像
+private const val AVATAR_MAX_DIM_PX = 256
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -372,15 +376,13 @@ fun CharacterCardItem(
                 contentAlignment = Alignment.Center,
             ) {
                 if (character.avatarData.isNotBlank()) {
-                    // 手动解析data URI并显示
-                    val bitmap =
-                        remember(character.avatarData) {
-                            com.mistbell.tavern.android.util.ImageUtils.dataUriToBitmap(character.avatarData)
-                        }
+                    // 异步采样解码 + LRU 缓存：缓存同步命中直接显示，避免滚动列表时每张头像
+                    // 在组合线程上同步整图解码造成卡顿/闪烁
+                    val bitmap = rememberBitmap(character.avatarData, AVATAR_MAX_DIM_PX)
 
                     if (bitmap != null) {
                         androidx.compose.foundation.Image(
-                            bitmap = bitmap.asImageBitmap(),
+                            bitmap = bitmap,
                             contentDescription = character.name,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,

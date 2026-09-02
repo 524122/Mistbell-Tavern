@@ -24,6 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mistbell.tavern.android.data.api.model.Message
 import com.mistbell.tavern.android.ui.theme.*
+import java.time.format.DateTimeFormatter
+
+// 时间格式化器提为常量：原先每条消息格式化时间都 ofPattern 重新编译一次，
+// 消息多时开销可观；DateTimeFormatter 线程安全，可全局复用
+private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -31,6 +36,9 @@ fun MessageBubble(
     message: Message,
     characterName: String,
     characterColor: Color = AccentBlue,
+    // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer，
+    // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节
+    dark: Boolean,
     isUser: Boolean,
     isLastInGroup: Boolean,
     isLastMessage: Boolean = false,
@@ -147,6 +155,8 @@ fun MessageBubble(
                     } else {
                         MarkdownRenderer(
                             content = message.content,
+                            // 透传应用内三态深浅色，而非组件内部读系统设置
+                            dark = dark,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -339,8 +349,10 @@ fun MessageBubble(
 
         // Timestamp
         if (isLastInGroup && message.createdAt.isNotBlank()) {
+            // 记忆化：同一消息的时间戳只格式化一次，重组时直接复用结果
+            val timestamp = remember(message.createdAt) { formatTime(message.createdAt) }
             Text(
-                text = formatTime(message.createdAt),
+                text = timestamp,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier =
@@ -358,7 +370,7 @@ private fun formatTime(isoString: String): String {
     return try {
         val instant = java.time.Instant.parse(isoString)
         val zonedDateTime = instant.atZone(java.time.ZoneId.systemDefault())
-        zonedDateTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        zonedDateTime.format(TIME_FORMATTER)
     } catch (e: Exception) {
         ""
     }

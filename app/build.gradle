@@ -108,7 +108,6 @@ dependencies {
     def roomVersion = '2.6.1'
     implementation "androidx.room:room-runtime:$roomVersion"
     implementation "androidx.room:room-ktx:$roomVersion"
-    implementation "androidx.room:room-paging:$roomVersion"
     ksp "androidx.room:room-compiler:$roomVersion"
 
     // DataStore
@@ -116,10 +115,6 @@ dependencies {
 
     // Coroutines
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
-
-    // Paging 3
-    implementation "androidx.paging:paging-runtime:3.2.1"
-    implementation "androidx.paging:paging-compose:3.2.1"
 
     // 单元测试（本地 JVM）
     testImplementation "junit:junit:4.13.2"

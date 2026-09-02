@@ -9,6 +9,15 @@
 
 ## [未发布]
 
+### ⚡ 性能优化（v16 性能修复批次）
+- **消息窗口分页 + 上滚加载**：长会话不再一次性全表加载——首屏只观察最新 200 条（`getLatestBySession`），上滚按复合游标 (created_at, id) 逐页补加载更旧消息（`getOlderBySession` + `loadOlderMessages`），会话切换/清空时重置窗口分页状态
+- **v16 复合索引迁移**：messages 新增 (session_id, owner_id, character_id, created_at) 与 (owner_id, session_id, created_at) 两个分页性能索引（迁移 DDL 索引名与 Room 默认命名严格对齐，防复现 v14 升级崩溃）
+- **流式输出 80ms 节流**：流式中间帧经时间窗节流后发射，降低高频 onPartial 对主线程与重组的压力（最终全文仍由落库消息展示）
+- **Markdown/位图缓存渲染优化**：消息气泡 Markdown 解析与头像位图解码结果缓存，避免长列表滚动重复计算
+- **自动已读去抖**：已全部读过时 markAsRead 不产生行更新，避免无谓的 Room invalidation 整表重发
+- **移除未用 paging 依赖**：`androidx.room:room-paging`、`androidx.paging:paging-runtime`、`androidx.paging:paging-compose` 全仓零引用，删除；ROADMAP 分页条目同步更新为窗口分页方案
+- **数据层与迁移测试加固**（对抗审查修复）：分页在途任务随会话切换取消（防跨会话串染）；撤销/回退/重新生成不再丢失已加载历史与分页进度；迁移测试 v11 手工库补齐全部实体表（复合主键）；JVM 迁移对齐测试改断言迁移真实执行的 SQL 常量（消除自证恒真）
+
 ### 🆕 新增
 - **F3-FTS 词法召回先行**（诚实检索路线，ONNX 语义向量后置）：
   - 无 embedding API 时的记忆回退从 BM25 伪向量（数学上不成立、非确定）换为**词法召回**：CJK bigram + ASCII 词分词（`TermExtractor` 纯函数）→ 会话内 LIKE 检索 → 排除近期 40 条（已在上下文中）→ "往事回响"注入

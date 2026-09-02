@@ -1,0 +1,11 @@
+root = true
+
+[*.{kt,kts}]
+# 与 detekt MaxLineLength 对齐：140 列
+max_line_length = 140
+
+# 项目既定风格：Compose UI 层大量使用 material3.* / runtime.* / layout.* 通配导入
+ktlint_standard_no-wildcard-imports = disabled
+
+# Compose 组件函数按官方约定使用 PascalCase 命名；非组件函数的命名由 detekt FunctionNaming 兜底
+ktlint_standard_function-naming = disabled

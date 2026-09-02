@@ -16,7 +16,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,12 +34,19 @@ class ChatRepository(private val context: Context) {
     private val memoryExtractionService = MemoryExtractionService(context, structuredMemoryRepo)
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    companion object {
+        // 消息窗口默认大小（v16 性能修复）：首屏只观察最新 200 条，更旧消息由 loadOlderMessages 按页补加载
+        const val DEFAULT_MESSAGE_WINDOW = 200
+    }
+
     // --- Local-first reads ---
 
+    // 域映射与 distinctUntilChanged 的按值比较都可能有开销，统一切到 Default 线程，
+    // 避免阻塞 Room 回调线程或收集方（主线程）
     fun observeCharacters(): Flow<List<Character>> {
         return db.characterDao().getAll().map { entities ->
             entities.map { it.toDomain() }
-        }
+        }.distinctUntilChanged().flowOn(Dispatchers.Default)
     }
 
     fun observeSessions(
@@ -46,22 +55,44 @@ class ChatRepository(private val context: Context) {
     ): Flow<List<SessionSummary>> {
         return db.sessionDao().getByCharacter(ownerId, characterId).map { entities ->
             entities.map { it.toDomain() }
-        }
+        }.distinctUntilChanged().flowOn(Dispatchers.Default)
     }
 
     fun observeRecentSessions(ownerId: String): Flow<List<SessionSummary>> {
         return db.sessionDao().getRecent(ownerId).map { entities ->
             entities.map { it.toDomain() }
-        }
+        }.distinctUntilChanged().flowOn(Dispatchers.Default)
     }
 
+    // 消息窗口观察：只取最新 limit 条（DESC 查询反转回 ASC 展示），长会话不再全表加载。
+    // Message 是 data class，distinctUntilChanged 按值去重，过滤 Room 无效化导致的多余重发。
     fun observeMessages(
         ownerId: String,
         characterId: String,
         sessionId: String,
+        limit: Int = DEFAULT_MESSAGE_WINDOW,
     ): Flow<List<Message>> {
-        return db.messageDao().getBySession(sessionId, ownerId, characterId).map { entities ->
-            entities.map { it.toDomain() }
+        return db.messageDao().getLatestBySession(sessionId, ownerId, characterId, limit).map { entities ->
+            entities.map { it.toDomain() }.asReversed()
+        }.distinctUntilChanged().flowOn(Dispatchers.Default)
+    }
+
+    // 上滚加载更旧一页：一次性挂起查询（非流）。修复3：游标为复合游标（窗口最旧一条的
+    // created_at + id），与 DAO 的 (created_at DESC, id DESC) 排序构成全序，
+    // 同 created_at 的并列消息不会被 LIMIT 切开永久丢失。
+    suspend fun loadOlderMessages(
+        sessionId: String,
+        ownerId: String,
+        characterId: String,
+        beforeCreatedAt: String,
+        beforeId: String,
+        limit: Int,
+    ): List<Message> {
+        return withContext(Dispatchers.IO) {
+            db.messageDao()
+                .getOlderBySession(sessionId, ownerId, characterId, beforeCreatedAt, beforeId, limit)
+                .map { it.toDomain() }
+                .asReversed()
         }
     }
 

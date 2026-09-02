@@ -1,8 +1,10 @@
 package com.mistbell.tavern.android.ui.chat
 
+// 注意：本文件不再 import isSystemInDarkTheme —— 深浅色由应用内三态设置（dark/light/system）
+// 在 UI 层算出后经 dark 参数透传进来，避免"应用内强制浅色 + 系统深色"时取错变体
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +12,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -22,13 +25,41 @@ import com.mistbell.tavern.android.ui.theme.AccentGreenDark
 import com.mistbell.tavern.android.ui.theme.AccentOrange
 import com.mistbell.tavern.android.ui.theme.AccentOrangeDark
 
+// —— 正则常量：原先在每行/每段循环内重复编译 Regex，长消息解析开销被成倍放大；
+//    提升为顶层常量后整个进程只编译一次 ——
+
+// 块级结构（标题 / 列表）
+private val HEADER_REGEX = Regex("^(#{1,6})\\s+(.+)")
+private val HEADER_START_REGEX = Regex("^#{1,6}\\s+")
+private val BULLET_LIST_REGEX = Regex("^([\\s]*[-*+]\\s+)(.+)")
+private val NUMBERED_LIST_REGEX = Regex("^(\\s*\\d+\\.\\s+)(.+)")
+
+// 行内样式
+private val BOLD_PATTERN = Regex("\\*\\*(.+?)\\*\\*")
+private val ITALIC_PATTERN = Regex("\\*(.+?)\\*")
+private val CODE_PATTERN = Regex("`(.+?)`")
+private val LINK_PATTERN = Regex("\\[(.+?)\\]\\((.+?)\\)")
+
+// 支持多种引号类型：英文双引号、单引号、中文双引号、单引号、日文引号
+private val QUOTE_PATTERN = Regex("""["「『]([^"」』]+?)["」』]|'([^']+?)'|"([^"]+?)"|'([^']+?)'""")
+
+// 支持圆括号和中文圆括号，但需要排除链接语法 [text](url)
+private val ACTION_PATTERN = Regex("""(?<!\])\(([^)]+?)\)|（([^）]+?)）""")
+
+// 行内代码背景（半透明黑，深浅色共用，保持原行为）
+private val INLINE_CODE_BACKGROUND = Color(0x1A000000)
+
 @Composable
 fun MarkdownRenderer(
     content: String,
+    // 深浅色必须由调用方显式传入（应用内三态 darkModeSetting 算出的结果），
+    // 本组件不再自行读取 isSystemInDarkTheme()：系统深色 ≠ 应用内选择的深色
+    dark: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // 记忆化：同一 content 只解析一次，重组/流式增量时避免重复解析整篇
+    val segments = remember(content) { parseMarkdown(content) }
     SelectionContainer(modifier = modifier) {
-        val segments = parseMarkdown(content)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             segments.forEach { segment ->
                 when (segment) {
@@ -56,9 +87,15 @@ fun MarkdownRenderer(
                             modifier = Modifier.padding(start = (segment.depth * 12).dp),
                         )
                     is MdSegment.Paragraph -> {
+                        // 主题颜色在组合期读取后作为参数传入 remember 块，
+                        // 避免 remember 内读取 snapshot state 把首次颜色固化
+                        val linkColor = MaterialTheme.colorScheme.primary
+                        // 记忆化：同一文本 + 同一主题状态只构建一次 AnnotatedString
                         val annotated =
-                            buildAnnotatedString {
-                                appendInlineMarkdown(segment.text)
+                            remember(segment.text, dark, linkColor) {
+                                buildAnnotatedString {
+                                    appendInlineMarkdown(segment.text, dark, linkColor)
+                                }
                             }
                         Text(text = annotated, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -139,7 +176,7 @@ fun parseMarkdown(content: String): List<MdSegment> {
         }
 
         // Header
-        val headerMatch = Regex("^(#{1,6})\\s+(.+)").find(line.trim())
+        val headerMatch = HEADER_REGEX.find(line.trim())
         if (headerMatch != null) {
             val level = headerMatch.groupValues[1].length
             segments.add(MdSegment.Header(headerMatch.groupValues[2], level))
@@ -149,8 +186,8 @@ fun parseMarkdown(content: String): List<MdSegment> {
 
         // List item
         val listMatch =
-            Regex("^([\\s]*[-*+]\\s+)(.+)").find(line)
-                ?: Regex("^(\\s*\\d+\\.\\s+)(.+)").find(line)
+            BULLET_LIST_REGEX.find(line)
+                ?: NUMBERED_LIST_REGEX.find(line)
         if (listMatch != null) {
             val depth = listMatch.groupValues[1].trimStart().length / 2
             segments.add(MdSegment.ListItem(listMatch.groupValues[2], depth))
@@ -166,10 +203,7 @@ fun parseMarkdown(content: String): List<MdSegment> {
 
         // Paragraph - collect consecutive non-empty, non-special lines
         val paragraphLines = mutableListOf<String>()
-        while (i < lines.size && lines[i].isNotBlank() &&
-            !lines[i].trimStart().startsWith("```") &&
-            !Regex("^#{1,6}\\s+").containsMatchIn(lines[i].trim())
-        ) {
+        while (i < lines.size && isParagraphContinuation(lines[i])) {
             paragraphLines.add(lines[i])
             i++
         }
@@ -181,11 +215,30 @@ fun parseMarkdown(content: String): List<MdSegment> {
     return segments
 }
 
-@Composable
-fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
+/**
+ * 段落收集的继续条件抽为具名谓词：四个条件的复合直接内联在 while 里会触发
+ * ComplexCondition，且具名后语义更清晰——空行、代码围栏、标题行都终止段落。
+ */
+private fun isParagraphContinuation(line: String): Boolean =
+    line.isNotBlank() &&
+        !line.trimStart().startsWith("```") &&
+        !HEADER_START_REGEX.containsMatchIn(line.trim())
+
+/**
+ * 行内 Markdown 解析：加粗、斜体、行内代码、链接、引号、动作括号。
+ *
+ * 本函数不读取任何 snapshot state（isSystemInDarkTheme()/MaterialTheme 均不读）：
+ * 它被 remember 块包裹，内部读取 snapshot state 不会订阅更新，会把首次颜色固化；
+ * 深浅色（darkTheme）与链接颜色（linkColor）由组合期调用方读取后作为参数传入。
+ */
+fun AnnotatedString.Builder.appendInlineMarkdown(
+    text: String,
+    darkTheme: Boolean,
+    linkColor: Color,
+) {
     // 获取主题感知的引号颜色
     val quoteColor =
-        if (isSystemInDarkTheme()) {
+        if (darkTheme) {
             AccentGreenDark
         } else {
             AccentGreen
@@ -193,7 +246,7 @@ fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
 
     // 获取主题感知的动作颜色
     val actionColor =
-        if (isSystemInDarkTheme()) {
+        if (darkTheme) {
             AccentOrangeDark
         } else {
             AccentOrange
@@ -201,23 +254,15 @@ fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
 
     // Handle bold, italic, inline code, links, quotes, and actions
     var remaining = text
-    val boldPattern = Regex("\\*\\*(.+?)\\*\\*")
-    val italicPattern = Regex("\\*(.+?)\\*")
-    val codePattern = Regex("`(.+?)`")
-    val linkPattern = Regex("\\[(.+?)\\]\\((.+?)\\)")
-    // 支持多种引号类型：英文双引号、单引号、中文双引号、单引号、日文引号
-    val quotePattern = Regex("""["「『]([^"」』]+?)["」』]|'([^']+?)'|"([^"]+?)"|'([^']+?)'""")
-    // 支持圆括号和中文圆括号，但需要排除链接语法 [text](url)
-    val actionPattern = Regex("""(?<!\])\(([^)]+?)\)|（([^）]+?)）""")
 
     // Simple sequential approach: find earliest match and process
     while (remaining.isNotEmpty()) {
-        val bold = boldPattern.find(remaining)
-        val italic = italicPattern.find(remaining)
-        val code = codePattern.find(remaining)
-        val link = linkPattern.find(remaining)
-        val quote = quotePattern.find(remaining)
-        val action = actionPattern.find(remaining)
+        val bold = BOLD_PATTERN.find(remaining)
+        val italic = ITALIC_PATTERN.find(remaining)
+        val code = CODE_PATTERN.find(remaining)
+        val link = LINK_PATTERN.find(remaining)
+        val quote = QUOTE_PATTERN.find(remaining)
+        val action = ACTION_PATTERN.find(remaining)
 
         // Find the earliest match
         data class MatchInfo(val range: IntRange, val priority: Int, val startIndex: Int)
@@ -256,7 +301,7 @@ fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
                     SpanStyle(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 13.sp,
-                        background = androidx.compose.ui.graphics.Color(0x1A000000),
+                        background = INLINE_CODE_BACKGROUND,
                     ),
                 ) {
                     append(code.groupValues[1])
@@ -273,7 +318,7 @@ fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
             link != null && firstMatch.range == link.range -> {
                 withStyle(
                     SpanStyle(
-                        color = MaterialTheme.colorScheme.primary,
+                        color = linkColor,
                         textDecoration = TextDecoration.Underline,
                     ),
                 ) {

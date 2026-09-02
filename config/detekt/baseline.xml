@@ -3,7 +3,6 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:MacroEngine.kt$MacroEngine$count &lt; 1 || sides &lt; 2 || count &gt; 100 || sides &gt; 1000</ID>
-    <ID>ComplexCondition:MarkdownRenderer.kt$i &lt; lines.size &amp;&amp; lines[i].isNotBlank() &amp;&amp; !lines[i].trimStart().startsWith("```") &amp;&amp; !Regex("^#{1,6}\\s+").containsMatchIn(lines[i].trim())</ID>
     <ID>CyclomaticComplexMethod:AppNavigation.kt$@Composable fun AppNavigation(chatViewModel: ChatViewModel? = null)</ID>
     <ID>CyclomaticComplexMethod:CharacterEditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CharacterEditorScreen( characterId: String?, onBack: () -&gt; Unit, viewModel: CharacterEditorViewModel = viewModel(), )</ID>
     <ID>CyclomaticComplexMethod:CharacterExporter.kt$CharacterExporter$private fun renderCharacterBitmap( context: Context, character: Character, ): Bitmap</ID>
@@ -15,9 +14,9 @@
     <ID>CyclomaticComplexMethod:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ChatSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSettingsScreen( onBack: () -&gt; Unit, onNavigateToMemoryManagement: () -&gt; Unit, sessionId: String? = null, viewModel: ChatSettingsViewModel = viewModel( factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
     <ID>CyclomaticComplexMethod:MacroEngine.kt$MacroEngine$private fun resolveName( token: String, ctx: MacroContext, random: Random, ): String?</ID>
-    <ID>CyclomaticComplexMethod:MarkdownRenderer.kt$@Composable fun AnnotatedString.Builder.appendInlineMarkdown(text: String)</ID>
+    <ID>CyclomaticComplexMethod:MarkdownRenderer.kt$fun AnnotatedString.Builder.appendInlineMarkdown( text: String, darkTheme: Boolean, linkColor: Color, )</ID>
     <ID>CyclomaticComplexMethod:MarkdownRenderer.kt$fun parseMarkdown(content: String): List&lt;MdSegment&gt;</ID>
-    <ID>CyclomaticComplexMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
+    <ID>CyclomaticComplexMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null, )</ID>
     <ID>CyclomaticComplexMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, ): List&lt;ChatMessage&gt;</ID>
     <ID>CyclomaticComplexMethod:PromptModels.kt$PromptSections$fun composeSystemPrompt(): String</ID>
@@ -46,7 +45,8 @@
     <ID>FunctionNaming:CharacterListScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun CharacterListScreen( viewModel: CharacterListViewModel = viewModel( factory = ViewModelProvider.AndroidViewModelFactory.getInstance( androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application, ), ), onCharacterClick: (Character) -&gt; Unit = {}, onEditCharacter: (String) -&gt; Unit = {}, onNewCharacter: () -&gt; Unit = {}, onBack: () -&gt; Unit = {}, showTopBarBackButton: Boolean = true, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class) @Composable fun ChatListItemMaterial( item: ChatListItem, isMultiSelectMode: Boolean = false, isSelected: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit = {}, onTogglePin: () -&gt; Unit = {}, onMarkAsRead: () -&gt; Unit = {}, onRename: (String) -&gt; Unit = {}, onCopy: () -&gt; Unit = {}, onDelete: () -&gt; Unit = {}, onExport: (SessionExportFormat, String, (com.mistbell.tavern.android.util.SessionExportResult?) -&gt; Unit) -&gt; Unit = { _, _, _ -&gt; }, )</ID>
     <ID>FunctionNaming:ChatListScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatListScreen( viewModel: ChatListViewModel = viewModel(), onChatClick: (sessionId: String, characterId: String) -&gt; Unit = { _, _ -&gt; }, onNewChatClick: () -&gt; Unit = {}, onTabSelected: (Int) -&gt; Unit = {}, showBottomBar: Boolean = true, showTopBar: Boolean = true, modifier: Modifier = Modifier, )</ID>
-    <ID>FunctionNaming:ChatScreen.kt$@Composable private fun StreamingBubble( text: String, characterName: String, )</ID>
+    <ID>FunctionNaming:ChatScreen.kt$@Composable private fun StreamingBubble( text: String, characterName: String, // 修复6：应用内三态深浅色透传给 MarkdownRenderer dark: Boolean, )</ID>
+    <ID>FunctionNaming:ChatScreen.kt$@Composable private fun StreamingSlot( viewModel: ChatViewModel, characterName: String, // 修复4：跟随滚动所需状态由调用方传入——本函数仍在列表 item 内组合， // 直接持有同一 listState 即可执行滚动，无需新的订阅 listState: LazyListState, atBottom: Boolean, bottomAnchorIndex: Int, // 修复6：透传应用内三态深浅色给 Markdown 渲染 dark: Boolean, )</ID>
     <ID>FunctionNaming:ChatScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatScreen( viewModel: ChatViewModel, onMenuClick: () -&gt; Unit, onSettingsClick: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:ChatSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ChatSettingsScreen( onBack: () -&gt; Unit, onNavigateToMemoryManagement: () -&gt; Unit, sessionId: String? = null, viewModel: ChatSettingsViewModel = viewModel( factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance( LocalContext.current.applicationContext as android.app.Application, ), ), )</ID>
     <ID>FunctionNaming:ChatSetupScreen.kt$@Composable private fun CharacterCard( character: com.mistbell.tavern.android.data.api.model.Character, isSelected: Boolean, onClick: () -&gt; Unit, )</ID>
@@ -58,9 +58,9 @@
     <ID>FunctionNaming:FormTextArea.kt$@Composable fun FormTextArea( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", modifier: Modifier = Modifier, minLines: Int = 3, maxLines: Int = 8, )</ID>
     <ID>FunctionNaming:FormTextField.kt$@Composable fun FormTextField( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", modifier: Modifier = Modifier, isPassword: Boolean = false, singleLine: Boolean = true, keyboardType: KeyboardType = KeyboardType.Text, trailingIcon: @Composable (() -&gt; Unit)? = null, )</ID>
     <ID>FunctionNaming:MainScreen.kt$@Composable fun MainScreen( onChatClick: (sessionId: String, characterId: String) -&gt; Unit, onNewChatClick: () -&gt; Unit, onEditCharacter: (String) -&gt; Unit, onNewCharacter: () -&gt; Unit, onNavigateToProviderList: () -&gt; Unit, onNavigateToWorldBookList: () -&gt; Unit, onNavigateToWorldBookDetail: (String) -&gt; Unit, onNavigateToMemoryList: () -&gt; Unit, onNavigateToPromptPreview: () -&gt; Unit, onNavigateToChatSetup: (String) -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, onNavigateToAbout: () -&gt; Unit, onNavigateToThemeManager: () -&gt; Unit = {}, )</ID>
-    <ID>FunctionNaming:MarkdownRenderer.kt$@Composable fun MarkdownRenderer( content: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:MarkdownRenderer.kt$@Composable fun MarkdownRenderer( content: String, // 深浅色必须由调用方显式传入（应用内三态 darkModeSetting 算出的结果）， // 本组件不再自行读取 isSystemInDarkTheme()：系统深色 ≠ 应用内选择的深色 dark: Boolean, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:MarkdownRenderer.kt$@Composable private fun CodeBlock( code: String, language: String, )</ID>
-    <ID>FunctionNaming:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
     <ID>FunctionNaming:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null, )</ID>
     <ID>FunctionNaming:PromptPreviewScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PromptPreviewScreen( onBack: () -&gt; Unit, viewModel: PromptPreviewViewModel = viewModel(), )</ID>
     <ID>FunctionNaming:ProviderEditorScreen.kt$@Composable private fun SamplingSliderRow( label: String, value: Double?, range: ClosedFloatingPointRange&lt;Float&gt;, steps: Int, onValueChange: (Double?) -&gt; Unit, )</ID>
@@ -111,8 +111,8 @@
     <ID>LongMethod:ChatSetupViewModel.kt$ChatSetupViewModel$private suspend fun createNewSession( characterId: String, characterIds: Set&lt;String&gt;, ownerId: String, ): String</ID>
     <ID>LongMethod:CompositeCharacterAvatar.kt$@Composable fun CompositeCharacterAvatar( characters: List&lt;Character&gt;, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:MainScreen.kt$@Composable fun MainScreen( onChatClick: (sessionId: String, characterId: String) -&gt; Unit, onNewChatClick: () -&gt; Unit, onEditCharacter: (String) -&gt; Unit, onNewCharacter: () -&gt; Unit, onNavigateToProviderList: () -&gt; Unit, onNavigateToWorldBookList: () -&gt; Unit, onNavigateToWorldBookDetail: (String) -&gt; Unit, onNavigateToMemoryList: () -&gt; Unit, onNavigateToPromptPreview: () -&gt; Unit, onNavigateToChatSetup: (String) -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, onNavigateToAbout: () -&gt; Unit, onNavigateToThemeManager: () -&gt; Unit = {}, )</ID>
-    <ID>LongMethod:MarkdownRenderer.kt$@Composable fun AnnotatedString.Builder.appendInlineMarkdown(text: String)</ID>
-    <ID>LongMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:MarkdownRenderer.kt$fun AnnotatedString.Builder.appendInlineMarkdown( text: String, darkTheme: Boolean, linkColor: Color, )</ID>
+    <ID>LongMethod:MessageBubble.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun MessageBubble( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:MessageInput.kt$@Composable fun MessageInput( onSend: (String) -&gt; Unit, enabled: Boolean = true, // 生成中互斥：isGenerating 时发送按钮变为停止按钮，点击回调 onStop（null 则保持原禁用行为） isGenerating: Boolean = false, onStop: (() -&gt; Unit)? = null, )</ID>
     <ID>LongMethod:PromptBuilder.kt$PromptBuilder$suspend fun buildPrompt( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, ): List&lt;ChatMessage&gt;</ID>
     <ID>LongMethod:PromptModels.kt$PromptSections$fun composeSystemPrompt(): String</ID>
@@ -141,12 +141,15 @@
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( enabled: Boolean, providerId: String, userMessage: String, assistantMessage: String, ownerId: String, characterId: String, sessionId: String, messageIds: List&lt;String&gt;, )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, sessionId: String, message: String, worldBookId: String = "", onPartial: ((String) -&gt; Unit)? = null, )</ID>
     <ID>LongParameterList:ChatRepository.kt$ChatRepository$( ownerId: String, characterId: String, title: String = "", providerId: String = "", enableLongTermMemory: Boolean = false, worldBookId: String = "", )</ID>
+    <ID>LongParameterList:ChatRepository.kt$ChatRepository$( sessionId: String, ownerId: String, characterId: String, beforeCreatedAt: String, beforeId: String, limit: Int, )</ID>
+    <ID>LongParameterList:ChatScreen.kt$( viewModel: ChatViewModel, characterName: String, // 修复4：跟随滚动所需状态由调用方传入——本函数仍在列表 item 内组合， // 直接持有同一 listState 即可执行滚动，无需新的订阅 listState: LazyListState, atBottom: Boolean, bottomAnchorIndex: Int, // 修复6：透传应用内三态深浅色给 Markdown 渲染 dark: Boolean, )</ID>
     <ID>LongParameterList:FormTextArea.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", modifier: Modifier = Modifier, minLines: Int = 3, maxLines: Int = 8, )</ID>
     <ID>LongParameterList:FormTextField.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", modifier: Modifier = Modifier, isPassword: Boolean = false, singleLine: Boolean = true, keyboardType: KeyboardType = KeyboardType.Text, trailingIcon: @Composable (() -&gt; Unit)? = null, )</ID>
     <ID>LongParameterList:LexicalMemoryService.kt$LexicalMemoryService$( ownerId: String, characterId: String, sessionId: String, query: String, topK: Int = 5, recentWindow: Int = 40, )</ID>
     <ID>LongParameterList:MainScreen.kt$( onChatClick: (sessionId: String, characterId: String) -&gt; Unit, onNewChatClick: () -&gt; Unit, onEditCharacter: (String) -&gt; Unit, onNewCharacter: () -&gt; Unit, onNavigateToProviderList: () -&gt; Unit, onNavigateToWorldBookList: () -&gt; Unit, onNavigateToWorldBookDetail: (String) -&gt; Unit, onNavigateToMemoryList: () -&gt; Unit, onNavigateToPromptPreview: () -&gt; Unit, onNavigateToChatSetup: (String) -&gt; Unit, onNavigateToVersionChangelog: () -&gt; Unit, onNavigateToAbout: () -&gt; Unit, onNavigateToThemeManager: () -&gt; Unit = {}, )</ID>
     <ID>LongParameterList:MemoryExtractionService.kt$MemoryExtractionService$( userMessage: String, assistantMessage: String, ownerId: String, characterId: String, sessionId: String, messageIds: List&lt;String&gt;, provider: ProviderConfig?, )</ID>
-    <ID>LongParameterList:MessageBubble.kt$( message: Message, characterName: String, characterColor: Color = AccentBlue, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:MessageBubble.kt$( message: Message, characterName: String, characterColor: Color = AccentBlue, // 深浅色由调用方（应用内三态 darkModeSetting 算出的 isDark）透传给 MarkdownRenderer， // 避免 Markdown 组件读系统深色导致与应用内主题设置脱节 dark: Boolean, isUser: Boolean, isLastInGroup: Boolean, isLastMessage: Boolean = false, onCopy: () -&gt; Unit = {}, onUndo: () -&gt; Unit = {}, onBacktrack: () -&gt; Unit = {}, onRegenerate: () -&gt; Unit = {}, onContinue: () -&gt; Unit = {}, onSwipeLeft: () -&gt; Unit = {}, onSwipeRight: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:MessageDao.kt$MessageDao$( sessionId: String, ownerId: String, characterId: String, beforeCreatedAt: String, beforeId: String, limit: Int, )</ID>
     <ID>LongParameterList:MessageDao.kt$MessageDao$( sessionId: String, ownerId: String, characterId: String, excludedIds: List&lt;String&gt;, t1: String, t2: String, t3: String, t4: String, t5: String, t6: String, resultLimit: Int, )</ID>
     <ID>LongParameterList:PromptBuilder.kt$PromptBuilder$( db: AppDatabase, ownerId: String, characterId: String, sessionId: String, userMessage: String, currentMessageId: String? = null, // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序）， // 保证正要被替换的旧 assistant 回复不进入上下文 excludeFromMessageId: String? = null, )</ID>
     <ID>LongParameterList:SettingsScreen.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, placeholder: String = "", isPassword: Boolean = false, trailingIcon: @Composable (() -&gt; Unit)? = null, )</ID>
@@ -163,6 +166,8 @@
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$12</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$13</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$14</ID>
+    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$15</ID>
+    <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$16</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$3</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$4</ID>
     <ID>MagicNumber:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$5</ID>
@@ -209,9 +214,7 @@
     <ID>MagicNumber:ChatListViewModel.kt$ChatListViewModel$60</ID>
     <ID>MagicNumber:ChatListViewModel.kt$ChatListViewModel$7</ID>
     <ID>MagicNumber:ChatRepository.kt$ChatRepository$26</ID>
-    <ID>MagicNumber:ChatScreen.kt$0.35f</ID>
     <ID>MagicNumber:ChatScreen.kt$0.5f</ID>
-    <ID>MagicNumber:ChatScreen.kt$0.65f</ID>
     <ID>MagicNumber:ChatSettingsScreen.kt$1024</ID>
     <ID>MagicNumber:ChatSettingsScreen.kt$131072</ID>
     <ID>MagicNumber:ChatSettingsScreen.kt$16384</ID>
@@ -402,20 +405,6 @@
     <ID>MagicNumber:WorldBookListScreen.kt$10</ID>
     <ID>MatchingDeclarationName:AppNavigation.kt$Routes</ID>
     <ID>MatchingDeclarationName:ChatSettingsScreen.kt$ChatSettingsViewModel : AndroidViewModel</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_messages_owner_character_created ON messages(owner_id, character_id, created_at)"</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_structured_memory_importance_created ON structured_memory(owner_id, importance, created_at)"</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$"CREATE INDEX IF NOT EXISTS index_structured_memory_session ON structured_memory(owner_id, session_id, created_at)"</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$db.execSQL("ALTER TABLE sessions ADD COLUMN participant_character_ids_json TEXT NOT NULL DEFAULT ''")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_created ON messages(session_id, created_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_session_owner ON messages(session_id, owner_id, character_id)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_character ON sessions(owner_id, character_id, updated_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_pinned ON sessions(owner_id, is_pinned, updated_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE INDEX IF NOT EXISTS index_sessions_owner_updated ON sessions(owner_id, updated_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$idx("CREATE INDEX IF NOT EXISTS index_messages_session_id_created_at ON messages(session_id, created_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$idx("CREATE INDEX IF NOT EXISTS index_sessions_owner_id_updated_at ON sessions(owner_id, updated_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$idx("CREATE INDEX IF NOT EXISTS index_structured_memory_created_at ON structured_memory(created_at)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$idx("CREATE INDEX IF NOT EXISTS index_structured_memory_importance ON structured_memory(importance)")</ID>
-    <ID>MaxLineLength:AppDatabase.kt$AppDatabase.Companion.&lt;no name provided&gt;$idx("CREATE INDEX IF NOT EXISTS index_structured_memory_memory_type ON structured_memory(memory_type)")</ID>
     <ID>MaxLineLength:AppNavigation.kt$Routes$fun characterEditor(characterId: String? = null)</ID>
     <ID>MaxLineLength:AppNavigation.kt$Routes$fun chatSetup(characterId: String? = null)</ID>
     <ID>MaxLineLength:AppNavigation.kt$Routes$fun providerEditor(providerId: String? = null)</ID>
@@ -458,18 +447,9 @@
     <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT * FROM messages WHERE session_id=:sessionId AND owner_id=:ownerId AND character_id=:characterId AND id NOT IN (:excludedIds) AND (content LIKE :t1 OR content LIKE :t2 OR content LIKE :t3 OR content LIKE :t4 OR content LIKE :t5 OR content LIKE :t6) ORDER BY created_at DESC LIMIT :resultLimit"</ID>
     <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT COUNT(*) FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId AND is_read = 0"</ID>
     <ID>MaxLineLength:MessageDao.kt$MessageDao$"SELECT id FROM messages WHERE session_id=:sessionId AND owner_id=:ownerId AND character_id=:characterId ORDER BY created_at DESC LIMIT :limit"</ID>
-    <ID>MaxLineLength:MessageDao.kt$MessageDao$@Query("UPDATE messages SET is_read = 1 WHERE session_id = :sessionId AND owner_id = :ownerId AND character_id = :characterId")</ID>
     <ID>MaxLineLength:MessageEntity.kt$MessageEntity.Companion$val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer&lt;String&gt;())</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isEnabled || showStop) AccentBlue.copy(alpha = 0.35f) else Color.Transparent</ID>
     <ID>MaxLineLength:MessageInput.kt$ambientColor = if (isFocused) AccentBlue.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.04f)</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_messages_owner_id_character_id_created_at ON messages(owner_id, character_id, created_at)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_messages_session_id_owner_id_character_id ON messages(session_id, owner_id, character_id)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_sessions_owner_id_character_id_updated_at ON sessions(owner_id, character_id, updated_at)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at ON sessions(owner_id, is_pinned, updated_at)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_character_id ON structured_memory(owner_id, character_id)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_importance_created_at ON structured_memory(owner_id, importance, created_at)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$"CREATE INDEX IF NOT EXISTS index_structured_memory_owner_id_session_id_created_at ON structured_memory(owner_id, session_id, created_at)"</ID>
-    <ID>MaxLineLength:MigrationSchemaAlignmentTest.kt$MigrationSchemaAlignmentTest$assertTrue("background_file 应可空（无 NOT NULL）", ddl.contains("background_file TEXT,") || ddl.contains("background_file TEXT\n"))</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$if (charData.systemPrompt.isNotBlank()) characterParts.add(1, MacroEngine.render(charData.systemPrompt, mctx))</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$if (participant.description.isNotBlank()) characterParts.add(MacroEngine.render(participant.description, mctx))</ID>
     <ID>MaxLineLength:PromptBuilder.kt$PromptBuilder$if (participant.scenario.isNotBlank()) characterParts.add("Scenario: ${MacroEngine.render(participant.scenario, mctx)}")</ID>
@@ -617,6 +597,7 @@
     <ID>TooManyFunctions:ChatRepository.kt$ChatRepository</ID>
     <ID>TooManyFunctions:ChatViewModel.kt$ChatViewModel : AndroidViewModel</ID>
     <ID>TooManyFunctions:CrashLogger.kt$CrashLogger</ID>
+    <ID>TooManyFunctions:ImageUtils.kt$ImageUtils</ID>
     <ID>TooManyFunctions:InMemoryVectorStore.kt$InMemoryVectorStore : VectorStore</ID>
     <ID>TooManyFunctions:MemoryExtractionService.kt$MemoryExtractionService</ID>
     <ID>TooManyFunctions:MessageDao.kt$MessageDao</ID>

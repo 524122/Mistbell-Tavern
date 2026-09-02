@@ -21,7 +21,11 @@ class ProviderRepository(private val context: Context) {
     fun observeProviders(): Flow<List<ProviderConfig>> {
         return db.settingsDao().getAll().map { entities ->
             val map = entities.associate { it.key to it.value }
-            val json = SecureStore.unwrap(map["providers_json"] ?: "[]")
+            // Keystore 首次加载是磁盘 + 加密操作，切到 IO 线程，避免阻塞收集方（主线程）
+            val json =
+                withContext(Dispatchers.IO) {
+                    SecureStore.unwrap(map["providers_json"] ?: "[]")
+                }
             try {
                 Json.decodeFromString(ListSerializer(ProviderConfig.serializer()), json)
             } catch (_: Exception) {

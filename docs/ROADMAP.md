@@ -189,7 +189,7 @@
 
 - **玩法模式框架**：按 [MODES.md](MODES.md) 实施——近期做③群聊（说话者标注/轮转/witness 记忆分账，复用 participantCharacters）与②扮演反转（反转开关+叙事者模板（含代理权保护）+记忆 scope 重定向；骰子/状态等规则包不做）；④导演/⑤卡对卡仅做 schema 级骨架预留（ScopeKey 前缀格式 + 多 speaker 配置结构），不建空 UI 与死代码。
 - **真流式输出**：当前全库无 SSE 解析，回复整包到达才渲染。改 OkHttp streaming + 逐 token 渲染，顺带解决请求不可取消问题。
-- **Paging 3 实际接入**：依赖已引入未使用；`MessageDao.getBySessionPaged`（MessageDao.kt:16）用 `PagingSource<Int, ...>` 却按字符串时间排序，接入前需先修分页键类型。
+- **消息长会话窗口分页（已完成，v16 性能修复）**：Paging 3 方案已废弃并移除依赖；现为 DAO 层窗口分页——`MessageDao.getLatestBySession`（只观察最新 200 条）+ `getOlderBySession`（上滚按 (created_at, id) 复合游标补加载一页），ViewModel 侧 `loadOlderMessages`/`mergeMessageWindow` 合并 prepend 缓存。若未来数据量再超阈值，优先扩展此方案（如更大窗口/懒加载页大小）而非引入 Paging 3。
 - **导入功能**：世界书导入（WorldBookListScreen.kt:185）、聊天导入（ChatListScreen.kt:104）——UI 入口已存在但未实现。
 - **continueMessage / swipeMessage 实装**（ChatRepository.kt:238-250 现为空函数体，UI 上可点无反应）。
 - **记忆归属修复**：`MemoryRepository.loadFromServer/createMemory` 不落 session_id，服务端拉回的记忆按会话查询不到。

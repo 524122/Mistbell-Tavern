@@ -14,6 +14,11 @@ import com.mistbell.tavern.android.data.api.model.Message
         // F3 词法召回性能索引（v13 迁移创建；v14 起声明于实体——Room 校验要求索引全集合相等，
         // 未声明的额外索引同样会触发 "Migration didn't properly handle"）
         Index(value = ["owner_id", "character_id", "created_at"]),
+        // 消息窗口分页索引（v16 迁移创建）：getLatestBySession/getOlderBySession 的
+        // 等值过滤 + created_at 排序扫描，避免长会话分页查询退化为全表排序
+        Index(value = ["session_id", "owner_id", "character_id", "created_at"]),
+        // 会话列表"最后一条消息"按 owner 维度聚合的排序索引
+        Index(value = ["owner_id", "session_id", "created_at"]),
     ],
 )
 data class MessageEntity(
