@@ -32,8 +32,18 @@ fun ProviderListScreen(
     val activeProviderId by viewModel.activeProviderId.collectAsState()
     val activeModelId by viewModel.activeModelId.collectAsState()
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
-    var testingProviderId by remember { mutableStateOf<String?>(null) }
-    val testResult by viewModel.testResult.collectAsState()
+    // 探活状态由 VM 统一持有（原来本地 remember 无复位导致按钮永久"测试中"），这里只负责收集
+    val testingProviderId by viewModel.testingProviderId.collectAsState()
+    val testResults by viewModel.testResults.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Snackbar 由探活结果驱动而非 message：testResults 每次都是新 Map 实例，
+    // 同一行重复测出相同结果也能弹出（StateFlow 同值去重不会吞掉）
+    LaunchedEffect(testResults) {
+        testResults.values.lastOrNull()?.let { outcome ->
+            snackbarHostState.showSnackbar("${outcome.providerName}: ${outcome.result.detail}")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -64,6 +74,7 @@ fun ProviderListScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Default.Add, "新增提供商") }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         if (providers.isEmpty()) {
@@ -115,15 +126,15 @@ fun ProviderListScreen(
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                 ) { Text("编辑") }
 
-                                // 如果配置完整（有端点、密钥、模型），显示测试连接按钮
-                                if (provider.endpoint.isNotBlank() && provider.apiKey.isNotBlank() && provider.selectedModel.isNotBlank()) {
+                                // 只要填了端点就能测：本地 Ollama 等无 Key / 未选模型的提供商也允许探活
+                                if (provider.endpoint.isNotBlank()) {
                                     val isTesting = testingProviderId == provider.id
+                                    val rowResult = testResults[provider.id]?.result
                                     TextButton(
-                                        onClick = {
-                                            testingProviderId = provider.id
-                                            viewModel.testConnectionForProvider(provider.endpoint, provider.apiKey, provider.type)
-                                        },
-                                        enabled = !isTesting,
+                                        onClick = { viewModel.testConnectionForProvider(provider) },
+                                        // 任一探活进行中时全部禁用：VM 单任务守卫会静默吞掉其他行的点击，
+                                        // 与其让用户点了没反应，不如统一禁用表达清楚
+                                        enabled = testingProviderId == null,
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                     ) {
                                         if (isTesting) {
@@ -133,16 +144,19 @@ fun ProviderListScreen(
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                         }
+                                        // 具体失败原因不塞进按钮文字（过长），走 Snackbar 展示
                                         Text(
                                             when {
                                                 isTesting -> "测试中"
-                                                testingProviderId == provider.id && testResult != null -> if (testResult == true) "✓" else "✗"
+                                                rowResult != null -> if (rowResult.success) "✓" else "✗"
                                                 else -> "测试连接"
                                             },
                                             color =
                                                 when {
-                                                    testingProviderId == provider.id && testResult == true -> MaterialTheme.colorScheme.primary
-                                                    testingProviderId == provider.id && testResult == false -> MaterialTheme.colorScheme.error
+                                                    // 测试中固定主色：不沿用上一次结果的红/绿，避免文字与颜色不一致
+                                                    isTesting -> MaterialTheme.colorScheme.primary
+                                                    rowResult?.success == true -> MaterialTheme.colorScheme.primary
+                                                    rowResult?.success == false -> MaterialTheme.colorScheme.error
                                                     else -> MaterialTheme.colorScheme.primary
                                                 },
                                         )

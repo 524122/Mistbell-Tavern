@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.data.api.model.ProviderConfig
+import com.mistbell.tavern.android.data.repository.ConnectionTestResult
 import com.mistbell.tavern.android.data.repository.ProviderRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -26,6 +27,15 @@ data class ProviderForm(
     val topK: Int? = null,
     val frequencyPenalty: Double? = null,
     val maxTokens: Int? = null,
+)
+
+/**
+ * 列表页行内探活结果（带提供商名）：Snackbar 由 testResults 的 Map 变化驱动——
+ * 每次写入都是新 Map 实例，不会被 StateFlow 的同值去重吞掉重复提示。
+ */
+data class ProviderTestOutcome(
+    val providerName: String,
+    val result: ConnectionTestResult,
 )
 
 class ProviderViewModel(application: Application) : AndroidViewModel(application) {
@@ -54,6 +64,13 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
 
     private val _testResult = MutableStateFlow<Boolean?>(null)
     val testResult: StateFlow<Boolean?> = _testResult
+
+    // 列表页探活状态收进 VM（单一数据源）：正在测试的 providerId + 每行最近一次的探活结果
+    private val _testingProviderId = MutableStateFlow<String?>(null)
+    val testingProviderId: StateFlow<String?> = _testingProviderId
+
+    private val _testResults = MutableStateFlow<Map<String, ProviderTestOutcome>>(emptyMap())
+    val testResults: StateFlow<Map<String, ProviderTestOutcome>> = _testResults
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -123,25 +140,31 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /** 编辑页内联探活：✓/✗ 由 testResult 驱动，具体原因 detail 写 message 走 Snackbar。 */
     fun testConnection() {
         val f = _form.value
         viewModelScope.launch {
             _testResult.value = null
-            val ok = repo.testConnection(f.endpoint, f.apiKey, f.type)
-            _testResult.value = ok
-            _message.value = if (ok) "连接成功" else "连接失败"
+            val result = repo.testConnection(f.endpoint, f.apiKey, f.selectedModel)
+            _testResult.value = result.success
+            _message.value = result.detail
         }
     }
 
-    fun testConnectionForProvider(
-        endpoint: String,
-        apiKey: String,
-        type: String,
-    ) {
+    /**
+     * 列表页行内探活。同一时刻只允许一个探活任务：
+     * 既避免并发请求打爆端点，也避免多行同时测试时行内状态互相覆盖。
+     */
+    fun testConnectionForProvider(provider: ProviderConfig) {
+        if (_testingProviderId.value != null) return
+        _testingProviderId.value = provider.id
         viewModelScope.launch {
-            _testResult.value = null
-            val ok = repo.testConnection(endpoint, apiKey, type)
-            _testResult.value = ok
+            // repo 契约：除协程取消（CancellationException 自然上抛、由作用域处理）外保证不抛——
+            // VM 不做兜底捕获，避免吞掉取消破坏结构化并发
+            val result = repo.testConnection(provider.endpoint, provider.apiKey, provider.selectedModel)
+            // 无论成败都必须复位，否则该行按钮会永久停在"测试中"
+            _testingProviderId.value = null
+            _testResults.value = _testResults.value + (provider.id to ProviderTestOutcome(provider.name, result))
         }
     }
 
@@ -172,6 +195,8 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
                 current.add(config)
             }
             repo.saveProviders(current)
+            // 配置已变更：旧探活结果失效，清掉该行的 ✓/✗ 防止误导
+            _testResults.value = _testResults.value - config.id
             _message.value = "提供商已保存"
         }
     }
@@ -180,6 +205,8 @@ class ProviderViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val current = providers.value.filter { it.id != id }
             repo.saveProviders(current)
+            // 行已删除：探活结果一并清掉，不留悬挂条目
+            _testResults.value = _testResults.value - id
             if (activeProviderId.value == id) {
                 repo.setActiveProvider("", "")
             }
