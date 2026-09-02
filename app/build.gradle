@@ -30,6 +30,11 @@ android {
             // Debug 构建也启用资源压缩（但不混淆代码）
             shrinkResources false
             minifyEnabled false
+            // 产出未签名 APK 的开关：gradlew :app:assembleDebug -PbuildUnsigned
+            // （未签名包不能直接安装，需自行 apksigner 签名；用于自定义签名/分发场景）
+            if (project.hasProperty('buildUnsigned')) {
+                signingConfig = null
+            }
         }
     }
 
