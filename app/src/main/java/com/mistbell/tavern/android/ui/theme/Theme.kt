@@ -95,7 +95,7 @@ fun MistbellTheme(
 @Composable
 fun MistbellThemeWithSettings(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val db = TavernApplication.instance.database
+    val db = TavernApplication.instance.container.database
     val themeRepo = ThemePackRepository(context)
 
     // Read dark mode setting from database, combined with global theme pack tokens

@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
  * 用诚实的词法匹配替代 BM25 伪向量——不再假装有语义相似度。
  */
 class LexicalMemoryService(private val context: Context) {
-    private val db get() = TavernApplication.instance.database
+    private val db get() = TavernApplication.instance.container.database
 
     /**
      * 关键词召回历史消息：

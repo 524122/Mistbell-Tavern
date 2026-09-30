@@ -4,70 +4,28 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.data.local.AppDatabase
-import com.mistbell.tavern.android.data.vector.*
+import com.mistbell.tavern.android.data.vector.EmbeddingService
+import com.mistbell.tavern.android.data.vector.VectorMemoryService
+import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.di.AppContainer
 import com.mistbell.tavern.android.util.SecureStore
 
 class TavernApplication : Application() {
-    val database: AppDatabase by lazy {
-        AppDatabase.getInstance(this)
-    }
-
-    // 向量存储服务 - 延迟初始化
-    val vectorStore: VectorStore by lazy {
-        try {
-            val baseStore = InMemoryVectorStore(this)
-            CachedVectorStore(baseStore, cacheSize = 50).also {
-                Log.d(TAG, "Vector store initialized with cache (lazy)")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize vector store: ${e.message}", e)
-            val baseStore = InMemoryVectorStore(this)
-            CachedVectorStore(baseStore, cacheSize = 50)
-        }
-    }
-
     /**
-     * Embedding 服务（延迟初始化）
+     * 应用级 DI 容器：所有服务的唯一装配入口。
      *
-     * F3-FTS: 有 API key → OpenAI 真实向量服务；无 key → Mock 占位（vectorMemoryService.available=false），
-     * 不再使用 BM25 伪向量（数学上不成立，记忆回退改走词法召回）。
+     * 新代码请经 `instance.container.xxx` 取服务；本类上的同名委托属性仅为兼容存量调用，
+     * 逐步迁移后移除。
      */
-    val embeddingService: EmbeddingService by lazy {
-        try {
-            val apiKey = getEmbeddingApiKey()
-            val baseUrl = getEmbeddingBaseUrl()
+    val container: AppContainer by lazy { AppContainer(this) }
 
-            if (apiKey.isNotBlank()) {
-                Log.d(TAG, "Using OpenAI Embedding Service (lazy)")
-                OpenAIEmbeddingService(
-                    apiKey = apiKey,
-                    baseUrl = baseUrl,
-                    model = "text-embedding-3-small",
-                )
-            } else {
-                // 无 key：不用伪向量，注入 Mock 占位（available=false，调用方走词法回退）
-                Log.d(TAG, "No embedding API key, vector memory unavailable (lexical fallback)")
-                MockEmbeddingService()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize embedding service: ${e.message}", e)
-            MockEmbeddingService()
-        }
-    }
+    val database: AppDatabase by lazy { container.database }
 
-    val vectorMemoryService: VectorMemoryService by lazy {
-        try {
-            VectorMemoryService(
-                vectorStore = vectorStore,
-                embeddingService = embeddingService,
-            ).also {
-                Log.d(TAG, "Vector memory service initialized (lazy)")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize vector memory service: ${e.message}", e)
-            VectorMemoryService(vectorStore, embeddingService)
-        }
-    }
+    val vectorStore: VectorStore by lazy { container.vectorStore }
+
+    val embeddingService: EmbeddingService by lazy { container.embeddingService }
+
+    val vectorMemoryService: VectorMemoryService by lazy { container.vectorMemoryService }
 
     companion object {
         private const val TAG = "TavernApplication"
@@ -85,23 +43,6 @@ class TavernApplication : Application() {
 
         // 移除同步初始化，改为完全延迟加载
         Log.d(TAG, "TavernApplication created (services will be initialized on demand)")
-    }
-
-    /**
-     * 获取 Embedding API Key
-     */
-    private fun getEmbeddingApiKey(): String {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return SecureStore.unwrap(prefs.getString(KEY_EMBEDDING_API_KEY, "") ?: "")
-    }
-
-    /**
-     * 获取 Embedding Base URL
-     */
-    private fun getEmbeddingBaseUrl(): String {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_EMBEDDING_BASE_URL, "https://api.openai.com/v1")
-            ?: "https://api.openai.com/v1"
     }
 
     /**

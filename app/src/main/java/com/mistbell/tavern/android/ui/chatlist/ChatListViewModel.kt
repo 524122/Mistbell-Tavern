@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import com.mistbell.tavern.android.data.api.model.SessionSummary
 import com.mistbell.tavern.android.util.SessionExportFormat
 import com.mistbell.tavern.android.util.SessionExportResult
 import com.mistbell.tavern.android.util.SessionExporter
+import com.mistbell.tavern.android.util.SessionImporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -39,7 +41,7 @@ data class ChatListItem(
 )
 
 class ChatListViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = TavernApplication.instance.database
+    private val db = TavernApplication.instance.container.database
     private val ownerId = "local-user"
 
     private val _searchQuery = MutableStateFlow("")
@@ -433,5 +435,131 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }.format(Date())
+    }
+
+    // ========== 导入功能 ==========
+
+    private val _importError = MutableStateFlow<String?>(null)
+    val importError: StateFlow<String?> = _importError.asStateFlow()
+
+    private val _importSuccess = MutableStateFlow<String?>(null)
+    val importSuccess: StateFlow<String?> = _importSuccess.asStateFlow()
+
+    /**
+     * 从 JSON 文件导入会话
+     * @param uri 文件 URI
+     */
+    fun importSession(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. 解析 JSON 文件
+                val exportData = SessionImporter.importFromJson(getApplication(), uri)
+                if (exportData == null) {
+                    _importError.value = "无法解析导入文件，请检查文件格式"
+                    return@launch
+                }
+
+                // 2. 检查角色是否存在
+                val characterExists = db.characterDao().getById(exportData.session.characterId ?: "") != null
+                if (!characterExists) {
+                    _importError.value = "导入失败：找不到角色 ID ${exportData.session.characterId}\n请先导入对应的角色卡"
+                    return@launch
+                }
+
+                // 3. 生成新的会话 ID（避免冲突）
+                val newSessionId = "session-${System.currentTimeMillis()}-${(0..9999).random()}"
+                val now = nowUtc()
+                val characterId = exportData.session.characterId ?: ""
+
+                // 4. 创建会话实体
+                val sessionEntity =
+                    com.mistbell.tavern.android.data.local.entity.SessionEntity(
+                        id = newSessionId,
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        title = exportData.session.title + " (导入)",
+                        createdAt = now,
+                        updatedAt = now,
+                        // 使用默认提供商与模型
+                        messageCount = exportData.messages.size,
+                        providerId = "",
+                        modelId = "",
+                        worldBookId = "",
+                        summaryJson = "",
+                        unreadCount = 0,
+                        isPinned = false,
+                        pinnedAt = null,
+                        isMuted = false,
+                        enableLongTermMemory = null,
+                        contextTokenLimit = null,
+                        participantCharacterIdsJson = "",
+                        themeId = "",
+                        authorNote = "",
+                        mode = exportData.session.mode,
+                        modeConfigJson = "",
+                    )
+
+                // 5. 插入会话
+                db.sessionDao().upsert(sessionEntity)
+
+                // 6. 插入消息（生成新的消息 ID）
+                val json = kotlinx.serialization.json.Json
+                val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
+
+                exportData.messages.forEach { message ->
+                    val newMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
+
+                    // 序列化 swipes
+                    val swipesJson =
+                        if (message.swipes != null && message.swipes.isNotEmpty()) {
+                            json.encodeToString(stringListSerializer, message.swipes)
+                        } else {
+                            ""
+                        }
+
+                    // 序列化 memoryIds
+                    val memoryIdsJson =
+                        if (message.memoryIds != null && message.memoryIds.isNotEmpty()) {
+                            json.encodeToString(stringListSerializer, message.memoryIds)
+                        } else {
+                            ""
+                        }
+
+                    val messageEntity =
+                        com.mistbell.tavern.android.data.local.entity.MessageEntity(
+                            id = newMessageId,
+                            ownerId = ownerId,
+                            characterId = characterId,
+                            sessionId = newSessionId,
+                            role = message.role,
+                            content = message.content,
+                            thinking = message.thinking,
+                            createdAt = message.createdAt.ifBlank { now },
+                            memoryIdsJson = memoryIdsJson,
+                            swipesJson = swipesJson,
+                            swipeIndex = message.swipeIndex,
+                            thinkingSwipesJson = "",
+                            isRead = true,
+                        )
+                    db.messageDao().upsert(messageEntity)
+                }
+
+                // 7. 成功提示
+                withContext(Dispatchers.Main) {
+                    _importSuccess.value = "导入成功：${exportData.session.title}\n包含 ${exportData.messages.size} 条消息"
+                }
+            } catch (e: Exception) {
+                _importError.value = "导入失败：${e.message}"
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun clearImportError() {
+        _importError.value = null
+    }
+
+    fun clearImportSuccess() {
+        _importSuccess.value = null
     }
 }

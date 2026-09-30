@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 
 class StructuredMemoryRepository(context: Context) {
-    private val db = TavernApplication.instance.database
+    private val db = TavernApplication.instance.container.database
     private val memoryDao = db.structuredMemoryDao()
 
     companion object {
@@ -145,9 +145,11 @@ class StructuredMemoryRepository(context: Context) {
                 )
             memoryDao.update(entity)
 
-            // 如果重要性 >= 7，重新同步到向量数据库
+            // 如果重要性 >= 7，重新同步到向量数据库；降到阈值以下则清理既有摘要副本
             if (memory.shouldSyncToVector()) {
                 syncToVectorIfNeeded(memory)
+            } else {
+                deleteVectorCopy(memory.id)
             }
         }
     }
@@ -157,6 +159,8 @@ class StructuredMemoryRepository(context: Context) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteById(id)
         }
+        // 向量库中该记忆的摘要副本一并清理，避免孤儿向量
+        deleteVectorCopy(id)
     }
 
     // 按角色删除记忆
@@ -167,6 +171,7 @@ class StructuredMemoryRepository(context: Context) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteByCharacter(ownerId, characterId)
         }
+        deleteSummaryCopies(ownerId, characterId = characterId)
     }
 
     // 按会话删除记忆
@@ -177,6 +182,7 @@ class StructuredMemoryRepository(context: Context) {
         withContext(Dispatchers.IO) {
             memoryDao.deleteBySession(ownerId, sessionId)
         }
+        deleteSummaryCopies(ownerId, sessionId = sessionId)
     }
 
     // 增加访问计数
@@ -213,21 +219,59 @@ class StructuredMemoryRepository(context: Context) {
 
         try {
             val vectorContent = memory.buildVectorContent()
-            val vectorMemoryService = TavernApplication.instance.vectorMemoryService
+            val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
 
+            // 先清同 messageId 的旧副本再写入：编辑/重抽后不堆积重复向量
+            if (vectorMemoryService.available) {
+                vectorMemoryService.deleteByMessageId(vectorMessageId(memory.id))
+            }
             vectorMemoryService.storeMessage(
+                // VectorMemory.ContentType.SUMMARY
                 content = vectorContent,
                 ownerId = memory.ownerId,
                 characterId = memory.characterId ?: "unknown",
                 sessionId = memory.sessionId ?: "cross_session",
-                messageId = "structured_memory_${memory.id}",
-                contentType = "summary", // VectorMemory.ContentType.SUMMARY
+                messageId = vectorMessageId(memory.id),
+                contentType = "summary",
             )
 
             Log.d(TAG, "Synced memory ${memory.id} to vector store (importance: ${memory.importance})")
         } catch (e: Exception) {
             // 向量同步失败不应影响主流程
             Log.e(TAG, "Failed to sync memory to vector: ${e.message}", e)
+        }
+    }
+
+    /** 结构化记忆同步到向量库时使用的 messageId（删除时按此精确清理） */
+    private fun vectorMessageId(memoryId: Long): String = "structured_memory_$memoryId"
+
+    /** 清理单条记忆在向量库中的摘要副本（重要性>=7 时同步过的那份） */
+    private suspend fun deleteVectorCopy(memoryId: Long) {
+        try {
+            val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
+            if (vectorMemoryService.available) {
+                vectorMemoryService.deleteByMessageId(vectorMessageId(memoryId))
+            }
+        } catch (e: Exception) {
+            // 向量清理失败不应影响主流程
+            Log.e(TAG, "Failed to delete vector copy: ${e.message}", e)
+        }
+    }
+
+    /** 批量清理向量库中的记忆摘要副本（随角色/会话级删除联动） */
+    private suspend fun deleteSummaryCopies(
+        ownerId: String,
+        characterId: String? = null,
+        sessionId: String? = null,
+    ) {
+        try {
+            val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
+            if (vectorMemoryService.available) {
+                vectorMemoryService.deleteSummaryVectors(ownerId, characterId, sessionId)
+            }
+        } catch (e: Exception) {
+            // 向量清理失败不应影响主流程
+            Log.e(TAG, "Failed to delete summary vectors: ${e.message}", e)
         }
     }
 }

@@ -5,9 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.*
+import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.network.NetworkMonitor
+import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
-import com.mistbell.tavern.android.data.repository.ProviderRepository
+import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
+import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
@@ -21,10 +25,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = TavernApplication.instance.database
+    private val db = TavernApplication.instance.container.database
     private val repo = ChatRepository(application)
     private val networkMonitor = NetworkMonitor(application)
-    private val providerRepo = ProviderRepository(application)
+    private val settingsRepo = SettingsRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
     private val themeRepo = ThemePackRepository(application)
 
@@ -85,6 +89,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeSessionId = MutableStateFlow("")
     val activeSessionId: StateFlow<String> = _activeSessionId
 
+    // 当前会话的主角色 id（loadSession 时写入）：提示词预览等需要按会话重建的派生数据用它，
+    // 避免依赖 _currentCharacter 的异步加载（首次进入时它可能还没就绪）
+    private val _activeCharacterId = MutableStateFlow("")
+    val activeCharacterId: StateFlow<String> = _activeCharacterId.asStateFlow()
+
     // 群聊模式：沿用现有 session 观察链推导——活跃会话 id 变化（切会话/删会话回退）时重新
     // 观察会话实体，session.mode == "group" 才为 true；classic 会话与无会话态恒 false。
     // 轻量 Room Flow 订阅，无组合线程重活；@OptIn(ExperimentalCoroutinesApi) 已在类级声明。
@@ -114,15 +123,200 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _navigationEvent.value = null
     }
 
-    // Provider/Model state
-    val providers: StateFlow<List<ProviderConfig>> =
-        providerRepo.observeProviders()
+    // 开场白选项（已过宏渲染，与消息正文同管线）：主角色 first_mes + 备用开场白
+    // （alternate_greetings）。聊天界面在「会话仅剩开场白一条消息」时提供切换入口
+    val greetingOptions: StateFlow<List<String>> =
+        _currentCharacter.map { character ->
+            if (character == null) {
+                emptyList()
+            } else {
+                buildGreetingOptions(character.firstMes, character.data?.alternateGreetings.orEmpty())
+            }
+        }.map { raws ->
+            if (raws.isEmpty()) {
+                emptyList()
+            } else {
+                // 与建会话同一套宏上下文：用户名与人设取全局设置（键常量收敛在 ChatSettingsResolver）
+                val character = _currentCharacter.value
+                val mctx =
+                    com.mistbell.tavern.android.util.MacroContext(
+                        char = character?.name ?: "",
+                        user = ChatSettingsResolver.userName(db.settingsDao().getValue(ChatSettingsResolver.KEY_USER_NAME)),
+                        description = character?.description ?: "",
+                        personality = character?.personality ?: "",
+                        scenario = character?.scenario ?: "",
+                        persona = ChatSettingsResolver.userPersona(db.settingsDao().getValue(ChatSettingsResolver.KEY_USER_PERSONA)),
+                    )
+                raws.map { com.mistbell.tavern.android.util.MacroEngine.render(it, mctx) }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * 更换开场白（聊天界面抽屉）：宏渲染后原位替换首条消息内容。
+     * UI 门禁：仅当会话只剩开场白这一条消息时展示入口——已有对话历史后开场白属于
+     * 既成上下文，不允许改写。
+     */
+    fun swapGreeting(
+        messageId: String,
+        index: Int,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val rendered = greetingOptions.value.getOrNull(index) ?: return@launch
+                val sessionId = _activeSessionId.value
+                if (sessionId.isBlank()) return@launch
+                val entity =
+                    db.messageDao().getById(messageId, sessionId, ownerId) ?: return@launch
+                if (entity.content == rendered) return@launch
+                db.messageDao().upsert(entity.copy(content = rendered))
+            } catch (e: Exception) {
+                _toast.value = "切换开场白失败: ${e.message}"
+            }
+        }
+    }
+
+    // ---- 提示词预览（聊天页「查看提示词」） ----
+
+    // 预览中的提示词分段（null = 未加载）。由 [loadPromptTrace] 填充，抽屉展示时读取
+    private val _promptTrace = MutableStateFlow<PromptTrace?>(null)
+    val promptTrace: StateFlow<PromptTrace?> = _promptTrace.asStateFlow()
+
+    // 本次请求实际生效的采样/请求参数（与真实请求同源：同样经 SettingsRepository.getLlmConfig 解析）
+    private val _promptRequestParams = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val promptRequestParams: StateFlow<List<Pair<String, String>>> = _promptRequestParams.asStateFlow()
+
+    private val _isLoadingPromptTrace = MutableStateFlow(false)
+    val isLoadingPromptTrace: StateFlow<Boolean> = _isLoadingPromptTrace.asStateFlow()
+
+    private val _promptTraceError = MutableStateFlow<String?>(null)
+    val promptTraceError: StateFlow<String?> = _promptTraceError.asStateFlow()
+
+    /**
+     * 装配当前会话的完整提示词（与真实请求同一条代码路径）。
+     *
+     * 用会话里**最后一条用户消息**作为"当前消息"来装配——它是用户下一次发送时的等价输入
+     * （真实请求发生在该消息落库之前，PromptBuilder 会按 currentMessageId 过滤掉已落库的同一条）。
+     */
+    fun loadPromptTrace() {
+        if (_isLoadingPromptTrace.value) return
+        val sessionId = _activeSessionId.value
+        if (sessionId.isBlank()) {
+            _promptTraceError.value = "会话未就绪"
+            return
+        }
+        val characterId = _activeCharacterId.value
+        if (characterId.isBlank()) {
+            _promptTraceError.value = "角色未就绪"
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingPromptTrace.value = true
+            _promptTraceError.value = null
+            try {
+                val lastUserMessage =
+                    db.messageDao().getBySession(sessionId, ownerId).first()
+                        .lastOrNull { it.role == "user" }
+                val groupContext = groupContextFor(sessionId, characterId)
+                _promptTrace.value =
+                    PromptBuilder.buildPromptTrace(
+                        db = db,
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        sessionId = sessionId,
+                        userMessage = lastUserMessage?.content ?: "",
+                        // 已落库的最后一条用户消息需排除，否则预览里会重复出现
+                        currentMessageId = lastUserMessage?.id,
+                        groupContext = groupContext,
+                    )
+                _promptRequestParams.value = describeRequestParams()
+            } catch (e: Exception) {
+                _promptTraceError.value = "提示词装配失败: ${e.message}"
+            } finally {
+                _isLoadingPromptTrace.value = false
+            }
+        }
+    }
+
+    /**
+     * 本次请求实际生效的参数（与真实请求同源：`collectReply` 用的就是 [SettingsRepository.getLlmConfig]）。
+     *
+     * 密钥与 baseUrl 只显示"是否已配置"而不显示内容（隐私）；采样参数按"生效值"呈现，
+     * null 字段标注"未设置（不出现在请求体）"——排查"两次回复差别大"时需要看这一栏。
+     */
+    private suspend fun describeRequestParams(): List<Pair<String, String>> {
+        val config = settingsRepo.getLlmConfig()
+        val streaming = settingsRepo.isStreamingEnabled()
+        val preset = db.settingsDao().getValue("sampling_preset") ?: "balanced"
+
+        fun num(value: Double?): String = value?.toString() ?: "未设置（不发送）"
+        return buildList {
+            add("模型" to config.model.ifBlank { "未配置" })
+            add("接口" to config.baseUrl.ifBlank { "未配置" })
+            add("密钥" to if (config.apiKey.isBlank()) "未配置" else "已配置（${config.apiKey.length} 字符）")
+            add("流式输出" to if (streaming) "开" else "关")
+            add("temperature" to num(config.temperature))
+            add("max_tokens" to config.maxTokens.toString())
+            add("top_p" to num(config.topP))
+            add("top_k" to num(config.topK?.toDouble()))
+            add("frequency_penalty" to num(config.frequencyPenalty))
+            add("采样预设" to preset)
+            add("思考模式" to if (config.disableThinking) "已关闭" else "跟随模型默认（开启）")
+            add("超时/重试" to "${config.timeoutSeconds}s / ${config.retries} 次")
+        }
+    }
+
+    /** 群聊会话才需要说话方上下文；classic 返回 null（与真实请求一致） */
+    private suspend fun groupContextFor(
+        sessionId: String,
+        characterId: String,
+    ): GroupChatContext? {
+        val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return null
+        if (session.mode != SESSION_MODE_GROUP) return null
+        val names =
+            session
+                .participantCharacterIds()
+                .mapNotNull { id -> db.characterDao().getById(id)?.let { id to it.name } }
+                .toMap()
+        return GroupChatContext(speakerNames = names)
+    }
+
+    fun clearPromptTrace() {
+        _promptTrace.value = null
+        _promptTraceError.value = null
+        _promptRequestParams.value = emptyList()
+    }
+
+    /** 复制提示词全文到剪贴板（按 role + 来源分段，便于贴到别处分析） */
+    fun copyPromptTraceText() {
+        val trace = _promptTrace.value ?: return
+        val text =
+            buildString {
+                trace.segments.forEachIndexed { index, segment ->
+                    if (index > 0) appendLine()
+                    appendLine("─── #${index + 1} [${segment.message.role}] ${segment.source} ───")
+                    appendLine(segment.message.content)
+                }
+                appendLine()
+                appendLine("合计约 ${trace.totalEstimatedTokens} tokens（${trace.segments.size} 条消息）")
+            }
+        copyMessage(text)
+    }
+
+    // Provider/Model state（数据源：api_configs 表；默认配置 = 当前生效配置）
+    val apiConfigs: StateFlow<List<ApiConfigEntity>> =
+        db.apiConfigDao()
+            .observeAll()
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val activeModelId: StateFlow<String> =
-        providerRepo.observeActiveModelId()
+        db.apiConfigDao()
+            .observeDefault()
+            .map { it?.model ?: "" }
             .stateIn(viewModelScope, SharingStarted.Lazily, "")
     val activeProviderId: StateFlow<String> =
-        providerRepo.observeActiveProviderId()
+        db.apiConfigDao()
+            .observeDefault()
+            .map { it?.id ?: "" }
             .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
     // World book state
@@ -222,6 +416,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectCharacter(character: Character) {
+        // 切角色即离开当前会话：先抽掉不足一批的记忆抽取尾巴
+        repo.flushPendingMemoryExtractions()
         _currentCharacter.value = character
         currentCharacterId = character.id
         _messages.value = emptyList()
@@ -359,6 +555,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         android.util.Log.d("ChatViewModel", "loadSession called: sessionId=$sessionId, characterId=$characterId")
         android.util.Log.d("ChatViewModel", "Before set: _activeSessionId=${_activeSessionId.value}")
 
+        // 进入新会话前抽掉上一会话不足一批的记忆抽取尾巴（首次进入时缓冲为空，天然 no-op）
+        repo.flushPendingMemoryExtractions()
+
         // 取消之前的观察
         messageObserverJob?.cancel()
         characterObserverJob?.cancel()
@@ -368,6 +567,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         _activeSessionId.value = sessionId
         currentCharacterId = characterId
+        _activeCharacterId.value = characterId
+        // 切换会话即作废上一份提示词预览（内容属于旧会话）
+        _promptTrace.value = null
+        _promptTraceError.value = null
         isSessionExplicitlySet = true
         android.util.Log.d("ChatViewModel", "After set: _activeSessionId=${_activeSessionId.value}")
 
@@ -548,6 +751,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun newChat() {
         val char = _currentCharacter.value ?: return
+        // 开新会话即离开当前会话：先抽掉不足一批的记忆抽取尾巴
+        repo.flushPendingMemoryExtractions()
         viewModelScope.launch {
             try {
                 val sessionId = repo.createSession(ownerId, char.id)
@@ -563,6 +768,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun switchSession(sessionId: String) {
         val char = _currentCharacter.value ?: return
+        // 切会话：先抽掉当前会话不足一批的记忆抽取尾巴
+        repo.flushPendingMemoryExtractions()
         _activeSessionId.value = sessionId
         _messages.value = emptyList()
         startObservingMessages(ownerId, char.id, sessionId)
@@ -570,6 +777,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteSession(sessionId: String) {
         val char = _currentCharacter.value ?: return
+        // 源消息即将删除：丢弃该会话的抽取缓冲（抽出来也只会留下悬空的消息引用）
+        repo.discardPendingMemoryExtractions(sessionId)
         viewModelScope.launch {
             try {
                 repo.deleteSession(ownerId, char.id, sessionId)
@@ -610,7 +819,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         providerId: String,
         modelId: String,
     ) {
-        viewModelScope.launch { providerRepo.setActiveProvider(providerId, modelId) }
+        viewModelScope.launch {
+            val dao = db.apiConfigDao()
+            val config = dao.getById(providerId) ?: return@launch
+            dao.update(config.copy(model = modelId, updatedAt = System.currentTimeMillis()))
+            dao.setDefault(providerId)
+        }
     }
 
     fun switchWorldBook(bookId: String) {
@@ -619,9 +833,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearChat() {
         val char = _currentCharacter.value ?: return
+        val sessionId = _activeSessionId.value
+        // 历史即将清空：丢弃该会话的抽取缓冲（理由同 deleteSession）
+        repo.discardPendingMemoryExtractions(sessionId)
         viewModelScope.launch {
             try {
-                repo.clearConversation(ownerId, char.id, _activeSessionId.value)
+                repo.clearConversation(ownerId, char.id, sessionId)
                 _messages.value = emptyList()
                 // 历史被清空：分页状态一并重置，避免残留已删消息与错误的"到头"标记
                 resetMessageWindowState()
@@ -660,6 +877,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     override fun onCleared() {
+        // 退出聊天页（CHAT 出栈）：抽掉不足一批的记忆抽取尾巴。
+        // flush 走 ChatRepository 独立 backgroundScope，VM 销毁后抽取仍会继续
+        repo.flushPendingMemoryExtractions()
         super.onCleared()
         networkMonitor.stop()
     }
@@ -707,21 +927,26 @@ internal fun resolveMentionTarget(
     content: String,
     participants: List<Character>,
 ): String? {
-    if (!content.startsWith("@")) return null
-    val candidates =
-        participants.mapNotNull { participant ->
-            // trim 语义对齐 parseGroupSpeaker：候选名先 trim，空名不参与匹配
-            val name = participant.name.trim()
-            if (name.isEmpty() || !content.startsWith("@$name")) null else participant to name
+    if (!content.startsWith("@") || participants.isEmpty()) return null
+
+    val tail = content.substring(1)
+    val separatorPattern = "^[\\s\\uFF1A:]".toRegex()
+
+    // 按名字长度降序，保证前缀重叠时最长名字优先
+    val sortedParticipants = participants.sortedByDescending { it.name.trim().length }
+
+    for (character in sortedParticipants) {
+        val name = character.name.trim()
+        if (name.isEmpty()) continue
+
+        if (tail.startsWith(name, ignoreCase = true)) {
+            val afterName = tail.substring(name.length)
+            // @名字 后必须紧跟分隔符（空白/冒号），直接结束或非分隔符字符均不命中
+            if (afterName.isNotEmpty() && afterName.first().toString().matches(separatorPattern)) {
+                return character.id
+            }
         }
-    val (target, name) =
-        candidates.maxByOrNull { (_, name) -> name.length } ?: return null
-    // "@名字" 之后的剩余串：紧跟空白（提及习惯分隔）或 0..n 空白后跟冒号（对齐 parseGroupSpeaker）才算命中
-    val rest = content.substring(name.length + 1)
-    val afterBlank = rest.trimStart().firstOrNull()
-    val matched =
-        rest.firstOrNull()?.isWhitespace() == true ||
-            afterBlank == ':' ||
-            afterBlank == '：'
-    return if (matched) target.id else null
+    }
+
+    return null
 }

@@ -24,12 +24,14 @@ class VectorMemoryService(
      * 向量能力可用性开关
      *
      * 由构造时注入的 embedding 服务决定：
-     * - 真实 API embedding 服务（如 OpenAIEmbeddingService）→ true
-     * - 本地伪向量服务（BM25/Mock 等）→ false
+     * - 真实 API embedding 服务（OpenAIEmbeddingService）→ true
+     * - 本地语义向量（LocalEmbeddingService，F3 ONNX）→ true
+     * - 占位服务（Mock 等）→ false
      *
      * available=false 时调用方应跳过向量写入/检索，改走词法回退（LexicalMemoryService）。
      */
-    val available: Boolean = embeddingService is OpenAIEmbeddingService
+    val available: Boolean =
+        embeddingService is OpenAIEmbeddingService || embeddingService is LocalEmbeddingService
 
     /**
      * 存储消息到向量数据库
@@ -173,6 +175,49 @@ class VectorMemoryService(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete character vectors: ${e.message}", e)
             return 0
+        }
+    }
+
+    /**
+     * 按 messageId 删除向量
+     *
+     * 结构化记忆删除/更新时清理其同步副本（messageId = "structured_memory_<id>"）
+     */
+    suspend fun deleteByMessageId(messageId: String): Int {
+        return try {
+            val deleted = vectorStore.deleteByFilters(mapOf("message_id" to messageId))
+            Log.d(TAG, "Deleted $deleted vectors by messageId: $messageId")
+            deleted
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete vectors by messageId: ${e.message}", e)
+            0
+        }
+    }
+
+    /**
+     * 删除摘要型向量（结构化记忆的同步产物，content_type = summary）
+     *
+     * 随记忆批量删除联动，按 owner/角色/会话范围过滤
+     */
+    suspend fun deleteSummaryVectors(
+        ownerId: String,
+        characterId: String? = null,
+        sessionId: String? = null,
+    ): Int {
+        return try {
+            val filters =
+                mutableMapOf<String, Any>(
+                    "owner_id" to ownerId,
+                    "content_type" to "summary",
+                )
+            characterId?.let { filters["character_id"] = it }
+            sessionId?.let { filters["session_id"] = it }
+            val deleted = vectorStore.deleteByFilters(filters)
+            Log.d(TAG, "Deleted $deleted summary vectors (owner=$ownerId, character=$characterId, session=$sessionId)")
+            deleted
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete summary vectors: ${e.message}", e)
+            0
         }
     }
 

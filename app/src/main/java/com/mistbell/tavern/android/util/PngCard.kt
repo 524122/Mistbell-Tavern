@@ -17,6 +17,9 @@ import java.util.zip.CRC32
 object PngCard {
     const val CHUNK_KEYWORD = "chara"
 
+    // 酒馆 v3 / CCv3 卡部分导出器改用 ccv3 关键字（值为 base64(v3 卡片 JSON)）
+    const val CHUNK_KEYWORD_V3 = "ccv3"
+
     private val PNG_SIGNATURE =
         byteArrayOf(
             0x89.toByte(),
@@ -29,35 +32,88 @@ object PngCard {
             0x0A,
         )
 
-    /** 读取指定关键字的 tEXt chunk 文本（Latin-1）；无则返回 null；非 PNG/结构损坏抛 IllegalArgumentException */
+    /**
+     * 读取埋卡 chunk 文本：tEXt 直读，zTXt 按 deflate 解压。
+     * 扫描全部 chunk，关键字匹配 [keyword] 或 [CHUNK_KEYWORD_V3]；
+     * 与酒馆读取行为对齐：ccv3 优先、[keyword] 兜底，与 chunk 在文件中的先后顺序无关。
+     * 无匹配返回 null；非 PNG/结构损坏抛 IllegalArgumentException
+     */
     fun readTextChunk(
         png: ByteArray,
         keyword: String = CHUNK_KEYWORD,
     ): String? {
         requireSignature(png)
+        val accepted = setOf(keyword, CHUNK_KEYWORD_V3)
         var offset = PNG_SIGNATURE.size
-        var result: String? = null
+        var v3Match: String? = null
+        var keywordMatch: String? = null
         while (offset + 8 <= png.size) {
             val length = readU32(png, offset)
             val type = String(png, offset + 4, 4, Charsets.US_ASCII)
             val dataStart = offset + 8
             val dataEnd = dataStart + length
             if (dataEnd + 4 > png.size) throw IllegalArgumentException("PNG chunk 结构损坏（length 越界）")
-            if (type == "tEXt" && result == null) {
-                val data = png.copyOfRange(dataStart, dataEnd)
-                val zero = data.indexOf(0)
-                if (zero > 0) {
-                    val kw = String(data, 0, zero, Charsets.ISO_8859_1)
-                    if (kw == keyword) {
-                        result = String(data, zero + 1, data.size - zero - 1, Charsets.ISO_8859_1)
+            if (type == "tEXt" || type == "zTXt") {
+                val text = decodeTextChunk(png.copyOfRange(dataStart, dataEnd), type)
+                if (text != null && text.first in accepted) {
+                    if (text.first == CHUNK_KEYWORD_V3) {
+                        if (v3Match == null) v3Match = text.second
+                    } else if (keywordMatch == null) {
+                        keywordMatch = text.second
                     }
                 }
             }
             if (type == "IEND") break
             offset = dataEnd + 4 // 跳过 crc
         }
-        return result
+        return v3Match ?: keywordMatch
     }
+
+    /** 解析 tEXt/zTXt 块数据为 (关键字, 文本)；zTXt 压缩方法字节非 0 或解压失败返回 null */
+    private fun decodeTextChunk(
+        data: ByteArray,
+        type: String,
+    ): Pair<String, String>? {
+        val zero = data.indexOf(0)
+        val kw = if (zero > 0) String(data, 0, zero, Charsets.ISO_8859_1) else return null
+        return when (type) {
+            "tEXt" -> kw to String(data, zero + 1, data.size - zero - 1, Charsets.ISO_8859_1)
+            "zTXt" -> {
+                // 布局：关键字\0 压缩方法(1 字节，0=deflate) 压缩文本
+                val inflated =
+                    if (zero + 1 < data.size && data[zero + 1].toInt() == 0) {
+                        inflateOrNull(data, zero + 2)
+                    } else {
+                        null
+                    }
+                inflated?.let { kw to String(it, Charsets.ISO_8859_1) }
+            }
+            else -> null
+        }
+    }
+
+    private fun inflateOrNull(
+        data: ByteArray,
+        offset: Int,
+    ): ByteArray? =
+        try {
+            val inflater = java.util.zip.Inflater()
+            inflater.setInput(data, offset, data.size - offset)
+            val out = java.io.ByteArrayOutputStream()
+            val buf = ByteArray(INFLATE_BUFFER_SIZE)
+            // inflate 返回 0 即输入耗尽（完成或损坏），跳出防死循环
+            while (!inflater.finished()) {
+                val n = inflater.inflate(buf)
+                if (n <= 0) break
+                out.write(buf, 0, n)
+            }
+            inflater.end()
+            out.toByteArray()
+        } catch (_: Exception) {
+            null
+        }
+
+    private const val INFLATE_BUFFER_SIZE = 8192
 
     /**
      * 在 IEND 前插入（或替换同关键字）tEXt chunk，返回新 PNG 字节。
@@ -74,8 +130,8 @@ object PngCard {
         require(keyword.all { it.code <= 0xFF } && text.all { it.code <= 0xFF }) {
             "tEXt 仅支持 Latin-1/ASCII 文本；卡片 JSON 请先 PngCard.encodeCardJson 转 base64"
         }
-        // 先剔除同关键字的既有 tEXt（重复导入/再导出时保持单块）
-        val cleaned = removeAllTextChunks(png, keyword)
+        // 先剔除同关键字的既有埋卡块（tEXt/zTXt 均查；重复导入/再导出时保持单块）
+        val cleaned = removeAllCardChunks(png, keyword)
         // 找到 IEND 起始偏移
         var offset = PNG_SIGNATURE.size
         var iendOffset = -1
@@ -132,22 +188,23 @@ object PngCard {
 
     // ---- 内部 ----
 
-    private fun removeAllTextChunks(
+    private fun removeAllCardChunks(
         png: ByteArray,
         keyword: String,
     ): ByteArray {
         val out = java.io.ByteArrayOutputStream()
         out.write(png, 0, PNG_SIGNATURE.size)
         var offset = PNG_SIGNATURE.size
+        val dropKeywords = setOf(keyword, CHUNK_KEYWORD_V3)
         while (offset + 8 <= png.size) {
             val length = readU32(png, offset)
             val type = String(png, offset + 4, 4, Charsets.US_ASCII)
             val chunkEnd = offset + 8 + length + 4
-            if (type == "tEXt") {
+            if (type == "tEXt" || type == "zTXt") {
                 val data = png.copyOfRange(offset + 8, offset + 8 + length)
                 val zero = data.indexOf(0)
                 val kw = if (zero > 0) String(data, 0, zero, Charsets.ISO_8859_1) else ""
-                if (kw != keyword) out.write(png, offset, chunkEnd - offset) // 保留无关 tEXt
+                if (kw !in dropKeywords) out.write(png, offset, chunkEnd - offset) // 保留无关文本块
             } else {
                 out.write(png, offset, chunkEnd - offset)
             }

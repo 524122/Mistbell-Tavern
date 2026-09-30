@@ -11,6 +11,9 @@ import java.io.InputStream
 import kotlin.math.min
 
 object ImageUtils {
+    /** 头像 JPEG 压缩质量（与编辑器选图一致） */
+    private const val AVATAR_ENCODE_QUALITY = 85
+
     /**
      * 从 URI 加载并处理图片
      * @param context Android Context
@@ -22,7 +25,8 @@ object ImageUtils {
     fun processImage(
         context: Context,
         uri: Uri,
-        maxSize: Int = 0, // 改为0表示不缩放，保留原图
+        // 改为0表示不缩放，保留原图
+        maxSize: Int = 0,
         quality: Int = 85,
     ): String? {
         return try {
@@ -252,6 +256,47 @@ object ImageUtils {
         }
         // 空载荷同样视为无效：takeIf 统一收敛为单一返回出口
         return payload.takeIf { it.isNotEmpty() }
+    }
+
+    /**
+     * 将图片字节编码为头像 data URI（带 data:image/jpeg;base64, 前缀）。
+     * 按 maxDimPx 边界采样降采样后 JPEG 压缩——PNG 埋卡导入时卡片 JSON 通常不内嵌头像，
+     * 以 PNG 图像本体补头像；上限取 1280px 是因聊天页整屏背景也复用 avatarData。
+     */
+    fun bytesToAvatarDataUri(
+        bytes: ByteArray,
+        maxDimPx: Int,
+    ): String? {
+        val bitmap = decodeSampledOrNull(bytes, maxDimPx)
+        return bitmap?.let {
+            val dataUri = bitmapToBase64(it, AVATAR_ENCODE_QUALITY)
+            it.recycle()
+            dataUri
+        }
+    }
+
+    /** 边界采样解码字节位图；非图片字节或解码失败记日志返回 null */
+    private fun decodeSampledOrNull(
+        bytes: ByteArray,
+        maxDimPx: Int,
+    ): Bitmap? {
+        return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                android.util.Log.e("ImageUtils", "Invalid image bytes for avatar encoding")
+                null
+            } else {
+                val options =
+                    BitmapFactory.Options().apply {
+                        inSampleSize = calcInSampleSize(bounds.outWidth, bounds.outHeight, maxDimPx)
+                    }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ImageUtils", "Error decoding sampled bitmap for avatar", e)
+            null
+        }
     }
 
     /**

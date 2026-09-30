@@ -146,11 +146,11 @@ fun MessageBubble(
                             .padding(horizontal = 20.dp, vertical = 14.dp),
                 ) {
                     if (isUser) {
-                        Text(
-                            text = message.content,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = cardTextColor,
-                            lineHeight = 22.sp,
+                        // 用户消息也使用 MarkdownRenderer 以支持语义高亮（引号、括号变色）
+                        MarkdownRenderer(
+                            content = message.content,
+                            dark = dark,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         MarkdownRenderer(

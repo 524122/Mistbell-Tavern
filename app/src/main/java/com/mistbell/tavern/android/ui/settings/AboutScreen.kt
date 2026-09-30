@@ -3,28 +3,33 @@ package com.mistbell.tavern.android.ui.settings
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mistbell.tavern.android.BuildConfig
+import com.mistbell.tavern.android.ui.common.ModernSettingsGroup
+import com.mistbell.tavern.android.ui.common.ModernSettingsItem
+import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionNaming", "LongMethod") // Compose 屏幕级组件的既有形态（原由 detekt 基线吸收）
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
@@ -48,34 +53,7 @@ fun AboutScreen(
                 .fillMaxSize()
                 .clearFocusOnTap(),
         topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-            ) {
-                Column(modifier = Modifier.statusBarsPadding()) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(64.dp)
-                                .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "返回",
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                        Text(
-                            text = "关于",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
+            ModernTopBar(title = "关于", onBack = onBack)
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
@@ -84,29 +62,62 @@ fun AboutScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(vertical = 8.dp),
         ) {
-            // 应用信息卡片
+            // 应用信息头图
             item { AppInfoCard() }
 
             // 项目信息分组
-            item { SectionTitle("项目信息") }
             item {
-                ProjectInfoCard(
-                    onNavigateToRepo = {
-                        openUrl("https://gitee.com/Wan2010/LonngMemoryAIChat")
-                    },
-                )
+                ModernSettingsGroup(title = "项目信息") {
+                    ModernSettingsItem(
+                        title = "Gitee 仓库",
+                        subtitle = "查看源代码",
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                        onClick = {
+                            openUrl("https://gitee.com/Wan2010/LonngMemoryAIChat")
+                        },
+                    )
+                    ModernSettingsItem(
+                        title = "开发者",
+                        subtitle = "Wan",
+                        icon = Icons.Default.Person,
+                    )
+                }
             }
 
             // 技术信息分组
-            item { SectionTitle("技术信息") }
-            item { TechInfoCard() }
+            item {
+                ModernSettingsGroup(title = "技术信息") {
+                    ModernSettingsItem(
+                        title = "开发框架",
+                        subtitle = "Kotlin + Jetpack Compose",
+                        icon = Icons.Default.Code,
+                    )
+                    ModernSettingsItem(
+                        title = "设计系统",
+                        subtitle = "Material Design 3",
+                        icon = Icons.Default.Palette,
+                    )
+                    ModernSettingsItem(
+                        title = "支持版本",
+                        subtitle = "Android 8.0+",
+                        icon = Icons.Default.PhoneAndroid,
+                    )
+                }
+            }
 
-            // 更多功能
-            item { SectionTitle("更多") }
-            item { MoreActionsCard(onCheckUpdate = onNavigateToVersionChangelog) }
+            // 更多操作分组
+            item {
+                ModernSettingsGroup(title = "更多") {
+                    ModernSettingsItem(
+                        title = "检查更新",
+                        subtitle = "查看版本更新日志",
+                        icon = Icons.Default.Refresh,
+                        onClick = onNavigateToVersionChangelog,
+                    )
+                }
+            }
 
             // 底部留白
             item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -116,12 +127,15 @@ fun AboutScreen(
 
 @Composable
 private fun AppInfoCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+        tonalElevation = 1.dp,
     ) {
         Column(
             modifier =
@@ -171,163 +185,4 @@ private fun AppInfoCard() {
             )
         }
     }
-}
-
-@Composable
-private fun ProjectInfoCard(onNavigateToRepo: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Gitee 仓库（可点击）
-            Surface(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onNavigateToRepo),
-                color = Color.Transparent,
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(
-                            text = "Gitee 仓库",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            text = "查看源代码",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "跳转",
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            // 开发者信息
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "开发者",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Wan",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TechInfoCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            InfoRow("开发框架", "Kotlin + Jetpack Compose")
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            InfoRow("设计系统", "Material Design 3")
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            InfoRow("支持版本", "Android 8.0+")
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(
-    label: String,
-    value: String,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun MoreActionsCard(onCheckUpdate: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
-    ) {
-        Surface(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onCheckUpdate),
-            color = Color.Transparent,
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "检查更新",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "跳转",
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-    )
 }

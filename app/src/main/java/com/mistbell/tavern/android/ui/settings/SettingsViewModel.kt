@@ -5,16 +5,24 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ApiClient
-import com.mistbell.tavern.android.data.api.LlmClient
 import com.mistbell.tavern.android.data.api.LlmConfig
+import com.mistbell.tavern.android.data.repository.BackupManager
+import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.SettingsRepository
+import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MAX
+import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MIN
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        // stateIn 订阅超时：与全仓 ViewModel 的 WhileSubscribed(5000) 同值，收敛为具名常量
+        private const val SUBSCRIBE_TIMEOUT_MS = 5000L
+    }
+
     private val repo = SettingsRepository(application)
-    private val db get() = TavernApplication.instance.database
+    private val db get() = TavernApplication.instance.container.database
 
     private val _llmConfig = MutableStateFlow(LlmConfig())
     val llmConfig: StateFlow<LlmConfig> = _llmConfig
@@ -33,6 +41,69 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _memoryExtractionPrompt = MutableStateFlow("")
     val memoryExtractionPrompt: StateFlow<String> = _memoryExtractionPrompt
+
+    // --- S2 向量记忆召回设置（键解析实现收敛到 ChatSettingsResolver） ---
+    // 源：auto（默认，有 key 走 API）/ api / local（本地 ONNX，实验性）
+    val embeddingSource: StateFlow<String> =
+        db.settingsDao()
+            .observeValue("embedding_source")
+            .map { it ?: "auto" }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), "auto")
+
+    val memoryRecallTopK: StateFlow<Int> =
+        db.settingsDao()
+            .observeValue("memory_recall_top_k")
+            .map { ChatSettingsResolver.memoryRecallTopK(it) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS),
+                ChatSettingsResolver.DEFAULT_RECALL_TOP_K,
+            )
+
+    val memorySimilarityThreshold: StateFlow<Float> =
+        db.settingsDao()
+            .observeValue("memory_similarity_threshold")
+            .map { ChatSettingsResolver.memorySimilarityThreshold(it) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS),
+                ChatSettingsResolver.DEFAULT_SIMILARITY_THRESHOLD,
+            )
+
+    // --- 提示词模板（全局 KV，明文存储；空值语义见各 resolver） ---
+    //
+    // 用 observeValue + stateIn 而不是一次性 getValue：备份恢复或别处改写后，编辑对话框能实时同步。
+    // 这四项都**展示原始存储值**（未设置即空串），默认值在消费端（ChatSettingsResolver）与副标题里说明——
+    // 若在这里回填默认值，用户一保存就会把默认文本固化成显式值，默认值日后调整将不再生效。
+
+    val mainPromptSetting: StateFlow<String> = observeTextSetting(ChatSettingsResolver.KEY_MAIN_PROMPT)
+
+    val userNameSetting: StateFlow<String> = observeTextSetting(ChatSettingsResolver.KEY_USER_NAME)
+
+    val userPersonaSetting: StateFlow<String> = observeTextSetting(ChatSettingsResolver.KEY_USER_PERSONA)
+
+    val groupChatRulesSetting: StateFlow<String> = observeTextSetting(ChatSettingsResolver.KEY_GROUP_CHAT_RULES)
+
+    private fun observeTextSetting(key: String): StateFlow<String> =
+        db.settingsDao()
+            .observeValue(key)
+            .map { it.orEmpty() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), "")
+
+    /**
+     * 保存提示词类设置（四个键共用）。明文存储，自动纳入备份（BackupManager 整表导出 settings）。
+     * 存空串 = 恢复"未设置"语义（主提示词/人设不注入、群聊规范回落内置默认）。
+     */
+    fun saveTextSetting(
+        key: String,
+        value: String,
+        savedMessage: String,
+    ) {
+        viewModelScope.launch {
+            db.settingsDao().upsert(com.mistbell.tavern.android.data.local.entity.SettingsEntity(key, value))
+            _message.value = savedMessage
+        }
+    }
 
     // --- 对话生成设置（KV 缺省值：流式开 / 上下文 4096 / 长期记忆默认关） ---
     private val _streamingEnabled = MutableStateFlow(true)
@@ -122,7 +193,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         viewModelScope.launch {
             db.settingsDao().observeValue("default_context_tokens")
-                .map { it?.toIntOrNull() ?: 4096 }
+                .map { (it?.toIntOrNull() ?: 4096).coerceIn(CONTEXT_TOKEN_MIN, CONTEXT_TOKEN_MAX) }
                 .collect { _defaultContextTokens.value = it }
         }
         viewModelScope.launch {
@@ -142,11 +213,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setDefaultContextTokens(n: Int) {
+        val v = n.coerceIn(CONTEXT_TOKEN_MIN, CONTEXT_TOKEN_MAX)
         viewModelScope.launch {
             db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity("default_context_tokens", n.toString()),
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("default_context_tokens", v.toString()),
             )
-            _defaultContextTokens.value = n
+            _defaultContextTokens.value = v
         }
     }
 
@@ -193,63 +265,83 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun updateLlmConfig(config: LlmConfig) {
+    fun clearMessage() {
+        _message.value = null
+    }
+
+    // --- S2 向量记忆设置写入口 ---
+
+    fun setEmbeddingSource(source: String) {
         viewModelScope.launch {
-            repo.saveLlmConfig(config)
-            _llmConfig.value = config
-            _message.value = "LLM 配置已保存"
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity("embedding_source", source),
+            )
         }
     }
 
-    fun testLlmConnection() {
+    fun setMemoryRecallTopK(value: Int) {
+        val normalized =
+            value.coerceIn(
+                ChatSettingsResolver.RECALL_TOP_K_MIN,
+                ChatSettingsResolver.RECALL_TOP_K_MAX,
+            )
         viewModelScope.launch {
-            _isLoading.value = true
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
+                    "memory_recall_top_k",
+                    normalized.toString(),
+                ),
+            )
+        }
+    }
+
+    fun setMemorySimilarityThreshold(value: Float) {
+        val normalized =
+            value.coerceIn(
+                ChatSettingsResolver.SIMILARITY_THRESHOLD_MIN,
+                ChatSettingsResolver.SIMILARITY_THRESHOLD_MAX,
+            )
+        viewModelScope.launch {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
+                    "memory_similarity_threshold",
+                    normalized.toString(),
+                ),
+            )
+        }
+    }
+
+    // --- 数据（S4 全量备份/恢复） ---
+    fun createBackup(uri: android.net.Uri) {
+        viewModelScope.launch {
             try {
-                val config = _llmConfig.value
-                val ok = LlmClient.testConnection(config)
-                _message.value = if (ok) "连接成功" else "连接失败，请检查配置"
+                _isLoading.value = true
+                val summary = BackupManager(getApplication()).exportToUri(uri)
+                _message.value = "备份完成：已导出 ${summary.totalAdded} 项数据"
             } catch (e: Exception) {
-                _message.value = "连接失败: ${e.message}"
+                android.util.Log.e("Settings", "Backup export failed", e)
+                _message.value = e.message ?: "备份失败"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun updateTemperature(temperature: Double) {
+    fun restoreBackup(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
-                repo.updateTemperature(temperature)
-                _llmConfig.value = _llmConfig.value.copy(temperature = temperature)
-                _settings.value = repo.observeSettings().first() as? JsonObject
-                _message.value = "温度已更新"
+                _isLoading.value = true
+                val summary = BackupManager(getApplication()).restoreFromUri(uri)
+                _message.value =
+                    "恢复完成：合并 ${summary.totalAdded} 项" +
+                    (if (summary.totalSkipped > 0) "（跳过已存在 ${summary.totalSkipped} 项）" else "")
             } catch (e: Exception) {
-                _message.value = "更新失败: ${e.message}"
+                android.util.Log.e("Settings", "Backup restore failed", e)
+                _message.value = e.message ?: "恢复失败"
+            } finally {
+                _isLoading.value = false
             }
         }
-    }
-
-    fun updateMaxTokens(maxTokens: Int) {
-        viewModelScope.launch {
-            try {
-                repo.updateMaxTokens(maxTokens)
-                _llmConfig.value = _llmConfig.value.copy(maxTokens = maxTokens)
-                _settings.value = repo.observeSettings().first() as? JsonObject
-                _message.value = "最大 Token 已更新"
-            } catch (e: Exception) {
-                _message.value = "更新失败: ${e.message}"
-            }
-        }
-    }
-
-    fun updateServerUrl(url: String) {
-        ApiClient.setServerUrl(getApplication(), url)
-        loadSettings()
-        _message.value = "服务器地址已更新"
-    }
-
-    fun clearMessage() {
-        _message.value = null
     }
 
     private fun loadMemoryExtractionPrompt() {
@@ -391,6 +483,50 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
+            com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.0-beta",
+                versionCode = 11,
+                releaseDate = "2026-09-26",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "本地语义向量：内置 bge-small-zh 模型（ONNX），无需 API Key 即可使用真正的语义记忆召回",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "向量记忆设置：记忆源三档（自动/API/本地 ONNX）、召回条数与相似度阈值可调",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "安装包按 CPU 架构分包（arm64 约 53MB），不再被无关架构拖大",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.8.0-beta",
+                versionCode = 10,
+                releaseDate = "2026-09-26",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "全量备份/恢复：角色、会话、记忆、设置与主题包打包为单个 zip；合并恢复不删本地数据",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "首启引导：新用户三步上手（内置示例角色一键导入 + API Key 图文指引），全部步骤可跳过",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "会话设置三态化：上下文长度/长期记忆支持「跟随全局」，全局默认改动对存量会话真正生效",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "LLM 配置双源真相根修：采样预设/超时/重试设置此前对实际聊天请求不生效",
+                        ),
+                    ),
+            ),
             com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.7.0-beta",
                 versionCode = 9,

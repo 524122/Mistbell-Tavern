@@ -2,51 +2,31 @@ package com.mistbell.tavern.android.ui.character
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.data.api.model.Character
-import com.mistbell.tavern.android.ui.common.rememberBitmap
-import com.mistbell.tavern.android.util.CharacterExportFormat
-import com.mistbell.tavern.android.util.CharacterExportResult
-import com.mistbell.tavern.android.util.CharacterExporter
-import kotlin.math.absoluteValue
+import com.mistbell.tavern.android.ui.common.ModernTopBar
+import com.mistbell.tavern.android.ui.components.EmptyStateView
+import com.mistbell.tavern.android.ui.components.SearchBar
 
-// 列表头像显示尺寸小（56dp），256px 解码上限已足够清晰，
-// 无需整图解码原始分辨率的 base64 头像
-private const val AVATAR_MAX_DIM_PX = 256
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Suppress("FunctionNaming", "LongMethod") // Compose 屏幕级组件的既有形态（原由 detekt 基线吸收）
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterListScreen(
     viewModel: CharacterListViewModel =
@@ -83,6 +63,25 @@ fun CharacterListScreen(
             }
         }
 
+    // 批量导入：选酒馆数据文件夹 → 递归扫描角色卡+世界书（已存在的按新版本更新，不重复导入）
+    val isBatchImporting by viewModel.isBatchImporting.collectAsState()
+    val batchImportReport by viewModel.batchImportReport.collectAsState()
+    val folderImportLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            uri?.let {
+                // 取持久读授权：导入中途切后台/Activity 重建不丢文档树访问权
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+                viewModel.importFromFolder(it)
+            }
+        }
+
     val fabRotation by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (fabExpanded) 45f else 0f,
         animationSpec =
@@ -100,68 +99,53 @@ fun CharacterListScreen(
         }
     }
 
+    // 批量导入结果报告：计数 + 可滚动明细（同名/跳过/失败）
+    batchImportReport?.let { report ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearBatchImportReport() },
+            title = { Text("批量导入完成") },
+            text = {
+                Column(
+                    modifier =
+                        Modifier
+                            .heightIn(max = 400.dp)
+                            .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("角色：新增 ${report.createdCharacters}，更新 ${report.updatedCharacters}")
+                    Text("世界书：新增 ${report.createdBooks}，更新 ${report.updatedBooks}")
+                    if (report.skippedSprites > 0) {
+                        Text("跳过无埋卡图片 ${report.skippedSprites} 张（立绘/表情差分）")
+                    }
+                    SyncReportSection("同名跳过（先到先得）", report.duplicateNames)
+                    SyncReportSection("跳过文件", report.skippedFiles)
+                    SyncReportSection("失败文件", report.failedFiles)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearBatchImportReport() }) {
+                    Text("确定")
+                }
+            },
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier,
         topBar = {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .statusBarsPadding(),
-            ) {
-                // Top app bar
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "角色",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    },
-                    navigationIcon = {
-                        if (showTopBarBackButton) {
-                            IconButton(onClick = onBack) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowBack,
-                                    contentDescription = "返回",
-                                )
-                            }
-                        }
-                    },
-                    colors =
-                        TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ModernTopBar(
+                    title = "角色",
+                    subtitle = "管理你的角色",
+                    onBack = if (showTopBarBackButton) onBack else null,
                 )
-
-                // Search bar
-                OutlinedTextField(
+                SearchBar(
                     value = searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = {
-                        Text("搜索角色名称或设置")
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "搜索",
-                        )
-                    },
-                    shape = RoundedCornerShape(28.dp),
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        ),
-                    singleLine = true,
+                    placeholder = "搜索角色名称或设置",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
         },
@@ -180,6 +164,37 @@ fun CharacterListScreen(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        // Batch import button with label（酒馆数据文件夹：角色卡 PNG + 世界书 JSON 一批导入）
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(8.dp),
+                                shadowElevation = 2.dp,
+                            ) {
+                                Text(
+                                    text = "批量导入（酒馆文件夹）",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
+                            SmallFloatingActionButton(
+                                onClick = {
+                                    fabExpanded = false
+                                    if (!isBatchImporting) folderImportLauncher.launch(null)
+                                },
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ) {
+                                Icon(
+                                    Icons.Default.Folder,
+                                    contentDescription = "批量导入（酒馆文件夹）",
+                                )
+                            }
+                        }
+
                         // Import button with label
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -199,7 +214,8 @@ fun CharacterListScreen(
                             SmallFloatingActionButton(
                                 onClick = {
                                     fabExpanded = false
-                                    importLauncher.launch("application/json")
+                                    // "*/*"：JSON 卡与 PNG 埋卡都要可选；MIME 过滤交给导入器双路嗅探
+                                    importLauncher.launch("*/*")
                                 },
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -260,63 +276,30 @@ fun CharacterListScreen(
         },
     ) { paddingValues ->
         if (filteredCharacters.isEmpty()) {
-            // Empty state
-            Box(
+            EmptyStateView(
+                icon = "🎭",
+                title = if (searchQuery.isBlank()) "还没有角色" else "没有找到角色",
+                subtitle = if (searchQuery.isBlank()) "点击右下角 + 创建第一个角色" else "试试其他搜索词",
                 modifier =
                     Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = "😊",
-                        fontSize = 64.sp,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = if (searchQuery.isBlank()) "还没有角色" else "没有找到角色",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (searchQuery.isBlank()) "点击+创建第一个角色" else "试试其他搜索词",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            )
         } else {
             LazyColumn(
                 modifier =
                     Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(filteredCharacters, key = { it.id }) { character ->
-                    CharacterCardItem(
+                    ModernCharacterCard(
                         character = character,
-                        isPinned = pinnedCharacterIds.contains(character.id),
-                        sessionCount = sessionCounts[character.id] ?: 0,
                         onClick = { onCharacterClick(character) },
-                        onEdit = { onEditCharacter(character.id) },
-                        onDelete = { viewModel.deleteCharacter(character.id) },
-                        onTogglePin = { viewModel.togglePin(character.id) },
-                        onCopy = { viewModel.copyCharacter(context, character) },
-                        onExport = { format, fileName, onDone ->
-                            viewModel.exportCharacter(
-                                context = context,
-                                character = character,
-                                format = format,
-                                fileName = fileName,
-                                onComplete = onDone,
-                            )
-                        },
+                        onLongClick = { /* 待实现：显示操作菜单 */ },
+                        isSelected = false,
                     )
                 }
             }
@@ -324,403 +307,29 @@ fun CharacterListScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+/** 同步报告明细小节：空列表不渲染；超 50 条截断并提示总数 */
 @Composable
-fun CharacterCardItem(
-    character: Character,
-    isPinned: Boolean = false,
-    sessionCount: Int = 0,
-    onClick: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onExport: (CharacterExportFormat, String, (CharacterExportResult?) -> Unit) -> Unit,
-    onTogglePin: () -> Unit = {},
-    onCopy: () -> Unit = {},
+private fun SyncReportSection(
+    title: String,
+    lines: List<String>,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    var showBottomSheet by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var showExportDialog by remember { mutableStateOf(false) }
-    var exportFormat by remember { mutableStateOf(CharacterExportFormat.JSON) }
-    var exportFileName by remember { mutableStateOf("") }
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showBottomSheet = true },
-                ),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            ),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            // Avatar
-            Box(
-                modifier =
-                    Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(parseCharacterColor(character.color)),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (character.avatarData.isNotBlank()) {
-                    // 异步采样解码 + LRU 缓存：缓存同步命中直接显示，避免滚动列表时每张头像
-                    // 在组合线程上同步整图解码造成卡顿/闪烁
-                    val bitmap = rememberBitmap(character.avatarData, AVATAR_MAX_DIM_PX)
-
-                    if (bitmap != null) {
-                        androidx.compose.foundation.Image(
-                            bitmap = bitmap,
-                            contentDescription = character.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        )
-                    } else {
-                        // Fallback to emoji if bitmap parsing fails
-                        Text(
-                            text = getCharacterEmoji(character.name),
-                            fontSize = 28.sp,
-                        )
-                    }
-                } else {
-                    Text(
-                        text = getCharacterEmoji(character.name),
-                        fontSize = 28.sp,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Content
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Text(
-                        text = character.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (isPinned) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            Icons.Default.PushPin,
-                            contentDescription = "置顶",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "$sessionCount 对话",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                if (character.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = character.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                // Tags from personality
-                if (character.personality.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        val tags = extractPersonalityTags(character.personality)
-                        items(tags.take(3)) { tag ->
-                            SuggestionChip(
-                                onClick = { },
-                                label = {
-                                    Text(
-                                        text = tag,
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                },
-                                colors =
-                                    SuggestionChipDefaults.suggestionChipColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    ),
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Long-press bottom sheet
-            if (showBottomSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { showBottomSheet = false },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 32.dp),
-                    ) {
-                        // Pin/Unpin
-                        ListItem(
-                            headlineContent = { Text(if (isPinned) "取消置顶" else "置顶") },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.PushPin,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            },
-                            modifier =
-                                Modifier.clickable {
-                                    showBottomSheet = false
-                                    onTogglePin()
-                                },
-                        )
-
-                        // Edit
-                        ListItem(
-                            headlineContent = { Text("编辑") },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            },
-                            modifier =
-                                Modifier.clickable {
-                                    showBottomSheet = false
-                                    onEdit()
-                                },
-                        )
-
-                        // Copy
-                        ListItem(
-                            headlineContent = { Text("复制") },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            },
-                            modifier =
-                                Modifier.clickable {
-                                    showBottomSheet = false
-                                    onCopy()
-                                },
-                        )
-
-                        // Export
-                        ListItem(
-                            headlineContent = { Text("导出") },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.FileUpload,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            },
-                            modifier =
-                                Modifier.clickable {
-                                    showBottomSheet = false
-                                    exportFormat = CharacterExportFormat.JSON
-                                    exportFileName =
-                                        CharacterExporter.buildFileName(
-                                            character.name,
-                                            character.id,
-                                            CharacterExportFormat.JSON.extension,
-                                        )
-                                    showExportDialog = true
-                                },
-                        )
-
-                        HorizontalDivider()
-
-                        // Delete
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    "删除",
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(24.dp),
-                                )
-                            },
-                            modifier =
-                                Modifier.clickable {
-                                    showBottomSheet = false
-                                    showDeleteDialog = true
-                                },
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // Delete confirmation dialog
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除角色") },
-            text = { Text("确定删除「${character.name}」？此操作不可撤销。") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete()
-                    },
-                ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
-                }
-            },
+    if (lines.isEmpty()) return
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    lines.take(50).forEach { line ->
+        Text(
+            text = "• $line",
+            style = MaterialTheme.typography.bodySmall,
         )
     }
-
-    if (showExportDialog) {
-        AlertDialog(
-            onDismissRequest = { showExportDialog = false },
-            title = { Text("导出角色") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "格式",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CharacterExportFormat.entries.forEach { format ->
-                            FilterChip(
-                                selected = exportFormat == format,
-                                onClick = {
-                                    exportFormat = format
-                                    exportFileName =
-                                        CharacterExporter.buildFileName(
-                                            character.name,
-                                            character.id,
-                                            format.extension,
-                                        )
-                                },
-                                label = { Text(format.label) },
-                            )
-                        }
-                    }
-                    OutlinedTextField(
-                        value = exportFileName,
-                        onValueChange = { exportFileName = it },
-                        label = { Text("文件名") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        text = "保存到：${CharacterExporter.displayLocation(exportFileName)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val finalName =
-                            exportFileName.trim().ifBlank {
-                                CharacterExporter.buildFileName(character.name, character.id, exportFormat.extension)
-                            }
-                        showExportDialog = false
-                        onExport(exportFormat, finalName) { }
-                    },
-                ) {
-                    Text("保存")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text("取消")
-                }
-            },
+    if (lines.size > 50) {
+        Text(
+            text = "…共 ${lines.size} 条",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-private fun parseCharacterColor(colorString: String): Color {
-    return try {
-        Color(android.graphics.Color.parseColor(colorString))
-    } catch (e: Exception) {
-        Color(0xFF6750A4) // Material primary as fallback
-    }
-}
-
-private fun getCharacterEmoji(name: String): String {
-    val emojiMap =
-        mapOf(
-            "米拉" to "❄️",
-            "个男人的女性修仙界" to "🌍",
-            "Seraphina" to "👩",
-            "酒馆旧梦" to "🍷",
-            "奇幻世界观测试" to "🌏",
-            "米拉・新对话" to "✨",
-            "咖啡店里的雨夜" to "☔",
-            "赛博城边缘" to "🏙️",
-            "空白角色" to "✨",
-            "世界观察者" to "🌏",
-        )
-
-    return emojiMap[name] ?: run {
-        val hash = name.hashCode()
-        val emojis =
-            listOf(
-                "🌟", "🎭", "🎨", "🎪", "🎯", "🎲", "🎵", "🎸", "🎹", "🎺",
-                "🎻", "🎼", "🎾", "🎿", "🏀", "🏈", "🏉", "🏊", "🏋️", "🌸",
-                "🌺", "🌻", "🌼", "🌷", "🌹", "🥀", "🌾", "🍀", "🍁", "🍂",
-            )
-        emojis[hash.absoluteValue % emojis.size]
-    }
-}
-
-private fun extractPersonalityTags(personality: String): List<String> {
-    return personality
-        .split(Regex("[,，、；;]"))
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
 }

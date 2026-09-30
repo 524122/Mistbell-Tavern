@@ -5,13 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
-import com.mistbell.tavern.android.data.api.model.ProviderConfig
 import com.mistbell.tavern.android.data.api.model.SESSION_MODE_CLASSIC
 import com.mistbell.tavern.android.data.api.model.SESSION_MODE_GROUP
 import com.mistbell.tavern.android.data.api.model.WorldBook
+import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
-import com.mistbell.tavern.android.data.repository.ProviderRepository
+import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
@@ -19,13 +19,13 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
 
-// 单次最多可选角色数（群聊参与者上限，与 SessionEntity.MAX_PARTICIPANT_CHARACTERS 保持一致）；
+// 群聊模式角色数量限制
 // internal：ChatSetupScreen 的模式提示文案复用
+internal const val MIN_GROUP_CHARACTERS = 2
 internal const val MAX_SELECTABLE_CHARACTERS = 4
 
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = TavernApplication.instance.database
-    private val providerRepo = ProviderRepository(application)
+    private val db = TavernApplication.instance.container.database
     private val settingsRepo = SettingsRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
 
@@ -36,9 +36,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
             .map { entities -> entities.map { it.toDomain() } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 所有提供商
-    val providers: StateFlow<List<ProviderConfig>> =
-        providerRepo.observeProviders()
+    // 所有提供商（数据源：api_configs 表）
+    val apiConfigs: StateFlow<List<ApiConfigEntity>> =
+        db.apiConfigDao()
+            .observeAll()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 所有世界书
@@ -73,14 +74,18 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // 长期记忆开关（必须声明在 init 块之前——Kotlin 属性按声明顺序初始化）
-    private val _enableLongTermMemory = MutableStateFlow(false)
-    val enableLongTermMemory: StateFlow<Boolean> = _enableLongTermMemory.asStateFlow()
+    // 长期记忆三态：null = 跟随全局默认，true/false = 显式覆盖（必须声明在 init 块之前——
+    // Kotlin 属性按声明顺序初始化）
+    private val _enableLongTermMemory = MutableStateFlow<Boolean?>(null)
+    val enableLongTermMemory: StateFlow<Boolean?> = _enableLongTermMemory.asStateFlow()
+
+    // 全局默认长期记忆（展示"跟随全局"时的当前生效值）
+    private val _globalDefaultLtmEnabled = MutableStateFlow(false)
+    val globalDefaultLtmEnabled: StateFlow<Boolean> = _globalDefaultLtmEnabled.asStateFlow()
 
     init {
-        // 长期记忆开关初始值取全局默认；此后用户在界面上手动切换则尊重用户选择
         viewModelScope.launch {
-            _enableLongTermMemory.value = settingsRepo.defaultLtmEnabled()
+            _globalDefaultLtmEnabled.value = settingsRepo.defaultLtmEnabled()
         }
         // 当角色选择变化时，自动更新世界书默认值（仅在用户未手动选择时）
         viewModelScope.launch {
@@ -137,8 +142,9 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         _selectedWorldBookId.value = worldBookId
     }
 
-    fun toggleLongTermMemory() {
-        _enableLongTermMemory.value = !_enableLongTermMemory.value
+    // 三态设置：null = 清除覆盖、跟随全局默认；true/false = 显式写入
+    fun setLongTermMemory(value: Boolean?) {
+        _enableLongTermMemory.value = value
     }
 
     fun canStartChat(): Boolean {
@@ -171,11 +177,11 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         // 获取选中的 provider 信息，如果未选择则使用第一个可用的
         var selectedProvider = _selectedProviderId.value
         if (selectedProvider.isNullOrBlank()) {
-            selectedProvider = providers.value.firstOrNull()?.id ?: ""
+            selectedProvider = apiConfigs.value.firstOrNull()?.id ?: ""
             android.util.Log.d("ChatSetup", "No provider selected, using first available: $selectedProvider")
         }
 
-        val selectedModel = providers.value.find { it.id == selectedProvider }?.selectedModel ?: ""
+        val selectedModel = apiConfigs.value.find { it.id == selectedProvider }?.model ?: ""
         android.util.Log.d("ChatSetup", "Creating session with providerId: $selectedProvider, modelId: $selectedModel")
 
         // 世界书 ID 直接使用选中值
@@ -198,10 +204,9 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
                 isPinned = false,
                 pinnedAt = null,
                 isMuted = false,
-                // 长期记忆：优先尊重用户在设置页的显式开关；初始缺省值已在 init 中读全局默认
+                // 长期记忆：null = 跟随全局（用户在创建页未显式选择时）；显式 true/false 才写入覆盖
                 enableLongTermMemory = _enableLongTermMemory.value,
-                // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
-                contextTokenLimit = settingsRepo.defaultContextTokens(),
+                // 上下文长度：创建页无控件，一律留 null 跟随全局默认
                 participantCharacterIdsJson = SessionEntity.encodeParticipantCharacterIds(characterIds),
                 // 聊天模式：classic | group（v17 迁移列，NOT NULL DEFAULT 'classic'）；
                 // mode_config_json 本批无配置内容，固定空串
@@ -211,20 +216,29 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
 
         db.sessionDao().upsert(session)
 
-        // 插入角色的开场白（firstMes）
+        // 插入角色的开场白：默认开场白 = first_mes，为空时由首个备用开场白顶上
+        // （buildGreetingOptions 的首项）；切换开场白在聊天界面进行（ChatViewModel.swapGreeting）
         val characterEntity = db.characterDao().getById(characterId)
         android.util.Log.d("ChatSetup", "Character found: ${characterEntity?.name}, firstMes: ${characterEntity?.firstMes}")
 
-        if (characterEntity != null && characterEntity.firstMes.isNotBlank()) {
-            // F2.1：开场白先用宏引擎渲染（{{char}}/{{user}} 等），用户名取 settings，缺省 "User"
+        val greetingText =
+            characterEntity?.let { entity ->
+                buildGreetingOptions(
+                    entity.firstMes,
+                    entity.toDomain().data?.alternateGreetings.orEmpty(),
+                ).firstOrNull()
+            }.orEmpty()
+
+        if (characterEntity != null && greetingText.isNotBlank()) {
+            // F2.1：开场白先用宏引擎渲染（{{char}}/{{user}} 等），用户名与人设取全局设置
             val mctx =
                 com.mistbell.tavern.android.util.MacroContext(
                     char = characterEntity.name,
-                    user = db.settingsDao().getValue("user_name") ?: "User",
+                    user = ChatSettingsResolver.userName(db.settingsDao().getValue(ChatSettingsResolver.KEY_USER_NAME)),
                     description = characterEntity.description,
                     personality = characterEntity.personality,
                     scenario = characterEntity.scenario,
-                    persona = "",
+                    persona = ChatSettingsResolver.userPersona(db.settingsDao().getValue(ChatSettingsResolver.KEY_USER_PERSONA)),
                 )
             val firstMessage =
                 MessageEntity(
@@ -233,7 +247,7 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
                     ownerId = ownerId,
                     characterId = characterId,
                     role = "assistant",
-                    content = com.mistbell.tavern.android.util.MacroEngine.render(characterEntity.firstMes, mctx),
+                    content = com.mistbell.tavern.android.util.MacroEngine.render(greetingText, mctx),
                     thinking = null,
                     createdAt = now,
                     memoryIdsJson = "[]",
@@ -243,12 +257,12 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
                     isRead = true,
                 )
             db.messageDao().upsert(firstMessage)
-            android.util.Log.d("ChatSetup", "FirstMes inserted: ${characterEntity.firstMes}")
+            android.util.Log.d("ChatSetup", "Greeting inserted: ${greetingText.take(50)}")
 
             // 更新会话消息数
             db.sessionDao().upsert(session.copy(messageCount = 1, updatedAt = now))
         } else {
-            android.util.Log.d("ChatSetup", "No firstMes to insert")
+            android.util.Log.d("ChatSetup", "No greeting to insert")
         }
         return sessionId
     }
@@ -289,3 +303,11 @@ internal fun resolveCharacterSelection(
             else -> current + targetId
         }
     }
+
+// 开场白选项构建纯函数（便于单测）：first_mes 缺省为首条「默认开场白」，
+// 其后跟备用开场白（酒馆 alternate_greetings）；空白项一律过滤。
+// 首条为空且存在备用时，备用顶上成为首条（此前这种情况建会话不插任何开场白）
+internal fun buildGreetingOptions(
+    firstMes: String,
+    alternateGreetings: List<String>,
+): List<String> = listOf(firstMes).filter { it.isNotBlank() } + alternateGreetings.filter { it.isNotBlank() }

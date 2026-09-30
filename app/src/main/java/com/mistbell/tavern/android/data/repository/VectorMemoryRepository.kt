@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 
 class VectorMemoryRepository(context: Context) {
-    private val db = TavernApplication.instance.database
+    private val db = TavernApplication.instance.container.database
     private val memoryDao = db.vectorMemoryDao()
 
     // 获取所有向量记忆

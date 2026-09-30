@@ -15,7 +15,7 @@ import kotlinx.serialization.json.*
 import java.util.UUID
 
 class WorldBookRepository(private val context: Context) {
-    private val db get() = TavernApplication.instance.database
+    private val db get() = TavernApplication.instance.container.database
     private val api get() = ApiClient.getApi(context)
 
     fun observeWorldBooks(): Flow<List<WorldBook>> {
@@ -61,7 +61,9 @@ class WorldBookRepository(private val context: Context) {
         constant: Boolean = false,
         disable: Boolean = false,
         insertPosition: String = "before_prompt",
-        depth: Int = 1,
+        depth: Int = 0,
+        probability: Double = 1.0,
+        depthRole: String = "system",
     ): WorldBookEntry? {
         return withContext(Dispatchers.IO) {
             val id = UUID.randomUUID().toString()
@@ -79,6 +81,10 @@ class WorldBookRepository(private val context: Context) {
                     content = content,
                     constant = constant,
                     disable = disable,
+                    insertPosition = insertPosition,
+                    depth = depth,
+                    probability = probability,
+                    depthRole = depthRole,
                     order = 100,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
@@ -91,6 +97,8 @@ class WorldBookRepository(private val context: Context) {
                 disable = disable,
                 insertPosition = insertPosition,
                 depth = depth,
+                probability = probability,
+                depthRole = depthRole,
                 order = 100,
             )
         }
@@ -125,7 +133,7 @@ class WorldBookRepository(private val context: Context) {
 
     /**
      * 将 JSON patch 应用到实体（本地优先写入时用于更新已有条目）。
-     * 只覆盖 patch 中实际提供的字段；实体不支持的字段（insertPosition/depth）沿用既有限制。
+     * 只覆盖 patch 中实际提供的字段；insertPosition/depth 自 v19 起已落库，随 patch 更新。
      */
     private fun WorldBookEntryEntity.applyPatch(patch: JsonObject): WorldBookEntryEntity {
         val keysJson =
@@ -141,6 +149,10 @@ class WorldBookRepository(private val context: Context) {
             constant = patch["constant"]?.jsonPrimitive?.booleanOrNull ?: constant,
             disable = patch["disable"]?.jsonPrimitive?.booleanOrNull ?: disable,
             order = patch["order"]?.jsonPrimitive?.intOrNull ?: order,
+            insertPosition = patch["insertPosition"]?.jsonPrimitive?.content ?: insertPosition,
+            depth = patch["depth"]?.jsonPrimitive?.intOrNull ?: depth,
+            probability = patch["probability"]?.jsonPrimitive?.doubleOrNull ?: probability,
+            depthRole = patch["depthRole"]?.jsonPrimitive?.content ?: depthRole,
             keysJson = keysJson,
         )
     }

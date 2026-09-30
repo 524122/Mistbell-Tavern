@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +42,7 @@ fun ChatSetupScreen(
         ),
 ) {
     val characters by viewModel.characters.collectAsState()
-    val providers by viewModel.providers.collectAsState()
+    val apiConfigs by viewModel.apiConfigs.collectAsState()
     val worldBooks by viewModel.worldBooks.collectAsState()
     val selectedCharacterIds by viewModel.selectedCharacterIds.collectAsState()
     val mode by viewModel.mode.collectAsState()
@@ -49,6 +50,7 @@ fun ChatSetupScreen(
     val selectedWorldBookId by viewModel.selectedWorldBookId.collectAsState()
     val characterDefaultWorldBookId by viewModel.characterDefaultWorldBookId.collectAsState()
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
+    val globalDefaultLtmEnabled by viewModel.globalDefaultLtmEnabled.collectAsState()
     val toast by viewModel.toast.collectAsState()
 
     var showProviderDropdown by remember { mutableStateOf(false) }
@@ -87,13 +89,21 @@ fun ChatSetupScreen(
                         )
                         Button(
                             onClick = {
-                                if (selectedCharacterIds.isNotEmpty()) {
-                                    coroutineScope.launch {
-                                        val sessionId = viewModel.getOrCreateSession(selectedCharacterIds)
-                                        onStartChat(sessionId, selectedCharacterIds)
+                                // 经典模式：至少1个角色
+                                // 群聊模式：至少2个角色，最多20个角色
+                                when {
+                                    selectedCharacterIds.isEmpty() -> {
+                                        viewModel.showToast("请至少选择一个角色")
                                     }
-                                } else {
-                                    viewModel.showToast("请至少选择一个角色")
+                                    mode == SESSION_MODE_GROUP && selectedCharacterIds.size < MIN_GROUP_CHARACTERS -> {
+                                        viewModel.showToast("群聊模式至少需要选择 $MIN_GROUP_CHARACTERS 个角色")
+                                    }
+                                    else -> {
+                                        coroutineScope.launch {
+                                            val sessionId = viewModel.getOrCreateSession(selectedCharacterIds)
+                                            onStartChat(sessionId, selectedCharacterIds)
+                                        }
+                                    }
                                 }
                             },
                             enabled = selectedCharacterIds.isNotEmpty(),
@@ -113,7 +123,7 @@ fun ChatSetupScreen(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            // 聊天模式选择：经典 / 群聊（"扮演反转"与 ④⑤ 骨架一律不露出——不做空入口纪律）。
+            // 聊天模式选择：经典 / 群聊（「扮演」与 ④⑤ 骨架一律不露出——不做空入口纪律）。
             // 默认经典；经典模式下单选角色，群聊模式允许多选（见 ChatSetupViewModel.toggleCharacter）
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -124,17 +134,36 @@ fun ChatSetupScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ModeOption(
-                            label = "经典聊天",
-                            description = "与单个角色一对一对话",
+                            spec =
+                                ModeSpec(
+                                    label = "经典",
+                                    description = "与单个角色一对一对话",
+                                ),
                             selected = mode == SESSION_MODE_CLASSIC,
                             onClick = remember { { viewModel.setMode(SESSION_MODE_CLASSIC) } },
                             modifier = Modifier.weight(1f),
                         )
                         ModeOption(
-                            label = "群聊",
-                            description = "多角色轮流回应，发送 @名字 可指定谁接话",
+                            spec =
+                                ModeSpec(
+                                    label = "群聊",
+                                    description = "多角色轮流回应，发送 @名字 可指定谁接话",
+                                ),
                             selected = mode == SESSION_MODE_GROUP,
                             onClick = remember { { viewModel.setMode(SESSION_MODE_GROUP) } },
+                            modifier = Modifier.weight(1f),
+                        )
+                        // 模式②「扮演」占位（MODES.md 骨架预留的 UI 版）：先露入口、后实功能。
+                        // 点击不写入 mode、不可创建，仅提示即将推出——绝不让用户创建出无叙事者链路的会话
+                        ModeOption(
+                            spec =
+                                ModeSpec(
+                                    label = "扮演",
+                                    description = "由 AI 主持世界，你扮演角色",
+                                    badge = "即将推出",
+                                ),
+                            selected = false,
+                            onClick = remember { { viewModel.showToast("「扮演」模式即将推出，敬请期待") } },
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -157,7 +186,7 @@ fun ChatSetupScreen(
                     // 群聊模式下给出参与者协作提示；经典模式单选无需说明
                     if (mode == SESSION_MODE_GROUP) {
                         Text(
-                            text = "已选角色将作为群聊成员轮流回应（最多 $MAX_SELECTABLE_CHARACTERS 个）",
+                            text = "已选角色将作为群聊成员轮流回应（${MIN_GROUP_CHARACTERS}-${MAX_SELECTABLE_CHARACTERS} 个）",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -203,7 +232,7 @@ fun ChatSetupScreen(
                         onExpandedChange = { showProviderDropdown = it },
                     ) {
                         OutlinedTextField(
-                            value = providers.find { it.id == selectedProviderId }?.name ?: "选择提供商",
+                            value = apiConfigs.find { it.id == selectedProviderId }?.name ?: "选择提供商",
                             onValueChange = {},
                             readOnly = true,
                             modifier =
@@ -218,14 +247,14 @@ fun ChatSetupScreen(
                             expanded = showProviderDropdown,
                             onDismissRequest = { showProviderDropdown = false },
                         ) {
-                            providers.forEach { provider ->
+                            apiConfigs.forEach { provider ->
                                 DropdownMenuItem(
                                     text = {
                                         Column {
                                             Text(provider.name, fontWeight = FontWeight.Medium)
-                                            if (provider.selectedModel.isNotBlank()) {
+                                            if (provider.model.isNotBlank()) {
                                                 Text(
-                                                    "模型: ${provider.selectedModel}",
+                                                    "模型: ${provider.model}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 )
@@ -321,36 +350,56 @@ fun ChatSetupScreen(
                 }
             }
 
-            // 长期记忆开关
+            // 长期记忆三态：跟随全局 / 开启 / 关闭（默认跟随，建会话不快照全局默认）
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) {
-                    Row(
+                    Column(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "长期记忆",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
+                        Text(
+                            text = "长期记忆",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Text(
+                            text = "保存对话内容到长期记忆中",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text =
+                                if (enableLongTermMemory == null) {
+                                    "跟随全局（当前：${if (globalDefaultLtmEnabled) "开" else "关"}）"
+                                } else {
+                                    "当前生效：${if (enableLongTermMemory == true) "开" else "关"}"
+                                },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = enableLongTermMemory == null,
+                                onClick = { viewModel.setLongTermMemory(null) },
+                                label = { Text("跟随全局") },
                             )
-                            Text(
-                                text = "保存对话内容到长期记忆中",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            FilterChip(
+                                selected = enableLongTermMemory == true,
+                                onClick = { viewModel.setLongTermMemory(true) },
+                                label = { Text("开启") },
+                            )
+                            FilterChip(
+                                selected = enableLongTermMemory == false,
+                                onClick = { viewModel.setLongTermMemory(false) },
+                                label = { Text("关闭") },
                             )
                         }
-                        Switch(
-                            checked = enableLongTermMemory,
-                            onCheckedChange = { viewModel.toggleLongTermMemory() },
-                        )
                     }
                 }
             }
@@ -456,19 +505,36 @@ private fun CharacterCard(
 
 // 聊天模式选项卡（分段按钮）：选中态用 secondaryContainer + 描边高亮，样式从简。
 // 用 Box + clickable 而非 Surface(onClick)——避免依赖版本相关的实验性 M3 API
+// 模式选项的展示规格；badge 非空 = 未实装占位（置灰 + 不可创建）
+private data class ModeSpec(
+    val label: String,
+    val description: String,
+    val badge: String? = null,
+)
+
+// 占位模式置灰透明度
+private const val DISABLED_MODE_ALPHA = 0.55f
+
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 private fun ModeOption(
-    label: String,
-    description: String,
+    spec: ModeSpec,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val label = spec.label
+    val description = spec.description
+    val badge = spec.badge
+    // 占位模式（带徽标=未实装）：置灰展示，点击由调用方决定（toast 提示，不写入 mode）
+    val enabled = badge == null
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier =
             modifier
                 .clip(shape)
+                // 未实装的占位模式置灰展示（即将推出）：可见但不可选，杜绝"创建出行为不确定的会话"
+                .alpha(if (enabled) 1f else DISABLED_MODE_ALPHA)
                 .background(
                     if (selected) {
                         MaterialTheme.colorScheme.secondaryContainer
@@ -490,21 +556,43 @@ private fun ModeOption(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                color =
-                    if (selected) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-            )
+            ModeOptionLabelRow(label = label, selected = selected, badge = badge)
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun ModeOptionLabelRow(
+    label: String,
+    selected: Boolean,
+    badge: String?,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color =
+                if (selected) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+        )
+        badge?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.tertiary,
             )
         }
     }

@@ -2,7 +2,6 @@ package com.mistbell.tavern.android.ui.chat
 
 import android.app.Application
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,28 +21,46 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
-import com.mistbell.tavern.android.data.api.model.ProviderConfig
 import com.mistbell.tavern.android.data.api.model.WorldBook
+import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.local.entity.ThemePackEntity
-import com.mistbell.tavern.android.data.repository.ProviderRepository
+import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
+import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MAX
+import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MIN
+import com.mistbell.tavern.android.ui.components.ContextTokenLimitSelector
+import com.mistbell.tavern.android.ui.components.formatTokenLimit
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ChatSettingsViewModel(application: Application) : AndroidViewModel(application) {
-    private val providerRepo = ProviderRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
     private val themeRepo = ThemePackRepository(application)
-    private val db = TavernApplication.instance.database
+    private val settingsRepo = SettingsRepository(application)
+    private val db = TavernApplication.instance.container.database
+
+    // 全局默认值（用于「全局默认：X」提示行）
+    private val _globalDefaultContextTokens = MutableStateFlow(4096)
+    val globalDefaultContextTokens: StateFlow<Int> = _globalDefaultContextTokens.asStateFlow()
+
+    private val _globalDefaultLtmEnabled = MutableStateFlow(false)
+    val globalDefaultLtmEnabled: StateFlow<Boolean> = _globalDefaultLtmEnabled.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _globalDefaultContextTokens.value = settingsRepo.defaultContextTokens()
+            _globalDefaultLtmEnabled.value = settingsRepo.defaultLtmEnabled()
+        }
+    }
 
     // 当前会话 ID（用于观察会话级主题）
-    private val _sessionId = MutableStateFlow<String?>(null)
+    private val sessionIdFlow = MutableStateFlow<String?>(null)
 
     // 本会话专属主题 ID；"" = 未设置（跟随角色 / 全局）
     val sessionTheme: StateFlow<String> =
-        _sessionId
+        sessionIdFlow
             .filterNotNull()
             .flatMapLatest { sessionId ->
                 db.sessionDao().observeById(sessionId).map { it?.themeId ?: "" }
@@ -55,8 +72,10 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
         themeRepo.observePacks()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val providers: StateFlow<List<ProviderConfig>> =
-        providerRepo.observeProviders()
+    // 可选 API 配置列表（数据源：api_configs 表）
+    val apiConfigs: StateFlow<List<ApiConfigEntity>> =
+        db.apiConfigDao()
+            .observeAll()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val characters: StateFlow<List<Character>> =
@@ -75,11 +94,13 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     private val _selectedModelId = MutableStateFlow("")
     val selectedModelId: StateFlow<String> = _selectedModelId.asStateFlow()
 
-    private val _enableLongTermMemory = MutableStateFlow(false)
-    val enableLongTermMemory: StateFlow<Boolean> = _enableLongTermMemory.asStateFlow()
+    // 会话级长期记忆三态：null = 跟随全局默认，true/false = 显式覆盖
+    private val _enableLongTermMemory = MutableStateFlow<Boolean?>(null)
+    val enableLongTermMemory: StateFlow<Boolean?> = _enableLongTermMemory.asStateFlow()
 
-    private val _contextTokenLimit = MutableStateFlow(4096)
-    val contextTokenLimit: StateFlow<Int> = _contextTokenLimit.asStateFlow()
+    // 会话级上下文长度三态：null = 跟随全局默认，具体值 = 显式覆盖
+    private val _contextTokenLimit = MutableStateFlow<Int?>(null)
+    val contextTokenLimit: StateFlow<Int?> = _contextTokenLimit.asStateFlow()
 
     private val _selectedCharacterIds = MutableStateFlow<List<String>>(emptyList())
     val selectedCharacterIds: StateFlow<List<String>> = _selectedCharacterIds.asStateFlow()
@@ -90,7 +111,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
 
     // 会话附加指令（author_note）；随会话实时回显
     val authorNote: StateFlow<String> =
-        _sessionId
+        sessionIdFlow
             .filterNotNull()
             .flatMapLatest { sessionId ->
                 db.sessionDao().observeById(sessionId).map { it?.authorNote ?: "" }
@@ -106,7 +127,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
 
     fun loadSessionSettings(sessionId: String) {
         currentSessionId = sessionId
-        _sessionId.value = sessionId
+        sessionIdFlow.value = sessionId
         viewModelScope.launch {
             try {
                 val session = db.sessionDao().getById(sessionId)
@@ -115,7 +136,8 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                     _selectedProviderId.value = session.providerId.takeIf { it.isNotBlank() }
                     _selectedModelId.value = session.modelId
                     _enableLongTermMemory.value = session.enableLongTermMemory
-                    _contextTokenLimit.value = session.contextTokenLimit.coerceIn(1024, 1_000_000)
+                    _contextTokenLimit.value =
+                        session.contextTokenLimit?.coerceIn(CONTEXT_TOKEN_MIN, CONTEXT_TOKEN_MAX)
                     _selectedCharacterIds.value = session.participantCharacterIds()
                     // 直接使用 session.worldBookId（空串 = "无"）
                     _selectedWorldBookId.value = session.worldBookId
@@ -123,7 +145,9 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                         db.characterDao().getById(session.characterId)?.worldBookId?.takeIf { it.isNotBlank() }
                     android.util.Log.d(
                         "ChatSettings",
-                        "Loaded session settings: providerId=${session.providerId}, modelId=${session.modelId}, enableLongTermMemory=${session.enableLongTermMemory}, contextTokenLimit=${session.contextTokenLimit}, worldBookId=${session.worldBookId}",
+                        "Loaded session settings: providerId=${session.providerId}, modelId=${session.modelId}, " +
+                            "enableLongTermMemory=${session.enableLongTermMemory}, " +
+                            "contextTokenLimit=${session.contextTokenLimit}, worldBookId=${session.worldBookId}",
                     )
                 }
             } catch (e: Exception) {
@@ -140,8 +164,8 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                 try {
                     val session = db.sessionDao().getById(sessionId)
                     if (session != null) {
-                        val provider = providers.value.find { it.id == providerId }
-                        val modelId = provider?.selectedModel ?: ""
+                        val provider = apiConfigs.value.find { it.id == providerId }
+                        val modelId = provider?.model ?: ""
                         _selectedModelId.value = modelId
                         db.sessionDao().upsert(
                             session.copy(
@@ -226,21 +250,21 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun toggleLongTermMemory() {
-        _enableLongTermMemory.value = !_enableLongTermMemory.value
-        // 同时更新数据库中的会话设置
+    // 三态设置：value = null 清除覆盖（跟随全局），true/false 显式写入；定向更新避免整体 upsert 覆盖其他字段
+    fun setLongTermMemory(value: Boolean?) {
+        _enableLongTermMemory.value = value
         currentSessionId?.let { sessionId ->
             viewModelScope.launch {
                 try {
                     val session = db.sessionDao().getById(sessionId)
                     if (session != null) {
-                        db.sessionDao().upsert(
-                            session.copy(
-                                enableLongTermMemory = _enableLongTermMemory.value,
-                                updatedAt = java.time.Instant.now().toString(),
-                            ),
+                        db.sessionDao().updateLtmEnabled(
+                            sessionId = sessionId,
+                            ownerId = session.ownerId,
+                            characterId = session.characterId,
+                            enabled = value,
                         )
-                        android.util.Log.d("ChatSettings", "Updated enableLongTermMemory: ${_enableLongTermMemory.value}")
+                        android.util.Log.d("ChatSettings", "Updated enableLongTermMemory: $value")
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("ChatSettings", "Failed to update long term memory setting", e)
@@ -249,19 +273,20 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun updateContextTokenLimit(value: Int) {
-        val normalized = value.coerceIn(1024, 1_000_000)
+    // 三态设置：value = null 清除覆盖（跟随全局），具体值显式写入
+    fun updateContextTokenLimit(value: Int?) {
+        val normalized = value?.coerceIn(CONTEXT_TOKEN_MIN, CONTEXT_TOKEN_MAX)
         _contextTokenLimit.value = normalized
         currentSessionId?.let { sessionId ->
             viewModelScope.launch {
                 try {
                     val session = db.sessionDao().getById(sessionId)
                     if (session != null) {
-                        db.sessionDao().upsert(
-                            session.copy(
-                                contextTokenLimit = normalized,
-                                updatedAt = java.time.Instant.now().toString(),
-                            ),
+                        db.sessionDao().updateContextTokenLimit(
+                            sessionId = sessionId,
+                            ownerId = session.ownerId,
+                            characterId = session.characterId,
+                            tokenLimit = normalized,
                         )
                         android.util.Log.d("ChatSettings", "Updated contextTokenLimit: $normalized")
                     }
@@ -337,7 +362,7 @@ fun ChatSettingsScreen(
                 ),
         ),
 ) {
-    val providers by viewModel.providers.collectAsState()
+    val apiConfigs by viewModel.apiConfigs.collectAsState()
     val characters by viewModel.characters.collectAsState()
     val worldBooks by viewModel.worldBooks.collectAsState()
     val selectedProviderId by viewModel.selectedProviderId.collectAsState()
@@ -348,6 +373,8 @@ fun ChatSettingsScreen(
     val characterDefaultWorldBookId by viewModel.characterDefaultWorldBookId.collectAsState()
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
     val contextTokenLimit by viewModel.contextTokenLimit.collectAsState()
+    val globalDefaultContextTokens by viewModel.globalDefaultContextTokens.collectAsState()
+    val globalDefaultLtmEnabled by viewModel.globalDefaultLtmEnabled.collectAsState()
     val selectedCharacterIds by viewModel.selectedCharacterIds.collectAsState()
     val authorNote by viewModel.authorNote.collectAsState()
     var showProviderDialog by remember { mutableStateOf(false) }
@@ -474,8 +501,8 @@ fun ChatSettingsScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("当前模型", style = MaterialTheme.typography.bodySmall)
                         Text(
-                            providers.find { it.id == selectedProviderId }?.let { provider ->
-                                "${provider.name} - ${selectedModelId.ifBlank { provider.selectedModel }}"
+                            apiConfigs.find { it.id == selectedProviderId }?.let { provider ->
+                                "${provider.name} - ${selectedModelId.ifBlank { provider.model }}"
                             } ?: "未配置",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -678,34 +705,54 @@ fun ChatSettingsScreen(
                 }
             }
 
-            // 长期记忆开关
+            // 长期记忆三态：跟随全局 / 开启 / 关闭
             Card(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(
+                Column(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "长期记忆",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
+                    Text(
+                        text = "长期记忆",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = "保存对话内容到长期记忆",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text =
+                            if (enableLongTermMemory == null) {
+                                "跟随全局（当前：${if (globalDefaultLtmEnabled) "开" else "关"}）"
+                            } else {
+                                "当前生效：${if (enableLongTermMemory == true) "开" else "关"}"
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = enableLongTermMemory == null,
+                            onClick = { viewModel.setLongTermMemory(null) },
+                            label = { Text("跟随全局") },
                         )
-                        Text(
-                            text = "保存对话内容到长期记忆",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        FilterChip(
+                            selected = enableLongTermMemory == true,
+                            onClick = { viewModel.setLongTermMemory(true) },
+                            label = { Text("开启") },
+                        )
+                        FilterChip(
+                            selected = enableLongTermMemory == false,
+                            onClick = { viewModel.setLongTermMemory(false) },
+                            label = { Text("关闭") },
                         )
                     }
-                    Switch(
-                        checked = enableLongTermMemory,
-                        onCheckedChange = { viewModel.toggleLongTermMemory() },
-                    )
                 }
             }
 
@@ -736,34 +783,25 @@ fun ChatSettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${formatTokenLimit(contextTokenLimit)} tokens",
+                        text =
+                            if (contextTokenLimit == null) {
+                                "跟随全局（当前：${formatTokenLimit(globalDefaultContextTokens)}）"
+                            } else {
+                                formatTokenLimit(contextTokenLimit ?: globalDefaultContextTokens)
+                            },
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Slider(
-                        value = tokenLimitToSliderValue(contextTokenLimit),
-                        onValueChange = {
-                            viewModel.updateContextTokenLimit(sliderValueToTokenLimit(it))
-                        },
-                        valueRange = 0f..7f,
-                        steps = 6,
+                    Text(
+                        text = "全局默认：${formatTokenLimit(globalDefaultContextTokens)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        contextTokenPresets.forEach { preset ->
-                            FilterChip(
-                                selected = contextTokenLimit == preset,
-                                onClick = { viewModel.updateContextTokenLimit(preset) },
-                                label = { Text(formatTokenLimit(preset)) },
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ContextTokenLimitSelector(
+                        value = contextTokenLimit,
+                        onValueChange = { viewModel.updateContextTokenLimit(it) },
+                        followGlobalEffective = globalDefaultContextTokens,
+                    )
                 }
             }
         }
@@ -863,14 +901,14 @@ fun ChatSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (providers.isEmpty()) {
+                    if (apiConfigs.isEmpty()) {
                         Text(
                             "暂无提供商，请先在设置中添加",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
-                        providers.forEach { provider ->
+                        apiConfigs.forEach { provider ->
                             Card(
                                 modifier =
                                     Modifier
@@ -893,9 +931,9 @@ fun ChatSettingsScreen(
                                             provider.name,
                                             fontWeight = FontWeight.Medium,
                                         )
-                                        if (provider.selectedModel.isNotBlank()) {
+                                        if (provider.model.isNotBlank()) {
                                             Text(
-                                                "模型: ${provider.selectedModel}",
+                                                "模型: ${provider.model}",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -1067,38 +1105,5 @@ fun ChatSettingsScreen(
                 }
             },
         )
-    }
-}
-
-private val contextTokenPresets =
-    listOf(
-        2048,
-        4096,
-        8192,
-        16384,
-        32768,
-        65536,
-        131072,
-        1_000_000,
-    )
-
-private fun tokenLimitToSliderValue(tokenLimit: Int): Float {
-    val index =
-        contextTokenPresets.indexOfFirst { it >= tokenLimit }
-            .takeIf { it >= 0 }
-            ?: (contextTokenPresets.lastIndex)
-    return index.toFloat()
-}
-
-private fun sliderValueToTokenLimit(value: Float): Int {
-    val index = value.toInt().coerceIn(0, contextTokenPresets.lastIndex)
-    return contextTokenPresets[index]
-}
-
-private fun formatTokenLimit(value: Int): String {
-    return when {
-        value >= 1_000_000 -> "1M"
-        value >= 1024 -> "${value / 1024}K"
-        else -> value.toString()
     }
 }

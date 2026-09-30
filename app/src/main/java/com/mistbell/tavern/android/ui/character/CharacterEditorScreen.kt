@@ -306,7 +306,7 @@ fun CharacterEditorScreen(
 
             // Greeting
             item {
-                SectionHeader("问候语")
+                SectionHeader("开场白")
                 Spacer(modifier = Modifier.height(8.dp))
                 FormTextArea(
                     value = form.firstMes,
@@ -321,7 +321,7 @@ fun CharacterEditorScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("其它问候语 (${form.customGreetings.size})")
+                    Text("其它开场白 (${form.customGreetings.size})")
                 }
             }
 
@@ -498,9 +498,9 @@ fun CharacterEditorScreen(
                         .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("其它问候语", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text("其它开场白", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "添加多个问候语，新对话可以选择其中一个。",
+                    "添加多个开场白，新对话可以选择其中一个。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -512,7 +512,7 @@ fun CharacterEditorScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                "问候语 ${index + 1}",
+                                "开场白 ${index + 1}",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -559,8 +559,8 @@ fun CharacterEditorScreen(
                 FormTextArea(
                     value = newGreeting,
                     onValueChange = { newGreeting = it },
-                    label = "新问候语",
-                    placeholder = "输入新的问候语...",
+                    label = "新开场白",
+                    placeholder = "输入新的开场白...",
                     minLines = 2,
                 )
                 Button(

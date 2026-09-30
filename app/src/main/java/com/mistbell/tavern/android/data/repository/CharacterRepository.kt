@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
 class CharacterRepository(private val context: Context) {
-    private val db get() = TavernApplication.instance.database
+    private val db get() = TavernApplication.instance.container.database
     private val api get() = ApiClient.getApi(context)
 
     fun observeCharacters(): Flow<List<Character>> {

@@ -86,10 +86,14 @@ F5 打磨（按需）          compose-richtext 替换手写 Markdown
 
 ## 关键互通格式要点（F2 实施依据）
 
-- **卡（CCv2）**：`spec="chara_card_v2"` 可选勿强求；标准字段 name/description/personality/scenario/first_mes/mes_example/system_prompt/post_history_instructions/alternate_greetings[]/tags[]/creator/character_version/**extensions（未知字段一律透传保真）**/character_book（**entries 为数组**）
-- **世界书条目**：uid/key[]（老卡是单字符串须规整）/keysecondary/constant/enabled/insertion_order/position/probability/depth/extensions；独立 WI 文件的 entries 是**按 uid 的 map**——与卡内嵌结构不同，导入需分别处理
+- **卡（CCv2）**：`spec="chara_card_v2"` 可选勿强求；标准字段 name/description/personality/scenario/first_mes/mes_example/system_prompt/post_history_instructions/alternate_greetings[]/tags[]/creator/character_version/**extensions（未知字段一律透传保真）**/character_book（**entries 为数组**）；v3（`chara_card_v3`）是 v2 的增量扩展，新增 nickname/creator_notes_multilingual/source/group_only_greetings/assets 可选字段——本项目导入时随 CharacterData 透传保真，导出（v3 主格式）非默认值时回写
+- **世界书条目（2026-09 实测修订，基准＝本机 SillyTavern 发行版 data/default-user 真实文件 + world-info.js/characters.js）**：
+  - 数字 `position` 是酒馆 `world_info_position` 枚举：0=角色定义前 1=角色定义后 2/3=作者注释顶/底 **4=atDepth（此时 depth/role 才生效）** 5/6=示例消息顶/底 7=outlet（未支持）；酒馆 UI 恒写 depth 默认值（常见 4/5），其余 position 下是残留值不可当 @D（Eldoria.json：position=0、depth=4）
+  - 卡内嵌 character_book 条目的 `position` 是**字符串** before_char/after_char（CCv2/v3 规范），真实数字位置/概率/深度/角色在 `extensions.position/.probability/.depth/.role`；导出必须写规范字段名 **keys/secondary_keys/enabled/insertion_order** + entries 数组——酒馆读卡走 `convertCharacterBook`，读 `key/disable/数字position` 会丢触发词并全部判禁用，entries 若是 map 会直接 TypeError
+  - `probability` 是 **0-100 百分数**（配 `useProbability` 开关；false=不掷骰恒触发）；应用内统一 0-1，换算收敛在 StInterop（≤1 按小数、>1 按百分数）
+  - uid/key[]（老卡是单字符串须规整）/keysecondary/constant/enabled/insertion_order；独立 WI 文件的 entries 是**按 uid 的 map**——与卡内嵌数组结构不同，导入需分别处理
 - **旧版兜底**：TavernAI v1 键名（char_name/char_persona/world_scenario/char_greeting…）映射到 v2；缺 name 用文件名
-- **PNG 埋卡**：tEXt chunk 关键字 `chara`，值 = base64(JSON)；导出始终写 v2 `chara` 保证全生态可读；v3（`ccv3` chunk / data 包裹结构）只做容错导入，不承诺导出
+- **PNG 埋卡**：导出写 **`ccv3`(v3)+`chara`(v2) 双 tEXt chunk**（同一份卡片 JSON 仅 spec 头不同：`chara`=chara_card_v2/2.0、`ccv3`=chara_card_v3/3.0；块序 chara 在前 ccv3 在后——与酒馆 character-card-parser.js 策略一致）；读取 `ccv3` 优先、`chara` 兜底（与 chunk 先后无关）；JSON 导出以 v3 spec 为主（v2/v1 读卡器认 data 包裹与根字段，不受影响）；v1/v2/v3 均容错导入
 - **实现纪律**：只按文档实现格式；连宽松许可的参考实现（character-foundry/chara_card/airi）也只看字段划分不抄代码
 
 ## 待定决策（需要时再定）

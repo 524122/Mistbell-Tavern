@@ -1,5 +1,7 @@
 package com.mistbell.tavern.android.ui.main
 
+import android.app.Activity
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -8,31 +10,51 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.ui.character.CharacterListScreen
 import com.mistbell.tavern.android.ui.chatlist.ChatListScreen
-import com.mistbell.tavern.android.ui.settings.SettingsScreen
+import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.worldbook.WorldBookListScreen
 import kotlinx.coroutines.launch
 
+/** 底部导航栏/侧边导航栏共用的目的地定义 */
+private data class MainDestination(
+    val label: String,
+    val icon: ImageVector,
+)
+
+private val mainDestinations =
+    listOf(
+        MainDestination("聊天", Icons.Default.Chat),
+        MainDestination("角色", Icons.Default.Person),
+        MainDestination("世界书", Icons.Default.Book),
+        MainDestination("设置", Icons.Default.Settings),
+    )
+
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    // calculateWindowSizeClass 为实验 API
+    androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi::class,
+)
+@Suppress("FunctionNaming", "LongMethod", "LongParameterList") // Compose 屏幕级组件的既有形态（原由 detekt 基线吸收）
 @Composable
 fun MainScreen(
     onChatClick: (sessionId: String, characterId: String) -> Unit,
     onNewChatClick: () -> Unit,
     onEditCharacter: (String) -> Unit,
     onNewCharacter: () -> Unit,
-    onNavigateToProviderList: () -> Unit,
-    onNavigateToWorldBookList: () -> Unit,
+    onNavigateToPromptManagement: () -> Unit = {},
     onNavigateToWorldBookDetail: (String) -> Unit,
-    onNavigateToMemoryList: () -> Unit,
-    onNavigateToPromptPreview: () -> Unit,
     onNavigateToChatSetup: (String) -> Unit,
     onNavigateToVersionChangelog: () -> Unit,
     onNavigateToAbout: () -> Unit,
@@ -45,54 +67,13 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val database = remember { (app as TavernApplication).database }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = {
-                        Icon(Icons.Default.Chat, contentDescription = null)
-                    },
-                    label = {
-                        Text("聊天")
-                    },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = {
-                        Icon(Icons.Default.Person, contentDescription = null)
-                    },
-                    label = {
-                        Text("角色")
-                    },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = {
-                        Icon(Icons.Default.Book, contentDescription = null)
-                    },
-                    label = {
-                        Text("世界书")
-                    },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
-                    icon = {
-                        Icon(Icons.Default.Settings, contentDescription = null)
-                    },
-                    label = {
-                        Text("设置")
-                    },
-                )
-            }
-        },
-    ) { paddingValues ->
+    // 自适应：宽度非 Compact（横屏手机/平板/折叠屏展开）时用左侧 NavigationRail，
+    // 竖屏手机维持底部 NavigationBar
+    val windowSizeClass = calculateWindowSizeClass(LocalContext.current as Activity)
+    val useNavigationRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+
+    // tab 内容（bottomPadding：底部导航占用的高度；Rail 模式下为 0）
+    val tabContent: @Composable (Modifier) -> Unit = { contentModifier ->
         androidx.compose.animation.AnimatedContent(
             targetState = selectedTab,
             transitionSpec = {
@@ -125,12 +106,7 @@ fun MainScreen(
                     ChatListScreen(
                         onChatClick = onChatClick,
                         onNewChatClick = onNewChatClick,
-                        showBottomBar = false,
-                        showTopBar = false,
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                        modifier = contentModifier,
                     )
                 1 ->
                     CharacterListScreen(
@@ -155,39 +131,68 @@ fun MainScreen(
                         onEditCharacter = onEditCharacter,
                         onNewCharacter = onNewCharacter,
                         showTopBarBackButton = false,
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                        modifier = contentModifier,
                     )
                 2 ->
                     WorldBookListScreen(
                         showBackButton = false,
                         onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                        modifier = contentModifier,
                     )
                 3 -> {
                     val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
-                    SettingsScreen(
-                        viewModel = settingsViewModel,
-                        onNavigateToProviderList = onNavigateToProviderList,
-                        onNavigateToWorldBookList = { selectedTab = 2 }, // 切换到世界书标签页
-                        onNavigateToMemoryList = onNavigateToMemoryList,
-                        onNavigateToPromptPreview = onNavigateToPromptPreview,
+                    ModernSettingsScreen(
+                        onBack = null,
+                        onNavigateToThemeManager = onNavigateToThemeManager,
+                        onNavigateToPromptManagement = onNavigateToPromptManagement,
                         onNavigateToVersionChangelog = onNavigateToVersionChangelog,
                         onNavigateToAbout = onNavigateToAbout,
-                        onNavigateToThemeManager = onNavigateToThemeManager,
-                        showBackButton = false,
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(bottom = paddingValues.calculateBottomPadding()),
+                        viewModel = settingsViewModel,
+                        modifier = contentModifier,
                     )
                 }
             }
+        }
+    }
+
+    if (useNavigationRail) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            NavigationRail(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                mainDestinations.forEachIndexed { index, destination ->
+                    NavigationRailItem(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        icon = { Icon(destination.icon, contentDescription = null) },
+                        label = { Text(destination.label) },
+                    )
+                }
+            }
+            tabContent(Modifier.fillMaxSize())
+        }
+    } else {
+        Scaffold(
+            bottomBar = {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ) {
+                    mainDestinations.forEachIndexed { index, destination ->
+                        NavigationBarItem(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            icon = { Icon(destination.icon, contentDescription = null) },
+                            label = { Text(destination.label) },
+                        )
+                    }
+                }
+            },
+        ) { paddingValues ->
+            tabContent(
+                Modifier
+                    .fillMaxSize()
+                    .padding(bottom = paddingValues.calculateBottomPadding()),
+            )
         }
     }
 }

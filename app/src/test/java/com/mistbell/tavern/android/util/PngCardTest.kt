@@ -146,4 +146,76 @@ class PngCardTest {
     fun `base64解码失败返回null`() {
         assertNull(PngCard.decodeCardJson("不是base64!!!"))
     }
+
+    /** 构造最小 PNG：签名 + zTXt（deflate 压缩载荷） + IEND */
+    private fun minimalPngZtxt(
+        kw: String,
+        value: String,
+    ): ByteArray {
+        val deflater = java.util.zip.Deflater()
+        deflater.setInput(value.toByteArray(Charsets.ISO_8859_1))
+        deflater.finish()
+        val bos = ByteArrayOutputStream()
+        val buf = ByteArray(256)
+        while (!deflater.finished()) {
+            val n = deflater.deflate(buf)
+            bos.write(buf, 0, n)
+        }
+        deflater.end()
+        val data = kw.toByteArray(Charsets.ISO_8859_1) + byteArrayOf(0, 0) + bos.toByteArray()
+        val out = ByteArrayOutputStream()
+        out.write(signature)
+        out.write(chunk("zTXt", data))
+        out.write(chunk("IEND", ByteArray(0)))
+        return out.toByteArray()
+    }
+
+    @Test
+    fun `zTXt压缩块可读回`() {
+        val png = minimalPngZtxt("chara", "hello ztxt")
+        assertEquals("hello ztxt", PngCard.readTextChunk(png, "chara"))
+    }
+
+    @Test
+    fun `ccv3关键字被接受`() {
+        // 酒馆 v3 / CCv3 导出器改用 ccv3 关键字
+        val png = minimalPng("ccv3" to "v3payload")
+        assertEquals("v3payload", PngCard.readTextChunk(png, "chara"))
+    }
+
+    @Test
+    fun `再导出时旧ccv3块被剔除`() {
+        val old = minimalPng("ccv3" to "old")
+        val replaced = PngCard.insertTextChunk(old, "chara", "new")
+        assertNull("旧 ccv3 块应被剔除", PngCard.readTextChunk(replaced, "ccv3"))
+        assertEquals("new", PngCard.readTextChunk(replaced, "chara"))
+    }
+
+    /** 构造最小 PNG：签名 + 多个 tEXt（按给定顺序） + IEND */
+    private fun minimalPngChunks(vararg textChunks: Pair<String, String>): ByteArray {
+        val out = ByteArrayOutputStream()
+        out.write(signature)
+        for ((kw, value) in textChunks) {
+            val data =
+                kw.toByteArray(Charsets.ISO_8859_1) +
+                    byteArrayOf(0) +
+                    value.toByteArray(Charsets.ISO_8859_1)
+            out.write(chunk("tEXt", data))
+        }
+        out.write(chunk("IEND", ByteArray(0)))
+        return out.toByteArray()
+    }
+
+    @Test
+    fun `chara在前ccv3在后时优先返回ccv3内容`() {
+        // 真实酒馆 PNG 同埋 chara(v2) 与 ccv3(v3)，读取与酒馆对齐：ccv3 优先、与 chunk 先后无关
+        val png = minimalPngChunks("chara" to "v2payload", "ccv3" to "v3payload")
+        assertEquals("v3payload", PngCard.readTextChunk(png, "chara"))
+    }
+
+    @Test
+    fun `只有chara无ccv3时兜底返回chara内容`() {
+        val png = minimalPngChunks("chara" to "v2payload")
+        assertEquals("v2payload", PngCard.readTextChunk(png, "chara"))
+    }
 }

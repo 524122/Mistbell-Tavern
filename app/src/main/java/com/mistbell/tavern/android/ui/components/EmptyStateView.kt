@@ -1,6 +1,7 @@
 package com.mistbell.tavern.android.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,12 +11,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Suppress("FunctionNaming", "LongParameterList") // 空态展示组件：图标/标题/副标题/修饰符/CTA 为完整契约
 @Composable
 fun EmptyStateView(
     icon: String = "📭",
     title: String = "暂无内容",
     subtitle: String = "",
     modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -44,6 +48,12 @@ fun EmptyStateView(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
             )
+        }
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onAction) {
+                Text(actionLabel)
+            }
         }
     }
 }

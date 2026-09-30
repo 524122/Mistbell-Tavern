@@ -16,8 +16,19 @@ android {
         applicationId "com.mistbell.tavern.android"
         minSdk 26
         targetSdk 35
-        versionCode 9
-        versionName "0.7.0-beta"
+        versionCode 11
+        versionName "0.9.0-beta"
+    }
+
+    // v0.9：onnxruntime 原生库按 ABI 分包（arm64 ≈16MB / x86 等），避免单 universal APK 被
+    // 无关架构拖大；universal 保留，侧载用户仍可按原方式安装
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
+            universalApk true
+        }
     }
 
     buildTypes {
@@ -81,6 +92,7 @@ dependencies {
 
     // Material 3
     implementation "androidx.compose.material3:material3"
+    implementation "androidx.compose.material3:material3-window-size-class"
     implementation "androidx.compose.material:material-icons-extended"
 
     // Activity & Lifecycle
@@ -120,6 +132,9 @@ dependencies {
 
     // Coroutines
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+
+    // F3 本地语义向量：onnxruntime-android（MIT）+ assets 内置量化 BGE 中文模型
+    implementation "com.microsoft.onnxruntime:onnxruntime-android:1.17.3"
 
     // 单元测试（本地 JVM）
     testImplementation "junit:junit:4.13.2"

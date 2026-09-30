@@ -37,7 +37,7 @@ private data class ThemeManifest(
  * 皮肤级：纯数据 tokens，无代码执行。
  */
 class ThemePackRepository(private val context: Context) {
-    private val db get() = TavernApplication.instance.database
+    private val db get() = TavernApplication.instance.container.database
 
     private val manifestJson =
         Json {

@@ -2,17 +2,23 @@ package com.mistbell.tavern.android.ui.chat
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +37,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.theme.resolved
 import com.mistbell.tavern.android.ui.common.rememberBitmap
 import com.mistbell.tavern.android.ui.common.rememberFileBitmap
@@ -137,7 +145,7 @@ fun ChatScreen(
     val groupMode by viewModel.groupMode.collectAsState()
     val error by viewModel.error.collectAsState()
     val isOnline by viewModel.isOnline.collectAsState()
-    val providers by viewModel.providers.collectAsState()
+    val apiConfigs by viewModel.apiConfigs.collectAsState()
     val activeModelId by viewModel.activeModelId.collectAsState()
     val worldBooks by viewModel.worldBooks.collectAsState()
     val activeWorldBookId by viewModel.activeWorldBookId.collectAsState()
@@ -179,6 +187,20 @@ fun ChatScreen(
     // 最后一条消息 id 只需算一次：原先在每个 item 内读 messages.lastOrNull()，
     // 相当于每个 item 都订阅整个列表状态
     val lastMessageId = messages.lastOrNull()?.id
+
+    // 开场白切换（聊天界面）：仅当会话只剩开场白这一条 AI 消息（没人接话）且有多个
+    // 选项时提供入口——已有对话历史后开场白属于既成上下文，不允许改写
+    val greetingOptions by viewModel.greetingOptions.collectAsState()
+    val greetingMessage = messages.singleOrNull()?.takeIf { it.role == "assistant" }
+    val canSwapGreeting = greetingMessage != null && greetingOptions.size > 1
+    var showGreetingSheet by remember { mutableStateOf(false) }
+
+    // 提示词预览（顶栏文档图标 → 底部抽屉）：列出本次请求真实发出的全部 message
+    val promptTrace by viewModel.promptTrace.collectAsState()
+    val promptRequestParams by viewModel.promptRequestParams.collectAsState()
+    val isLoadingPromptTrace by viewModel.isLoadingPromptTrace.collectAsState()
+    val promptTraceError by viewModel.promptTraceError.collectAsState()
+    var showPromptSheet by remember { mutableStateOf(false) }
 
     // “贴底”判定：derivedStateOf 只在最后可见项 index 跨过阈值时才触发重组
     val atBottom by remember {
@@ -367,66 +389,18 @@ fun ChatScreen(
             Scaffold(
                 contentWindowInsets = WindowInsets(0.dp),
                 topBar = {
-                    Surface(
-                        color = Color.Transparent,
-                        tonalElevation = 0.dp,
-                    ) {
-                        Column(modifier = Modifier.statusBarsPadding()) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(56.dp)
-                                        .padding(horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                // Left: Back button
-                                IconButton(
-                                    onClick = onMenuClick,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Default.ArrowBack,
-                                        contentDescription = "返回",
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    CompositeCharacterAvatar(
-                                        characters = displayCharacters,
-                                        modifier = Modifier.size(36.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = chatTitle,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                    )
-                                }
-
-                                // Right: Settings button
-                                IconButton(
-                                    onClick = onSettingsClick,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Default.Settings,
-                                        contentDescription = "设置",
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    ModernChatTopBar(
+                        // 待实现：根据滚动状态动态更新 isScrolled
+                        chatTitle = chatTitle,
+                        displayCharacters = displayCharacters,
+                        isScrolled = false,
+                        onBackClick = onMenuClick,
+                        onPromptClick = {
+                            viewModel.loadPromptTrace()
+                            showPromptSheet = true
+                        },
+                        onSettingsClick = onSettingsClick,
+                    )
                 },
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 containerColor = Color.Transparent,
@@ -504,31 +478,71 @@ fun ChatScreen(
                                     remember(message.id) { { viewModel.swipeMessage(message.id, "left") } }
                                 val onSwipeRight =
                                     remember(message.id) { { viewModel.swipeMessage(message.id, "right") } }
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .widthIn(max = 780.dp)
-                                            .padding(horizontal = 24.dp),
-                                    contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart,
-                                ) {
-                                    MessageBubble(
-                                        message = message,
-                                        characterName = speakerName,
-                                        characterColor = speakerColor,
-                                        // 修复6：传应用内三态深浅色，Markdown 颜色随之同步
-                                        dark = isDark,
-                                        isUser = isUser,
-                                        isLastInGroup = true,
-                                        isLastMessage = isLastMsg,
-                                        onCopy = onCopy,
-                                        onUndo = onUndo,
-                                        onBacktrack = onBacktrack,
-                                        onRegenerate = onRegenerate,
-                                        onContinue = onContinue,
-                                        onSwipeLeft = onSwipeLeft,
-                                        onSwipeRight = onSwipeRight,
-                                    )
+                                val isGreetingSlot = canSwapGreeting && message.id == greetingMessage?.id
+                                if (isGreetingSlot) {
+                                    // 开场白槽位：气泡下挂「切换开场白」入口（仅 greeting-only 会话）
+                                    Column(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .widthIn(max = 780.dp)
+                                                .padding(horizontal = 24.dp),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.CenterStart,
+                                        ) {
+                                            MessageBubble(
+                                                message = message,
+                                                characterName = speakerName,
+                                                characterColor = speakerColor,
+                                                // 修复6：传应用内三态深浅色，Markdown 颜色随之同步
+                                                dark = isDark,
+                                                isUser = isUser,
+                                                isLastInGroup = true,
+                                                isLastMessage = isLastMsg,
+                                                onCopy = onCopy,
+                                                onUndo = onUndo,
+                                                onBacktrack = onBacktrack,
+                                                onRegenerate = onRegenerate,
+                                                onContinue = onContinue,
+                                                onSwipeLeft = onSwipeLeft,
+                                                onSwipeRight = onSwipeRight,
+                                            )
+                                        }
+                                        AssistChip(
+                                            onClick = { showGreetingSheet = true },
+                                            label = { Text("切换开场白", style = MaterialTheme.typography.labelSmall) },
+                                            modifier = Modifier.padding(top = 4.dp),
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .widthIn(max = 780.dp)
+                                                .padding(horizontal = 24.dp),
+                                        contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart,
+                                    ) {
+                                        MessageBubble(
+                                            message = message,
+                                            characterName = speakerName,
+                                            characterColor = speakerColor,
+                                            // 修复6：传应用内三态深浅色，Markdown 颜色随之同步
+                                            dark = isDark,
+                                            isUser = isUser,
+                                            isLastInGroup = true,
+                                            isLastMessage = isLastMsg,
+                                            onCopy = onCopy,
+                                            onUndo = onUndo,
+                                            onBacktrack = onBacktrack,
+                                            onRegenerate = onRegenerate,
+                                            onContinue = onContinue,
+                                            onSwipeLeft = onSwipeLeft,
+                                            onSwipeRight = onSwipeRight,
+                                        )
+                                    }
                                 }
                             }
 
@@ -630,6 +644,7 @@ fun ChatScreen(
                         // 回调 remember 化：闭包引用稳定（continueGroupChat 在 VM 内部自校验
                         // 群聊模式与生成中状态，调用时机安全）
                         val onContinueGroup = remember { { viewModel.continueGroupChat() } }
+
                         Column(
                             modifier =
                                 Modifier.onGloballyPositioned { coordinates ->
@@ -639,27 +654,76 @@ fun ChatScreen(
                                     }
                                 },
                         ) {
-                            // 群聊模式专属入口："让TA继续"（不插入用户消息，由 AI 侧自然接话）；
-                            // 生成中禁用；经典模式不渲染，零布局影响
-                            if (groupMode) {
-                                TextButton(
-                                    onClick = onContinueGroup,
-                                    enabled = !isTyping,
-                                    modifier = Modifier.align(Alignment.End),
+                            // 群聊模式：显示参与者快速选择栏
+                            if (groupMode && participantCharacters.isNotEmpty()) {
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                            .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
+                                    // 提示文字
                                     Text(
-                                        text = "让TA继续",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        text = "参与者:",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.CenterVertically),
                                     )
+
+                                    // 参与者头像列表
+                                    participantCharacters.forEach { character ->
+                                        Surface(
+                                            onClick = {
+                                                // 待实现：点击头像 = 让该角色回复
+                                                // viewModel.continueGroupChat(targetCharacterId = character.id)
+                                            },
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            modifier = Modifier.size(40.dp),
+                                        ) {
+                                            Box(
+                                                contentAlignment = Alignment.Center,
+                                                modifier = Modifier.fillMaxSize(),
+                                            ) {
+                                                Text(
+                                                    text = character.name.take(1),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // "继续对话"按钮
+                                    OutlinedButton(
+                                        onClick = onContinueGroup,
+                                        enabled = !isTyping,
+                                        modifier = Modifier.height(40.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "继续",
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
                                 }
                             }
+
                             MessageInput(
                                 onSend = { viewModel.sendMessage(it) },
                                 enabled = !isTyping,
                                 // 生成中：发送按钮变为"停止生成"按钮
                                 isGenerating = isTyping,
                                 onStop = { viewModel.stopGeneration() },
+                                // 传递参与者列表以支持 @ 提及
+                                participants = if (groupMode) participantCharacters else emptyList(),
                             )
                         }
                     }
@@ -696,7 +760,310 @@ fun ChatScreen(
             chatContent()
         }
     }
+
+    // 开场白切换抽屉：列出渲染后的开场白选项，选中项按消息正文匹配打勾，点选即原位替换
+    if (showGreetingSheet && canSwapGreeting) {
+        ModalBottomSheet(
+            onDismissRequest = { showGreetingSheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Text(
+                text = "选择开场白",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                itemsIndexed(greetingOptions) { index, text ->
+                    val isCurrent = text == greetingMessage?.content
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    greetingMessage?.let { viewModel.swapGreeting(it.id, index) }
+                                    showGreetingSheet = false
+                                }
+                                .padding(horizontal = 4.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = greetingOptionLabel(index),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color =
+                                    if (isCurrent) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                            )
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 3,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (isCurrent) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.navigationBarsPadding().height(16.dp))
+        }
+    }
+
+    // 提示词预览抽屉：逐条列出本次请求真实发出的 message（role + 来源 + 估算 token + 全文）
+    if (showPromptSheet) {
+        PromptTraceSheet(
+            trace = promptTrace,
+            requestParams = promptRequestParams,
+            isLoading = isLoadingPromptTrace,
+            error = promptTraceError,
+            onCopyAll = { viewModel.copyPromptTraceText() },
+            onDismiss = {
+                showPromptSheet = false
+                viewModel.clearPromptTrace()
+            },
+        )
+    }
 }
+
+/**
+ * 提示词预览底部抽屉。
+ *
+ * 内容与真实请求**同一次装配**（PromptBuilder.buildPromptTrace），因此这里看到的就是
+ * 发给模型的那份，逐字节一致——不存在"预览一份、发送另一份"的漂移。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PromptTraceSheet(
+    trace: PromptTrace?,
+    requestParams: List<Pair<String, String>>,
+    isLoading: Boolean,
+    error: String?,
+    onCopyAll: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val listState = rememberLazyListState()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "本次提示词",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    trace?.let {
+                        Text(
+                            text = "${it.segments.size} 条消息 · 约 ${it.totalEstimatedTokens} tokens",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (trace != null) {
+                    TextButton(onClick = onCopyAll) { Text("复制全文") }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator(modifier = Modifier.size(28.dp)) }
+            }
+            error != null -> {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(24.dp),
+                )
+            }
+            trace == null -> {
+                Text(
+                    text = "暂无数据",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(24.dp),
+                )
+            }
+            else -> {
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (requestParams.isNotEmpty()) {
+                        item(key = "__params__") {
+                            RequestParamsSection(params = requestParams)
+                        }
+                    }
+                    items(trace.segments.size) { index ->
+                        PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
+                    }
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                }
+                Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
+            }
+        }
+    }
+}
+
+/**
+ * 请求参数折叠区：本次请求实际生效的采样/请求参数。
+ *
+ * 取值与真实请求同源（`SettingsRepository.getLlmConfig` 解析后的结果），排查
+ * "两次回复差别大"时先看这一栏。密钥只显示"是否已配置"，不显示内容。
+ */
+@Composable
+private fun RequestParamsSection(params: List<Pair<String, String>>) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "请求参数",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "收起请求参数" else "展开请求参数",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            if (expanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                params.forEach { (key, value) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Text(
+                            text = key,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(132.dp),
+                        )
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 单条提示词消息卡：序号 + role 徽标 + 来源标签 + 估算 token + 可展开全文 */
+@Composable
+private fun PromptSegmentCard(
+    segment: PromptBuilder.Segment,
+    ordinal: Int,
+    tokens: Int,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val roleColor =
+        when (segment.message.role) {
+            "user" -> MaterialTheme.colorScheme.tertiary
+            "assistant" -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.secondary
+        }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "$ordinal",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(24.dp),
+                )
+                Text(
+                    text = segment.message.role,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = roleColor,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = segment.source,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "~$tokens",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(
+                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "收起" else "展开",
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+            Text(
+                text = segment.message.content,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (expanded) Int.MAX_VALUE else 3,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.clickable { expanded = !expanded },
+            )
+        }
+    }
+}
+
+/** 开场白选项显示名：0 = 默认开场白（first_mes），其后为备用开场白 1..n */
+private fun greetingOptionLabel(index: Int): String = if (index == 0) "默认开场白" else "备用开场白 $index"
 
 /**
  * 流式占位子组合：内部自行订阅 streamingText，text 非空渲染流式气泡，

@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
@@ -23,27 +26,26 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mistbell.tavern.android.ui.chat.ChatScreen
 import com.mistbell.tavern.android.ui.chat.ChatViewModel
-import com.mistbell.tavern.android.ui.settings.SettingsScreen
+import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.themepack.ThemeManagerScreen
 import kotlinx.coroutines.flow.first
 
 object Routes {
     const val MAIN = "main"
+    const val ONBOARDING = "onboarding"
     const val CHAT = "chat/{sessionId}/{characterId}"
     const val CHAT_SETUP = "chat_setup?characterId={characterId}"
     const val CHAT_SETTINGS = "chat_settings/{sessionId}"
     const val SETTINGS = "settings"
     const val CHARACTER_EDITOR = "character_editor/{characterId}"
-    const val PROVIDER_LIST = "provider_list"
-    const val PROVIDER_EDITOR = "provider_editor/{providerId}"
     const val WORLD_BOOK_LIST = "world_book_list"
     const val WORLD_BOOK_DETAIL = "world_book_detail/{bookId}"
     const val MEMORY_LIST = "memory_list?sessionId={sessionId}&characterId={characterId}"
-    const val PROMPT_PREVIEW = "prompt_preview"
     const val VERSION_CHANGELOG = "version_changelog"
     const val THEME_MANAGER = "theme_manager"
     const val ABOUT = "about"
+    const val PROMPT_MANAGEMENT = "prompt_management"
 
     fun chat(
         sessionId: String,
@@ -56,11 +58,11 @@ object Routes {
 
     fun characterEditor(characterId: String? = null) = if (characterId != null) "character_editor/$characterId" else "character_editor/new"
 
-    fun providerEditor(providerId: String? = null) = if (providerId != null) "provider_editor/$providerId" else "provider_editor/new"
-
     fun worldBookDetail(bookId: String) = "world_book_detail/$bookId"
 
     fun themeManager() = "theme_manager"
+
+    fun promptManagement() = "prompt_management"
 
     fun memoryList(
         sessionId: String? = null,
@@ -140,6 +142,15 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
     val app = LocalContext.current.applicationContext as android.app.Application
     val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(app)
 
+    // 首启引导门控（v0.8）：读完标记前不挂载 NavHost（避免 startDestination 闪烁），
+    // 未完成的设备以引导页为起点，完成后标记落库、导航栈弹出引导页
+    var onboardingDone by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(Unit) {
+        onboardingDone =
+            com.mistbell.tavern.android.TavernApplication.instance.container.database.settingsDao()
+                .getValue("onboarding_done") == "1"
+    }
+
     // Observe navigation events from ChatViewModel (for drawer -> navigation)
     if (chatViewModel != null) {
         val navEvent by chatViewModel.navigationEvent.collectAsState()
@@ -151,11 +162,40 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
         }
     }
 
+    val startDestination = onboardingDone
+    if (startDestination == null) {
+        // 标记读取中：空白背景，避免主题/导航双重闪烁
+        return
+    }
+
     androidx.compose.material3.Surface(
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
         color = androidx.compose.material3.MaterialTheme.colorScheme.background,
     ) {
-        NavHost(navController = navController, startDestination = Routes.MAIN) {
+        NavHost(
+            navController = navController,
+            startDestination =
+                if (startDestination) {
+                    Routes.MAIN
+                } else {
+                    Routes.ONBOARDING
+                },
+        ) {
+            composable(
+                route = Routes.ONBOARDING,
+                enterTransition = { defaultPopEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.onboarding.OnboardingScreen(
+                    onFinished = {
+                        navController.navigate(Routes.MAIN) {
+                            popUpTo(Routes.ONBOARDING) { inclusive = true }
+                        }
+                    },
+                )
+            }
             composable(
                 route = Routes.MAIN,
                 enterTransition = { defaultPopEnterTransition() },
@@ -176,20 +216,11 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     onNewCharacter = {
                         navController.navigate(Routes.characterEditor())
                     },
-                    onNavigateToProviderList = {
-                        navController.navigate(Routes.PROVIDER_LIST)
-                    },
-                    onNavigateToWorldBookList = {
-                        navController.navigate(Routes.WORLD_BOOK_LIST)
+                    onNavigateToPromptManagement = {
+                        navController.navigate(Routes.promptManagement())
                     },
                     onNavigateToWorldBookDetail = { bookId ->
                         navController.navigate(Routes.worldBookDetail(bookId))
-                    },
-                    onNavigateToMemoryList = {
-                        navController.navigate(Routes.memoryList())
-                    },
-                    onNavigateToPromptPreview = {
-                        navController.navigate(Routes.PROMPT_PREVIEW)
                     },
                     onNavigateToChatSetup = { characterId ->
                         navController.navigate(Routes.chatSetup(characterId))
@@ -227,7 +258,7 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 LaunchedEffect(sessionId, characterId) {
                     if (sessionId == "auto" && characterId != null) {
                         // 自动查找或创建会话
-                        val db = com.mistbell.tavern.android.TavernApplication.instance.database
+                        val db = com.mistbell.tavern.android.TavernApplication.instance.container.database
                         val existingSessionsList =
                             db.sessionDao().getByCharacter("local-user", characterId)
                                 .first()
@@ -236,16 +267,11 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                             if (existingSessionsList.isNotEmpty()) {
                                 existingSessionsList[0].id
                             } else {
-                                // 创建新会话 - 使用默认或第一个可用的 provider
-                                val providerRepo = com.mistbell.tavern.android.data.repository.ProviderRepository(app)
-                                val providers = providerRepo.observeProviders().first()
-                                val defaultProvider = providers.firstOrNull()
+                                // 创建新会话 - 使用默认 API 配置（api_configs 表）
+                                val defaultApiConfig = db.apiConfigDao().getDefault()
 
                                 val newSessionId = java.util.UUID.randomUUID().toString()
                                 val now = java.time.Instant.now().toString()
-
-                                // 读取全局设置默认值（上下文 token 预算 / 长期记忆开关）
-                                val settingsRepo = com.mistbell.tavern.android.data.repository.SettingsRepository(app)
 
                                 val session =
                                     com.mistbell.tavern.android.data.local.entity.SessionEntity(
@@ -256,33 +282,35 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                                         createdAt = now,
                                         updatedAt = now,
                                         messageCount = 0,
-                                        providerId = defaultProvider?.id ?: "",
-                                        modelId = defaultProvider?.selectedModel ?: "",
+                                        providerId = defaultApiConfig?.id ?: "",
+                                        modelId = defaultApiConfig?.model ?: "",
                                         worldBookId = "",
                                         summaryJson = "",
                                         unreadCount = 0,
                                         isPinned = false,
                                         pinnedAt = null,
                                         isMuted = false,
-                                        // 长期记忆：由全局设置默认值决定（原硬编码 false）
-                                        enableLongTermMemory = settingsRepo.defaultLtmEnabled(),
-                                        // 上下文 token 预算：新会话读全局默认（原实体缺省 4096）
-                                        contextTokenLimit = settingsRepo.defaultContextTokens(),
+                                        // 长期记忆 / 上下文长度：不快照全局默认，留 null = 跟随全局
+                                        // （读取时经 ChatSettingsResolver 解析，全局默认改动对存量会话生效）
                                     )
                                 db.sessionDao().upsert(session)
 
                                 // 插入开场白（F2.1：先用宏引擎渲染 {{char}}/{{user}} 等）
                                 val characterEntity = db.characterDao().getById(characterId)
                                 if (characterEntity != null && characterEntity.firstMes.isNotBlank()) {
-                                    // 宏上下文：用户名取 settings 的 user_name，缺省 "User"
+                                    // 宏上下文：用户名与人设取全局设置（键常量收敛在 ChatSettingsResolver）
                                     val mctx =
                                         com.mistbell.tavern.android.util.MacroContext(
                                             char = characterEntity.name,
-                                            user = db.settingsDao().getValue("user_name") ?: "User",
+                                            user =
+                                                com.mistbell.tavern.android.data.repository.ChatSettingsResolver
+                                                    .userName(db.settingsDao().getValue("user_name")),
                                             description = characterEntity.description,
                                             personality = characterEntity.personality,
                                             scenario = characterEntity.scenario,
-                                            persona = "",
+                                            persona =
+                                                com.mistbell.tavern.android.data.repository.ChatSettingsResolver
+                                                    .userPersona(db.settingsDao().getValue("user_persona")),
                                         )
                                     val firstMessage =
                                         com.mistbell.tavern.android.data.local.entity.MessageEntity(
@@ -381,20 +409,11 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) {
                 val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
-                SettingsScreen(
+                ModernSettingsScreen(
                     viewModel = settingsViewModel,
                     onBack = { navController.popBackStack() },
-                    onNavigateToProviderList = {
-                        navController.navigate(Routes.PROVIDER_LIST)
-                    },
-                    onNavigateToWorldBookList = {
-                        navController.navigate(Routes.WORLD_BOOK_LIST)
-                    },
-                    onNavigateToMemoryList = {
-                        navController.navigate(Routes.memoryList())
-                    },
-                    onNavigateToPromptPreview = {
-                        navController.navigate(Routes.PROMPT_PREVIEW)
+                    onNavigateToPromptManagement = {
+                        navController.navigate(Routes.promptManagement())
                     },
                     onNavigateToVersionChangelog = {
                         android.util.Log.d("AppNavigation", "导航到版本更新日志页面")
@@ -420,35 +439,6 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 val characterId = backStackEntry.arguments?.getString("characterId")
                 com.mistbell.tavern.android.ui.character.CharacterEditorScreen(
                     characterId = characterId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            composable(
-                route = Routes.PROVIDER_LIST,
-                enterTransition = { defaultEnterTransition() },
-                exitTransition = { defaultExitTransition() },
-                popEnterTransition = { defaultPopEnterTransition() },
-                popExitTransition = { defaultPopExitTransition() },
-            ) {
-                com.mistbell.tavern.android.ui.provider.ProviderListScreen(
-                    onBack = { navController.popBackStack() },
-                    onEditProvider = { id -> navController.navigate(Routes.providerEditor(id)) },
-                    onNewProvider = { navController.navigate(Routes.providerEditor()) },
-                )
-            }
-
-            composable(
-                route = Routes.PROVIDER_EDITOR,
-                arguments = listOf(navArgument("providerId") { type = NavType.StringType }),
-                enterTransition = { defaultEnterTransition() },
-                exitTransition = { defaultExitTransition() },
-                popEnterTransition = { defaultPopEnterTransition() },
-                popExitTransition = { defaultPopExitTransition() },
-            ) { backStackEntry ->
-                val providerId = backStackEntry.arguments?.getString("providerId")
-                com.mistbell.tavern.android.ui.provider.ProviderEditorScreen(
-                    providerId = providerId,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -511,18 +501,6 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
             }
 
             composable(
-                route = Routes.PROMPT_PREVIEW,
-                enterTransition = { defaultEnterTransition() },
-                exitTransition = { defaultExitTransition() },
-                popEnterTransition = { defaultPopEnterTransition() },
-                popExitTransition = { defaultPopExitTransition() },
-            ) {
-                com.mistbell.tavern.android.ui.prompt.PromptPreviewScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            composable(
                 route = Routes.VERSION_CHANGELOG,
                 enterTransition = { defaultEnterTransition() },
                 exitTransition = { defaultExitTransition() },
@@ -544,6 +522,36 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) {
                 ThemeManagerScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // 提示词管理
+            composable(
+                route = Routes.PROMPT_MANAGEMENT,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                val viewModel: com.mistbell.tavern.android.ui.settings.CustomPromptViewModel = viewModel()
+                val prompts by viewModel.allPrompts.collectAsState()
+                val message by viewModel.message.collectAsState()
+
+                LaunchedEffect(message) {
+                    message?.let {
+                        // 待实现：显示 Snackbar
+                        viewModel.clearMessage()
+                    }
+                }
+
+                com.mistbell.tavern.android.ui.settings.PromptManagementScreen(
+                    prompts = prompts,
+                    onAddPrompt = { prompt -> viewModel.addPrompt(prompt) },
+                    onEditPrompt = { prompt -> viewModel.updatePrompt(prompt) },
+                    onDeletePrompt = { id -> viewModel.deletePrompt(id) },
+                    onTogglePrompt = { id, enabled -> viewModel.togglePrompt(id, enabled) },
+                    onReorderPrompts = { /* 待实现：实现重排序 */ },
                     onBack = { navController.popBackStack() },
                 )
             }

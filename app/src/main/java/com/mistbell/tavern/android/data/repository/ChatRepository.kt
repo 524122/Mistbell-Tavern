@@ -11,7 +11,6 @@ import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.local.entity.*
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.service.MemoryExtractionService
-import com.mistbell.tavern.android.util.SecureStore
 import com.mistbell.tavern.android.util.parseGroupSpeaker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,9 +27,8 @@ import kotlinx.serialization.json.*
 import java.util.UUID
 
 class ChatRepository(private val context: Context) {
-    private val db get() = TavernApplication.instance.database
+    private val db get() = TavernApplication.instance.container.database
     private val api get() = ApiClient.getApi(context)
-    private val providerRepo = ProviderRepository(context)
     private val settingsRepo = SettingsRepository(context)
     private val structuredMemoryRepo = StructuredMemoryRepository(context)
     private val memoryExtractionService = MemoryExtractionService(context, structuredMemoryRepo)
@@ -43,7 +41,39 @@ class ChatRepository(private val context: Context) {
         // 群聊推动语（continueGroupChat）：由 ChatRepository 作为 system 消息传给 PromptBuilder
         // （classic 路径不涉及）；文案要求"让最合适的下一位角色自然接话"
         internal const val GROUP_CONTINUE_NUDGE = "（请让最合适的下一位角色自然接话，保持对话推进）"
+
+        // 记忆抽取攒批：满 3 轮才合并发起一次 LLM 调用（抽取的输出/思考成本约占每轮总成本 80%+，
+        // 批量化把每次调用的固定输入/思考开销摊到 1/3）；不足一批的尾巴由
+        // flushPendingMemoryExtractions 在切会话/退出聊天页时抽掉
+        private const val MEMORY_EXTRACTION_BATCH_TURNS = 3
     }
+
+    /** 一轮待抽取对话（append 落库时入缓冲；被撤销/回退/重生覆盖的轮次会被剔除） */
+    private data class PendingExtractionTurn(
+        val userMessage: String,
+        val assistantMessage: String,
+        val messageIds: List<String>,
+    )
+
+    /** 同一 session 的待发缓冲：会话归属固定，providerId 每次入队刷新为最新值 */
+    private class PendingExtractionBuffer(
+        val ownerId: String,
+        val characterId: String,
+        var providerId: String,
+        val turns: MutableList<PendingExtractionTurn> = mutableListOf(),
+    )
+
+    /** 攒满一批（或 flush 排空）后交给后台抽取的不可变快照 */
+    private data class PendingExtractionBatch(
+        val ownerId: String,
+        val characterId: String,
+        val sessionId: String,
+        val providerId: String,
+        val turns: List<PendingExtractionTurn>,
+    )
+
+    private val pendingExtractionLock = Any()
+    private val pendingExtractions = mutableMapOf<String, PendingExtractionBuffer>()
 
     // --- Local-first reads ---
 
@@ -343,16 +373,19 @@ class ChatRepository(private val context: Context) {
     ) {
         withContext(Dispatchers.IO) {
             // 事务保证删除与计数回写原子完成，避免中途失败导致计数漂移
-            db.withTransaction {
-                val messages = db.messageDao().getBySession(sessionId, ownerId).first()
-                if (messages.isNotEmpty()) {
-                    db.messageDao().deleteById(messages.last().id)
-                    val session = db.sessionDao().get(sessionId, ownerId, characterId)
-                    if (session != null) {
-                        db.sessionDao().upsert(session.copy(messageCount = messages.size - 1))
+            val remainingIds =
+                db.withTransaction {
+                    val messages = db.messageDao().getBySession(sessionId, ownerId).first()
+                    if (messages.isNotEmpty()) {
+                        db.messageDao().deleteById(messages.last().id)
+                        val session = db.sessionDao().get(sessionId, ownerId, characterId)
+                        if (session != null) {
+                            db.sessionDao().upsert(session.copy(messageCount = messages.size - 1))
+                        }
                     }
+                    messages.dropLast(1).mapTo(HashSet()) { it.id }
                 }
-            }
+            prunePendingExtractionTurns(sessionId, remainingIds)
         }
     }
 
@@ -367,6 +400,7 @@ class ChatRepository(private val context: Context) {
             val idx = messages.indexOfFirst { it.id == messageId }
             if (idx >= 0) {
                 db.messageDao().deleteAfter(sessionId, messageId, ownerId)
+                prunePendingExtractionTurns(sessionId, messages.take(idx + 1).mapTo(HashSet()) { it.id })
             }
         }
     }
@@ -465,7 +499,7 @@ class ChatRepository(private val context: Context) {
     ) {
         withContext(Dispatchers.IO) {
             // Continue message 功能需要 LLM 实现
-            // TODO: 实现本地 LLM 的 continue 功能
+            // 待实现：实现本地 LLM 的 continue 功能
         }
     }
 
@@ -478,7 +512,7 @@ class ChatRepository(private val context: Context) {
     ) {
         withContext(Dispatchers.IO) {
             // Swipe message 功能需要本地实现
-            // TODO: 实现本地的 swipe 功能
+            // 待实现：实现本地的 swipe 功能
         }
     }
 
@@ -493,22 +527,23 @@ class ChatRepository(private val context: Context) {
         }
     }
 
+    // null = 跟随全局默认（读取时解析）；显式值才会压过全局——建会话不再快照全局默认
     suspend fun createSession(
         ownerId: String,
         characterId: String,
         title: String = "",
         providerId: String = "",
-        enableLongTermMemory: Boolean = false,
+        enableLongTermMemory: Boolean? = null,
         worldBookId: String = "",
     ): String {
         return withContext(Dispatchers.IO) {
             val sessionId = UUID.randomUUID().toString()
             val now = java.time.Instant.now().toString()
 
-            // 如果没有指定 providerId，尝试获取默认的 provider
+            // 如果没有指定 providerId，取 api_configs 默认配置（会话 providerId 存 ApiConfig.id）
             val actualProviderId =
                 if (providerId.isBlank()) {
-                    providerRepo.observeProviders().first().firstOrNull()?.id ?: ""
+                    db.apiConfigDao().getDefault()?.id ?: ""
                 } else {
                     providerId
                 }
@@ -702,7 +737,8 @@ class ChatRepository(private val context: Context) {
     /**
      * sendMessage / continueGroupChat / regenerateMessage 共用的回复落库公共尾部（避免复制粘贴）：
      * 1) 回复清洗（think 块提取）；2) 群聊归属解析（resolveReplyAttribution）；3) 助手消息落库；
-     * 4) 向量化；5) 会话计数回写；6) 记忆提取（按 mode 裁剪，群聊 MVP 仍归属主角色）。
+     * 4) 向量化；5) 会话计数回写；6) 记忆提取（Append 入缓冲攒批，满批合并抽取；
+     * Replace 剔除被覆盖轮次，群聊 MVP 仍归属主角色）。
      *
      * 群聊归属（speakerNames 非 null 时）：对清洗后的回复 parseGroupSpeaker——
      * 命中「名字:」前缀 → character_id 写为说话 NPC id、内容剥前缀；未命中 → 保持主角色与原文。
@@ -753,6 +789,11 @@ class ChatRepository(private val context: Context) {
                         )
                     }
                 }
+                // 重生覆盖：凡引用被删消息的待发轮次整轮剔除（新回复与改动前一致，不进缓冲）
+                val remainingIds =
+                    db.messageDao().getBySession(scope.sessionId, scope.ownerId).first()
+                        .mapTo(HashSet()) { it.id }
+                prunePendingExtractionTurns(scope.sessionId, remainingIds)
             }
             is ReplyTailMode.Append -> {
                 db.messageDao().upsert(
@@ -782,10 +823,16 @@ class ChatRepository(private val context: Context) {
                         )
                     db.sessionDao().upsert(sessionAfterReply)
 
-                    // 每一轮对话都提取记忆（开场白已经在创建会话时插入，不参与这里的逻辑）。
+                    // 记忆抽取攒批：本轮入缓冲，满 MEMORY_EXTRACTION_BATCH_TURNS 轮合并为一次调用
+                    // （开场白已经在创建会话时插入，不参与这里的逻辑）。
                     // 群聊 MVP：记忆提取仍归属主角色 characterId（按说话者 witness 分账是后续增强）
-                    extractMemoriesInBackground(
-                        enabled = sessionAfterReply.enableLongTermMemory,
+                    enqueueMemoryExtraction(
+                        // 三态覆盖：会话显式值 > 全局默认（与 PromptBuilder 的注入判断同一解析器，防双源真相）
+                        enabled =
+                            ChatSettingsResolver.longTermMemoryEnabled(
+                                sessionAfterReply,
+                                settingsRepo.defaultLtmEnabled(),
+                            ),
                         providerId = sessionAfterReply.providerId,
                         userMessage = mode.userMessageForMemory,
                         assistantMessage = storedContent,
@@ -834,18 +881,15 @@ class ChatRepository(private val context: Context) {
         return content to thinking.ifBlank { null }
     }
 
-    private suspend fun loadLlmConfig(): LlmConfig {
-        val settingsDao = db.settingsDao()
-        return LlmConfig(
-            baseUrl = settingsDao.getValue("llm_base_url") ?: "",
-            apiKey = SecureStore.unwrap(settingsDao.getValue("llm_api_key") ?: ""),
-            model = settingsDao.getValue("llm_model") ?: "",
-            temperature = settingsDao.getValue("temperature")?.toDoubleOrNull() ?: 0.8,
-            maxTokens = settingsDao.getValue("max_tokens")?.toIntOrNull() ?: 1024,
-        )
-    }
+    // 统一走 SettingsRepository.getLlmConfig：此前此处另读一套旧键，导致 llm_* 覆盖、
+    // 采样预设、超时与重试设置对聊天请求不生效（双源真相 bug）
+    private suspend fun loadLlmConfig(): LlmConfig = settingsRepo.getLlmConfig()
 
-    private fun extractMemoriesInBackground(
+    /**
+     * 一轮回复入抽取缓冲：攒满 MEMORY_EXTRACTION_BATCH_TURNS 轮后排空并合并发起一次后台抽取。
+     * 不满一批的尾巴靠 flushPendingMemoryExtractions 兜底（切会话/退出聊天页时调用）。
+     */
+    private fun enqueueMemoryExtraction(
         enabled: Boolean,
         providerId: String,
         userMessage: String,
@@ -856,65 +900,136 @@ class ChatRepository(private val context: Context) {
         messageIds: List<String>,
     ) {
         if (!enabled) {
+            // 长期记忆被关掉：丢弃该会话的待发缓冲——已停用的功能不应在 flush 时又抽一批
             android.util.Log.d("ChatRepository", "Long-term memory disabled for this session")
+            synchronized(pendingExtractionLock) { pendingExtractions.remove(sessionId) }
             return
         }
 
+        val batch: PendingExtractionBatch? =
+            synchronized(pendingExtractionLock) {
+                val buffer =
+                    pendingExtractions.getOrPut(sessionId) {
+                        PendingExtractionBuffer(ownerId, characterId, providerId)
+                    }
+                buffer.providerId = providerId
+                buffer.turns.add(PendingExtractionTurn(userMessage, assistantMessage, messageIds))
+                if (buffer.turns.size >= MEMORY_EXTRACTION_BATCH_TURNS) {
+                    pendingExtractions.remove(sessionId)
+                    PendingExtractionBatch(ownerId, characterId, sessionId, providerId, buffer.turns.toList())
+                } else {
+                    android.util.Log.d(
+                        "ChatRepository",
+                        "Memory extraction buffered: session=$sessionId, pending=${buffer.turns.size}",
+                    )
+                    null
+                }
+            }
+        if (batch != null) launchMemoryExtraction(batch)
+    }
+
+    /**
+     * 排空全部会话的抽取缓冲（不足一批的尾巴也立即抽取）。
+     * fire-and-forget：抽取走独立 backgroundScope，可在 ViewModel.onCleared 等不可挂起的时机调用；
+     * 进程被强杀时最多丢一批缓冲（原文仍在消息库），语义同改动前的逐轮抽取失败。
+     */
+    fun flushPendingMemoryExtractions() {
+        val batches: List<PendingExtractionBatch> =
+            synchronized(pendingExtractionLock) {
+                val drained =
+                    pendingExtractions
+                        .map { (sessionId, buffer) ->
+                            PendingExtractionBatch(
+                                buffer.ownerId,
+                                buffer.characterId,
+                                sessionId,
+                                buffer.providerId,
+                                buffer.turns.toList(),
+                            )
+                        }.filter { it.turns.isNotEmpty() }
+                pendingExtractions.clear()
+                drained
+            }
+        batches.forEach { launchMemoryExtraction(it) }
+    }
+
+    /** 会话被删除/清空时丢弃其缓冲：源消息已不存在，抽出结果的 relatedMessageIds 只会指向悬空 id */
+    fun discardPendingMemoryExtractions(sessionId: String) {
+        synchronized(pendingExtractionLock) { pendingExtractions.remove(sessionId) }
+    }
+
+    /**
+     * 消息被撤销/回退/重生覆盖后修剪缓冲：凡引用了已不存在消息的待发轮次整轮剔除——
+     * 缺了另一半的对话抽出来也是失真记忆（regenerate 与改动前一致，新回复不进缓冲）。
+     */
+    private fun prunePendingExtractionTurns(
+        sessionId: String,
+        remainingMessageIds: Set<String>,
+    ) {
+        synchronized(pendingExtractionLock) {
+            val buffer = pendingExtractions[sessionId] ?: return
+            buffer.turns.removeAll { turn -> turn.messageIds.any { it !in remainingMessageIds } }
+            if (buffer.turns.isEmpty()) pendingExtractions.remove(sessionId)
+        }
+    }
+
+    private fun launchMemoryExtraction(batch: PendingExtractionBatch) {
         backgroundScope.launch {
             try {
-                android.util.Log.d("ChatRepository", "Long-term memory enabled, extracting memories...")
+                android.util.Log.d(
+                    "ChatRepository",
+                    "Long-term memory enabled, extracting memories for ${batch.turns.size} turn(s)...",
+                )
 
-                val providers = providerRepo.observeProviders().first()
-                android.util.Log.d("ChatRepository", "Available providers: ${providers.map { "${it.id}:${it.name}" }}")
-                android.util.Log.d("ChatRepository", "Looking for providerId: '$providerId'")
-
-                var provider = providers.find { it.id == providerId }
-
-                // 如果找不到，尝试使用第一个可用的 provider
-                if (provider == null) {
-                    android.util.Log.w("ChatRepository", "Provider '$providerId' not found")
-                    provider = providers.firstOrNull()
-
-                    if (provider != null) {
-                        android.util.Log.i("ChatRepository", "Falling back to first available provider: ${provider.name}")
-                    } else {
-                        val llmConfig = loadLlmConfig()
-                        provider =
-                            if (
-                                llmConfig.baseUrl.isNotBlank() &&
-                                llmConfig.apiKey.isNotBlank() &&
-                                llmConfig.model.isNotBlank()
-                            ) {
-                                android.util.Log.i("ChatRepository", "Using active LLM config for memory extraction")
-                                ProviderConfig(
-                                    id = "active_llm_config",
-                                    name = "Active LLM Config",
-                                    endpoint = llmConfig.baseUrl,
-                                    apiKey = llmConfig.apiKey,
-                                    selectedModel = llmConfig.model,
-                                    memoryModel = llmConfig.model,
-                                )
-                            } else {
-                                android.util.Log.w("ChatRepository", "No LLM providers configured, memory extraction disabled")
-                                null
-                            }
-                    }
-                }
+                val extractionConfig = resolveExtractionConfig(batch.providerId)
 
                 val savedCount =
                     memoryExtractionService.extractAndSaveMemories(
-                        userMessage = userMessage,
-                        assistantMessage = assistantMessage,
-                        ownerId = ownerId,
-                        characterId = characterId,
-                        sessionId = sessionId,
-                        messageIds = messageIds,
-                        provider = provider,
+                        turns =
+                            batch.turns.map {
+                                MemoryExtractionService.DialogueTurn(
+                                    userMessage = it.userMessage,
+                                    assistantMessage = it.assistantMessage,
+                                    messageIds = it.messageIds,
+                                )
+                            },
+                        ownerId = batch.ownerId,
+                        characterId = batch.characterId,
+                        sessionId = batch.sessionId,
+                        config = extractionConfig,
                     )
                 android.util.Log.d("ChatRepository", "Memory extraction completed, saved $savedCount memories")
             } catch (e: Exception) {
                 android.util.Log.e("ChatRepository", "Memory extraction failed: ${e.message}", e)
             }
+        }
+    }
+
+    // 解析记忆抽取用的 LLM 配置：会话指定配置 → api_configs 默认配置 → 活跃 LLM 配置兜底；都没有则返回 null（抽取跳过）
+    private suspend fun resolveExtractionConfig(providerId: String): LlmConfig? {
+        val dao = db.apiConfigDao()
+        val matched = if (providerId.isNotBlank()) dao.getById(providerId) else null
+        val fallback = matched ?: dao.getDefault()
+        if (fallback != null) {
+            android.util.Log.d("ChatRepository", "Memory extraction using config: ${fallback.name}")
+            return LlmConfig(
+                baseUrl = fallback.apiUrl,
+                apiKey = fallback.apiKey,
+                model = fallback.model,
+            )
+        }
+
+        val llmConfig = loadLlmConfig()
+        return if (
+            llmConfig.baseUrl.isNotBlank() &&
+            llmConfig.apiKey.isNotBlank() &&
+            llmConfig.model.isNotBlank()
+        ) {
+            android.util.Log.i("ChatRepository", "Using active LLM config for memory extraction")
+            llmConfig
+        } else {
+            android.util.Log.w("ChatRepository", "No LLM configs available, memory extraction disabled")
+            null
         }
     }
 }
