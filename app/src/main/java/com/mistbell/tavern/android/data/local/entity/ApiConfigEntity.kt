@@ -1,0 +1,28 @@
+package com.mistbell.tavern.android.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+/**
+ * API 配置实体
+ */
+@Entity(tableName = "api_configs")
+data class ApiConfigEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val apiUrl: String,
+    val apiKey: String,
+    val model: String,
+    // UNKNOWN, TESTING, SUCCESS, FAILED
+    val isDefault: Boolean = false,
+    val lastTestStatus: String = "UNKNOWN",
+    val lastTestTime: Long = 0L,
+    // 用于自定义排序
+    val sortOrder: Int = 0,
+    // 接口类型：openai / anthropic / gemini / custom（custom = 任意 OpenAI 兼容网关）
+    val type: String = "openai",
+    // 1M 上下文开关（解锁 1M 档位）
+    val context1m: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+)

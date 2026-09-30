@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -20,6 +21,7 @@ import kotlinx.serialization.json.Json
         Index(value = ["owner_id", "session_id", "created_at"]),
     ],
 )
+@Serializable
 data class StructuredMemoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -35,12 +37,16 @@ data class StructuredMemoryEntity(
     // 记忆内容
     val title: String?,
     val content: String,
+    // JSON string
     @ColumnInfo(name = "structured_data")
-    val structuredData: String?, // JSON string
+    val structuredData: String?,
     // 元数据
-    val importance: Int = 5, // 1-10
-    val tags: String?, // JSON array
-    val keywords: String?, // JSON array
+    // 1-10
+    val importance: Int = 5,
+    // JSON array
+    val tags: String?,
+    // JSON array
+    val keywords: String?,
     // 时间信息
     @ColumnInfo(name = "created_at")
     val createdAt: String,
@@ -51,10 +57,12 @@ data class StructuredMemoryEntity(
     @ColumnInfo(name = "access_count")
     val accessCount: Int = 0,
     // 关联信息
+    // JSON array
     @ColumnInfo(name = "related_message_ids")
-    val relatedMessageIds: String?, // JSON array
+    val relatedMessageIds: String?,
+    // manual, auto_extract, import
     @ColumnInfo(name = "source_type")
-    val sourceType: String = "manual", // manual, auto_extract, import
+    val sourceType: String = "manual",
 ) {
     fun toDomain(): StructuredMemory {
         return StructuredMemory(

@@ -61,4 +61,8 @@ interface MemoryDao {
 
     @Query("DELETE FROM memories")
     suspend fun deleteAll()
+
+    /** 备份导出用：一次性全表读取（不限 owner/角色，legacy memories 表） */
+    @Query("SELECT * FROM memories")
+    suspend fun getAllOnce(): List<com.mistbell.tavern.android.data.local.entity.MemoryEntity>
 }

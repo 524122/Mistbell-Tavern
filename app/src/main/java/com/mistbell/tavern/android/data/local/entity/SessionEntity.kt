@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import com.mistbell.tavern.android.data.api.model.SessionSummary
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "sessions",
@@ -14,6 +15,7 @@ import com.mistbell.tavern.android.data.api.model.SessionSummary
         Index(value = ["owner_id", "character_id", "updated_at"]),
     ],
 )
+@Serializable
 data class SessionEntity(
     @ColumnInfo(name = "id") val id: String,
     @ColumnInfo(name = "owner_id") val ownerId: String,
@@ -30,8 +32,10 @@ data class SessionEntity(
     @ColumnInfo(name = "is_pinned", defaultValue = "0") val isPinned: Boolean = false,
     @ColumnInfo(name = "pinned_at") val pinnedAt: String? = null,
     @ColumnInfo(name = "is_muted", defaultValue = "0") val isMuted: Boolean = false,
-    @ColumnInfo(name = "enable_long_term_memory", defaultValue = "0") val enableLongTermMemory: Boolean = false,
-    @ColumnInfo(name = "context_token_limit", defaultValue = "4096") val contextTokenLimit: Int = 4096,
+    // 可空 = 三态覆盖位：null 跟随全局默认（读取时经 ChatSettingsResolver 解析），
+    // 显式值压过全局；迁移 DDL 的可空性与无默认值必须与此一致（见 AppDatabase.MIGRATION_17_18）
+    @ColumnInfo(name = "enable_long_term_memory") val enableLongTermMemory: Boolean? = null,
+    @ColumnInfo(name = "context_token_limit") val contextTokenLimit: Int? = null,
     @ColumnInfo(name = "participant_character_ids_json", defaultValue = "") val participantCharacterIdsJson: String = "",
     // 会话级主题包 id：空 = 跟随角色 / 全局；迁移 DDL 的 DEFAULT '' 必须与此一致（见 AppDatabase.MIGRATION_10_11）
     @ColumnInfo(name = "theme_id", defaultValue = "") val themeId: String = "",

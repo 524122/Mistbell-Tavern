@@ -221,6 +221,180 @@ class MigrationSchemaAlignmentTest {
     }
 
     @Test
+    fun `v18 迁移真实 SQL 将会话两列重建为可空且无默认值`() {
+        // 三态覆盖位：enable_long_term_memory / context_token_limit 必须是可空、无 SQL 默认值
+        // （与 SessionEntity 注解对齐——Room TableInfo 逐列比对 notNull 与 dflt_value）
+        val createStatement =
+            AppDatabase.MIGRATION_17_18_SQL.firstOrNull {
+                it.trimStart().startsWith("CREATE TABLE IF NOT EXISTS sessions_new")
+            }
+        assertNotNull("MIGRATION_17_18_SQL 应包含 sessions_new 建表语句", createStatement)
+
+        val body = createStatement!!.substringAfter('(').substringBeforeLast(')')
+        val ltmColumn = body.split(',').map { it.trim() }.first { it.startsWith("enable_long_term_memory") }
+        val ctxColumn = body.split(',').map { it.trim() }.first { it.startsWith("context_token_limit") }
+        assertEquals("enable_long_term_memory 应为可空无默认值", "enable_long_term_memory INTEGER", ltmColumn)
+        assertEquals("context_token_limit 应为可空无默认值", "context_token_limit INTEGER", ctxColumn)
+        // 相邻可空列 pinned_at 形态相同，作为对照防止断言误写
+        assertTrue("pinned_at 应保持可空", body.contains("pinned_at TEXT,"))
+    }
+
+    @Test
+    fun `v18 迁移真实 SQL 保留其余列的 NOT NULL 与默认值`() {
+        // 整表重建时其余 20 列必须与 17.json 既有形态逐列一致（DEFAULT 缺失即触发 Room 校验失败）
+        val createStatement =
+            AppDatabase.MIGRATION_17_18_SQL.firstOrNull {
+                it.trimStart().startsWith("CREATE TABLE IF NOT EXISTS sessions_new")
+            }
+        assertNotNull(createStatement)
+        val body = createStatement!!.substringAfter('(').substringBeforeLast(')')
+        listOf(
+            "unread_count INTEGER NOT NULL DEFAULT 0",
+            "is_pinned INTEGER NOT NULL DEFAULT 0",
+            "is_muted INTEGER NOT NULL DEFAULT 0",
+            "participant_character_ids_json TEXT NOT NULL DEFAULT ''",
+            "theme_id TEXT NOT NULL DEFAULT ''",
+            "author_note TEXT NOT NULL DEFAULT ''",
+            "mode TEXT NOT NULL DEFAULT 'classic'",
+            "mode_config_json TEXT NOT NULL DEFAULT ''",
+        ).forEach { columnDdl ->
+            assertTrue("sessions_new 缺少与实体对齐的列定义: $columnDdl\n实际: $body", columnDdl in body)
+        }
+    }
+
+    @Test
+    fun `v18 迁移真实 SQL 的索引重建与实体注解默认名一致`() {
+        // DROP TABLE 会连带删除索引，必须按 Room 默认名重建且全集相等（v14 事故同型防线）
+        val created = extractIndexNames(AppDatabase.MIGRATION_17_18_SQL)
+        assertEquals(
+            "v18 迁移建出的 sessions 索引应与实体注解默认名完全一致",
+            sessionDefaultIndexes,
+            created,
+        )
+        assertTrue(
+            "v18 迁移不应 DROP 任何索引（索引随 DROP TABLE 隐式消失，无需显式 DROP）",
+            extractDroppedIndexNames(AppDatabase.MIGRATION_17_18_SQL).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `v18 迁移仅重建 sessions 表不触碰其他表`() {
+        // 防呆：本迁移只允许 sessions/sessions_new 两个表名出现（DROP/CREATE/RENAME/INSERT），
+        // 不得对其他表有任何写操作
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_17_18_SQL
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v18 迁移只允许触碰 sessions/sessions_new",
+            setOf("sessions", "sessions_new"),
+            referenced,
+        )
+    }
+
+    @Test
+    fun `v19 迁移真实 SQL 的世界书新列与实体注解对齐`() {
+        // insert_position/depth（世界书插入位置落库）：实体注解为
+        // @ColumnInfo(defaultValue = "before_prompt") / @ColumnInfo(defaultValue = "0")——
+        // ALTER 语句必须带 DEFAULT 'before_prompt' / DEFAULT 0（Room TableInfo 逐字符比对）。
+        // 沿用修复5模式：直接断言迁移实际执行的常量，而非测试自拼接的字符串
+        assertEquals(
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN insert_position TEXT NOT NULL DEFAULT 'before_prompt'",
+                "ALTER TABLE world_book_entries ADD COLUMN depth INTEGER NOT NULL DEFAULT 0",
+            ),
+            AppDatabase.MIGRATION_18_19_SQL,
+        )
+    }
+
+    @Test
+    fun `v19 迁移仅加列不触碰索引与其他表`() {
+        // 防呆：v19 是纯加列迁移，只允许触碰 world_book_entries，且不得创建/删除任何索引
+        assertTrue(
+            "v19 迁移不应包含索引 DDL",
+            extractIndexNames(AppDatabase.MIGRATION_18_19_SQL).isEmpty() &&
+                extractDroppedIndexNames(AppDatabase.MIGRATION_18_19_SQL).isEmpty(),
+        )
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_18_19_SQL
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v19 迁移只允许触碰 world_book_entries",
+            setOf("world_book_entries"),
+            referenced,
+        )
+    }
+
+    @Test
+    fun `v20 迁移真实 SQL 的世界书概率列与实体注解对齐`() {
+        // probability（触发概率落库）：实体注解为 @ColumnInfo(defaultValue = "1")——
+        // ALTER 语句必须带 DEFAULT 1（Room TableInfo 逐字符比对）。
+        // 沿用修复5模式：直接断言迁移实际执行的常量，而非测试自拼接的字符串
+        assertEquals(
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN probability REAL NOT NULL DEFAULT 1",
+            ),
+            AppDatabase.MIGRATION_19_20_SQL,
+        )
+    }
+
+    @Test
+    fun `v20 迁移仅加列不触碰索引与其他表`() {
+        // 防呆：v20 是纯加列迁移，只允许触碰 world_book_entries，且不得创建/删除任何索引
+        assertTrue(
+            "v20 迁移不应包含索引 DDL",
+            extractIndexNames(AppDatabase.MIGRATION_19_20_SQL).isEmpty() &&
+                extractDroppedIndexNames(AppDatabase.MIGRATION_19_20_SQL).isEmpty(),
+        )
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_19_20_SQL
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v20 迁移只允许触碰 world_book_entries",
+            setOf("world_book_entries"),
+            referenced,
+        )
+    }
+
+    @Test
+    fun `v21 迁移真实 SQL 的世界书深度角色列与实体注解对齐`() {
+        // depth_role（@D 插入角色落库）：实体注解为 @ColumnInfo(defaultValue = "system")——
+        // ALTER 语句必须带 DEFAULT 'system'（Room TableInfo 逐字符比对）。
+        // 沿用修复5模式：直接断言迁移实际执行的常量，而非测试自拼接的字符串
+        assertEquals(
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN depth_role TEXT NOT NULL DEFAULT 'system'",
+            ),
+            AppDatabase.MIGRATION_20_21_SQL,
+        )
+    }
+
+    @Test
+    fun `v21 迁移仅加列不触碰索引与其他表`() {
+        // 防呆：v21 是纯加列迁移，只允许触碰 world_book_entries，且不得创建/删除任何索引
+        assertTrue(
+            "v21 迁移不应包含索引 DDL",
+            extractIndexNames(AppDatabase.MIGRATION_20_21_SQL).isEmpty() &&
+                extractDroppedIndexNames(AppDatabase.MIGRATION_20_21_SQL).isEmpty(),
+        )
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_20_21_SQL
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v21 迁移只允许触碰 world_book_entries",
+            setOf("world_book_entries"),
+            referenced,
+        )
+    }
+
+    @Test
     fun `theme_packs 表真实 DDL 与实体逐列对齐`() {
         // 这是 v9→v10 新建的表，DDL 必须与 ThemePackEntity 完全一致：
         // id 主键、background_file 可空（无 NOT NULL），其余 NOT NULL，共 7 列
@@ -249,5 +423,38 @@ class MigrationSchemaAlignmentTest {
         assertTrue("theme_packs.id 应为主键", idColumn.contains("PRIMARY KEY"))
         assertFalse("background_file 不应有 NOT NULL", body.contains("background_file TEXT NOT NULL"))
         assertTrue("created_at 应 NOT NULL", body.contains("created_at TEXT NOT NULL"))
+    }
+
+    @Test
+    fun `v22 迁移真实 SQL 的 api_configs 新列与实体注解对齐`() {
+        // ALTER 语句必须带 DEFAULT（Room TableInfo 逐字符比对默认值）。
+        // 沿用修复5模式：直接断言迁移实际执行的常量，而非测试自拼接的字符串
+        assertEquals(
+            listOf(
+                "ALTER TABLE api_configs ADD COLUMN type TEXT NOT NULL DEFAULT 'openai'",
+                "ALTER TABLE api_configs ADD COLUMN context1m INTEGER NOT NULL DEFAULT 0",
+            ),
+            AppDatabase.MIGRATION_22_23_SQL,
+        )
+    }
+
+    @Test
+    fun `v22 迁移仅加列不触碰索引与其他表`() {
+        // 防呆：v22 是纯加列迁移，只允许触碰 api_configs，且不得创建/删除任何索引
+        assertTrue(
+            "v22 迁移不应包含索引 DDL",
+            extractIndexNames(AppDatabase.MIGRATION_22_23_SQL).isEmpty() &&
+                extractDroppedIndexNames(AppDatabase.MIGRATION_22_23_SQL).isEmpty(),
+        )
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_22_23_SQL
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v22 迁移只允许触碰 api_configs",
+            setOf("api_configs"),
+            referenced,
+        )
     }
 }

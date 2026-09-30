@@ -84,4 +84,8 @@ interface VectorMemoryDao {
         characterId: String,
         sessionId: String,
     ): Int
+
+    /** 备份导出用：一次性全表读取（不限 owner） */
+    @Query("SELECT * FROM vector_memory")
+    suspend fun getAllOnce(): List<com.mistbell.tavern.android.data.local.entity.VectorMemoryEntity>
 }

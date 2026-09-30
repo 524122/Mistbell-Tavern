@@ -22,4 +22,11 @@ interface CharacterDao {
 
     @Query("DELETE FROM characters")
     suspend fun deleteAll()
+
+    /** 备份导出用：一次性全表读取（Flow 版本仅作观察用） */
+    @Query("SELECT * FROM characters")
+    suspend fun getAllOnce(): List<com.mistbell.tavern.android.data.local.entity.CharacterEntity>
+
+    @Upsert
+    suspend fun upsert(character: com.mistbell.tavern.android.data.local.entity.CharacterEntity)
 }

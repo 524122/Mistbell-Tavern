@@ -5,8 +5,10 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.CharacterData
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "characters")
+@Serializable
 data class CharacterEntity(
     @PrimaryKey val id: String,
     val name: String,

@@ -116,4 +116,8 @@ interface StructuredMemoryDao {
         ownerId: String,
         characterId: String,
     ): Int
+
+    /** 备份导出用：一次性全表读取（不限 owner） */
+    @Query("SELECT * FROM structured_memory")
+    suspend fun getAllOnce(): List<com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity>
 }

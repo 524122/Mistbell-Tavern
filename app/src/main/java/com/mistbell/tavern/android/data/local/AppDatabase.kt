@@ -22,8 +22,10 @@ import com.mistbell.tavern.android.data.local.entity.*
         StructuredMemoryEntity::class,
         VectorMemoryEntity::class,
         ThemePackEntity::class,
+        ApiConfigEntity::class,
+        CustomPromptEntity::class,
     ],
-    version = 17,
+    version = 23,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -47,9 +49,13 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun themePackDao(): ThemePackDao
 
+    abstract fun apiConfigDao(): ApiConfigDao
+
+    abstract fun customPromptDao(): CustomPromptDao
+
     companion object {
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var instance: AppDatabase? = null
 
         // 修复5：各迁移实际执行的 SQL 提取为 internal 常量，迁移对象与 JVM 迁移对齐测试
         // （MigrationSchemaAlignmentTest）引用【同一份】常量——此前测试断言的是测试文件里
@@ -324,9 +330,190 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v17→v18：会话级「长期记忆开关 / 上下文长度」从"建会话时快照全局默认"改为
+        // 三态覆盖位（null = 跟随全局，显式值压过全局——SETTINGS.md 分层原则的落地）。
+        // SQLite 不支持改列可空性 → 整表重建；旧行的具体值一律保留（语义 = 用户已显式设置，
+        // 与全局脱钩），只有新会话才以 null 享受"跟随全局"。
+        // 列可空性/默认值必须与 SessionEntity 注解逐列一致（Room TableInfo 全量比对），
+        // 索引在 DROP TABLE 后随之消失，必须按 Room 默认名重建（v14 事故教训）
+        internal val MIGRATION_17_18_SQL: List<String> =
+            listOf(
+                """
+                CREATE TABLE IF NOT EXISTS sessions_new (
+                    id TEXT NOT NULL,
+                    owner_id TEXT NOT NULL,
+                    character_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    message_count INTEGER NOT NULL,
+                    provider_id TEXT NOT NULL,
+                    model_id TEXT NOT NULL,
+                    world_book_id TEXT NOT NULL,
+                    summary_json TEXT NOT NULL,
+                    unread_count INTEGER NOT NULL DEFAULT 0,
+                    is_pinned INTEGER NOT NULL DEFAULT 0,
+                    pinned_at TEXT,
+                    is_muted INTEGER NOT NULL DEFAULT 0,
+                    enable_long_term_memory INTEGER,
+                    context_token_limit INTEGER,
+                    participant_character_ids_json TEXT NOT NULL DEFAULT '',
+                    theme_id TEXT NOT NULL DEFAULT '',
+                    author_note TEXT NOT NULL DEFAULT '',
+                    mode TEXT NOT NULL DEFAULT 'classic',
+                    mode_config_json TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY(id, owner_id, character_id)
+                )
+                """.trimIndent(),
+                """
+                INSERT INTO sessions_new (
+                    id, owner_id, character_id, title, created_at, updated_at, message_count,
+                    provider_id, model_id, world_book_id, summary_json, unread_count, is_pinned,
+                    pinned_at, is_muted, enable_long_term_memory, context_token_limit,
+                    participant_character_ids_json, theme_id, author_note, mode, mode_config_json
+                )
+                SELECT
+                    id, owner_id, character_id, title, created_at, updated_at, message_count,
+                    provider_id, model_id, world_book_id, summary_json, unread_count, is_pinned,
+                    pinned_at, is_muted, enable_long_term_memory, context_token_limit,
+                    participant_character_ids_json, theme_id, author_note, mode, mode_config_json
+                FROM sessions
+                """.trimIndent(),
+                "DROP TABLE sessions",
+                "ALTER TABLE sessions_new RENAME TO sessions",
+                "CREATE INDEX IF NOT EXISTS index_sessions_owner_id_updated_at ON sessions(owner_id, updated_at)",
+                "CREATE INDEX IF NOT EXISTS index_sessions_owner_id_is_pinned_updated_at" +
+                    " ON sessions(owner_id, is_pinned, updated_at)",
+                "CREATE INDEX IF NOT EXISTS index_sessions_owner_id_character_id_updated_at" +
+                    " ON sessions(owner_id, character_id, updated_at)",
+            )
+
+        @Suppress("MagicNumber") // 起止版本号即迁移语义本体，与 MIGRATION_16_17 等既往迁移同型
+        internal val MIGRATION_17_18 =
+            object : Migration(17, 18) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_17_18_SQL.forEach(db::execSQL)
+                }
+            }
+
+        // v18→v19：世界书条目新增 insert_position/depth 两列（插入位置功能此前只存在于 UI 表单，
+        // 从未落库——v19 起 PromptBuilder 真正按位置/深度装配提示词）。
+        // 纯加列迁移，列默认值须与 WorldBookEntryEntity 注解逐字符一致（Room TableInfo 比对）
+        internal val MIGRATION_18_19_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN insert_position TEXT NOT NULL DEFAULT 'before_prompt'",
+                "ALTER TABLE world_book_entries ADD COLUMN depth INTEGER NOT NULL DEFAULT 0",
+            )
+
+        @Suppress("MagicNumber") // 起止版本号即迁移语义本体，与 MIGRATION_16_17 等既往迁移同型
+        internal val MIGRATION_18_19 =
+            object : Migration(18, 19) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_18_19_SQL.forEach(db::execSQL)
+                }
+            }
+
+        // v19→v20：世界书条目新增 probability 列（触发概率，对齐酒馆——此前导入时被当未映射字段丢弃）。
+        // 纯加列迁移，列默认值须与 WorldBookEntryEntity 注解逐字符一致（Room TableInfo 比对）
+        internal val MIGRATION_19_20_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN probability REAL NOT NULL DEFAULT 1",
+            )
+
+        @Suppress("MagicNumber") // 起止版本号即迁移语义本体，与 MIGRATION_16_17 等既往迁移同型
+        internal val MIGRATION_19_20 =
+            object : Migration(19, 20) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_19_20_SQL.forEach(db::execSQL)
+                }
+            }
+
+        // v20→v21：世界书条目新增 depth_role 列（@D 插入角色：system/user/assistant，对齐酒馆 role）。
+        // 纯加列迁移，列默认值须与 WorldBookEntryEntity 注解逐字符一致（Room TableInfo 比对）
+        internal val MIGRATION_20_21_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN depth_role TEXT NOT NULL DEFAULT 'system'",
+            )
+
+        @Suppress("MagicNumber") // 起止版本号即迁移语义本体，与 MIGRATION_16_17 等既往迁移同型
+        internal val MIGRATION_20_21 =
+            object : Migration(20, 21) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_20_21_SQL.forEach(db::execSQL)
+                }
+            }
+
+        // v21→v22：新增 API 配置表和自定义提示词表
+        internal val MIGRATION_21_22_SQL: List<String> =
+            listOf(
+                // 创建 API 配置表
+                """
+                CREATE TABLE IF NOT EXISTS api_configs (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL,
+                    apiUrl TEXT NOT NULL,
+                    apiKey TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    isDefault INTEGER NOT NULL,
+                    lastTestStatus TEXT NOT NULL,
+                    lastTestTime INTEGER NOT NULL,
+                    sortOrder INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """.trimIndent(),
+                // 创建自定义提示词表
+                """
+                CREATE TABLE IF NOT EXISTS custom_prompts (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    position TEXT NOT NULL,
+                    isEnabled INTEGER NOT NULL,
+                    priority INTEGER NOT NULL,
+                    tags TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """.trimIndent(),
+                // 为 API 配置表创建索引
+                "CREATE INDEX IF NOT EXISTS index_api_configs_isDefault ON api_configs(isDefault)",
+                "CREATE INDEX IF NOT EXISTS index_api_configs_sortOrder ON api_configs(sortOrder)",
+                // 为自定义提示词表创建索引
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_type ON custom_prompts(type)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_position ON custom_prompts(position)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_isEnabled ON custom_prompts(isEnabled)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_priority ON custom_prompts(priority)",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_21_22 =
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_21_22_SQL.forEach(db::execSQL)
+                }
+            }
+
+        // v22→v23：api_configs 增加接口类型（type）与 1M 上下文开关（context1m）两列
+        internal val MIGRATION_22_23_SQL: List<String> =
+            listOf(
+                "ALTER TABLE api_configs ADD COLUMN type TEXT NOT NULL DEFAULT 'openai'",
+                "ALTER TABLE api_configs ADD COLUMN context1m INTEGER NOT NULL DEFAULT 0",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_22_23 =
+            object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_22_23_SQL.forEach(db::execSQL)
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
+            return instance ?: synchronized(this) {
+                instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "tavern.db",
@@ -346,10 +533,18 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_14_15,
                         MIGRATION_15_16,
                         MIGRATION_16_17,
+                        MIGRATION_17_18,
+                        MIGRATION_18_19,
+                        MIGRATION_19_20,
+                        MIGRATION_20_21,
+                        MIGRATION_21_22,
+                        MIGRATION_22_23,
                     )
-                    .fallbackToDestructiveMigration()
+                    // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：
+                    // 遇到未覆盖的版本 Room 会直接抛 IllegalStateException（明确失败），
+                    // 而不是静默清空用户数据（ROADMAP"防静默清库"）。
                     .build()
-                    .also { INSTANCE = it }
+                    .also { instance = it }
             }
         }
     }

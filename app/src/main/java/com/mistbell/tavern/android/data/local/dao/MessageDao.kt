@@ -208,4 +208,8 @@ interface MessageDao {
         t6: String,
         resultLimit: Int,
     ): List<MessageEntity>
+
+    /** 备份导出用：一次性全表读取（全 owner 完整快照） */
+    @Query("SELECT * FROM messages")
+    suspend fun getAllOnce(): List<com.mistbell.tavern.android.data.local.entity.MessageEntity>
 }

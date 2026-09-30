@@ -56,4 +56,8 @@ interface WorldBookDao {
         books.forEach { upsertBook(it) }
         allEntries.values.flatten().let { if (it.isNotEmpty()) upsertEntries(it) }
     }
+
+    /** 备份导出用：一次性全表读取 */
+    @Query("SELECT * FROM world_books")
+    suspend fun getAllBooksOnce(): List<com.mistbell.tavern.android.data.local.entity.WorldBookEntity>
 }

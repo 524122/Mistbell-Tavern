@@ -4,8 +4,10 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.Memory
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "memories")
+@Serializable
 data class MemoryEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "owner_id") val ownerId: String,

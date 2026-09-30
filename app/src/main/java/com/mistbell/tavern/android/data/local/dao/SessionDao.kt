@@ -109,6 +109,34 @@ interface SessionDao {
         characterId: String,
         note: String,
     )
+
+    /** 会话级长期记忆三态覆盖位：null = 清除覆盖跟随全局，true/false = 显式写入 */
+    @Query(
+        "UPDATE sessions SET enable_long_term_memory = :enabled WHERE id = :sessionId" +
+            " AND owner_id = :ownerId AND character_id = :characterId",
+    )
+    suspend fun updateLtmEnabled(
+        sessionId: String,
+        ownerId: String,
+        characterId: String,
+        enabled: Boolean?,
+    )
+
+    /** 会话级上下文长度三态覆盖位：null = 清除覆盖跟随全局，具体值 = 显式写入 */
+    @Query(
+        "UPDATE sessions SET context_token_limit = :tokenLimit WHERE id = :sessionId" +
+            " AND owner_id = :ownerId AND character_id = :characterId",
+    )
+    suspend fun updateContextTokenLimit(
+        sessionId: String,
+        ownerId: String,
+        characterId: String,
+        tokenLimit: Int?,
+    )
+
+    /** 备份导出用：一次性全表读取（不限 owner，跨用户完整快照） */
+    @Query("SELECT * FROM sessions")
+    suspend fun getAllOnce(): List<com.mistbell.tavern.android.data.local.entity.SessionEntity>
 }
 
 // 每个角色的真实会话数统计

@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.Message
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "messages",
@@ -21,6 +22,7 @@ import com.mistbell.tavern.android.data.api.model.Message
         Index(value = ["owner_id", "session_id", "created_at"]),
     ],
 )
+@Serializable
 data class MessageEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "session_id") val sessionId: String,

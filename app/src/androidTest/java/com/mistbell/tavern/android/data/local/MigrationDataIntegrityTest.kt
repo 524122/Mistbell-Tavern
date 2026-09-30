@@ -314,7 +314,7 @@ class MigrationDataIntegrityTest {
         raw.close()
     }
 
-    /** 打开数据库并执行迁移（用生产同款迁移链——AppDatabase 伴生对象的 internal 成员，直达最新版本 17） */
+    /** 打开数据库并执行迁移（用生产同款迁移链——AppDatabase 伴生对象的 internal 成员，直达最新版本 21） */
     private fun openWithRoom(): AppDatabase {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         return Room.databaseBuilder(context, AppDatabase::class.java, dbName)
@@ -333,13 +333,17 @@ class MigrationDataIntegrityTest {
                 AppDatabase.Companion.MIGRATION_14_15,
                 AppDatabase.Companion.MIGRATION_15_16,
                 AppDatabase.Companion.MIGRATION_16_17,
+                AppDatabase.Companion.MIGRATION_17_18,
+                AppDatabase.Companion.MIGRATION_18_19,
+                AppDatabase.Companion.MIGRATION_19_20,
+                AppDatabase.Companion.MIGRATION_20_21,
             )
             .allowMainThreadQueries()
             .build()
     }
 
     @Test
-    fun migrateV11ToV16_preservesAllData() =
+    fun migrateV11ToV21_preservesAllData() =
         runBlocking {
             createV11Database()
             db = openWithRoom()
@@ -382,7 +386,7 @@ class MigrationDataIntegrityTest {
         }
 
     @Test
-    fun migrateV11ToV16_canWriteAfterMigration() =
+    fun migrateV11ToV21_canWriteAfterMigration() =
         runBlocking {
             createV11Database()
             db = openWithRoom()
@@ -418,7 +422,7 @@ class MigrationDataIntegrityTest {
         }
 
     @Test
-    fun migrateV11ToV16_authorNoteColumnAdded() =
+    fun migrateV11ToV21_authorNoteColumnAdded() =
         runBlocking {
             createV11Database()
             db = openWithRoom()
@@ -431,7 +435,7 @@ class MigrationDataIntegrityTest {
         }
 
     @Test
-    fun migrateV11ToV17_modeColumnAddedWithClassicDefault() =
+    fun migrateV11ToV21_modeColumnAddedWithClassicDefault() =
         runBlocking {
             createV11Database()
             db = openWithRoom()
@@ -462,5 +466,128 @@ class MigrationDataIntegrityTest {
             val session = db.sessionDao().get("sess-1", "local-user", "char-1")
             assertNotNull("会话应存在", session)
             assertEquals("迁移后既有会话的 mode 应回填为 classic", "classic", session?.mode)
+        }
+
+    @Test
+    fun migrateV11ToV21_overrideColumnsBecomeNullableAndPreserveValues() =
+        runBlocking {
+            createV11Database()
+            db = openWithRoom()
+
+            // v18 三态覆盖位：两列应可空（notnull = 0）且无 SQL 默认值（与 SessionEntity 注解对齐）
+            db.openHelper.writableDatabase.query("PRAGMA table_info(sessions)").use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                val notnullIdx = cursor.getColumnIndex("notnull")
+                val dfltIdx = cursor.getColumnIndex("dflt_value")
+                var ltmFound = false
+                var ctxFound = false
+                while (cursor.moveToNext()) {
+                    when (cursor.getString(nameIdx)) {
+                        "enable_long_term_memory" -> {
+                            ltmFound = true
+                            assertEquals("enable_long_term_memory 应可空", 0, cursor.getInt(notnullIdx))
+                            assertEquals("enable_long_term_memory 不应有默认值", null, cursor.getString(dfltIdx))
+                        }
+                        "context_token_limit" -> {
+                            ctxFound = true
+                            assertEquals("context_token_limit 应可空", 0, cursor.getInt(notnullIdx))
+                            assertEquals("context_token_limit 不应有默认值", null, cursor.getString(dfltIdx))
+                        }
+                    }
+                }
+                assertTrue("迁移后 enable_long_term_memory 列应存在", ltmFound)
+                assertTrue("迁移后 context_token_limit 列应存在", ctxFound)
+            }
+
+            // 旧行 v11 写入的具体值（ltm=1, ctx=4096）必须原样保留——语义转为"用户已显式设置"
+            val session = db.sessionDao().get("sess-1", "local-user", "char-1")
+            assertNotNull("会话应存在", session)
+            assertEquals("旧行的长期记忆开关值应保留", true, session?.enableLongTermMemory)
+            assertEquals("旧行的上下文长度值应保留", 4096, session?.contextTokenLimit)
+
+            // 三态可写：清除覆盖（写 null）后读取应为 null（跟随全局）
+            db.sessionDao().updateLtmEnabled("sess-1", "local-user", "char-1", null)
+            db.sessionDao().updateContextTokenLimit("sess-1", "local-user", "char-1", null)
+            val cleared = db.sessionDao().get("sess-1", "local-user", "char-1")
+            assertEquals("清除覆盖后应为 null（跟随全局）", null, cleared?.enableLongTermMemory)
+            assertEquals("清除覆盖后应为 null（跟随全局）", null, cleared?.contextTokenLimit)
+        }
+
+    @Test
+    fun migrateV11ToV21_worldBookPositionColumnsAdded() =
+        runBlocking {
+            createV11Database()
+            db = openWithRoom()
+
+            // v19 世界书插入位置落库：两列存在，PRAGMA dflt_value 与实体注解逐字符对齐
+            db.openHelper.writableDatabase.query("PRAGMA table_info(world_book_entries)").use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                val dfltIdx = cursor.getColumnIndex("dflt_value")
+                var posFound = false
+                var depthFound = false
+                var probabilityFound = false
+                var depthRoleFound = false
+                while (cursor.moveToNext()) {
+                    when (cursor.getString(nameIdx)) {
+                        "insert_position" -> {
+                            posFound = true
+                            assertEquals(
+                                "insert_position 默认值应为 'before_prompt'",
+                                "'before_prompt'",
+                                cursor.getString(dfltIdx),
+                            )
+                        }
+                        "depth" -> {
+                            depthFound = true
+                            assertEquals("depth 默认值应为 0", "0", cursor.getString(dfltIdx))
+                        }
+                        "probability" -> {
+                            probabilityFound = true
+                            assertEquals("probability 默认值应为 1", "1", cursor.getString(dfltIdx))
+                        }
+                        "depth_role" -> {
+                            depthRoleFound = true
+                            assertEquals(
+                                "depth_role 默认值应为 'system'",
+                                "'system'",
+                                cursor.getString(dfltIdx),
+                            )
+                        }
+                    }
+                }
+                assertTrue("迁移后 insert_position 列应存在", posFound)
+                assertTrue("迁移后 depth 列应存在", depthFound)
+                assertTrue("迁移后 probability 列应存在", probabilityFound)
+                assertTrue("迁移后 depth_role 列应存在", depthRoleFound)
+            }
+
+            // 写入带位置/深度/概率/角色的条目后可原样读回（旧行由列默认值兜底为 before_prompt/0/1/system）
+            db.worldBookDao().upsertBook(
+                com.mistbell.tavern.android.data.local.entity.WorldBookEntity("wb-1", "测试书", "{}"),
+            )
+            db.worldBookDao().upsertEntries(
+                listOf(
+                    com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity(
+                        id = "we-1",
+                        bookId = "wb-1",
+                        comment = "条目",
+                        keysJson = "[]",
+                        content = "内容",
+                        constant = false,
+                        disable = false,
+                        order = 0,
+                        insertPosition = "after_prompt",
+                        depth = 3,
+                        depthRole = "assistant",
+                        probability = 0.5,
+                    ),
+                ),
+            )
+            val entries = db.worldBookDao().getEntriesList("wb-1")
+            assertEquals(1, entries.size)
+            assertEquals("after_prompt", entries[0].insertPosition)
+            assertEquals(3, entries[0].depth)
+            assertEquals("assistant", entries[0].depthRole)
+            assertEquals(0.5, entries[0].probability, 0.0001)
         }
 }

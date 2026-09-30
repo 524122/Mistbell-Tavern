@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.VectorMemory
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "vector_memory",
@@ -15,6 +16,7 @@ import com.mistbell.tavern.android.data.api.model.VectorMemory
         Index(value = ["created_at"]),
     ],
 )
+@Serializable
 data class VectorMemoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -28,11 +30,13 @@ data class VectorMemoryEntity(
     val messageId: String?,
     // 内容
     val content: String,
+    // user_message, ai_message, summary
     @ColumnInfo(name = "content_type")
-    val contentType: String, // user_message, ai_message, summary
+    val contentType: String,
     // 向量数据引用
+    // Chroma中的ID
     @ColumnInfo(name = "vector_id")
-    val vectorId: String?, // Chroma中的ID
+    val vectorId: String?,
     @ColumnInfo(name = "embedding_model")
     val embeddingModel: String = "text-embedding-3-small",
     // 元数据
