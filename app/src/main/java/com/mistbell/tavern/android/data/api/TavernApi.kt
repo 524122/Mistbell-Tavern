@@ -178,6 +178,10 @@ interface TavernApi {
     ): JsonElement
 
     // --- Prompt Preview ---
+    //
+    // 注意：设置页与主界面通往 PromptPreviewScreen 的入口已全部移除（该界面依赖服务端
+    // /api/prompt/preview，纯本地架构下必然失败；聊天页「查看提示词」已取代它）。
+    // 界面与 ViewModel 文件暂留（删除需用户明确确认），本方法仅为它们保留可编译性。
 
     @POST("/api/prompt/preview")
     suspend fun promptPreview(

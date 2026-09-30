@@ -1,7 +1,9 @@
 package com.mistbell.tavern.android.data.api.model
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -15,6 +17,7 @@ data class StateResponse(
     val worldBook: WorldBook? = null,
 )
 
+@Immutable
 @Serializable
 data class Character(
     val id: String = "",
@@ -39,20 +42,31 @@ data class CharacterData(
     @SerialName("creator_notes") val creatorNotes: String = "",
     val creator: String = "",
     @SerialName("character_version") val characterVersion: String = "1.0",
-    // 备用问候语（SillyTavern v2 规范字段），默认空列表保证旧 JSON 兼容
+    // 备用开场白（SillyTavern v2 规范字段 alternate_greetings），默认空列表保证旧 JSON 兼容
     @SerialName("alternate_greetings") val alternateGreetings: List<String> = emptyList(),
     // 标签列表
     val tags: List<String> = emptyList(),
     // 生态扩展命名空间：原样透传保真，不做字段展开
     val extensions: JsonObject? = null,
+    // v3 规范新增字段：默认值保证 v2/v1 旧 JSON 兼容；多语言备注/来源/资源原样透传保真
+    val nickname: String = "",
+    @SerialName("creator_notes_multilingual") val creatorNotesMultilingual: JsonElement? = null,
+    val source: JsonElement? = null,
+    @SerialName("group_only_greetings") val groupOnlyGreetings: List<String> = emptyList(),
+    val assets: JsonElement? = null,
 )
 
 // ---- 会话模式常量（v17 模式骨架，MODES.md）----
-// 本批取值仅 classic | group；"narrator" 与后续④⑤档为骨架预留
-// （存储层一次表达全部五档，未来加模式零迁移），界面本批不露出。
+// 已实现取值：classic | group；"roleplay"（扮演，MODES 模式②）与后续④⑤档为骨架预留
+// （存储层一次表达全部五档，未来加模式零迁移）。
+// 用户侧命名：经典 / 扮演 / 群聊 / 导演 / 卡对卡剧场（docs/MODES.md 总表）。
+// 「扮演」本批仅创建页占位（即将推出，不可创建），实装时引用本常量接入 PromptBuilder 叙事者链路。
 // 两侧代理（数据层/UI）必须引用同一份常量，禁止手写字符串字面量。
 const val SESSION_MODE_CLASSIC = "classic"
 const val SESSION_MODE_GROUP = "group"
+
+// 模式②「扮演」骨架常量：实装前创建页仅作占位展示，禁止以此值建会话（无对应提示词链路）
+const val SESSION_MODE_ROLEPLAY = "roleplay"
 
 // 群聊上下文（跨代理契约 3，数据层定义、UI 层只读引用）：
 // speakerNames —— 参与者 id→名字（含主角色）；targetSpeakerId —— 用户 @提及 解析出的目标角色 id，空 = 无指定
@@ -80,6 +94,7 @@ data class SessionSummary(
     val mode: String = SESSION_MODE_CLASSIC,
 )
 
+@Immutable
 @Serializable
 data class Message(
     val id: String = "",
@@ -130,29 +145,12 @@ data class WorldBookEntry(
     val disable: Boolean = false,
     val order: Int = 100,
     @SerialName("insertPosition") val insertPosition: String = "before_prompt",
-    val depth: Int = 1,
-)
-
-@Serializable
-data class ProviderConfig(
-    val id: String = "",
-    val name: String = "",
-    val type: String = "openai",
-    val endpoint: String = "",
-    @SerialName("apiKey") val apiKey: String = "",
-    val models: List<String> = emptyList(),
-    @SerialName("selectedModel") val selectedModel: String = "",
-    @SerialName("embeddingModel") val embeddingModel: String = "",
-    @SerialName("summaryModel") val summaryModel: String = "",
-    @SerialName("memoryModel") val memoryModel: String = "",
-    @SerialName("customParams") val customParams: Map<String, String> = emptyMap(),
-    @SerialName("context1M") val context1M: Boolean = false,
-    // S1 提供商级可选采样覆盖（null = 不覆盖，回落全局预设）
-    val temperature: Double? = null,
-    @SerialName("top_p") val topP: Double? = null,
-    @SerialName("top_k") val topK: Int? = null,
-    @SerialName("frequency_penalty") val frequencyPenalty: Double? = null,
-    @SerialName("max_tokens") val maxTokens: Int? = null,
+    // 0=跟随插入位置；1-10=@D 模式（历史倒数第 depth 条之前）。与实体列默认值一致
+    val depth: Int = 0,
+    // 触发概率 0-1（1=必触发）；与实体列默认值一致
+    val probability: Double = 1.0,
+    // @D 插入角色：system/user/assistant（仅 depth≥1 生效）；导出键名为酒馆生态的 "role"
+    @SerialName("role") val depthRole: String = "system",
 )
 
 @Serializable

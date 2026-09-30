@@ -1,0 +1,101 @@
+package com.mistbell.tavern.android.data.repository
+
+import com.mistbell.tavern.android.data.local.entity.SettingsEntity
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
+
+/**
+ * 备份系统的纯函数防线（JVM，无 Android 依赖）：
+ * 清单校验（防跨版本/坏包误恢复）、容错列表解码（坏元素不拖垮整表）、
+ * settings 敏感条目的明文往返语义。
+ */
+class BackupManagerTest {
+    private fun manifestJson(format: Int): String =
+        """{"format":$format,"appVersion":"0.8.0-beta","createdAt":"2026-09-26 12:00:00","counts":{}}"""
+
+    // ---- 清单校验 ----
+
+    @Test
+    fun `合法清单按版本解析返回`() {
+        val m = BackupManager.parseManifest(manifestJson(BackupManager.FORMAT_VERSION))
+        assertEquals(BackupManager.FORMAT_VERSION, m.format)
+        assertEquals("0.8.0-beta", m.appVersion)
+    }
+
+    @Test
+    fun `高于支持版本的备份被拒绝并给出可懂提示`() {
+        try {
+            BackupManager.parseManifest(manifestJson(BackupManager.FORMAT_VERSION + 1))
+            fail("高版本备份应被拒绝")
+        } catch (e: IllegalArgumentException) {
+            assertTrue("提示应包含版本信息", e.message!!.contains("v" + (BackupManager.FORMAT_VERSION + 1)))
+        }
+    }
+
+    @Test
+    fun `非法格式与垃圾文本被拒绝`() {
+        try {
+            BackupManager.parseManifest(manifestJson(0))
+            fail("format=0 应被拒绝")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("非法"))
+        }
+        try {
+            BackupManager.parseManifest("not a json at all")
+            fail("垃圾文本应被拒绝")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("清单"))
+        }
+    }
+
+    // ---- 容错列表解码 ----
+
+    @Test
+    fun `列表整体解码与逐元素容错`() {
+        val good = """[{"key":"a","value":"1"},{"key":"b","value":"2"}]"""
+        val list = BackupManager.decodeList(good, SettingsEntity.serializer())
+        assertEquals(2, list.size)
+
+        // 第二个元素损坏：应跳过坏元素保住好元素，而不是整表丢弃
+        val mixed = """[{"key":"a","value":"1"},{"key":42},{"value":"3"}]"""
+        val recovered = BackupManager.decodeList(mixed, SettingsEntity.serializer())
+        assertEquals(1, recovered.size)
+        assertEquals("a", recovered[0].key)
+    }
+
+    @Test
+    fun `空值与非数组输入安全返回空表`() {
+        assertTrue(BackupManager.decodeList(null, SettingsEntity.serializer()).isEmpty())
+        assertTrue(BackupManager.decodeList("{}", SettingsEntity.serializer()).isEmpty())
+        assertTrue(BackupManager.decodeList("", SettingsEntity.serializer()).isEmpty())
+    }
+
+    // ---- settings 敏感条目 ----
+
+    @Test
+    fun `明文设置原样进包且不标记敏感`() {
+        val entry = BackupManager.toBackupEntry(SettingsEntity("dark_mode", "system"))
+        assertEquals("dark_mode", entry.key)
+        assertEquals("system", entry.value)
+        assertFalse(entry.sensitive)
+        // 明文往返：entity → entry → entity 值不变
+        val restored = BackupManager.toSettingsEntity(entry)
+        assertEquals("system", restored.value)
+    }
+
+    @Test
+    fun `空 settings 表序列化往返`() {
+        val encoded =
+            Json.encodeToString(
+                ListSerializer(BackupManager.SettingsBackupEntry.serializer()),
+                emptyList(),
+            )
+        val decoded = BackupManager.decodeList(encoded, BackupManager.SettingsBackupEntry.serializer())
+        assertTrue(decoded.isEmpty())
+    }
+}

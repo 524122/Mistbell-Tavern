@@ -13,10 +13,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
@@ -41,16 +39,40 @@ data class ChatCompletionRequest(
     @SerialName("top_k") val topK: Int? = null,
     @SerialName("frequency_penalty") val frequencyPenalty: Double? = null,
     val stream: Boolean = false,
+    // 思考模式开关（DeepSeek OpenAI 格式）：null 时不发送该字段，保持对任意网关的默认行为
+    val thinking: ThinkingConfig? = null,
+)
+
+/** DeepSeek 思考模式开关：type = "enabled" / "disabled" */
+@Serializable
+data class ThinkingConfig(
+    val type: String,
+)
+
+/**
+ * 用量统计（OpenAI 兼容响应 usage）。DeepSeek 另附 prompt_cache_hit_tokens /
+ * prompt_cache_miss_tokens，用于观测前缀缓存命中率——忽略未知键的 Json 会保持默认值 0。
+ */
+@Serializable
+data class Usage(
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+    @SerialName("total_tokens") val totalTokens: Int = 0,
+    @SerialName("prompt_cache_hit_tokens") val cacheHitTokens: Int = 0,
+    @SerialName("prompt_cache_miss_tokens") val cacheMissTokens: Int = 0,
 )
 
 @Serializable
 data class ChatCompletionResponse(
     val choices: List<Choice> = emptyList(),
+    val usage: Usage? = null,
 ) {
     @Serializable
     data class Choice(
         val message: ChatChoiceMessage? = null,
         val delta: ChatChoiceMessage? = null,
+        // 截断诊断：finish_reason = "length" 表示响应被 max_tokens 砍断
+        @SerialName("finish_reason") val finishReason: String? = null,
     )
 
     @Serializable
@@ -65,6 +87,8 @@ data class ChatCompletionResponse(
 data class ChatCompletionChunk(
     val id: String? = null,
     val choices: List<ChunkChoice> = emptyList(),
+    // DeepSeek 在最后一个 chunk 附 usage（含缓存命中统计），网关不发则保持 null
+    val usage: Usage? = null,
 )
 
 @Serializable
@@ -84,15 +108,21 @@ data class Delta(
  * 规则: "[DONE]"→null; 坏 JSON→null; choices 空→null; delta.content 空白→null; 否则返回 content。
  */
 object SseParser {
-    fun contentDelta(dataLine: String): String? {
+    fun contentDelta(dataLine: String): String? = parseChunk(dataLine)?.let { contentOf(it) }
+
+    /** 解析 chunk 原文；"[DONE]" 与坏 JSON 返回 null */
+    fun parseChunk(dataLine: String): ChatCompletionChunk? {
         val trimmed = dataLine.trim()
         if (trimmed == "[DONE]") return null
-        val chunk =
-            try {
-                json.decodeFromString(ChatCompletionChunk.serializer(), trimmed)
-            } catch (_: Exception) {
-                return null // 坏 JSON
-            }
+        return try {
+            json.decodeFromString(ChatCompletionChunk.serializer(), trimmed)
+        } catch (_: Exception) {
+            return null // 坏 JSON
+        }
+    }
+
+    /** 从已解析 chunk 取正文增量（与 [contentDelta] 同规则，供复用已解码对象的调用方） */
+    fun contentOf(chunk: ChatCompletionChunk): String? {
         val choice = chunk.choices.firstOrNull() ?: return null
         val content = choice.delta?.content ?: return null
         if (content.isBlank()) return null
@@ -107,14 +137,6 @@ object SseParser {
 }
 
 object LlmClient {
-    // S1: null 字段不出现在请求体
-    private val json =
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            explicitNulls = false
-        }
-
     private val client =
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -133,7 +155,62 @@ object LlmClient {
     /** S1: 重试上限 = 1 + 配置重试次数（钳制 0..5）。 */
     private fun maxAttemptsFor(config: LlmConfig): Int = 1 + config.retries.coerceIn(0, 5)
 
+    private const val LOG_TAG = "LlmUsage"
+
+    /**
+     * 用量/前缀缓存命中日志（统一 LlmUsage 标签：`adb logcat -s LlmUsage`）。
+     *
+     * 前缀缓存只认同「从第 0 条消息起逐字节相同」的前缀——命中率低说明提示词头部有易变内容在漂移，
+     * 这是排查"为什么比酒馆更消耗"的直接证据。网关不返回 usage 时也打一行，避免无从判断。
+     */
+    private fun logUsage(
+        usage: Usage?,
+        model: String,
+        path: String,
+    ) {
+        if (usage == null) {
+            android.util.Log.i(LOG_TAG, "[$path] usage 未返回（网关不提供用量统计）model=$model")
+            return
+        }
+        val hit = usage.cacheHitTokens
+        val miss = usage.cacheMissTokens
+        val rate = if (hit + miss > 0) "${(hit * 100) / (hit + miss)}%" else "n/a"
+        android.util.Log.i(
+            LOG_TAG,
+            "[$path] prompt=${usage.promptTokens} 命中=$hit 未命中=$miss 命中率=$rate " +
+                "completion=${usage.completionTokens} model=$model",
+        )
+    }
+
+    /**
+     * 非流式对话入口。
+     *
+     * 若请求携带思考模式开关（`disableThinking`）且被网关以参数错误拒绝，自动回退为**不发送该参数**
+     * 重试一次——思考开关是 DeepSeek 系参数，OpenAI 兼容网关未必认（400 Unrecognized request argument），
+     * 不回退的话一次参数差异就会打死整轮调用。
+     */
     suspend fun chat(
+        config: LlmConfig,
+        messages: List<ChatMessage>,
+    ): String =
+        try {
+            chatWithRetries(config, messages)
+        } catch (e: Exception) {
+            if (config.disableThinking && isThinkingParamRejected(e)) {
+                android.util.Log.w("LlmClient", "thinking 参数被网关拒绝，回退为不发送后重试: ${e.message}")
+                chatWithRetries(config.copy(disableThinking = false), messages)
+            } else {
+                throw e
+            }
+        }
+
+    /** 疑似"思考参数被拒"：错误正文提到 thinking，或 HTTP 400（请求格式错误） */
+    private fun isThinkingParamRejected(e: Exception): Boolean {
+        val message = e.message.orEmpty()
+        return message.contains("thinking", ignoreCase = true) || message.contains("400")
+    }
+
+    private suspend fun chatWithRetries(
         config: LlmConfig,
         messages: List<ChatMessage>,
     ): String {
@@ -181,33 +258,12 @@ object LlmClient {
         }
     }
 
-    private fun buildChatRequest(
+    // internal 仅为单元测试开放：思考模式字段是否按需出现在请求体需要回归测试
+    internal fun buildChatRequest(
         config: LlmConfig,
         messages: List<ChatMessage>,
         stream: Boolean,
-    ): Request {
-        val requestBody =
-            ChatCompletionRequest(
-                model = config.model,
-                messages = messages,
-                temperature = config.temperature,
-                maxTokens = config.maxTokens,
-                topP = config.topP,
-                topK = config.topK,
-                frequencyPenalty = config.frequencyPenalty,
-                stream = stream,
-            )
-
-        val bodyJson = json.encodeToString(ChatCompletionRequest.serializer(), requestBody)
-
-        val url = "${config.baseUrl.trimEnd('/')}/chat/completions"
-        return Request.Builder()
-            .url(url)
-            .addHeader("Authorization", "Bearer ${config.apiKey}")
-            .addHeader("Content-Type", "application/json")
-            .post(bodyJson.toRequestBody("application/json".toMediaType()))
-            .build()
-    }
+    ): Request = chatProtocolFor(config.type).buildRequest(config, messages, stream)
 
     private fun executeChatRequest(
         config: LlmConfig,
@@ -222,8 +278,18 @@ object LlmClient {
         }
 
         val responseBody = response.body?.string() ?: throw Exception("Empty response")
-        val completion = json.decodeFromString(ChatCompletionResponse.serializer(), responseBody)
-        return completion.choices.firstOrNull()?.message?.content ?: ""
+        val content = chatProtocolFor(config.type).parseContent(responseBody)
+        logUsage(content.usage, config.model, "non-stream")
+        // 截断是最隐蔽的失败：JSON 写到一半被 max_tokens 砍断，调用方只看到"解析失败/空结果"
+        if (content.finishReason.equals("length", ignoreCase = true) ||
+            content.finishReason.equals("max_tokens", ignoreCase = true)
+        ) {
+            android.util.Log.w(
+                "LlmClient",
+                "Response truncated by max_tokens (finishReason=${content.finishReason}, model=${config.model})",
+            )
+        }
+        return content.text
     }
 
     /**
@@ -271,6 +337,9 @@ object LlmClient {
     ): Flow<String> =
         callbackFlow {
             val request = buildChatRequest(config, messages, stream = true)
+            val protocol = chatProtocolFor(config.type)
+            // usage 是否已随 chunk 返回（用于在流结束时如实记录"网关未提供用量统计"）
+            var sawUsage = false
             val listener =
                 object : EventSourceListener() {
                     override fun onEvent(
@@ -279,11 +348,20 @@ object LlmClient {
                         type: String?,
                         data: String,
                     ) {
-                        val delta = SseParser.contentDelta(data)
-                        if (delta != null) trySend(delta)
+                        when (val result = protocol.parseStreamData(data)) {
+                            is StreamParseResult.Delta -> trySend(result.text)
+                            is StreamParseResult.UsageUpdate -> {
+                                sawUsage = true
+                                logUsage(result.usage, config.model, "stream")
+                            }
+                            StreamParseResult.Ignore -> Unit
+                        }
                     }
 
                     override fun onClosed(eventSource: EventSource) {
+                        if (!sawUsage) {
+                            logUsage(null, config.model, "stream")
+                        }
                         close() // 服务端正常结束
                     }
 
