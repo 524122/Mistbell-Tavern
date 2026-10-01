@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.theme.resolved
@@ -54,6 +55,7 @@ private const val LOAD_OLDER_THRESHOLD_INDEX = 1
 
 // 流式占位 item 的固定 key：保证 streamingText 增量只重组该 item
 private const val STREAMING_ITEM_KEY = "streaming"
+private const val BOTTOM_ANCHOR_ITEM_KEY = "bottom-anchor"
 
 // 列表顶/底渐隐遮罩高度（覆盖层绘制用）
 private val MessageListTopFadeHeight = 72.dp
@@ -172,19 +174,19 @@ fun ChatScreen(
     onMenuClick: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    val messages by viewModel.messages.collectAsState()
-    val isTyping by viewModel.isTyping.collectAsState()
+    val messages by viewModel.messages.collectAsStateWithLifecycle()
+    val isTyping by viewModel.isTyping.collectAsStateWithLifecycle()
     // 注意：streamingText 不在顶层收集——订阅已下放到 StreamingSlot，
     // 流式增量只重组对应的列表 item，不再触发整屏重组
-    val hasMoreOlder by viewModel.hasMoreOlder.collectAsState()
-    val isLoadingOlder by viewModel.isLoadingOlder.collectAsState()
-    val sessionId by viewModel.activeSessionId.collectAsState()
-    val currentCharacter by viewModel.currentCharacter.collectAsState()
-    val participantCharacters by viewModel.participantCharacters.collectAsState()
+    val hasMoreOlder by viewModel.hasMoreOlder.collectAsStateWithLifecycle()
+    val isLoadingOlder by viewModel.isLoadingOlder.collectAsStateWithLifecycle()
+    val sessionId by viewModel.activeSessionId.collectAsStateWithLifecycle()
+    val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
+    val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
     // 群聊模式：按消息归属渲染说话方 + "让TA继续"入口均以此开关
-    val groupMode by viewModel.groupMode.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val isOnline by viewModel.isOnline.collectAsState()
+    val groupMode by viewModel.groupMode.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val displayCharacters =
         participantCharacters.ifEmpty {
@@ -219,24 +221,27 @@ fun ChatScreen(
     // 首帧尚未测量时使用固定兜底，避免根据输入内容和 inset 分别估算造成跳动。
     val effectiveInputSurfaceHeight =
         inputSurfaceHeight.takeIf { it > 0.dp } ?: DefaultChatInputSurfaceHeight
-    val messageListBottomInset = effectiveInputSurfaceHeight + MessageToInputGap
-    val bottomAnchorIndex = messages.size + 1 + if (isTyping) 1 else 0
+    // 输入栏本身由父容器预留；消息与输入栏之间的间距由尾部锚点 item 提供。
+    val messageListBottomInset = effectiveInputSurfaceHeight
+    // 普通消息从 0 开始，流式项紧接在消息之后，尾部锚点负责把最后一条长消息
+    // 的底部贴到输入栏上方。空列表且未生成时不会触发滚动；保底 0 防止竞态。
+    val bottomAnchorIndex = (messages.size + if (isTyping) 1 else 0).coerceAtLeast(0)
     // 最后一条消息 id 只需算一次：原先在每个 item 内读 messages.lastOrNull()，
     // 相当于每个 item 都订阅整个列表状态
     val lastMessageId = messages.lastOrNull()?.id
 
     // 开场白切换（聊天界面）：仅当会话只剩开场白这一条 AI 消息（没人接话）且有多个
     // 选项时提供入口——已有对话历史后开场白属于既成上下文，不允许改写
-    val greetingOptions by viewModel.greetingOptions.collectAsState()
+    val greetingOptions by viewModel.greetingOptions.collectAsStateWithLifecycle()
     val greetingMessage = messages.singleOrNull()?.takeIf { it.role == "assistant" }
     val canSwapGreeting = greetingMessage != null && greetingOptions.size > 1
     var showGreetingSheet by remember { mutableStateOf(false) }
 
     // 提示词预览（顶栏文档图标 → 底部抽屉）：列出本次请求真实发出的全部 message
-    val promptTrace by viewModel.promptTrace.collectAsState()
-    val promptRequestParams by viewModel.promptRequestParams.collectAsState()
-    val isLoadingPromptTrace by viewModel.isLoadingPromptTrace.collectAsState()
-    val promptTraceError by viewModel.promptTraceError.collectAsState()
+    val promptTrace by viewModel.promptTrace.collectAsStateWithLifecycle()
+    val promptRequestParams by viewModel.promptRequestParams.collectAsStateWithLifecycle()
+    val isLoadingPromptTrace by viewModel.isLoadingPromptTrace.collectAsStateWithLifecycle()
+    val promptTraceError by viewModel.promptTraceError.collectAsStateWithLifecycle()
     var showPromptSheet by remember { mutableStateOf(false) }
 
     // “贴底”判定：derivedStateOf 只在最后可见项 index 跨过阈值时才触发重组
@@ -256,6 +261,11 @@ fun ChatScreen(
     // 修复2：上滚 prepend 旧消息的阅读位置锚点（解释见 PrependAnchor 注释）。
     // 只在"即将触发加载"的瞬间被赋值，列表增长后消费并清空
     var pendingAnchor by remember { mutableStateOf<PrependAnchor?>(null) }
+
+    // 切换会话时丢弃旧会话的分页锚点，避免异步加载结果回到新会话后误用旧位置。
+    LaunchedEffect(sessionId) {
+        pendingAnchor = null
+    }
 
     // 修复2：列表增长后按锚点恢复阅读位置。
     // key 必须是 messages.size：prepend 后 size 变化触发本 effect，用 scrollToItem
@@ -324,12 +334,6 @@ fun ChatScreen(
                     )
             }
             viewModel.loadOlderMessages()
-            // 加载返回后列表未增长（失败/到头/空结果）：锚点不会被 size effect 消费，
-            // 在此直接丢弃，避免过期锚点残留
-            val anchor = pendingAnchor
-            if (anchor != null && messages.size == anchor.oldSize) {
-                pendingAnchor = null
-            }
         }
     }
 
@@ -341,7 +345,7 @@ fun ChatScreen(
         }
     }
 
-    val toast by viewModel.toast.collectAsState()
+    val toast by viewModel.toast.collectAsStateWithLifecycle()
     LaunchedEffect(toast) {
         toast?.let {
             snackbarHostState.showSnackbar(it)
@@ -353,9 +357,9 @@ fun ChatScreen(
     // （仅未读数 > 0 时写库），避免进页面必然多一次写库
 
     // 主题包状态：tokens / 背景图 / 深色模式（三态判定与 Theme.kt 保持一致，避免 dark 覆盖错配）
-    val characterTokens by viewModel.characterTokens.collectAsState()
-    val characterBackgroundFile by viewModel.characterBackgroundFile.collectAsState()
-    val darkModeSetting by viewModel.darkModeSetting.collectAsState()
+    val characterTokens by viewModel.characterTokens.collectAsStateWithLifecycle()
+    val characterBackgroundFile by viewModel.characterBackgroundFile.collectAsStateWithLifecycle()
+    val darkModeSetting by viewModel.darkModeSetting.collectAsStateWithLifecycle()
     val baseScheme = MaterialTheme.colorScheme
     val isDark =
         when (darkModeSetting) {
@@ -597,6 +601,9 @@ fun ChatScreen(
                                         dark = isDark,
                                     )
                                 }
+                            }
+                            item(key = BOTTOM_ANCHOR_ITEM_KEY) {
+                                Spacer(modifier = Modifier.height(MessageToInputGap))
                             }
                         }
                     }
@@ -1144,7 +1151,7 @@ private fun StreamingSlot(
     // 修复6：透传应用内三态深浅色给 Markdown 渲染
     dark: Boolean,
 ) {
-    val text by viewModel.streamingText.collectAsState()
+    val text by viewModel.streamingText.collectAsStateWithLifecycle()
     // 修复4：流式增量使气泡持续增高，若用户仍贴底则跟随滚动到底部锚点，
     // 避免长回复的底部滚出屏幕；用户上翻阅读时不打扰。
     // key 为 text：每个流式增量重启本 effect，正好对应一次"增高后跟随"

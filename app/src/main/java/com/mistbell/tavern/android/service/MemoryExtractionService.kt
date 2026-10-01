@@ -95,7 +95,7 @@ class MemoryExtractionService(
                             )
                         structuredMemoryRepository.createMemory(memory)
                         savedCount++
-                        Log.d(TAG, "Saved memory: ${candidate.content.take(80)}")
+                        Log.d(TAG, "Saved memory candidate #$savedCount")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to save memory: ${e.message}", e)
                     }

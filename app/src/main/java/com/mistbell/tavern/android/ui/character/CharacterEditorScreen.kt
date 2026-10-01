@@ -236,11 +236,6 @@ fun CharacterEditorScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (form.avatarData.isNotBlank()) {
-                                android.util.Log.d(
-                                    "CharacterEditor",
-                                    "Avatar data length: ${form.avatarData.length}, starts with: ${form.avatarData.take(50)}",
-                                )
-
                                 // 从data URI解析并显示图片
                                 val bitmap =
                                     remember(form.avatarData) {

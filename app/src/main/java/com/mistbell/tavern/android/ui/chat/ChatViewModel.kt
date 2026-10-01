@@ -5,14 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.*
-import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.network.NetworkMonitor
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
-import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
 import kotlinx.coroutines.CancellationException
@@ -27,7 +25,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
     private val repo = ChatRepository(application)
     private val networkMonitor = NetworkMonitor(application)
-    private val worldBookRepo = WorldBookRepository(application)
     private val themeRepo = ThemePackRepository(application)
 
     val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
@@ -301,30 +298,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         copyMessage(text)
     }
 
-    // Provider/Model state（数据源：api_configs 表；默认配置 = 当前生效配置）
-    val apiConfigs: StateFlow<List<ApiConfigEntity>> =
-        db.apiConfigDao()
-            .observeAll()
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val activeModelId: StateFlow<String> =
-        db.apiConfigDao()
-            .observeDefault()
-            .map { it?.model ?: "" }
-            .stateIn(viewModelScope, SharingStarted.Lazily, "")
-    val activeProviderId: StateFlow<String> =
-        db.apiConfigDao()
-            .observeDefault()
-            .map { it?.id ?: "" }
-            .stateIn(viewModelScope, SharingStarted.Lazily, "")
-
-    // World book state
-    val worldBooks: StateFlow<List<WorldBook>> =
-        worldBookRepo.observeWorldBooks()
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    private val _activeWorldBookId = MutableStateFlow("")
-    val activeWorldBookId: StateFlow<String> = _activeWorldBookId
-
     // 主题包状态：应用链为 会话 → 角色 → 全局（ThemeSupport 内逐层回落）
     // 双键驱动：会话 id + 角色 id 任一变化都重新解析（tokens / 背景图共用同一条解析链）
     private val sessionCharacterKey: Flow<Pair<String, String?>> =
@@ -551,9 +524,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         sessionId: String,
         characterId: String,
     ) {
-        android.util.Log.d("ChatViewModel", "loadSession called: sessionId=$sessionId, characterId=$characterId")
-        android.util.Log.d("ChatViewModel", "Before set: _activeSessionId=${_activeSessionId.value}")
-
         // 进入新会话前抽掉上一会话不足一批的记忆抽取尾巴（首次进入时缓冲为空，天然 no-op）
         repo.flushPendingMemoryExtractions()
 
@@ -571,8 +541,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _promptTrace.value = null
         _promptTraceError.value = null
         isSessionExplicitlySet = true
-        android.util.Log.d("ChatViewModel", "After set: _activeSessionId=${_activeSessionId.value}")
-
         characterObserverJob =
             viewModelScope.launch {
                 combine(
@@ -585,7 +553,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     val target = chars.find { it.id == characterId }
                     if (target != null) {
                         _currentCharacter.value = target
-                        android.util.Log.d("ChatViewModel", "Character loaded: ${target.name}")
                     }
 
                     val participantIds = session?.participantCharacterIds() ?: listOf(characterId)
@@ -603,11 +570,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun sendMessage(content: String) {
         val char = _currentCharacter.value ?: return
         if (content.isBlank()) return
-
-        android.util.Log.d("ChatViewModel", "sendMessage called")
-        android.util.Log.d("ChatViewModel", "  _activeSessionId.value=${_activeSessionId.value}")
-        android.util.Log.d("ChatViewModel", "  characterId=${char.id}")
-        android.util.Log.d("ChatViewModel", "  isSessionExplicitlySet=$isSessionExplicitlySet")
 
         // 群聊模式：组装 GroupChatContext（参与者 id→名字 + @提及 解析出的 targetSpeakerId）；
         // 经典模式传 null（提示词路径零变化）。落库的用户消息内容保留原文——这里不改 content，
@@ -632,7 +594,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 onPartial = ::emitStreamingTextThrottled,
                 groupContext = groupContext,
             )
-            android.util.Log.d("ChatViewModel", "Message sent successfully")
         }
     }
 
@@ -812,22 +773,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val clip = android.content.ClipData.newPlainText("message", content)
         clipboard.setPrimaryClip(clip)
         _toast.value = "已复制"
-    }
-
-    fun switchModel(
-        providerId: String,
-        modelId: String,
-    ) {
-        viewModelScope.launch {
-            val dao = db.apiConfigDao()
-            val config = dao.getById(providerId) ?: return@launch
-            dao.update(config.copy(model = modelId, updatedAt = System.currentTimeMillis()))
-            dao.setDefault(providerId)
-        }
-    }
-
-    fun switchWorldBook(bookId: String) {
-        _activeWorldBookId.value = bookId
     }
 
     fun clearChat() {

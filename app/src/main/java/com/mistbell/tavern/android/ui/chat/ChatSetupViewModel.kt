@@ -219,7 +219,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         // 插入角色的开场白：默认开场白 = first_mes，为空时由首个备用开场白顶上
         // （buildGreetingOptions 的首项）；切换开场白在聊天界面进行（ChatViewModel.swapGreeting）
         val characterEntity = db.characterDao().getById(characterId)
-        android.util.Log.d("ChatSetup", "Character found: ${characterEntity?.name}, firstMes: ${characterEntity?.firstMes}")
+        android.util.Log.d(
+            "ChatSetup",
+            "Character loaded: ${characterEntity?.name}, greetingLength=${characterEntity?.firstMes?.length ?: 0}",
+        )
 
         val greetingText =
             characterEntity?.let { entity ->
@@ -257,7 +260,7 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
                     isRead = true,
                 )
             db.messageDao().upsert(firstMessage)
-            android.util.Log.d("ChatSetup", "Greeting inserted: ${greetingText.take(50)}")
+            android.util.Log.d("ChatSetup", "Greeting inserted: length=${greetingText.length}")
 
             // 更新会话消息数
             db.sessionDao().upsert(session.copy(messageCount = 1, updatedAt = now))

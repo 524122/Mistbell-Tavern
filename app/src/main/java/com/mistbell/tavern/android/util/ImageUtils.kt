@@ -62,7 +62,7 @@ object ImageUtils {
 
             // 压缩并转换为 Base64（PNG格式）
             val base64 = bitmapToBase64(finalBitmap, quality)
-            android.util.Log.d("ImageUtils", "Base64 length: ${base64.length}, starts with: ${base64.take(50)}")
+            android.util.Log.d("ImageUtils", "Encoded avatar data length: ${base64.length}")
 
             // 清理 Bitmap 资源
             if (rotatedBitmap != originalBitmap) {

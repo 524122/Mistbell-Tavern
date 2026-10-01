@@ -119,7 +119,7 @@ class VectorMemoryService(
             // 3. 向量检索
             val results = vectorStore.search(queryEmbedding, topK, filters)
 
-            Log.d(TAG, "Search found ${results.size} relevant memories for query: ${query.take(50)}")
+            Log.d(TAG, "Search found ${results.size} relevant memories for queryLength=${query.length}")
 
             return results
         } catch (e: Exception) {
