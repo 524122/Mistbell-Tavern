@@ -1,6 +1,5 @@
 package com.mistbell.tavern.android.ui.character
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -64,8 +63,7 @@ fun ModernCharacterCard(
         modifier =
             modifier
                 .fillMaxWidth()
-                .scale(scale)
-                .animateContentSize(),
+                .scale(scale),
         shape = MaterialTheme.shapes.medium,
         shadowElevation = 0.dp,
         tonalElevation = if (isSelected) 3.dp else 1.dp,

@@ -22,13 +22,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.mistbell.tavern.android.ui.common.rememberBitmap
 import com.mistbell.tavern.android.ui.components.*
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
@@ -236,15 +236,11 @@ fun CharacterEditorScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (form.avatarData.isNotBlank()) {
-                                // 从data URI解析并显示图片
-                                val bitmap =
-                                    remember(form.avatarData) {
-                                        com.mistbell.tavern.android.util.ImageUtils.dataUriToBitmap(form.avatarData)
-                                    }
-
+                                // 使用采样解码和进程级缓存，避免编辑页首次打开在主线程解码原图。
+                                val bitmap = rememberBitmap(form.avatarData, maxDimPx = 512)
                                 if (bitmap != null) {
                                     androidx.compose.foundation.Image(
-                                        bitmap = bitmap.asImageBitmap(),
+                                        bitmap = bitmap,
                                         contentDescription = "头像",
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop,

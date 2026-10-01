@@ -40,7 +40,12 @@ data class ChatListItem(
     val lastMessageSender: String = "",
 )
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class ChatListViewModel(application: Application) : AndroidViewModel(application) {
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 200L
+    }
+
     private val db = TavernApplication.instance.container.database
     private val ownerId = "local-user"
 
@@ -60,7 +65,7 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         combine(
             db.sessionDao().getRecent("local-user"),
             db.characterDao().getAll(),
-            _searchQuery,
+            _searchQuery.debounce(SEARCH_DEBOUNCE_MS),
         ) { sessions, characters, query ->
             // combine 的 transform 跑在收集方（主线程）：批量查询 + JSON 解码 + 时间格式化都是重活，
             // 整体切到 Default 线程，避免会话列表每次刷新都卡顿主线程

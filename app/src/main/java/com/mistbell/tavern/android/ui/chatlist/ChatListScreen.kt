@@ -224,7 +224,11 @@ fun ChatListScreen(
                     }
                 } else {
                     // Chat list items - 使用现代化设计
-                    items(chatItems, key = { it.sessionId }) { item ->
+                    items(
+                        chatItems,
+                        key = { "${it.sessionId}:${it.characterId}" },
+                        contentType = { "chat-item" },
+                    ) { item ->
                         ModernChatListItem(
                             item = item,
                             onClick = {

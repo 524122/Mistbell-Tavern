@@ -958,7 +958,11 @@ private fun PromptTraceSheet(
                                 RequestParamsSection(params = requestParams)
                             }
                         }
-                        items(trace.segments.size) { index ->
+                        items(
+                            count = trace.segments.size,
+                            key = { index -> "prompt-${trace.segments[index].message.role}-$index" },
+                            contentType = { "prompt-segment" },
+                        ) { index ->
                             PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
                         }
                     }

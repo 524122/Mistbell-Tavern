@@ -14,6 +14,10 @@ interface CharacterDao {
     @Query("SELECT * FROM characters WHERE id = :id")
     suspend fun getById(id: String): CharacterEntity?
 
+    /** 批量读取参与者，避免提示词装配按角色逐条查询。 */
+    @Query("SELECT * FROM characters WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<CharacterEntity>
+
     @Upsert
     suspend fun upsertAll(characters: List<CharacterEntity>)
 

@@ -272,7 +272,7 @@ fun CharacterListScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(filteredCharacters, key = { it.id }) { character ->
+                items(filteredCharacters, key = { it.id }, contentType = { "character-card" }) { character ->
                     ModernCharacterCard(
                         character = character,
                         onClick = { onCharacterClick(character) },

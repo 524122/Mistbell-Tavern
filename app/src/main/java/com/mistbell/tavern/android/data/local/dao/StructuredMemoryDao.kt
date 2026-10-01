@@ -15,8 +15,20 @@ interface StructuredMemoryDao {
         characterId: String,
     ): Flow<List<StructuredMemoryEntity>>
 
+    /** 提示词召回只需有限候选，避免每轮把角色全部记忆加载到 Kotlin。 */
     @Query(
-        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId ORDER BY created_at DESC",
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId " +
+            "ORDER BY importance DESC, created_at DESC LIMIT :limit",
+    )
+    suspend fun getPromptCandidates(
+        ownerId: String,
+        characterId: String,
+        limit: Int,
+    ): List<StructuredMemoryEntity>
+
+    @Query(
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND character_id = :characterId " +
+            "AND session_id = :sessionId ORDER BY created_at DESC",
     )
     fun getBySession(
         ownerId: String,
@@ -34,7 +46,8 @@ interface StructuredMemoryDao {
     suspend fun getById(id: Long): StructuredMemoryEntity?
 
     @Query(
-        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC",
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND memory_type = :memoryType " +
+            "ORDER BY importance DESC, created_at DESC",
     )
     fun getByType(
         ownerId: String,
@@ -42,7 +55,8 @@ interface StructuredMemoryDao {
     ): Flow<List<StructuredMemoryEntity>>
 
     @Query(
-        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC",
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId " +
+            "AND memory_type = :memoryType ORDER BY importance DESC, created_at DESC",
     )
     fun getBySessionAndType(
         ownerId: String,
@@ -51,7 +65,8 @@ interface StructuredMemoryDao {
     ): Flow<List<StructuredMemoryEntity>>
 
     @Query(
-        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND importance >= :minImportance ORDER BY importance DESC, created_at DESC",
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND importance >= :minImportance " +
+            "ORDER BY importance DESC, created_at DESC",
     )
     fun getByImportance(
         ownerId: String,
@@ -59,7 +74,9 @@ interface StructuredMemoryDao {
     ): Flow<List<StructuredMemoryEntity>>
 
     @Query(
-        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY importance DESC, created_at DESC",
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND " +
+            "(title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') " +
+            "ORDER BY importance DESC, created_at DESC",
     )
     fun search(
         ownerId: String,
@@ -67,7 +84,9 @@ interface StructuredMemoryDao {
     ): Flow<List<StructuredMemoryEntity>>
 
     @Query(
-        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY importance DESC, created_at DESC",
+        "SELECT * FROM structured_memory WHERE owner_id = :ownerId AND session_id = :sessionId AND " +
+            "(title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') " +
+            "ORDER BY importance DESC, created_at DESC",
     )
     fun searchBySession(
         ownerId: String,
@@ -105,6 +124,15 @@ interface StructuredMemoryDao {
     @Query("UPDATE structured_memory SET access_count = access_count + 1, last_accessed_at = :accessedAt WHERE id = :id")
     suspend fun incrementAccessCount(
         id: Long,
+        accessedAt: String,
+    )
+
+    @Query(
+        "UPDATE structured_memory SET access_count = access_count + 1, last_accessed_at = :accessedAt " +
+            "WHERE id IN (:ids)",
+    )
+    suspend fun incrementAccessCount(
+        ids: List<Long>,
         accessedAt: String,
     )
 

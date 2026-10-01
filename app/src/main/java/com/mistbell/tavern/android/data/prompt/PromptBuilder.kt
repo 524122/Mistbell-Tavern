@@ -37,6 +37,8 @@ object PromptBuilder {
 
     // 记忆重复注入判定的最小长度：短于该值的正文不做"内容包含"比对，避免误伤不同事实
     private const val MIN_DUPLICATE_LENGTH = 8
+    private const val MEMORY_CANDIDATE_LIMIT = 100
+    private val THINKING_BLOCK_REGEX = Regex("(?s)<think>[\\s\\S]*?</think>")
 
     // ---- 提示词溯源（聊天页「查看提示词」用） ----
 
@@ -201,11 +203,15 @@ object PromptBuilder {
                 ChatSettingsResolver.globalDefaultLtmEnabled(settingsDao.getValue("default_ltm_enabled")),
             )
         val participantCharacterIds = session?.participantCharacterIds() ?: listOf(characterId)
+        val participantById =
+            db.characterDao()
+                .getByIds(participantCharacterIds.distinct())
+                .associateBy { it.id }
         val participantCharacters =
             participantCharacterIds
-                .mapNotNull { db.characterDao().getById(it) }
-                .ifEmpty { db.characterDao().getById(characterId)?.let { listOf(it) } ?: emptyList() }
-        val character = participantCharacters.firstOrNull() ?: db.characterDao().getById(characterId)
+                .mapNotNull { participantById[it] }
+                .ifEmpty { participantById[characterId]?.let { listOf(it) } ?: emptyList() }
+        val character = participantCharacters.firstOrNull() ?: participantById[characterId]
         // F2.1 宏引擎上下文（契约 B）：用户名与人设统一取全局设置（键常量收敛在 ChatSettingsResolver，
         // 禁止手写字面量）；用户名缺省 "User"，人设缺省空串（不注入该段）
         val userName = ChatSettingsResolver.userName(settingsDao.getValue(ChatSettingsResolver.KEY_USER_NAME))
@@ -504,7 +510,7 @@ object PromptBuilder {
 
     // F2.1 沿用：剔除 <think>…</think> 块并 trim（classic/群聊两条历史路径共用）
     private fun stripThinkingBlocks(content: String): String {
-        return content.replace(Regex("(?s)<think>[\\s\\S]*?</think>"), "").trim()
+        return THINKING_BLOCK_REGEX.replace(content, "").trim()
     }
 
     /**
@@ -638,18 +644,15 @@ object PromptBuilder {
 
         val memories =
             db.structuredMemoryDao()
-                .getByCharacter(ownerId, characterId)
-                .first()
+                .getPromptCandidates(ownerId, characterId, MEMORY_CANDIDATE_LIMIT)
                 .map { it.toDomain() }
 
         val recalledMemories = selectRelevantMemories(memories, userMessage)
         val recalledContents = recalledMemories.map { it.content }.filter { it.isNotBlank() }
         if (recalledMemories.isNotEmpty()) {
             val accessedAt = Instant.now().toString()
-            recalledMemories.forEach { memory ->
-                if (memory.id > 0) {
-                    db.structuredMemoryDao().incrementAccessCount(memory.id, accessedAt)
-                }
+            recalledMemories.map { it.id }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.let {
+                db.structuredMemoryDao().incrementAccessCount(it, accessedAt)
             }
             structuredBlock =
                 ChatMessage(

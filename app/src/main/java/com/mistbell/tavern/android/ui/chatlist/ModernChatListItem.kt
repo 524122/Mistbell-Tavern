@@ -1,7 +1,6 @@
 package com.mistbell.tavern.android.ui.chatlist
 
 import android.widget.Toast
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -90,8 +89,7 @@ fun ModernChatListItem(
             modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 4.dp)
-                .scale(scale)
-                .animateContentSize(),
+                .scale(scale),
         shape = MaterialTheme.shapes.medium,
         color = backgroundColor,
         shadowElevation = 0.dp,
