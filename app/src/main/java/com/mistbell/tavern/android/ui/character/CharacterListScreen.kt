@@ -1,22 +1,29 @@
 package com.mistbell.tavern.android.ui.character
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,8 +31,10 @@ import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.components.EmptyStateView
 import com.mistbell.tavern.android.ui.components.SearchBar
+import com.mistbell.tavern.android.util.CharacterExportFormat
+import com.mistbell.tavern.android.util.CharacterExporter
 
-@Suppress("FunctionNaming", "LongMethod") // Compose 屏幕级组件的既有形态（原由 detekt 基线吸收）
+@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod") // Compose 屏幕级组件的既有形态
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterListScreen(
@@ -49,9 +58,10 @@ fun CharacterListScreen(
     val pinnedCharacterIds by viewModel.pinnedCharacterIds.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val message by viewModel.message.collectAsState()
+    var actionCharacter by remember { mutableStateOf<Character?>(null) }
+    var deleteCharacter by remember { mutableStateOf<Character?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    var fabExpanded by remember { mutableStateOf(false) }
 
     // File picker for importing characters
     val importLauncher =
@@ -82,21 +92,87 @@ fun CharacterListScreen(
             }
         }
 
-    val fabRotation by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (fabExpanded) 45f else 0f,
-        animationSpec =
-            androidx.compose.animation.core.spring(
-                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-            ),
-        label = "fab_rotation",
-    )
-
     LaunchedEffect(message) {
         message?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessage()
         }
+    }
+
+    actionCharacter?.let { character ->
+        ModalBottomSheet(
+            onDismissRequest = { actionCharacter = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            ) {
+                Text(
+                    text = character.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                CharacterActionItem("开始对话", Icons.Default.Chat) {
+                    actionCharacter = null
+                    onCharacterClick(character)
+                }
+                CharacterActionItem("编辑角色", Icons.Default.Edit) {
+                    actionCharacter = null
+                    onEditCharacter(character.id)
+                }
+                CharacterActionItem("置顶 / 取消置顶", Icons.Default.PushPin) {
+                    viewModel.togglePin(character.id)
+                    actionCharacter = null
+                }
+                CharacterActionItem("复制角色信息", Icons.Default.ContentCopy) {
+                    viewModel.copyCharacter(context, character)
+                    actionCharacter = null
+                }
+                CharacterActionItem("导出角色卡（JSON）", Icons.Default.FileDownload) {
+                    viewModel.exportCharacter(
+                        context = context,
+                        character = character,
+                        format = CharacterExportFormat.JSON,
+                        fileName =
+                            CharacterExporter.buildFileName(
+                                character.name,
+                                character.id,
+                                CharacterExportFormat.JSON.extension,
+                            ),
+                    ) { result ->
+                        result?.let { Toast.makeText(context, "已保存到 ${it.location}", Toast.LENGTH_SHORT).show() }
+                    }
+                    actionCharacter = null
+                }
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                )
+                CharacterActionItem("删除角色", Icons.Default.Delete, destructive = true) {
+                    actionCharacter = null
+                    deleteCharacter = character
+                }
+            }
+        }
+    }
+
+    deleteCharacter?.let { character ->
+        AlertDialog(
+            onDismissRequest = { deleteCharacter = null },
+            title = { Text("删除角色") },
+            text = { Text("确定删除“${character.name}”吗？相关会话也可能无法继续使用。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCharacter(character.id)
+                        deleteCharacter = null
+                    },
+                ) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { deleteCharacter = null }) { Text("取消") } },
+        )
     }
 
     // 批量导入结果报告：计数 + 可滚动明细（同名/跳过/失败）
@@ -140,6 +216,24 @@ fun CharacterListScreen(
                     title = "角色",
                     subtitle = "管理你的角色",
                     onBack = if (showTopBarBackButton) onBack else null,
+                    actions = {
+                        IconButton(onClick = { importLauncher.launch("*/*") }) {
+                            Icon(Icons.Default.FileUpload, contentDescription = "导入角色")
+                        }
+                        IconButton(
+                            onClick = { if (!isBatchImporting) folderImportLauncher.launch(null) },
+                            enabled = !isBatchImporting,
+                        ) {
+                            if (isBatchImporting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Icon(Icons.Default.Folder, contentDescription = "批量导入")
+                            }
+                        }
+                    },
                 )
                 SearchBar(
                     value = searchQuery,
@@ -150,129 +244,13 @@ fun CharacterListScreen(
             }
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Sub FABs - shown when expanded
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = fabExpanded,
-                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        // Batch import button with label（酒馆数据文件夹：角色卡 PNG + 世界书 JSON 一批导入）
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp),
-                                shadowElevation = 2.dp,
-                            ) {
-                                Text(
-                                    text = "批量导入（酒馆文件夹）",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    fabExpanded = false
-                                    if (!isBatchImporting) folderImportLauncher.launch(null)
-                                },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ) {
-                                Icon(
-                                    Icons.Default.Folder,
-                                    contentDescription = "批量导入（酒馆文件夹）",
-                                )
-                            }
-                        }
-
-                        // Import button with label
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp),
-                                shadowElevation = 2.dp,
-                            ) {
-                                Text(
-                                    text = "导入角色",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    fabExpanded = false
-                                    // "*/*"：JSON 卡与 PNG 埋卡都要可选；MIME 过滤交给导入器双路嗅探
-                                    importLauncher.launch("*/*")
-                                },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ) {
-                                Icon(
-                                    Icons.Default.FileUpload,
-                                    contentDescription = "导入角色",
-                                )
-                            }
-                        }
-
-                        // New character button with label
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp),
-                                shadowElevation = 2.dp,
-                            ) {
-                                Text(
-                                    text = "新建角色",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    fabExpanded = false
-                                    onNewCharacter()
-                                },
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "新建角色",
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Main FAB
-                FloatingActionButton(
-                    onClick = { fabExpanded = !fabExpanded },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = if (fabExpanded) "收起" else "展开",
-                        modifier = Modifier.rotate(fabRotation),
-                    )
-                }
-            }
+            ExtendedFloatingActionButton(
+                onClick = onNewCharacter,
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("新建角色") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            )
         },
     ) { paddingValues ->
         if (filteredCharacters.isEmpty()) {
@@ -298,7 +276,8 @@ fun CharacterListScreen(
                     ModernCharacterCard(
                         character = character,
                         onClick = { onCharacterClick(character) },
-                        onLongClick = { /* 待实现：显示操作菜单 */ },
+                        onLongClick = { actionCharacter = character },
+                        onMenuClick = { actionCharacter = character },
                         isSelected = false,
                     )
                 }
@@ -332,4 +311,30 @@ private fun SyncReportSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+@Composable
+@Suppress("FunctionNaming")
+private fun CharacterActionItem(
+    title: String,
+    icon: ImageVector,
+    destructive: Boolean = false,
+    onClick: () -> Unit,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = title,
+                color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick),
+    )
 }

@@ -23,6 +23,8 @@ data class ApiConfigEntity(
     val type: String = "openai",
     // 1M 上下文开关（解锁 1M 档位）
     val context1m: Boolean = false,
+    // SSE 流式传输开关：按 API 配置独立控制，关闭后使用整包响应
+    val streamingEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )

@@ -1,5 +1,6 @@
 package com.mistbell.tavern.android.ui.chat
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
@@ -26,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -61,6 +62,9 @@ private val MessageListBottomFadeHeight = 88.dp
 
 // 角色背景大图解码上限（px）：整屏显示 1280 已足够清晰，无需原始分辨率
 private const val BACKGROUND_BITMAP_MAX_DIM_PX = 1280
+
+// 背景图只作为氛围层，不能和消息正文争夺对比度。
+private const val CHARACTER_BACKGROUND_ALPHA = 0.5f
 
 /**
  * 修复2：上滚 prepend 旧消息时的阅读位置锚点。
@@ -179,6 +183,7 @@ fun ChatScreen(
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
     var inputContentHeight by remember { mutableStateOf(64.dp) }
+    var inputSurfaceHeight by remember { mutableStateOf(0.dp) }
     val messageListTopPadding = if (!isOnline) 56.dp else 24.dp
     val inputBottomPadding = 12.dp
     val messageToInputGap = if (imeBottom > 0) 6.dp else 14.dp
@@ -344,6 +349,7 @@ fun ChatScreen(
 
     // 背景图异步采样解码：复用公共工具 + LRU 缓存，不再在组合线程同步解码大图
     val bgBitmap = rememberFileBitmap(characterBackgroundFile?.absolutePath, BACKGROUND_BITMAP_MAX_DIM_PX)
+    val hasChatBackground = bgBitmap != null || primaryDisplayCharacter?.avatarData?.isNotBlank() == true
 
     // 原有聊天内容整体作为 lambda，按需包裹主题覆盖与背景图
     val chatContent: @Composable () -> Unit = {
@@ -354,7 +360,14 @@ fun ChatScreen(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(if (bgBitmap != null) Color.Transparent else MaterialTheme.colorScheme.background),
+                        // 有主题背景图时让中间消息区透出背景；顶部和底部仍由各自容器保持不透明。
+                        .background(
+                            if (hasChatBackground) {
+                                Color.Transparent
+                            } else {
+                                MaterialTheme.colorScheme.background
+                            },
+                        ),
             ) {
                 // Character avatar as faded background
                 primaryDisplayCharacter?.let { character ->
@@ -369,8 +382,8 @@ fun ChatScreen(
                                 modifier =
                                     Modifier
                                         .fillMaxSize()
-                                        .alpha(0.5f),
-                                // 50%透明度
+                                        .alpha(CHARACTER_BACKGROUND_ALPHA),
+                                // 降低背景存在感，保证消息正文仍是视觉焦点
                                 // 裁剪填充整个屏幕
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                             )
@@ -403,7 +416,12 @@ fun ChatScreen(
                     )
                 },
                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                containerColor = Color.Transparent,
+                containerColor =
+                    if (hasChatBackground) {
+                        Color.Transparent
+                    } else {
+                        MaterialTheme.colorScheme.background
+                    },
             ) { paddingValues ->
                 Box(
                     modifier =
@@ -567,42 +585,42 @@ fun ChatScreen(
                                 Spacer(modifier = Modifier.height(messageToInputGap))
                             }
                         }
+                    }
 
-                        // 顶/底渐隐遮罩：纯覆盖层绘制，不拦截触摸（Box 无任何指针处理修饰符，
-                        // 触摸事件直接穿透到下方列表）。取代原先 LazyColumn 上的
-                        // Offscreen 合成 + BlendMode.DstIn 遮罩——离屏合成会让整个列表
-                        // 多一次全屏 GPU 合成，滚动帧开销大
-                        // 修复5：渐变色用的是不透明 colorScheme.background，有主题背景图
-                        // （bgBitmap != null）时会在顶/底画出实色带、把背景图盖死；
-                        // 此时有背景图可透出，跳过遮罩绘制，无背景图时保留渐隐效果
-                        if (bgBitmap == null) {
-                            val fadeColor = MaterialTheme.colorScheme.background
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .matchParentSize()
-                                        .drawBehind {
-                                            // 顶部：页面背景色渐变到透明
-                                            drawRect(
-                                                brush =
-                                                    Brush.verticalGradient(
-                                                        colors = listOf(fadeColor, Color.Transparent),
-                                                        startY = 0f,
-                                                        endY = MessageListTopFadeHeight.toPx(),
-                                                    ),
-                                            )
-                                            // 底部：透明渐变到页面背景色
-                                            drawRect(
-                                                brush =
-                                                    Brush.verticalGradient(
-                                                        colors = listOf(Color.Transparent, fadeColor),
-                                                        startY = size.height - MessageListBottomFadeHeight.toPx(),
-                                                        endY = size.height,
-                                                    ),
-                                            )
-                                        },
-                            )
-                        }
+                    // 统一的上下渐隐覆盖层。它在消息列表之后绘制，保证遮罩始终可见；
+                    // 底部预留区先铺实体背景，再叠加渐隐，遮罩结束后不会露出角色背景图。
+                    val fadeColor = MaterialTheme.colorScheme.background
+                    Canvas(modifier = Modifier.matchParentSize()) {
+                        // 输入 Surface 会覆盖 Canvas 的底部，因此渐隐终点必须放在
+                        // Surface 顶部；否则渐隐的最后一段会被输入容器遮住，看起来像消失。
+                        val surfaceHeight =
+                            inputSurfaceHeight
+                                .takeIf { it > 0.dp }
+                                ?.toPx()
+                                ?: (messageListBottomInset - messageToInputGap).toPx()
+                        val surfaceTop = (size.height - surfaceHeight).coerceAtLeast(0f)
+
+                        drawRect(
+                            color = fadeColor,
+                            topLeft = androidx.compose.ui.geometry.Offset(0f, surfaceTop),
+                            size = androidx.compose.ui.geometry.Size(size.width, size.height - surfaceTop),
+                        )
+                        drawRect(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors = listOf(fadeColor, Color.Transparent),
+                                    startY = 0f,
+                                    endY = MessageListTopFadeHeight.toPx(),
+                                ),
+                        )
+                        drawRect(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, fadeColor),
+                                    startY = (surfaceTop - MessageListBottomFadeHeight.toPx()).coerceAtLeast(0f),
+                                    endY = surfaceTop,
+                                ),
+                        )
                     }
 
                     // 修复5：离线横幅移到渐隐遮罩覆盖层【之后】组合——Box 子级按声明顺序
@@ -630,101 +648,116 @@ fun ChatScreen(
                         }
                     }
 
-                    // Input area at bottom
-                    Box(
+                    // 底部容器与顶部栏使用同一不透明背景，输入组件自身保持紧凑。
+                    Surface(
                         modifier =
                             Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
-                                .imePadding()
-                                .navigationBarsPadding()
-                                .padding(start = 24.dp, end = 24.dp, bottom = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        // 回调 remember 化：闭包引用稳定（continueGroupChat 在 VM 内部自校验
-                        // 群聊模式与生成中状态，调用时机安全）
-                        val onContinueGroup = remember { { viewModel.continueGroupChat() } }
-
-                        Column(
-                            modifier =
-                                Modifier.onGloballyPositioned { coordinates ->
+                                .onGloballyPositioned { coordinates ->
                                     val measuredHeight = with(density) { coordinates.size.height.toDp() }
-                                    if (measuredHeight > 0.dp) {
-                                        inputContentHeight = measuredHeight
+                                    if (measuredHeight > 0.dp && measuredHeight != inputSurfaceHeight) {
+                                        inputSurfaceHeight = measuredHeight
                                     }
                                 },
+                        color = MaterialTheme.colorScheme.background,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .imePadding()
+                                    .navigationBarsPadding()
+                                    .padding(start = 20.dp, end = 20.dp, bottom = 6.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            // 群聊模式：显示参与者快速选择栏
-                            if (groupMode && participantCharacters.isNotEmpty()) {
-                                Row(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                                            .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    // 提示文字
-                                    Text(
-                                        text = "参与者:",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.align(Alignment.CenterVertically),
-                                    )
+                            // 回调 remember 化：闭包引用稳定（continueGroupChat 在 VM 内部自校验
+                            // 群聊模式与生成中状态，调用时机安全）
+                            val onContinueGroup = remember { { viewModel.continueGroupChat() } }
 
-                                    // 参与者头像列表
-                                    participantCharacters.forEach { character ->
-                                        Surface(
-                                            onClick = {
-                                                // 待实现：点击头像 = 让该角色回复
-                                                // viewModel.continueGroupChat(targetCharacterId = character.id)
-                                            },
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.secondaryContainer,
-                                            modifier = Modifier.size(40.dp),
-                                        ) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier.fillMaxSize(),
+                            Column(
+                                modifier =
+                                    Modifier.onGloballyPositioned { coordinates ->
+                                        val measuredHeight = with(density) { coordinates.size.height.toDp() }
+                                        if (measuredHeight > 0.dp) {
+                                            inputContentHeight = measuredHeight
+                                        }
+                                    },
+                            ) {
+                                // 群聊模式：显示参与者快速选择栏
+                                if (groupMode && participantCharacters.isNotEmpty()) {
+                                    Row(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        // 提示文字
+                                        Text(
+                                            text = "参与者:",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.align(Alignment.CenterVertically),
+                                        )
+
+                                        // 参与者头像列表
+                                        participantCharacters.forEach { character ->
+                                            Surface(
+                                                onClick = {
+                                                    // 待实现：点击头像 = 让该角色回复
+                                                    // viewModel.continueGroupChat(targetCharacterId = character.id)
+                                                },
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                                modifier = Modifier.size(40.dp),
                                             ) {
-                                                Text(
-                                                    text = character.name.take(1),
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                )
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                ) {
+                                                    Text(
+                                                        text = character.name.take(1),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                    )
+                                                }
                                             }
                                         }
-                                    }
 
-                                    // "继续对话"按钮
-                                    OutlinedButton(
-                                        onClick = onContinueGroup,
-                                        enabled = !isTyping,
-                                        modifier = Modifier.height(40.dp),
-                                    ) {
-                                        Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "继续",
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
+                                        // "继续对话"按钮
+                                        OutlinedButton(
+                                            onClick = onContinueGroup,
+                                            enabled = !isTyping,
+                                            modifier = Modifier.height(40.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "继续",
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
                                     }
                                 }
-                            }
 
-                            MessageInput(
-                                onSend = { viewModel.sendMessage(it) },
-                                enabled = !isTyping,
-                                // 生成中：发送按钮变为"停止生成"按钮
-                                isGenerating = isTyping,
-                                onStop = { viewModel.stopGeneration() },
-                                // 传递参与者列表以支持 @ 提及
-                                participants = if (groupMode) participantCharacters else emptyList(),
-                            )
+                                MessageInput(
+                                    onSend = { viewModel.sendMessage(it) },
+                                    enabled = !isTyping,
+                                    // 生成中：发送按钮变为"停止生成"按钮
+                                    isGenerating = isTyping,
+                                    onStop = { viewModel.stopGeneration() },
+                                    // 传递参与者列表以支持 @ 提及
+                                    participants = if (groupMode) participantCharacters else emptyList(),
+                                )
+                            }
                         }
                     }
                 }
@@ -859,6 +892,7 @@ private fun PromptTraceSheet(
     onDismiss: () -> Unit,
 ) {
     val listState = rememberLazyListState()
+    var showFullText by remember { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -881,6 +915,23 @@ private fun PromptTraceSheet(
                 }
                 if (trace != null) {
                     TextButton(onClick = onCopyAll) { Text("复制全文") }
+                }
+            }
+            if (trace != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = !showFullText,
+                        onClick = { showFullText = false },
+                        label = { Text("按消息") },
+                    )
+                    FilterChip(
+                        selected = showFullText,
+                        onClick = { showFullText = true },
+                        label = { Text("完整文本") },
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -916,18 +967,54 @@ private fun PromptTraceSheet(
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (requestParams.isNotEmpty()) {
-                        item(key = "__params__") {
-                            RequestParamsSection(params = requestParams)
+                    if (showFullText) {
+                        item(key = "__full_text__") {
+                            FullPromptTextBlock(trace = trace)
                         }
-                    }
-                    items(trace.segments.size) { index ->
-                        PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
+                    } else {
+                        if (requestParams.isNotEmpty()) {
+                            item(key = "__params__") {
+                                RequestParamsSection(params = requestParams)
+                            }
+                        }
+                        items(trace.segments.size) { index ->
+                            PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
+                        }
                     }
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
                 Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
             }
+        }
+    }
+}
+
+/** 完整文本视图：按真实发送顺序展示 role、来源和全部正文。 */
+@Suppress("FunctionNaming")
+@Composable
+private fun FullPromptTextBlock(trace: PromptTrace) {
+    val fullText =
+        remember(trace) {
+            buildString {
+                trace.segments.forEachIndexed { index, segment ->
+                    if (index > 0) appendLine("\n")
+                    appendLine("─── #${index + 1} [${segment.message.role}] ${segment.source} ───")
+                    appendLine(segment.message.content)
+                }
+            }
+        }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)),
+    ) {
+        SelectionContainer {
+            Text(
+                text = fullText,
+                modifier = Modifier.padding(14.dp),
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }

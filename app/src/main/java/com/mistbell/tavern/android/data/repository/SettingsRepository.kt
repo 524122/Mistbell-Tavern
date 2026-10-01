@@ -49,6 +49,7 @@ class SettingsRepository(private val context: Context) {
         // 作为 llm_* 覆盖键未设时的兜底，保证旧值对聊天同样生效
         val legacyTemp = dao.doubleValue("temperature")
         val legacyMaxTokens = dao.intValue("max_tokens")
+        val globalStreamingEnabled = dao.getValue("streaming_enabled") != "0"
         return LlmConfig(
             baseUrl = defaultApiConfig?.apiUrl ?: dao.getValue("llm_base_url") ?: "",
             apiKey = defaultApiConfig?.apiKey ?: SecureStore.unwrap(dao.getValue("llm_api_key") ?: ""),
@@ -61,6 +62,7 @@ class SettingsRepository(private val context: Context) {
             frequencyPenalty = llmFreqPenalty ?: preset?.frequencyPenalty,
             timeoutSeconds = resolveTimeoutSeconds(dao),
             retries = resolveRetries(dao),
+            streamingEnabled = defaultApiConfig?.streamingEnabled ?: globalStreamingEnabled,
         )
     }
 

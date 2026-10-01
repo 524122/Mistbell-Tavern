@@ -11,7 +11,6 @@ import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
-import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
@@ -28,7 +27,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
     private val repo = ChatRepository(application)
     private val networkMonitor = NetworkMonitor(application)
-    private val settingsRepo = SettingsRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
     private val themeRepo = ThemePackRepository(application)
 
@@ -244,8 +242,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
      * null 字段标注"未设置（不出现在请求体）"——排查"两次回复差别大"时需要看这一栏。
      */
     private suspend fun describeRequestParams(): List<Pair<String, String>> {
-        val config = settingsRepo.getLlmConfig()
-        val streaming = settingsRepo.isStreamingEnabled()
+        // 与会话级覆盖后的真实请求同源（ChatRepository.effectiveLlmConfig），否则诊断栏
+        // 显示全局默认配置，与会话实际使用的模型/端点不一致
+        val config = repo.effectiveLlmConfig(_activeSessionId.value)
         val preset = db.settingsDao().getValue("sampling_preset") ?: "balanced"
 
         fun num(value: Double?): String = value?.toString() ?: "未设置（不发送）"
@@ -253,7 +252,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             add("模型" to config.model.ifBlank { "未配置" })
             add("接口" to config.baseUrl.ifBlank { "未配置" })
             add("密钥" to if (config.apiKey.isBlank()) "未配置" else "已配置（${config.apiKey.length} 字符）")
-            add("流式输出" to if (streaming) "开" else "关")
+            add("流式输出" to if (config.streamingEnabled) "开" else "关")
             add("temperature" to num(config.temperature))
             add("max_tokens" to config.maxTokens.toString())
             add("top_p" to num(config.topP))

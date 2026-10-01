@@ -25,7 +25,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         ApiConfigEntity::class,
         CustomPromptEntity::class,
     ],
-    version = 23,
+    version = 24,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -511,6 +511,24 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v23→v24：流式传输开关从全局 settings 下沉到每张 API 配置卡。
+        // 迁移时沿用旧全局开关，避免已有用户的流式偏好被静默改变。
+        internal val MIGRATION_23_24_SQL: List<String> =
+            listOf(
+                "ALTER TABLE api_configs ADD COLUMN streamingEnabled INTEGER NOT NULL DEFAULT 1",
+                "UPDATE api_configs SET streamingEnabled = CASE " +
+                    "WHEN (SELECT value FROM settings WHERE `key` = 'streaming_enabled') = '0' " +
+                    "THEN 0 ELSE 1 END",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_23_24 =
+            object : Migration(23, 24) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_23_24_SQL.forEach(db::execSQL)
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -539,6 +557,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_20_21,
                         MIGRATION_21_22,
                         MIGRATION_22_23,
+                        MIGRATION_23_24,
                     )
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：
                     // 遇到未覆盖的版本 Room 会直接抛 IllegalStateException（明确失败），

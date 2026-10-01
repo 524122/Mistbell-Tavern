@@ -221,7 +221,7 @@ fun InlineApiCardsSection(
             apiConfig = null,
             viewModel = viewModel,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, apiUrl, apiKey, model, setAsDefault, type, context1M ->
+            onConfirm = { name, apiUrl, apiKey, model, setAsDefault, type, context1M, streamingEnabled ->
                 viewModel.addApiConfig(
                     name = name,
                     apiUrl = apiUrl,
@@ -230,6 +230,7 @@ fun InlineApiCardsSection(
                     setAsDefault = setAsDefault,
                     type = type,
                     context1M = context1M,
+                    streamingEnabled = streamingEnabled,
                 )
                 showAddDialog = false
             },
@@ -242,7 +243,7 @@ fun InlineApiCardsSection(
             apiConfig = config,
             viewModel = viewModel,
             onDismiss = { editingConfig = null },
-            onConfirm = { name, apiUrl, apiKey, model, setAsDefault, type, context1M ->
+            onConfirm = { name, apiUrl, apiKey, model, setAsDefault, type, context1M, streamingEnabled ->
                 viewModel.updateApiConfig(
                     config.copy(
                         name = name,
@@ -252,6 +253,7 @@ fun InlineApiCardsSection(
                         isDefault = setAsDefault || config.isDefault,
                         type = type,
                         context1M = context1M,
+                        streamingEnabled = streamingEnabled,
                     ),
                 )
                 if (setAsDefault) {

@@ -211,7 +211,7 @@ class ChatRepository(private val context: Context) {
             // 流式累计缓冲，作用域覆盖整个 try，取消时据此判断是否已有部分回复
             val sb = StringBuilder()
             try {
-                val llmConfig = loadLlmConfig()
+                val llmConfig = loadLlmConfig(sessionId)
                 if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
                     // 群聊模式：优先用 VM 传入的 groupContext；未传时按会话 mode/参与者兜底构建
                     effectiveGroupContext = groupContext ?: loadGroupContext(ownerId, characterId, sessionId)
@@ -309,7 +309,7 @@ class ChatRepository(private val context: Context) {
             val scope = SessionScope(ownerId, characterId, sessionId)
             val sb = StringBuilder()
             try {
-                val llmConfig = loadLlmConfig()
+                val llmConfig = loadLlmConfig(sessionId)
                 if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
                     throw Exception("LLM 未配置：请在设置中配置 API 密钥")
                 }
@@ -423,7 +423,7 @@ class ChatRepository(private val context: Context) {
             val lastUserMsg =
                 userMessages.lastOrNull { it.role == "user" }
                     ?: throw IllegalStateException("没有可重新生成的用户消息")
-            val llmConfig = loadLlmConfig()
+            val llmConfig = loadLlmConfig(sessionId)
             if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
                 throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
             }
@@ -455,7 +455,7 @@ class ChatRepository(private val context: Context) {
             // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
             val sb = StringBuilder()
             try {
-                if (settingsRepo.isStreamingEnabled()) {
+                if (llmConfig.streamingEnabled) {
                     // 流式开：SSE 真流式，逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
                     LlmClient.chatStream(llmConfig, prompt).collect { delta ->
                         sb.append(delta)
@@ -597,7 +597,7 @@ class ChatRepository(private val context: Context) {
         sb: StringBuilder,
         onPartial: ((String) -> Unit)?,
     ) {
-        if (settingsRepo.isStreamingEnabled()) {
+        if (llmConfig.streamingEnabled) {
             LlmClient.chatStream(llmConfig, promptMessages).collect { delta ->
                 sb.append(delta)
                 onPartial?.invoke(sb.toString())
@@ -883,7 +883,33 @@ class ChatRepository(private val context: Context) {
 
     // 统一走 SettingsRepository.getLlmConfig：此前此处另读一套旧键，导致 llm_* 覆盖、
     // 采样预设、超时与重试设置对聊天请求不生效（双源真相 bug）
-    private suspend fun loadLlmConfig(): LlmConfig = settingsRepo.getLlmConfig()
+    // sessionId 非空时应用会话级覆盖：会话在聊天设置里指定的 API 配置
+    // （providerId → api_configs；modelId 压过配置默认模型）优先于全局默认配置
+    private suspend fun loadLlmConfig(sessionId: String? = null): LlmConfig {
+        val base = settingsRepo.getLlmConfig()
+        val session = sessionId?.let { db.sessionDao().getById(it) }
+        val apiConfig =
+            session?.providerId
+                ?.takeIf { it.isNotBlank() }
+                ?.let { db.apiConfigDao().getById(it) }
+        return if (apiConfig != null) {
+            base.copy(
+                baseUrl = apiConfig.apiUrl,
+                apiKey = apiConfig.apiKey,
+                model = session.modelId.ifBlank { apiConfig.model },
+                type = apiConfig.type,
+                streamingEnabled = apiConfig.streamingEnabled,
+            )
+        } else {
+            base
+        }
+    }
+
+    /**
+     * 会话覆盖后的生效配置（internal：ChatViewModel 的"请求参数"诊断展示需与真实请求同源，
+     * 不经此入口拿配置会显示全局默认值，与会话实际使用的模型不一致）
+     */
+    internal suspend fun effectiveLlmConfig(sessionId: String?): LlmConfig = loadLlmConfig(sessionId)
 
     /**
      * 一轮回复入抽取缓冲：攒满 MEMORY_EXTRACTION_BATCH_TURNS 轮后排空并合并发起一次后台抽取。

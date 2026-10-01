@@ -4,17 +4,20 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,10 +28,12 @@ import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 /**
  * 聊天列表（嵌入 MainScreen 的主 tab 页）。
  *
- * 原独立模式（自带顶栏/底栏/多选）为遗留双轨死代码，已删除；
- * 顶栏统一走公共 [ModernTopBar]。
+ * 顶栏统一走公共 [ModernTopBar]；多选模式下替换为多选操作栏。
+ * 长按列表项弹出操作菜单（置顶/标记已读/改名/复制/导出/删除/多选），
+ * 菜单与确认 dialog 内聚在 [ModernChatListItem] 中。
  */
 @Suppress("FunctionNaming", "LongMethod") // Compose 屏幕级组件的既有形态（原由 detekt 基线吸收）
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
     viewModel: ChatListViewModel = viewModel(),
@@ -40,10 +45,11 @@ fun ChatListScreen(
     val chatItems by viewModel.chatListItems.collectAsState()
     val importError by viewModel.importError.collectAsState()
     val importSuccess by viewModel.importSuccess.collectAsState()
+    val isMultiSelectMode by viewModel.isMultiSelectMode.collectAsState()
+    val selectedSessions by viewModel.selectedSessions.collectAsState()
 
     var showClearAllDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
-    var fabExpanded by remember { mutableStateOf(false) }
 
     // 文件选择器 Launcher
     val importLauncher =
@@ -71,16 +77,6 @@ fun ChatListScreen(
         }
     }
 
-    val fabRotation by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (fabExpanded) 45f else 0f,
-        animationSpec =
-            androidx.compose.animation.core.spring(
-                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-            ),
-        label = "fab_rotation",
-    )
-
     Scaffold(
         modifier =
             modifier
@@ -88,133 +84,128 @@ fun ChatListScreen(
                 .clearFocusOnTap(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            ModernTopBar(
-                title = "聊天",
-                subtitle = "最近对话",
-                actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
+            if (isMultiSelectMode) {
+                // 多选模式操作栏（自旧独立模式移植）
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "${selectedSessions.size} 已选择",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.exitMultiSelectMode() }) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "菜单",
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "退出",
                             )
                         }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { viewModel.selectAllSessions() },
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("清空所有对话", color = MaterialTheme.colorScheme.error) },
-                                onClick = {
-                                    showMenu = false
-                                    showClearAllDialog = true
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.DeleteSweep,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
+                            Icon(
+                                imageVector = Icons.Default.SelectAll,
+                                contentDescription = "全选",
                             )
                         }
-                    }
-                },
-            )
+                        IconButton(
+                            onClick = {
+                                viewModel.exportSelectedSessions(context) { uris ->
+                                    if (uris.isNotEmpty()) {
+                                        val shareIntent =
+                                            android.content.Intent().apply {
+                                                action = android.content.Intent.ACTION_SEND_MULTIPLE
+                                                type = "application/json"
+                                                putParcelableArrayListExtra(
+                                                    android.content.Intent.EXTRA_STREAM,
+                                                    ArrayList(uris),
+                                                )
+                                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                        context.startActivity(
+                                            android.content.Intent.createChooser(shareIntent, "导出会话"),
+                                        )
+                                    }
+                                }
+                            },
+                            enabled = selectedSessions.isNotEmpty(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.FileUpload,
+                                contentDescription = "导出",
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.deleteSelectedSessions() },
+                            enabled = selectedSessions.isNotEmpty(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "删除",
+                                tint =
+                                    if (selectedSessions.isNotEmpty()) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+                    },
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                )
+            } else {
+                ModernTopBar(
+                    title = "会话",
+                    subtitle = "继续你的故事",
+                    actions = {
+                        IconButton(onClick = { importLauncher.launch("application/json") }) {
+                            Icon(Icons.Default.FileUpload, contentDescription = "导入会话")
+                        }
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "菜单",
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("清空所有对话", color = MaterialTheme.colorScheme.error) },
+                                    onClick = {
+                                        showMenu = false
+                                        showClearAllDialog = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.DeleteSweep,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    },
+                )
+            }
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Sub FABs - shown when expanded
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = fabExpanded,
-                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        // Import chat button with label
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp),
-                                shadowElevation = 2.dp,
-                            ) {
-                                Text(
-                                    text = "导入对话",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    fabExpanded = false
-                                    // 打开文件选择器，选择 JSON 文件
-                                    importLauncher.launch("application/json")
-                                },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ) {
-                                Icon(
-                                    Icons.Default.FileUpload,
-                                    contentDescription = "导入对话",
-                                )
-                            }
-                        }
-
-                        // New chat button with label
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp),
-                                shadowElevation = 2.dp,
-                            ) {
-                                Text(
-                                    text = "新建对话",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    fabExpanded = false
-                                    onNewChatClick()
-                                },
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "新建对话",
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Main FAB
-                FloatingActionButton(
-                    onClick = { fabExpanded = !fabExpanded },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = if (fabExpanded) "收起" else "展开",
-                        modifier = Modifier.rotate(fabRotation),
-                    )
-                }
-            }
+            ExtendedFloatingActionButton(
+                onClick = onNewChatClick,
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("新建对话") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            )
         },
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -236,12 +227,36 @@ fun ChatListScreen(
                     items(chatItems, key = { it.sessionId }) { item ->
                         ModernChatListItem(
                             item = item,
-                            onClick = { onChatClick(item.sessionId, item.characterId) },
-                            onLongClick = {
-                                // 长按显示操作菜单（保留原有功能）
-                                viewModel.togglePin(item.sessionId, item.characterId)
+                            onClick = {
+                                if (isMultiSelectMode) {
+                                    viewModel.toggleSessionSelection(item.sessionId, item.characterId)
+                                } else {
+                                    onChatClick(item.sessionId, item.characterId)
+                                }
                             },
-                            isSelected = false,
+                            isSelected = selectedSessions.contains(Pair(item.sessionId, item.characterId)),
+                            isMultiSelectMode = isMultiSelectMode,
+                            onEnterMultiSelect = {
+                                viewModel.enterMultiSelectMode()
+                                viewModel.toggleSessionSelection(item.sessionId, item.characterId)
+                            },
+                            onTogglePin = { viewModel.togglePin(item.sessionId, item.characterId) },
+                            onMarkAsRead = { viewModel.markAsRead(item.sessionId, item.characterId) },
+                            onRename = { title ->
+                                viewModel.renameSession(item.sessionId, item.characterId, title)
+                            },
+                            onCopy = { viewModel.copySession(context, item.sessionId, item.characterId) },
+                            onDelete = { viewModel.deleteSession(item.sessionId, item.characterId) },
+                            onExport = { format, fileName, onDone ->
+                                viewModel.exportSession(
+                                    context = context,
+                                    sessionId = item.sessionId,
+                                    characterId = item.characterId,
+                                    format = format,
+                                    fileName = fileName,
+                                    onComplete = onDone,
+                                )
+                            },
                         )
                     }
                 }

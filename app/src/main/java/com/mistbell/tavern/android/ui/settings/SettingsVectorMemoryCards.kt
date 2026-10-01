@@ -21,7 +21,7 @@ internal fun VectorMemorySettingsCard(viewModel: SettingsViewModel) {
     val recallTopK by viewModel.memoryRecallTopK.collectAsState()
     val threshold by viewModel.memorySimilarityThreshold.collectAsState()
 
-    SettingsCard {
+    SettingsCard(title = "向量记忆") {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = "向量记忆（语义召回）",

@@ -79,6 +79,7 @@ object ApiConfigMigration {
                 sortOrder = index,
                 type = provider.type.ifBlank { "openai" },
                 context1m = provider.context1M,
+                streamingEnabled = true,
                 createdAt = now,
                 updatedAt = now,
             )

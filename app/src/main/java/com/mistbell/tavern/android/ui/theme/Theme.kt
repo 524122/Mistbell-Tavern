@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package com.mistbell.tavern.android.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -19,11 +21,11 @@ import kotlinx.coroutines.flow.map
 private val LightColorScheme =
     lightColorScheme(
         primary = AccentBlue,
-        onPrimary = UserTextLight,
+        onPrimary = Color.White,
         primaryContainer = AccentBlueLight,
-        onPrimaryContainer = AccentBlue,
+        onPrimaryContainer = Color(0xFF4B2B0E),
         secondary = AccentGreen,
-        onSecondary = UserTextLight,
+        onSecondary = Color.White,
         tertiary = AccentOrange,
         background = LightBackground,
         onBackground = LightOnBackground,
@@ -32,7 +34,7 @@ private val LightColorScheme =
         surfaceVariant = LightSurfaceVariant,
         onSurfaceVariant = LightOnSurfaceVariant,
         error = AccentRed,
-        onError = UserTextLight,
+        onError = Color.White,
         outline = LightBorder,
         outlineVariant = LightBorderLight,
     )
@@ -40,15 +42,15 @@ private val LightColorScheme =
 private val DarkColorScheme =
     darkColorScheme(
         primary = AccentBlueDark,
-        onPrimary = DarkBackground,
+        onPrimary = Color(0xFF30200F),
         primaryContainer = AccentBlueLightDark,
-        onPrimaryContainer = AccentBlueDark,
+        onPrimaryContainer = Color(0xFFF8D09B),
         secondary = AccentGreenDark,
-        onSecondary = UserTextDark,
+        onSecondary = Color(0xFF17241D),
         secondaryContainer = Color(0xFF1F3A2E),
         onSecondaryContainer = AccentGreenDark,
         tertiary = AccentOrangeDark,
-        onTertiary = UserTextDark,
+        onTertiary = Color(0xFF2B1D0E),
         tertiaryContainer = Color(0xFF3A2E1F),
         onTertiaryContainer = AccentOrangeDark,
         background = DarkBackground,
@@ -58,7 +60,7 @@ private val DarkColorScheme =
         surfaceVariant = DarkSurfaceVariant,
         onSurfaceVariant = DarkOnSurfaceVariant,
         error = AccentRedDark,
-        onError = UserTextDark,
+        onError = Color(0xFF321512),
         outline = DarkBorder,
         outlineVariant = DarkBorderLight,
     )
@@ -88,6 +90,7 @@ fun MistbellTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = TavernShapes,
         content = content,
     )
 }

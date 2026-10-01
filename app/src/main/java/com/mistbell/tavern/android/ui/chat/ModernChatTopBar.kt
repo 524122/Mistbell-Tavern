@@ -1,8 +1,6 @@
 package com.mistbell.tavern.android.ui.chat
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -12,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mistbell.tavern.android.data.api.model.Character
@@ -27,14 +24,9 @@ fun ModernChatTopBar(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 滚动时增加阴影效果
+    // 滚动时只增加很轻的层级，避免聊天内容被一条厚重阴影切开。
     val elevation by animateDpAsState(
-        targetValue = if (isScrolled) 4.dp else 0.dp,
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
+        targetValue = if (isScrolled) 2.dp else 0.dp,
         label = "elevation",
     )
 
@@ -42,7 +34,7 @@ fun ModernChatTopBar(
         modifier = modifier.fillMaxWidth(),
         shadowElevation = elevation,
         tonalElevation = if (isScrolled) 3.dp else 0.dp,
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column {
             // 状态栏占位
@@ -53,8 +45,8 @@ fun ModernChatTopBar(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
-                        .padding(horizontal = 4.dp),
+                        .height(60.dp)
+                        .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 返回按钮
@@ -81,7 +73,7 @@ fun ModernChatTopBar(
                     // 复合头像
                     CompositeCharacterAvatar(
                         characters = displayCharacters,
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(36.dp),
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -94,7 +86,6 @@ fun ModernChatTopBar(
                         Text(
                             text = chatTitle,
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             // 文字超出时显示省略号
                             maxLines = 1,
@@ -154,7 +145,7 @@ fun ModernChatTopBar(
             if (isScrolled) {
                 HorizontalDivider(
                     thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
                 )
             }
         }

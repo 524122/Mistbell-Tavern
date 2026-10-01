@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.TavernApplication
@@ -158,7 +159,8 @@ fun MainScreen(
     if (useNavigationRail) {
         Row(modifier = Modifier.fillMaxSize()) {
             NavigationRail(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
                 mainDestinations.forEachIndexed { index, destination ->
                     NavigationRailItem(
@@ -166,6 +168,14 @@ fun MainScreen(
                         onClick = { selectedTab = index },
                         icon = { Icon(destination.icon, contentDescription = null) },
                         label = { Text(destination.label) },
+                        colors =
+                            NavigationRailItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                     )
                 }
             }
@@ -175,7 +185,8 @@ fun MainScreen(
         Scaffold(
             bottomBar = {
                 NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    tonalElevation = 0.dp,
                 ) {
                     mainDestinations.forEachIndexed { index, destination ->
                         NavigationBarItem(
@@ -183,6 +194,14 @@ fun MainScreen(
                             onClick = { selectedTab = index },
                             icon = { Icon(destination.icon, contentDescription = null) },
                             label = { Text(destination.label) },
+                            colors =
+                                NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
                         )
                     }
                 }

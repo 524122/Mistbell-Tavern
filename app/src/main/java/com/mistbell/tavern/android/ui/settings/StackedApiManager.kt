@@ -71,6 +71,8 @@ data class ApiConfig(
     val type: String = "openai",
     // 1M 上下文开关
     val context1M: Boolean = false,
+    // SSE 流式传输开关
+    val streamingEnabled: Boolean = true,
 )
 
 /**
@@ -200,47 +202,61 @@ fun ApiCardMini(
                         )
                     }
 
-                    // 更多菜单
-                    Box {
-                        IconButton(
-                            onClick = { showMenu = true },
-                            modifier = Modifier.size(32.dp),
-                        ) {
+                    // 选中标记与更多菜单并排占位，避免右上角叠加
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (isSelected) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "更多",
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "已选中",
                                 modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
 
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("编辑") },
-                                onClick = {
-                                    showMenu = false
-                                    onEdit()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, null)
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("删除") },
-                                onClick = {
-                                    showMenu = false
-                                    onDelete()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                            )
+                        Box {
+                            IconButton(
+                                onClick = { showMenu = true },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "更多",
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("编辑") },
+                                    onClick = {
+                                        showMenu = false
+                                        onEdit()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Edit, null)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("删除") },
+                                    onClick = {
+                                        showMenu = false
+                                        onDelete()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -268,20 +284,6 @@ fun ApiCardMini(
                         }
                     }
                 }
-            }
-
-            // 选中指示器
-            if (isSelected) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "已选中",
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
             }
         }
     }

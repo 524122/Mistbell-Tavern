@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Stream
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,16 +117,13 @@ fun ModernSettingsScreen(
 
             ApiSettingsSection(
                 apiConfigViewModel = apiConfigViewModel,
-                viewModel = viewModel,
             )
 
             ConversationSettingsSection(viewModel)
 
-            PromptSettingsSection(onNavigateToPromptManagement)
-
             AppearanceSettingsSection(viewModel, onNavigateToThemeManager)
 
-            MemorySettingsSection(viewModel)
+            MemorySettingsSection(viewModel, advanced = false)
 
             DataManagementSection(viewModel, isLoading)
 
@@ -149,7 +145,7 @@ fun ModernSettingsScreen(
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "请求超时、重试与实验性功能",
+                            text = "提示词、采样、记忆召回、网络与实验功能",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -171,6 +167,12 @@ fun ModernSettingsScreen(
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PromptSettingsSection(onNavigateToPromptManagement)
+
+                    MemorySettingsSection(viewModel, advanced = true)
+
+                    SamplingPresetSection(viewModel)
+
                     AdvancedSamplingSection(viewModel)
 
                     ExperimentalFeaturesSection()
@@ -194,22 +196,22 @@ fun ModernSettingsScreen(
 @Composable
 private fun ApiSettingsSection(
     apiConfigViewModel: ApiConfigViewModel,
-    viewModel: SettingsViewModel,
 ) {
-    val samplingPreset by viewModel.samplingPreset.collectAsState()
-
-    ModernSettingsGroup(title = "🔧 API 设置") {
+    ModernSettingsGroup(title = "🔧 AI 连接") {
         // 内联 API 卡片管理：左右滑动切换配置，长按预览所有配置
         InlineApiCardsSection(viewModel = apiConfigViewModel)
+    }
+}
 
-        ModernDivider()
+/** 酒馆玩家常用的生成风格预设；新手使用平衡预设即可，不在首屏增加决策。 */
+@Suppress("FunctionNaming")
+@Composable
+private fun SamplingPresetSection(viewModel: SettingsViewModel) {
+    val samplingPreset by viewModel.samplingPreset.collectAsState()
 
-        // 采样预设三档 + 自定义：写入 sampling_preset，由 SettingsRepository 组装 LlmConfig 时解析
+    ModernSettingsGroup(title = "🎛️ 生成风格") {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
@@ -244,7 +246,7 @@ private fun ApiSettingsSection(
             }
             if (samplingPreset == "custom") {
                 Text(
-                    text = "自定义：请前往「提供商管理」编辑页的高级参数区逐项调参",
+                    text = "自定义参数请在 API 卡片编辑页的高级区域调整",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -260,7 +262,6 @@ private fun ApiSettingsSection(
 @Composable
 private fun ConversationSettingsSection(viewModel: SettingsViewModel) {
     val defaultContextTokens by viewModel.defaultContextTokens.collectAsState()
-    val streamingEnabled by viewModel.streamingEnabled.collectAsState()
 
     ModernSettingsGroup(title = "💬 对话设置") {
         // 上下文长度：新会话的默认上下文 token 预算（与会话级设置共用同一组预设档位）
@@ -299,16 +300,6 @@ private fun ConversationSettingsSection(viewModel: SettingsViewModel) {
                 onValueChange = { value -> value?.let { viewModel.setDefaultContextTokens(it) } },
             )
         }
-
-        ModernDivider()
-
-        ModernSwitchItem(
-            title = "流式响应",
-            subtitle = "关闭后回复整包返回，适用于不支持 SSE 的网关",
-            icon = Icons.Default.Stream,
-            checked = streamingEnabled,
-            onCheckedChange = { viewModel.setStreamingEnabled(it) },
-        )
     }
 }
 
@@ -437,7 +428,10 @@ private fun AppearanceSettingsSection(
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
-private fun MemorySettingsSection(viewModel: SettingsViewModel) {
+private fun MemorySettingsSection(
+    viewModel: SettingsViewModel,
+    advanced: Boolean,
+) {
     val defaultLtmEnabled by viewModel.defaultLtmEnabled.collectAsState()
     var showMemoryPromptDialog by remember { mutableStateOf(false) }
 
@@ -450,14 +444,16 @@ private fun MemorySettingsSection(viewModel: SettingsViewModel) {
             onCheckedChange = { viewModel.setDefaultLtmEnabled(it) },
         )
 
-        ModernDivider()
+        if (advanced) {
+            ModernDivider()
 
-        ModernSettingsItem(
-            title = "记忆提取提示词",
-            subtitle = "自定义长期记忆提取的提示词",
-            icon = Icons.Default.Description,
-            onClick = { showMemoryPromptDialog = true },
-        )
+            ModernSettingsItem(
+                title = "记忆提取提示词",
+                subtitle = "自定义长期记忆提取的提示词",
+                icon = Icons.Default.Description,
+                onClick = { showMemoryPromptDialog = true },
+            )
+        }
     }
 
     if (showMemoryPromptDialog) {
@@ -467,7 +463,9 @@ private fun MemorySettingsSection(viewModel: SettingsViewModel) {
         )
     }
 
-    VectorMemorySettingsCard(viewModel = viewModel)
+    if (advanced) {
+        VectorMemorySettingsCard(viewModel = viewModel)
+    }
 }
 
 /**

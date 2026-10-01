@@ -53,7 +53,7 @@ fun MessageBubble(
     var showMenu by remember { mutableStateOf(false) }
     var thinkingExpanded by remember { mutableStateOf(false) }
 
-    val bubbleShape = RoundedCornerShape(16.dp)
+    val bubbleShape = MaterialTheme.shapes.medium
     val cardBackgroundColor =
         if (isUser) {
             MaterialTheme.colorScheme.primary
@@ -132,18 +132,18 @@ fun MessageBubble(
                 Box(
                     modifier =
                         Modifier
-                            .widthIn(max = if (isUser) 280.dp else 520.dp)
+                            .widthIn(max = if (isUser) 320.dp else 620.dp)
                             .combinedClickable(
                                 onClick = {},
                                 onLongClick = { showMenu = true },
                             )
                             .then(
                                 Modifier
-                                    .shadow(1.dp, bubbleShape, ambientColor = cardShadowColor)
+                                    .shadow(0.dp, bubbleShape, ambientColor = cardShadowColor)
                                     .background(cardBackgroundColor, bubbleShape)
                                     .border(1.dp, cardBorderColor, bubbleShape),
                             )
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                            .padding(horizontal = 18.dp, vertical = 13.dp),
                 ) {
                     if (isUser) {
                         // 用户消息也使用 MarkdownRenderer 以支持语义高亮（引号、括号变色）

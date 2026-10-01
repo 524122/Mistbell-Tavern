@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.ui.worldbook
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,14 +20,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.ui.common.ModernTopBar
-import com.mistbell.tavern.android.ui.common.TavernRadius
 import com.mistbell.tavern.android.ui.components.*
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 import com.mistbell.tavern.android.util.WorldBookParser
@@ -58,18 +57,6 @@ fun WorldBookListScreen(
     var newBookName by remember { mutableStateOf("") }
     var showDeleteBookDialog by remember { mutableStateOf<String?>(null) }
     var showDeleteEntryDialog by remember { mutableStateOf<String?>(null) }
-    var fabExpanded by remember { mutableStateOf(false) }
-
-    val fabRotation by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (fabExpanded) 45f else 0f,
-        animationSpec =
-            androidx.compose.animation.core.spring(
-                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-            ),
-        label = "fab_rotation",
-    )
-
     val snackbarHostState = remember { SnackbarHostState() }
 
     // 导入世界书：SAF 选 JSON → WorldBookParser 解析 → 落库（参照角色导入的提示风格）
@@ -172,6 +159,16 @@ fun WorldBookListScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("添加条目")
                             }
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    importLauncher.launch(
+                                        arrayOf("application/json", "application/octet-stream"),
+                                    )
+                                },
+                            ) {
+                                Icon(Icons.Default.FileUpload, contentDescription = "导入世界书")
+                            }
                         }
                         // Refresh button
                         IconButton(onClick = { viewModel.loadFromServer() }, modifier = Modifier.size(32.dp)) {
@@ -193,100 +190,13 @@ fun WorldBookListScreen(
         },
         floatingActionButton = {
             if (selectedBookId == null) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // Sub FABs - shown when expanded
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = fabExpanded,
-                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            // Import worldbook button with label
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(8.dp),
-                                    shadowElevation = 2.dp,
-                                ) {
-                                    Text(
-                                        text = "导入世界书",
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        style = MaterialTheme.typography.labelLarge,
-                                    )
-                                }
-                                SmallFloatingActionButton(
-                                    onClick = {
-                                        fabExpanded = false
-                                        // SAF 选择 JSON 世界书文件
-                                        importLauncher.launch(
-                                            arrayOf("application/json", "application/octet-stream"),
-                                        )
-                                    },
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                ) {
-                                    Icon(
-                                        Icons.Default.FileUpload,
-                                        contentDescription = "导入世界书",
-                                    )
-                                }
-                            }
-
-                            // New worldbook button with label
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(8.dp),
-                                    shadowElevation = 2.dp,
-                                ) {
-                                    Text(
-                                        text = "新建世界书",
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        style = MaterialTheme.typography.labelLarge,
-                                    )
-                                }
-                                SmallFloatingActionButton(
-                                    onClick = {
-                                        fabExpanded = false
-                                        showNewBookDialog = true
-                                    },
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                ) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = "新建世界书",
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Main FAB
-                    FloatingActionButton(
-                        onClick = { fabExpanded = !fabExpanded },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = if (fabExpanded) "收起" else "展开",
-                            modifier = Modifier.rotate(fabRotation),
-                        )
-                    }
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { showNewBookDialog = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("新建世界书") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -321,7 +231,17 @@ fun WorldBookListScreen(
                                             viewModel.selectBook(book.id)
                                         }
                                     },
-                                shape = RoundedCornerShape(TavernRadius.M),
+                                shape = MaterialTheme.shapes.medium,
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                    ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                border =
+                                    BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                                    ),
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -384,11 +304,12 @@ fun WorldBookListScreen(
                             // 总计
                             Card(
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.small,
                                 colors =
                                     CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -411,11 +332,12 @@ fun WorldBookListScreen(
                             val activeCount = entries.count { !it.disable }
                             Card(
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.small,
                                 colors =
                                     CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -438,11 +360,12 @@ fun WorldBookListScreen(
                             // 禁用
                             Card(
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.small,
                                 colors =
                                     CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
                                     ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -471,7 +394,7 @@ fun WorldBookListScreen(
                     items(entries, key = { it.id }) { entry ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.small,
                             colors =
                                 CardDefaults.cardColors(
                                     containerColor =
@@ -481,6 +404,8 @@ fun WorldBookListScreen(
                                             MaterialTheme.colorScheme.surface
                                         },
                                 ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Row(

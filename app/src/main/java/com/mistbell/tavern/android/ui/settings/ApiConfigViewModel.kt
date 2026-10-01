@@ -100,6 +100,7 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                 apiKey = "",
                 model = "gpt-4o",
                 isDefault = true,
+                streamingEnabled = true,
                 sortOrder = 0,
             )
         apiConfigDao.insert(defaultConfig)
@@ -117,6 +118,7 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
         setAsDefault: Boolean = false,
         type: String = "openai",
         context1M: Boolean = false,
+        streamingEnabled: Boolean = true,
     ) {
         viewModelScope.launch {
             try {
@@ -131,6 +133,7 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                         sortOrder = apiConfigDao.getCount(),
                         type = type,
                         context1m = context1M,
+                        streamingEnabled = streamingEnabled,
                     )
                 apiConfigDao.insert(newConfig)
 
@@ -377,6 +380,7 @@ private fun ApiConfigEntity.toApiConfig(): ApiConfig {
         lastTestTime = lastTestTime,
         type = type,
         context1M = context1m,
+        streamingEnabled = streamingEnabled,
     )
 }
 
@@ -401,6 +405,7 @@ private fun ApiConfig.toEntity(): ApiConfigEntity {
         lastTestTime = lastTestTime,
         type = type,
         context1m = context1M,
+        streamingEnabled = streamingEnabled,
         // 待实现：实现排序逻辑，目前默认 sortOrder = 0
         sortOrder = 0,
         createdAt = System.currentTimeMillis(),

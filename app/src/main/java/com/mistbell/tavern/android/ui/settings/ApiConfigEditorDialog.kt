@@ -425,6 +425,7 @@ fun ApiConfigEditorDialog(
         setAsDefault: Boolean,
         type: String,
         context1M: Boolean,
+        streamingEnabled: Boolean,
     ) -> Unit,
 ) {
     var name by remember { mutableStateOf(apiConfig?.name ?: "") }
@@ -433,6 +434,7 @@ fun ApiConfigEditorDialog(
     var apiKey by remember { mutableStateOf(apiConfig?.apiKey ?: "") }
     var model by remember { mutableStateOf(apiConfig?.model ?: "") }
     var context1M by remember { mutableStateOf(apiConfig?.context1M ?: false) }
+    var streamingEnabled by remember { mutableStateOf(apiConfig?.streamingEnabled ?: true) }
     var setAsDefault by remember { mutableStateOf(apiConfig?.isDefault ?: false) }
     var showApiKey by remember { mutableStateOf(false) }
 
@@ -539,6 +541,14 @@ fun ApiConfigEditorDialog(
                     viewModel = viewModel,
                 )
 
+                // SSE 流式传输开关：按当前 API 配置保存，关闭后聊天使用整包响应
+                SettingsSwitchRow(
+                    title = "SSE 流式传输",
+                    subtitle = "逐步显示模型回复；关闭后等待整包返回",
+                    checked = streamingEnabled,
+                    onCheckedChange = { streamingEnabled = it },
+                )
+
                 // 1M 上下文开关
                 SettingsSwitchRow(
                     title = "1M 上下文",
@@ -565,7 +575,7 @@ fun ApiConfigEditorDialog(
                     model = model,
                     onDismiss = onDismiss,
                     onConfirm = {
-                        onConfirm(name, apiUrl, apiKey, model, setAsDefault, type, context1M)
+                        onConfirm(name, apiUrl, apiKey, model, setAsDefault, type, context1M, streamingEnabled)
                     },
                 )
             }

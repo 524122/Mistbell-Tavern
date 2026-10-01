@@ -69,7 +69,7 @@ internal fun DataBackupCard(
             }
         }
 
-    SettingsCard {
+    SettingsCard(title = "数据管理") {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             SettingsNavItem(
                 title = "创建备份",

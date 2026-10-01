@@ -1,13 +1,11 @@
 package com.mistbell.tavern.android.ui.chat
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,32 +56,12 @@ fun MessageInput(
             }
         }
 
-    // 动画效果
-    val elevation by animateDpAsState(
-        targetValue = if (isFocused) 8.dp else 2.dp,
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow,
-            ),
-        label = "elevation",
-    )
-
-    val cornerRadius by animateDpAsState(
-        targetValue = if (isFocused) 28.dp else 24.dp,
-        animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-        label = "corner",
-    )
-
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .widthIn(max = 680.dp)
+                .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // @ 提及自动补全弹窗
@@ -117,66 +95,70 @@ fun MessageInput(
                 Modifier
                     .fillMaxWidth()
                     .widthIn(max = 720.dp),
-            shape = RoundedCornerShape(cornerRadius),
-            shadowElevation = elevation,
-            tonalElevation = if (isFocused) 3.dp else 1.dp,
-            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(20.dp),
+            shadowElevation = 0.dp,
+            tonalElevation = if (isFocused) 1.dp else 0.dp,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            border =
+                BorderStroke(
+                    width = 1.dp,
+                    color =
+                        if (isFocused) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
+                        },
+                ),
         ) {
             Row(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 // 文本输入区域
-                Surface(
+                TextField(
+                    value = textFieldValue,
+                    onValueChange = { textFieldValue = it },
+                    placeholder = {
+                        Text(
+                            text = if (participants.isNotEmpty()) "输入消息… (@提及角色)" else "输入消息…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        )
+                    },
+                    colors =
+                        TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                        ),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSend = {
+                                if (isEnabled) {
+                                    onSend(textFieldValue.text.trim())
+                                    textFieldValue = TextFieldValue("")
+                                    focusManager.clearFocus()
+                                }
+                            },
+                        ),
+                    minLines = 1,
+                    maxLines = 4,
+                    enabled = enabled,
                     modifier =
                         Modifier
-                            .weight(1f),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                ) {
-                    TextField(
-                        value = textFieldValue,
-                        onValueChange = { textFieldValue = it },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .onFocusChanged { isFocused = it.isFocused },
-                        placeholder = {
-                            Text(
-                                text = if (participants.isNotEmpty()) "输入消息... (@提及角色)" else "输入消息...",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            )
-                        },
-                        colors =
-                            TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
-                            ),
-                        textStyle = MaterialTheme.typography.bodyLarge,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions =
-                            KeyboardActions(
-                                onSend = {
-                                    if (isEnabled) {
-                                        onSend(textFieldValue.text.trim())
-                                        textFieldValue = TextFieldValue("")
-                                        focusManager.clearFocus()
-                                    }
-                                },
-                            ),
-                        maxLines = 6,
-                        enabled = enabled,
-                    )
-                }
+                            .weight(1f)
+                            .heightIn(min = 44.dp, max = 112.dp)
+                            .onFocusChanged { isFocused = it.isFocused },
+                )
 
                 // 发送/停止按钮
                 AnimatedVisibility(
@@ -203,8 +185,8 @@ fun MessageInput(
                             },
                         elevation =
                             FloatingActionButtonDefaults.elevation(
-                                defaultElevation = 4.dp,
-                                pressedElevation = 8.dp,
+                                defaultElevation = 0.dp,
+                                pressedElevation = 2.dp,
                             ),
                     ) {
                         Icon(

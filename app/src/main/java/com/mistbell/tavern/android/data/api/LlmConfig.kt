@@ -22,4 +22,6 @@ data class LlmConfig(
     val disableThinking: Boolean = false,
     // 接口类型（ApiType：openai/anthropic/gemini/custom），决定 LlmClient 走哪个协议适配
     val type: String = "openai",
+    // SSE 流式传输开关：由当前 API 配置决定
+    val streamingEnabled: Boolean = true,
 )

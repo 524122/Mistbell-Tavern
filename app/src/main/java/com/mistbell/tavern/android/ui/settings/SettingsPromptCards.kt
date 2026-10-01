@@ -47,7 +47,7 @@ internal fun PromptTemplateCard(viewModel: SettingsViewModel) {
 
     var dialog by remember { mutableStateOf<PromptTemplateKind?>(null) }
 
-    SettingsCard {
+    SettingsCard(title = "提示词模板") {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SettingsNavItem(
                 title = "主提示词",

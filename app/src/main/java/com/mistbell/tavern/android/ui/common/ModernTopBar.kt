@@ -22,11 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * 公共现代化顶栏：statusBarsPadding + 64dp 标题行，主 tab 与子设置页通用。
+ * Mistbell 顶栏：轻量、稳定的页面锚点。主页面和子页面共用同一高度与标题层级。
  *
  * @param onBack 为 null 时不渲染返回键（主 tab 场景）
  * @param isScrolled 为 true 时显示底部分割线并抬高阴影
@@ -43,9 +42,9 @@ fun ModernTopBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.background,
         tonalElevation = if (isScrolled) 2.dp else 0.dp,
-        shadowElevation = if (isScrolled) 2.dp else 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Column {
             Spacer(modifier = Modifier.statusBarsPadding())
@@ -54,8 +53,8 @@ fun ModernTopBar(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
-                        .padding(horizontal = 4.dp),
+                        .height(58.dp)
+                        .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (onBack != null) {
@@ -78,8 +77,7 @@ fun ModernTopBar(
                 ) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (subtitle != null) {
@@ -97,7 +95,7 @@ fun ModernTopBar(
             if (isScrolled) {
                 HorizontalDivider(
                     thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
                 )
             }
         }
