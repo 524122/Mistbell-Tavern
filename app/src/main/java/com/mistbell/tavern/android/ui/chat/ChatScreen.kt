@@ -30,12 +30,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
@@ -44,6 +42,7 @@ import com.mistbell.tavern.android.data.theme.resolved
 import com.mistbell.tavern.android.ui.common.rememberBitmap
 import com.mistbell.tavern.android.ui.common.rememberFileBitmap
 import com.mistbell.tavern.android.ui.theme.*
+import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 
 // —— 常量：集中定义，避免散落的魔法数字 ——
 
@@ -62,6 +61,8 @@ private val MessageListBottomFadeHeight = 88.dp
 
 // 角色背景大图解码上限（px）：整屏显示 1280 已足够清晰，无需原始分辨率
 private const val BACKGROUND_BITMAP_MAX_DIM_PX = 1280
+private val DefaultChatInputSurfaceHeight = 64.dp
+private val MessageToInputGap = 10.dp
 
 // 背景图只作为氛围层，不能和消息正文争夺对比度。
 private const val CHARACTER_BACKGROUND_ALPHA = 0.5f
@@ -129,6 +130,41 @@ private fun buildTextAvatar(character: com.mistbell.tavern.android.data.api.mode
     }
 }
 
+/**
+ * Chat message edge fades and the solid base behind the bottom input surface.
+ * The measured input surface is the single coordinate reference for the bottom fade,
+ * keeping its endpoint attached to the actual input surface during IME/inset changes.
+ */
+@Composable
+@Suppress("FunctionNaming")
+private fun ChatFadeOverlay(surfaceHeight: Dp) {
+    val fadeColor = MaterialTheme.colorScheme.background
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val surfaceTop = (size.height - surfaceHeight.toPx()).coerceAtLeast(0f)
+        drawRect(
+            color = fadeColor,
+            topLeft = androidx.compose.ui.geometry.Offset(0f, surfaceTop),
+            size = androidx.compose.ui.geometry.Size(size.width, size.height - surfaceTop),
+        )
+        drawRect(
+            brush =
+                Brush.verticalGradient(
+                    colors = listOf(fadeColor, Color.Transparent),
+                    startY = 0f,
+                    endY = MessageListTopFadeHeight.toPx(),
+                ),
+        )
+        drawRect(
+            brush =
+                Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, fadeColor),
+                    startY = (surfaceTop - MessageListBottomFadeHeight.toPx()).coerceAtLeast(0f),
+                    endY = surfaceTop,
+                ),
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -149,12 +185,7 @@ fun ChatScreen(
     val groupMode by viewModel.groupMode.collectAsState()
     val error by viewModel.error.collectAsState()
     val isOnline by viewModel.isOnline.collectAsState()
-    val apiConfigs by viewModel.apiConfigs.collectAsState()
-    val activeModelId by viewModel.activeModelId.collectAsState()
-    val worldBooks by viewModel.worldBooks.collectAsState()
-    val activeWorldBookId by viewModel.activeWorldBookId.collectAsState()
     val listState = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
     val displayCharacters =
         participantCharacters.ifEmpty {
             currentCharacter?.let { listOf(it) } ?: emptyList()
@@ -182,12 +213,13 @@ fun ChatScreen(
         }
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
-    var inputContentHeight by remember { mutableStateOf(64.dp) }
     var inputSurfaceHeight by remember { mutableStateOf(0.dp) }
     val messageListTopPadding = if (!isOnline) 56.dp else 24.dp
-    val inputBottomPadding = 12.dp
-    val messageToInputGap = if (imeBottom > 0) 6.dp else 14.dp
-    val messageListBottomInset = inputContentHeight + inputBottomPadding + messageToInputGap
+    // 底部栏高度只从整个 Surface 测量，消息列表和渐隐遮罩共享同一来源。
+    // 首帧尚未测量时使用固定兜底，避免根据输入内容和 inset 分别估算造成跳动。
+    val effectiveInputSurfaceHeight =
+        inputSurfaceHeight.takeIf { it > 0.dp } ?: DefaultChatInputSurfaceHeight
+    val messageListBottomInset = effectiveInputSurfaceHeight + MessageToInputGap
     val bottomAnchorIndex = messages.size + 1 + if (isTyping) 1 else 0
     // 最后一条消息 id 只需算一次：原先在每个 item 内读 messages.lastOrNull()，
     // 相当于每个 item 都订阅整个列表状态
@@ -259,7 +291,7 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(imeBottom, inputContentHeight) {
+    LaunchedEffect(imeBottom, inputSurfaceHeight) {
         if (imeBottom > 0 && (messages.isNotEmpty() || isTyping)) {
             if (!jumpedToBottom || atBottom) {
                 // IME 弹出同样非动画跟随，且阅读历史时不拉回
@@ -349,7 +381,9 @@ fun ChatScreen(
 
     // 背景图异步采样解码：复用公共工具 + LRU 缓存，不再在组合线程同步解码大图
     val bgBitmap = rememberFileBitmap(characterBackgroundFile?.absolutePath, BACKGROUND_BITMAP_MAX_DIM_PX)
-    val hasChatBackground = bgBitmap != null || primaryDisplayCharacter?.avatarData?.isNotBlank() == true
+    val avatarData = primaryDisplayCharacter?.avatarData.orEmpty()
+    val avatarBitmap = rememberBitmap(avatarData.takeIf { it.isNotBlank() }, BACKGROUND_BITMAP_MAX_DIM_PX)
+    val hasChatBackground = bgBitmap != null || avatarBitmap != null
 
     // 原有聊天内容整体作为 lambda，按需包裹主题覆盖与背景图
     val chatContent: @Composable () -> Unit = {
@@ -371,13 +405,11 @@ fun ChatScreen(
             ) {
                 // Character avatar as faded background
                 primaryDisplayCharacter?.let { character ->
-                    if (character.avatarData.isNotBlank()) {
+                    if (avatarData.isNotBlank()) {
                         // 背景大图异步采样解码（复用公共缓存工具），失败回落文字头像
-                        val bitmap = rememberBitmap(character.avatarData, BACKGROUND_BITMAP_MAX_DIM_PX)
-
-                        if (bitmap != null) {
+                        if (avatarBitmap != null) {
                             androidx.compose.foundation.Image(
-                                bitmap = bitmap,
+                                bitmap = avatarBitmap,
                                 contentDescription = null,
                                 modifier =
                                     Modifier
@@ -437,18 +469,7 @@ fun ChatScreen(
                         modifier =
                             Modifier
                                 .fillMaxSize()
-                                .pointerInput(Unit) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                                            if (event.changes.any { it.pressed }) {
-                                                focusManager.clearFocus()
-                                            }
-                                        }
-                                    }
-                                }
-                                .imePadding()
-                                .navigationBarsPadding()
+                                .clearFocusOnTap()
                                 .padding(bottom = messageListBottomInset),
                     ) {
                         // Message list - centered max-width 780dp
@@ -461,10 +482,7 @@ fun ChatScreen(
                                 ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            item {
-                                Spacer(modifier = Modifier.width(780.dp))
-                            }
-                            items(messages, key = { it.id }) { message ->
+                            items(messages, key = { it.id }, contentType = { "message" }) { message ->
                                 val isUser = message.role == "user"
                                 val isLastMsg = message.id == lastMessageId
                                 // 群聊按消息归属渲染说话方：AI 消息按 message.characterId 查参与者
@@ -580,48 +598,12 @@ fun ChatScreen(
                                     )
                                 }
                             }
-
-                            item {
-                                Spacer(modifier = Modifier.height(messageToInputGap))
-                            }
                         }
                     }
 
                     // 统一的上下渐隐覆盖层。它在消息列表之后绘制，保证遮罩始终可见；
                     // 底部预留区先铺实体背景，再叠加渐隐，遮罩结束后不会露出角色背景图。
-                    val fadeColor = MaterialTheme.colorScheme.background
-                    Canvas(modifier = Modifier.matchParentSize()) {
-                        // 输入 Surface 会覆盖 Canvas 的底部，因此渐隐终点必须放在
-                        // Surface 顶部；否则渐隐的最后一段会被输入容器遮住，看起来像消失。
-                        val surfaceHeight =
-                            inputSurfaceHeight
-                                .takeIf { it > 0.dp }
-                                ?.toPx()
-                                ?: (messageListBottomInset - messageToInputGap).toPx()
-                        val surfaceTop = (size.height - surfaceHeight).coerceAtLeast(0f)
-
-                        drawRect(
-                            color = fadeColor,
-                            topLeft = androidx.compose.ui.geometry.Offset(0f, surfaceTop),
-                            size = androidx.compose.ui.geometry.Size(size.width, size.height - surfaceTop),
-                        )
-                        drawRect(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors = listOf(fadeColor, Color.Transparent),
-                                    startY = 0f,
-                                    endY = MessageListTopFadeHeight.toPx(),
-                                ),
-                        )
-                        drawRect(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, fadeColor),
-                                    startY = (surfaceTop - MessageListBottomFadeHeight.toPx()).coerceAtLeast(0f),
-                                    endY = surfaceTop,
-                                ),
-                        )
-                    }
+                    ChatFadeOverlay(surfaceHeight = effectiveInputSurfaceHeight)
 
                     // 修复5：离线横幅移到渐隐遮罩覆盖层【之后】组合——Box 子级按声明顺序
                     // 绘制，后声明的横幅盖在遮罩之上，不再落在渐变高 alpha 区被遮花
@@ -677,15 +659,7 @@ fun ChatScreen(
                             // 群聊模式与生成中状态，调用时机安全）
                             val onContinueGroup = remember { { viewModel.continueGroupChat() } }
 
-                            Column(
-                                modifier =
-                                    Modifier.onGloballyPositioned { coordinates ->
-                                        val measuredHeight = with(density) { coordinates.size.height.toDp() }
-                                        if (measuredHeight > 0.dp) {
-                                            inputContentHeight = measuredHeight
-                                        }
-                                    },
-                            ) {
+                            Column {
                                 // 群聊模式：显示参与者快速选择栏
                                 if (groupMode && participantCharacters.isNotEmpty()) {
                                     Row(

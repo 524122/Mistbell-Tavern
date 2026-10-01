@@ -28,13 +28,9 @@ fun VersionChangelogScreen(
     val changelog by viewModel.changelog.collectAsState()
     val isLoading by viewModel.isLoadingChangelog.collectAsState()
 
-    android.util.Log.d("VersionChangelogScreen", "页面已创建，isLoading=$isLoading, changelog.size=${changelog.size}")
-
     // 页面加载时获取数据
     LaunchedEffect(Unit) {
-        android.util.Log.d("VersionChangelogScreen", "LaunchedEffect 触发")
         if (changelog.isEmpty()) {
-            android.util.Log.d("VersionChangelogScreen", "开始加载 changelog")
             viewModel.loadChangelog()
         }
     }

@@ -16,8 +16,8 @@ android {
         applicationId "com.mistbell.tavern.android"
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName "0.9.0-beta"
+        versionCode 12
+        versionName "0.9.1-beta"
     }
 
     // v0.9：onnxruntime 原生库按 ABI 分包（arm64 ≈16MB / x86 等），避免单 universal APK 被

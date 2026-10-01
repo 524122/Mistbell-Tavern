@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.9.0--beta-blue.svg)](https://gitee.com/Wan2010/mistbell-tavern-android/releases)
+[![Version](https://img.shields.io/badge/version-0.9.1--beta-blue.svg)](https://gitee.com/Wan2010/mistbell-tavern-android/releases)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-100%25-purple.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -240,7 +240,7 @@ APK 输出路径：`app/build/outputs/apk/`
 
 | 文档 | 内容 |
 |------|------|
-| [更新日志](CHANGELOG.md) | 完整的版本历史（v0.1.0 ~ v0.9.0-beta） |
+| [更新日志](CHANGELOG.md) | 完整的版本历史（v0.1.0 ~ v0.9.1-beta） |
 | [路线图](docs/ROADMAP.md) | 现状快照、M1~M3 规划、明确不做的事 |
 | [地基规划](docs/FOUNDATION.md) | 依赖选型、许可证红线、ST 生态格式要点 |
 | [模式设计](docs/MODES.md) | 五种玩法模式的架构设计 |

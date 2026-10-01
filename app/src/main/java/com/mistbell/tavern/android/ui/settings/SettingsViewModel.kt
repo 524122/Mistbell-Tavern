@@ -484,6 +484,26 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.1-beta",
+                versionCode = 12,
+                releaseDate = "2026-10-02",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "聊天底部输入栏与渐隐遮罩改为统一测量和绘制，减少键盘切换时的透明缝隙与布局跳动",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "背景图加载、消息列表渲染和点击收起键盘逻辑整理，降低无效布局与重组",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "修复角色背景图异步加载期间底色不稳定、底部渐隐遮罩被覆盖的问题",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.0-beta",
                 versionCode = 11,
                 releaseDate = "2026-09-26",
