@@ -490,6 +490,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 changes =
                     listOf(
                         com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "统一聊天、会话、角色、世界书和设置页面的视觉风格，并支持横屏/平板 NavigationRail 自适应导航",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "角色卡与会话卡支持点击、长按和三点菜单，聊天页支持完整提示词查看与开场白切换",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "API 配置卡片化，SSE 流式开关按 API 保存，高级采样、超时和重试设置集中管理",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
                             "improvement",
                             "聊天底部输入栏与渐隐遮罩改为统一测量和绘制，减少键盘切换时的透明缝隙与布局跳动",
                         ),
@@ -500,6 +512,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "fix",
                             "修复角色背景图异步加载期间底色不稳定、底部渐隐遮罩被覆盖的问题",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "更新 Android 17（API 37）编译与目标 SDK，保留 Android 8.0（API 26）最低支持",
                         ),
                     ),
             ),
