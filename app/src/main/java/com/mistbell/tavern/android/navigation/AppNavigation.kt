@@ -29,7 +29,9 @@ import com.mistbell.tavern.android.ui.chat.ChatViewModel
 import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.themepack.ThemeManagerScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 object Routes {
     const val MAIN = "main"
@@ -147,8 +149,10 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
     var onboardingDone by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(Unit) {
         onboardingDone =
-            com.mistbell.tavern.android.TavernApplication.instance.container.database.settingsDao()
-                .getValue("onboarding_done") == "1"
+            withContext(Dispatchers.IO) {
+                com.mistbell.tavern.android.TavernApplication.instance.container.database.settingsDao()
+                    .getValue("onboarding_done") == "1"
+            }
     }
 
     // Observe navigation events from ChatViewModel (for drawer -> navigation)

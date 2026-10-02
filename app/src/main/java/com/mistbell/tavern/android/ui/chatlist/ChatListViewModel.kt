@@ -46,7 +46,7 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         const val SEARCH_DEBOUNCE_MS = 200L
     }
 
-    private val db = TavernApplication.instance.container.database
+    private val db by lazy { TavernApplication.instance.container.database }
     private val ownerId = "local-user"
 
     private val _searchQuery = MutableStateFlow("")
@@ -62,80 +62,85 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
     val selectedSessions: StateFlow<Set<Pair<String, String>>> = _selectedSessions.asStateFlow()
 
     val chatListItems: StateFlow<List<ChatListItem>> =
-        combine(
-            db.sessionDao().getRecent("local-user"),
-            db.characterDao().getAll(),
-            _searchQuery.debounce(SEARCH_DEBOUNCE_MS),
-        ) { sessions, characters, query ->
-            // combine 的 transform 跑在收集方（主线程）：批量查询 + JSON 解码 + 时间格式化都是重活，
-            // 整体切到 Default 线程，避免会话列表每次刷新都卡顿主线程
-            withContext(Dispatchers.Default) {
-                val characterMap = characters.associateBy { it.id }
+        flow {
+            val database = db
+            emitAll(
+                combine(
+                    database.sessionDao().getRecent("local-user"),
+                    database.characterDao().getAll(),
+                    _searchQuery.debounce(SEARCH_DEBOUNCE_MS),
+                ) { sessions, characters, query ->
+                    // combine 的 transform 跑在收集方（主线程）：批量查询 + JSON 解码 + 时间格式化都是重活，
+                    // 整体切到 Default 线程，避免会话列表每次刷新都卡顿主线程
+                    withContext(Dispatchers.Default) {
+                        val characterMap = characters.associateBy { it.id }
 
-                // 批量获取所有会话的最后消息（修复 N+1 查询）
-                val lastMessages =
-                    try {
-                        db.messageDao().getLatestMessagesByOwner(ownerId)
-                            .associateBy { it.sessionId }
-                    } catch (e: Exception) {
-                        emptyMap()
-                    }
-
-                val items =
-                    sessions.mapNotNull { session ->
-                        val character = characterMap[session.characterId] ?: return@mapNotNull null
-                        val participantCharacters =
-                            session.participantCharacterIds()
-                                .mapNotNull { characterMap[it]?.toDomain() }
-                                .ifEmpty { listOf(character.toDomain()) }
-
-                        // 从批量查询结果中获取最后消息
-                        val lastMsg = lastMessages[session.id]
-                        val lastMessage = lastMsg?.content?.take(50) ?: ""
-                        val lastMessageRole = lastMsg?.role ?: ""
-
-                        // Filter by search query
-                        if (query.isNotBlank() &&
-                            !character.name.contains(query, ignoreCase = true) &&
-                            !lastMessage.contains(query, ignoreCase = true)
-                        ) {
-                            return@mapNotNull null
-                        }
-
-                        // Determine sender label
-                        val senderLabel =
-                            when (lastMessageRole) {
-                                "user" -> "我"
-                                "assistant" -> character.name
-                                else -> ""
+                        // 批量获取所有会话的最后消息（修复 N+1 查询）
+                        val lastMessages =
+                            try {
+                                database.messageDao().getLatestMessagesByOwner(ownerId)
+                                    .associateBy { it.sessionId }
+                            } catch (e: Exception) {
+                                emptyMap()
                             }
 
-                        ChatListItem(
-                            sessionId = session.id,
-                            characterId = character.id,
-                            sessionTitle = session.title,
-                            characterName = character.name,
-                            characterColor = character.color,
-                            characterAvatarData = character.avatarData,
-                            participantCharacters = participantCharacters,
-                            lastMessage = lastMessage.ifBlank { session.title },
-                            lastMessageTime = formatTimestamp(session.updatedAt),
-                            unreadCount = session.unreadCount,
-                            isOnline = false,
-                            isPinned = session.isPinned,
-                            isMuted = session.isMuted,
-                            lastMessageSender = senderLabel,
-                        )
-                    }
+                        val items =
+                            sessions.mapNotNull { session ->
+                                val character = characterMap[session.characterId] ?: return@mapNotNull null
+                                val participantCharacters =
+                                    session.participantCharacterIds()
+                                        .mapNotNull { characterMap[it]?.toDomain() }
+                                        .ifEmpty { listOf(character.toDomain()) }
 
-                // If no sessions, return sample data for preview
-                if (items.isEmpty() && query.isBlank()) {
-                    emptyList()
-                } else {
-                    items
-                }
-            }
-        }.stateIn(
+                                // 从批量查询结果中获取最后消息
+                                val lastMsg = lastMessages[session.id]
+                                val lastMessage = lastMsg?.content?.take(50) ?: ""
+                                val lastMessageRole = lastMsg?.role ?: ""
+
+                                // Filter by search query
+                                if (query.isNotBlank() &&
+                                    !character.name.contains(query, ignoreCase = true) &&
+                                    !lastMessage.contains(query, ignoreCase = true)
+                                ) {
+                                    return@mapNotNull null
+                                }
+
+                                // Determine sender label
+                                val senderLabel =
+                                    when (lastMessageRole) {
+                                        "user" -> "我"
+                                        "assistant" -> character.name
+                                        else -> ""
+                                    }
+
+                                ChatListItem(
+                                    sessionId = session.id,
+                                    characterId = character.id,
+                                    sessionTitle = session.title,
+                                    characterName = character.name,
+                                    characterColor = character.color,
+                                    characterAvatarData = character.avatarData,
+                                    participantCharacters = participantCharacters,
+                                    lastMessage = lastMessage.ifBlank { session.title },
+                                    lastMessageTime = formatTimestamp(session.updatedAt),
+                                    unreadCount = session.unreadCount,
+                                    isOnline = false,
+                                    isPinned = session.isPinned,
+                                    isMuted = session.isMuted,
+                                    lastMessageSender = senderLabel,
+                                )
+                            }
+
+                        // If no sessions, return sample data for preview
+                        if (items.isEmpty() && query.isBlank()) {
+                            emptyList()
+                        } else {
+                            items
+                        }
+                    }
+                },
+            )
+        }.flowOn(Dispatchers.IO).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList(),

@@ -7,16 +7,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.theme.ParsedThemeColors
+import com.mistbell.tavern.android.data.theme.ThemeTokens
 import com.mistbell.tavern.android.data.theme.resolved
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 private val LightColorScheme =
     lightColorScheme(
@@ -98,15 +102,18 @@ fun MistbellTheme(
 @Composable
 fun MistbellThemeWithSettings(content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val db = TavernApplication.instance.container.database
-    val themeRepo = ThemePackRepository(context)
-
-    // Read dark mode setting from database, combined with global theme pack tokens
-    val themeState by combine(
-        db.settingsDao().observeValue("dark_mode").map { it ?: "system" },
-        themeRepo.observeTokensForCharacter(null),
-    ) { mode, tokens -> mode to tokens }
-        .collectAsState(initial = "system" to null)
+    // 首帧先使用默认主题，Room 和主题包观察在 IO 线程启动，避免数据库建库阻塞主线程。
+    val themeState by produceState<Pair<String, ThemeTokens?>>(initialValue = "system" to null, context) {
+        withContext(Dispatchers.IO) {
+            val db = TavernApplication.instance.container.database
+            val themeRepo = ThemePackRepository(context)
+            combine(
+                db.settingsDao().observeValue("dark_mode").map { it ?: "system" },
+                themeRepo.observeTokensForCharacter(null),
+            ) { mode, tokens -> mode to tokens }
+                .collect { value = it }
+        }
+    }
 
     val darkModeSetting = themeState.first
     val themeTokens = themeState.second

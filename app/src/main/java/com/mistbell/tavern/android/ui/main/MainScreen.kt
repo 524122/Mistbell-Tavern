@@ -26,7 +26,9 @@ import com.mistbell.tavern.android.ui.chatlist.ChatListScreen
 import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.worldbook.WorldBookListScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** 底部导航栏/侧边导航栏共用的目的地定义 */
 private data class MainDestination(
@@ -66,92 +68,66 @@ fun MainScreen(
     val app = LocalContext.current.applicationContext as android.app.Application
     val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(app)
     val scope = rememberCoroutineScope()
-    val database = remember { (app as TavernApplication).database }
 
     // 自适应：宽度非 Compact（横屏手机/平板/折叠屏展开）时用左侧 NavigationRail，
     // 竖屏手机维持底部 NavigationBar
     val windowSizeClass = calculateWindowSizeClass(LocalContext.current as Activity)
     val useNavigationRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
-    // tab 内容（bottomPadding：底部导航占用的高度；Rail 模式下为 0）
+    // tab 内容（bottomPadding：底部导航占用的高度；Rail 模式下为 0）。
+    // 直接切换当前页面，避免 AnimatedContent 在首帧同时建立动画测量层。
     val tabContent: @Composable (Modifier) -> Unit = { contentModifier ->
-        androidx.compose.animation.AnimatedContent(
-            targetState = selectedTab,
-            transitionSpec = {
-                val enter =
-                    if (targetState > initialState) {
-                        // 向右滑动：新页面从右边进入
-                        androidx.compose.animation.slideInHorizontally { width -> width } +
-                            androidx.compose.animation.fadeIn()
-                    } else {
-                        // 向左滑动：新页面从左边进入
-                        androidx.compose.animation.slideInHorizontally { width -> -width } +
-                            androidx.compose.animation.fadeIn()
-                    }
-
-                val exit =
-                    if (targetState > initialState) {
-                        androidx.compose.animation.slideOutHorizontally { width -> -width } +
-                            androidx.compose.animation.fadeOut()
-                    } else {
-                        androidx.compose.animation.slideOutHorizontally { width -> width } +
-                            androidx.compose.animation.fadeOut()
-                    }
-
-                androidx.compose.animation.ContentTransform(enter, exit)
-            },
-            label = "tab_transition",
-        ) { tab ->
-            when (tab) {
-                0 ->
-                    ChatListScreen(
-                        onChatClick = onChatClick,
-                        onNewChatClick = onNewChatClick,
-                        modifier = contentModifier,
-                    )
-                1 ->
-                    CharacterListScreen(
-                        onCharacterClick = { character ->
-                            scope.launch {
-                                val latestSession =
-                                    database.sessionDao()
+        when (selectedTab) {
+            0 ->
+                ChatListScreen(
+                    onChatClick = onChatClick,
+                    onNewChatClick = onNewChatClick,
+                    modifier = contentModifier,
+                )
+            1 ->
+                CharacterListScreen(
+                    onCharacterClick = { character ->
+                        scope.launch {
+                            val latestSession =
+                                withContext(Dispatchers.IO) {
+                                    (app as TavernApplication).database.sessionDao()
                                         .getLatestByCharacter("local-user", character.id)
-
-                                if (latestSession != null) {
-                                    android.util.Log.d(
-                                        "MainScreen",
-                                        "Opening latest session: ${latestSession.id} for character: ${character.id}",
-                                    )
-                                    onChatClick(latestSession.id, character.id)
-                                } else {
-                                    android.util.Log.d("MainScreen", "No session, navigating to chat setup for character: ${character.id}")
-                                    onNavigateToChatSetup(character.id)
                                 }
+
+                            if (latestSession != null) {
+                                android.util.Log.d(
+                                    "MainScreen",
+                                    "Opening latest session: ${latestSession.id} for character: ${character.id}",
+                                )
+                                onChatClick(latestSession.id, character.id)
+                            } else {
+                                android.util.Log.d("MainScreen", "No session, navigating to chat setup for character: ${character.id}")
+                                onNavigateToChatSetup(character.id)
                             }
-                        },
-                        onEditCharacter = onEditCharacter,
-                        onNewCharacter = onNewCharacter,
-                        showTopBarBackButton = false,
-                        modifier = contentModifier,
-                    )
-                2 ->
-                    WorldBookListScreen(
-                        showBackButton = false,
-                        onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
-                        modifier = contentModifier,
-                    )
-                3 -> {
-                    val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
-                    ModernSettingsScreen(
-                        onBack = null,
-                        onNavigateToThemeManager = onNavigateToThemeManager,
-                        onNavigateToPromptManagement = onNavigateToPromptManagement,
-                        onNavigateToVersionChangelog = onNavigateToVersionChangelog,
-                        onNavigateToAbout = onNavigateToAbout,
-                        viewModel = settingsViewModel,
-                        modifier = contentModifier,
-                    )
-                }
+                        }
+                    },
+                    onEditCharacter = onEditCharacter,
+                    onNewCharacter = onNewCharacter,
+                    showTopBarBackButton = false,
+                    modifier = contentModifier,
+                )
+            2 ->
+                WorldBookListScreen(
+                    showBackButton = false,
+                    onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
+                    modifier = contentModifier,
+                )
+            3 -> {
+                val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+                ModernSettingsScreen(
+                    onBack = null,
+                    onNavigateToThemeManager = onNavigateToThemeManager,
+                    onNavigateToPromptManagement = onNavigateToPromptManagement,
+                    onNavigateToVersionChangelog = onNavigateToVersionChangelog,
+                    onNavigateToAbout = onNavigateToAbout,
+                    viewModel = settingsViewModel,
+                    modifier = contentModifier,
+                )
             }
         }
     }
