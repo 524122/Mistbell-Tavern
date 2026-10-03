@@ -509,7 +509,7 @@ fun ModernChatListItem(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "格式：JSON",
+                        text = "格式：${if (exportFileName.endsWith(".${SessionExportFormat.JSONL.extension}", ignoreCase = true)) "酒馆 JSONL" else "JSON"}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -538,8 +538,14 @@ fun ModernChatListItem(
                                     SessionExportFormat.JSON.extension,
                                 )
                             }
+                        val format =
+                            if (finalName.endsWith(".${SessionExportFormat.JSONL.extension}", ignoreCase = true)) {
+                                SessionExportFormat.JSONL
+                            } else {
+                                SessionExportFormat.JSON
+                            }
                         showExportDialog = false
-                        onExport(SessionExportFormat.JSON, finalName) { result ->
+                        onExport(format, finalName, ) { result ->
                             result?.let {
                                 Toast.makeText(context, "已保存到 ${it.location}", Toast.LENGTH_SHORT).show()
                             }

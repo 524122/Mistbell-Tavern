@@ -13,9 +13,120 @@ import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.util.MacroContext
 import com.mistbell.tavern.android.util.MacroEngine
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.Json
 import java.time.Instant
 
 object PromptBuilder {
+    /** World Info 的会话内运行状态：sticky/cooldown/delay 只影响激活决策，不改变 Room 主数据。 */
+    private object WorldInfoRuntime {
+        private const val MAX_RECURSION_DEPTH = 3
+        private data class EntryState(var lastTurn: Int = -1, var sticky: Boolean = false)
+        private data class SessionState(var turn: Int = 0, val entries: MutableMap<String, EntryState> = mutableMapOf())
+        private data class Candidate(
+            val entry: WorldBookEntryEntity,
+            val key: String,
+            val score: Int,
+            val primaryHits: Int,
+            val secondaryHits: Int,
+            val sticky: Boolean,
+        )
+        private val sessions = mutableMapOf<String, SessionState>()
+
+        /**
+         * Activates World Info for one prompt.  Matching is recursive: content activated in
+         * an earlier pass becomes scan material for the next pass, bounded to three passes.
+         * Secondary keys are an AND gate (every non-empty secondary key must match).  Entries
+         * sharing a non-empty group compete by score and only the highest scoring entry wins.
+         */
+        @Synchronized
+        fun activate(sessionId: String, entries: List<WorldBookEntryEntity>, scanText: String): Set<String> {
+            val state = sessions.getOrPut(sessionId) { SessionState() }
+            state.turn += 1
+            val activated = linkedSetOf<String>()
+            val selectedGroups = mutableSetOf<String>()
+            var corpus = scanText
+            repeat(MAX_RECURSION_DEPTH) {
+                val candidates =
+                    entries
+                        .asSequence()
+                        .filter { !it.disable && !it.constant }
+                        .filter { entry ->
+                            val key = "${entry.bookId}:${entry.id}"
+                            key !in activated && (entry.groupName.isBlank() || entry.groupName !in selectedGroups)
+                        }.mapNotNull { entry ->
+                            val key = "${entry.bookId}:${entry.id}"
+                            val entryState = state.entries.getOrPut(key) { EntryState() }
+                            val primaryHits = matchingKeywords(entry.keysJson, corpus)
+                            val secondaryKeys = parseKeywords(entry.secondaryKeysJson)
+                            val secondaryHits = matchingKeywords(secondaryKeys, corpus)
+                            val primaryMatched = primaryHits > 0
+                            val secondaryMatched = secondaryKeys.isEmpty() || secondaryHits == secondaryKeys.size
+                            val stickyMatched = entry.sticky && entryState.sticky
+                            // delay 表示需要等待的轮数；0 代表当前轮即可激活。
+                            val delayed = state.turn > entry.delay.coerceAtLeast(0)
+                            val cooledDown =
+                                entry.cooldown <= 0 ||
+                                    entryState.lastTurn < 0 ||
+                                    state.turn - entryState.lastTurn > entry.cooldown
+                            if ((!stickyMatched && !(primaryMatched && secondaryMatched)) || !delayed || !cooledDown) {
+                                null
+                            } else {
+                                Candidate(
+                                    entry = entry,
+                                    key = key,
+                                    score = primaryHits * 2 + secondaryHits + if (stickyMatched) 1 else 0,
+                                    primaryHits = primaryHits,
+                                    secondaryHits = secondaryHits,
+                                    sticky = stickyMatched,
+                                )
+                            }
+                        }.toList()
+                if (candidates.isEmpty()) return@repeat
+                val winners =
+                    candidates
+                        .groupBy { it.entry.groupName }
+                        .values
+                        .flatMap { group ->
+                            if (group.first().entry.groupName.isBlank()) group
+                            else listOf(group.maxWithOrNull(compareBy<Candidate> { it.score }.thenByDescending { it.primaryHits }.thenBy { it.entry.order })!!)
+                        }.sortedWith(compareBy<Candidate> { it.entry.order }.thenBy { it.key })
+                if (winners.isEmpty()) return@repeat
+                val newlyActivated = mutableListOf<String>()
+                winners.forEach { candidate ->
+                    val entry = candidate.entry
+                    if (entry.probability < 1.0 && kotlin.random.Random.nextDouble() >= entry.probability) return@forEach
+                    activated += candidate.key
+                    newlyActivated += candidate.key
+                    entry.groupName.takeIf { it.isNotBlank() }?.let(selectedGroups::add)
+                    val entryState = state.entries.getOrPut(candidate.key) { EntryState() }
+                    entryState.lastTurn = state.turn
+                    entryState.sticky = entry.sticky
+                }
+                if (newlyActivated.isEmpty()) return@repeat
+                corpus += "\n" + entries.filter { "${it.bookId}:${it.id}" in newlyActivated }.joinToString("\n") { it.content }
+            }
+            return activated
+        }
+
+        private fun parseKeywords(keysJson: String): List<String> =
+            runCatching { if (keysJson.isBlank()) emptyList() else Json.decodeFromString<List<String>>(keysJson) }.getOrDefault(emptyList())
+
+        private fun matchingKeywords(keysJson: String, text: String): Int = matchingKeywords(parseKeywords(keysJson), text)
+
+        private fun matchingKeywords(keys: List<String>, text: String): Int =
+            keys.count { key ->
+                val normalized = key.trim()
+                if (normalized.isBlank()) false
+                else if (normalized.startsWith("/") && normalized.endsWith("/")) {
+                    runCatching { Regex(normalized.substring(1, normalized.length - 1), RegexOption.IGNORE_CASE).containsMatchIn(text) }.getOrDefault(false)
+                } else if (normalized.contains("*")) {
+                    val pattern = normalized.split("*").joinToString(".*") { Regex.escape(it) }
+                    runCatching { Regex("(?is).*" + pattern + ".*").matches(text) }.getOrDefault(false)
+                } else {
+                    text.contains(normalized, ignoreCase = true)
+                }
+            }
+    }
     // ---- 群聊模式常量（classic 模式不进入任何 group 分支，提示词一个字符都不变——硬约束）----
 
     // 群聊行为规范块的内容与默认模板已移入 ChatSettingsResolver（可配置 + 单一默认值来源）：
@@ -53,12 +164,22 @@ object PromptBuilder {
         val message: ChatMessage,
         /** 来源标签，如「角色卡」「世界书·角色定义后」「长期记忆」 */
         val source: String,
+        /** World Info 激活原因；普通提示词段为空。 */
+        val activationReason: String? = null,
+        /** 实际插入锚点或 @D 位置。 */
+        val insertionPosition: String? = null,
+        /** 该段被裁剪/降级的原因；未裁剪时为空。 */
+        val truncationReason: String? = null,
+        /** 从统一 ChatMessage 转换到提供商协议后的结果摘要。 */
+        val protocolConversionResult: String? = null,
     )
 
     /** 一次装配的完整结果：分段（含来源）与总量估算 */
     data class PromptTrace(
         val segments: List<Segment>,
         val totalEstimatedTokens: Int,
+        val truncationReasons: List<String> = emptyList(),
+        val protocolConversionResults: List<String> = emptyList(),
     ) {
         /** 单段估算 token（预览页展示用；与 PromptDiag 同一估算口径） */
         fun tokensOf(segment: Segment): Int = estimateTokensOf(segment.message.content)
@@ -75,7 +196,20 @@ object PromptBuilder {
         content: String,
         source: String,
     ) {
-        add(Segment(ChatMessage(role = role, content = content), source))
+        val isWorldInfo = source.startsWith("世界书")
+        add(
+            Segment(
+                message = ChatMessage(role = role, content = content),
+                source = source,
+                activationReason =
+                    when {
+                        source.contains("激活") -> "关键词/次关键词命中且通过概率"
+                        isWorldInfo -> "constant 常驻"
+                        else -> null
+                    },
+                insertionPosition = source.removePrefix("世界书·").takeIf { isWorldInfo },
+            ),
+        )
     }
 
     // ---- 提示词模板段（纯函数，internal 仅为单元测试开放）----
@@ -294,21 +428,27 @@ object PromptBuilder {
         // 世界书（v19 起 insertPosition/depth 真正参与装配）。解析须在 LTM 之前完成：
         // afterPrompt 条目要落在"角色定义/群聊规范之后、LTM 之前"的位置
         // 会话级世界书优先；其次回退到角色卡默认；最后回退到全局 "main"
-        val worldBookId =
-            session?.worldBookId?.takeIf { it.isNotBlank() }
-                ?: character?.worldBookId?.takeIf { it.isNotBlank() }
-                ?: "main"
-        val worldBookEntries = db.worldBookDao().getEntriesList(worldBookId)
+        val worldBookIds =
+            listOfNotNull(
+                session?.worldBookId?.takeIf { it.isNotBlank() },
+                character?.worldBookId?.takeIf { it.isNotBlank() },
+                "main",
+            ).distinct()
+        val worldBookEntries =
+            worldBookIds
+                .flatMap { db.worldBookDao().getEntriesList(it) }
+                .distinctBy { it.bookId to it.id }
+        val worldInfoScanText =
+            buildString {
+                appendLine(userMessage)
+                db.messageDao().getBySession(sessionId, ownerId).first()
+                    .takeLast(6)
+                    .forEach { appendLine(it.content) }
+            }
         // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中当前用户消息任一关键词；
         // probability=1（缺省）跳过掷骰快速路径，constant 常驻条目不参与本判定（恒注入）
         val activatedEntryIds =
-            worldBookEntries.filter { entry ->
-                !entry.constant && !entry.disable &&
-                    (entry.probability >= 1.0 || kotlin.random.Random.nextDouble() < entry.probability) &&
-                    entry.toDomain().key.any { keyword ->
-                        userMessage.contains(keyword, ignoreCase = true)
-                    }
-            }.map { it.id }.toSet()
+            WorldInfoRuntime.activate(sessionId, worldBookEntries, worldInfoScanText)
         val wbPlan = WorldBookPlacement.plan(worldBookEntries)
         // 缓存优化：只注入 constant 条目到历史之前，activated 条目稍后注入到历史之后
         worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx, constantOnly = true)?.let {
@@ -376,6 +516,7 @@ object PromptBuilder {
                 currentUserMessage = userMessage,
                 contextTokenLimit = contextTokenLimit,
             )
+        val historyTruncated = recentMessages.size > history.size
         if (groupContext != null) {
             // 群聊模式：历史消息加说话方前缀（AI 消息按 character_id 查名字，用户消息用 {{user}} 值）
             messages.addAll(
@@ -393,6 +534,7 @@ object PromptBuilder {
                     Segment(
                         ChatMessage(role = msg.role, content = stripThinkingBlocks(msg.content)),
                         "历史第 ${index + 1}/${history.size} 条",
+                        truncationReason = if (historyTruncated) "上下文预算裁剪后保留的最近窗口" else null,
                     ),
                 )
             }
@@ -432,7 +574,14 @@ object PromptBuilder {
             .forEach { (key, group) ->
                 val (depth, role) = key
                 worldInfoBlock(group, activatedEntryIds, mctx, constantOnly = false)?.let { block ->
-                    depthBlocks.add(Segment(ChatMessage(role = role, content = block), "世界书·插入深度 @D$depth"))
+                    depthBlocks.add(
+                        Segment(
+                            message = ChatMessage(role = role, content = block),
+                            source = "世界书·插入深度 @D$depth",
+                            activationReason = if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
+                            insertionPosition = "@D$depth/$role",
+                        ),
+                    )
                 }
             }
 
@@ -440,7 +589,6 @@ object PromptBuilder {
         // 让「角色卡 + 历史」保持逐字节稳定的前缀（前缀缓存命中率），同时记忆贴着生成点注入。
         // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
         // 召回片段必然与之重复（纯浪费 token 且拉低缓存命中率），此判定无信息损失
-        val historyTruncated = recentMessages.size > history.size
         messages.addAll(
             memoryContext
                 .messagesFor(historyTruncated = historyTruncated)
@@ -498,7 +646,37 @@ object PromptBuilder {
                 "历史被裁剪=$historyTruncated 召回块丢弃=${memoryContext.recallBlock != null && !historyTruncated}",
         )
 
-        return PromptTrace(segments = messages, totalEstimatedTokens = estimatedTotal)
+        // Trace is also consumed by the preview UI.  Every segment gets a stable
+        // insertion marker and an explicit conversion note, including ordinary
+        // history/current-message segments that do not have World Info metadata.
+        val tracedSegments =
+            messages.mapIndexed { index, segment ->
+                segment.copy(
+                    activationReason = segment.activationReason ?: "source=${segment.source}",
+                    insertionPosition = segment.insertionPosition ?: "prompt[$index]",
+                    protocolConversionResult =
+                        segment.protocolConversionResult
+                            ?: "ChatMessage(role=${segment.message.role}, content) kept; provider adapter maps this role/content",
+                )
+            }
+
+        return PromptTrace(
+            segments = tracedSegments,
+            totalEstimatedTokens = estimatedTotal,
+            truncationReasons =
+                if (historyTruncated) {
+                    listOf("历史消息因上下文预算被裁剪：保留最近连续窗口")
+                } else {
+                    emptyList()
+                },
+            protocolConversionResults =
+                listOf(
+                    "OpenAI/custom: ChatMessage role/content -> messages[].role/content",
+                    "Anthropic: system messages -> top-level system; user/assistant -> messages[].content",
+                    "Gemini: system -> systemInstruction; assistant -> model; others -> user",
+                    "Thinking remains on the unified message model and is mapped by provider response parsers",
+                ),
+        )
     }
 
     // 群聊模式当前用户消息组装（internal 仅为单元测试开放）：
@@ -920,7 +1098,7 @@ object PromptBuilder {
             // 仅渲染激活条目（历史后注入，易变部分）
             return renderWorldInfoSection(
                 "Activated World Info:",
-                group.filter { !it.constant && it.id in activatedIds },
+                group.filter { !it.constant && "${it.bookId}:${it.id}" in activatedIds },
                 mctx,
             )
         }

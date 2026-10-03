@@ -284,10 +284,12 @@ object CardParser {
                         is JsonPrimitive -> listOfNotNull(keysElement.contentOrNull)
                         else -> emptyList()
                     }
-                // 诊断：条目含 keysecondary 等未映射字段时收集提示（不阻断导入）
-                if (entry.containsKey("keysecondary")) {
-                    warnings.add("次级关键词暂未映射，已忽略")
-                }
+                val secondaryKeys =
+                    when (val secondaryElement = entry["keysecondary"] ?: entry["secondary_keys"]) {
+                        is JsonArray -> secondaryElement.mapNotNull { it.jsonPrimitive.contentOrNull }
+                        is JsonPrimitive -> listOfNotNull(secondaryElement.contentOrNull)
+                        else -> emptyList()
+                    }
                 val keysJson =
                     json.encodeToString(
                         kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
@@ -307,6 +309,15 @@ object CardParser {
                     depth = placement.depth,
                     probability = placement.probability,
                     depthRole = placement.depthRole,
+                    secondaryKeysJson =
+                        json.encodeToString(
+                            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                            secondaryKeys,
+                        ),
+                    sticky = entry["sticky"]?.jsonPrimitive?.booleanOrNull ?: false,
+                    cooldown = entry["cooldown"]?.jsonPrimitive?.intOrNull ?: 0,
+                    delay = entry["delay"]?.jsonPrimitive?.intOrNull ?: 0,
+                    groupName = entry["group"]?.jsonPrimitive?.contentOrNull.orEmpty(),
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）

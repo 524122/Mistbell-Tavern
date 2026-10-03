@@ -122,8 +122,9 @@ object WorldBookParser {
                     ?: entry["order"]?.let { (it as? JsonPrimitive)?.intOrNull }
                     ?: 0
 
-            // key 单字符串规整成数组；keysecondary 忽略不映射（待实现：后续支持次级关键词）
+            // key / keysecondary 单字符串规整成数组
             val keys = parseKeys(entry["key"])
+            val secondaryKeys = parseKeys(entry["keysecondary"] ?: entry["secondary_keys"])
             val keysJson =
                 Json.encodeToString(
                     kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
@@ -146,6 +147,14 @@ object WorldBookParser {
                 depth = placement.depth,
                 probability = placement.probability,
                 depthRole = placement.depthRole,
+                secondaryKeysJson = Json.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                    secondaryKeys,
+                ),
+                sticky = entry["sticky"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false,
+                cooldown = entry["cooldown"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
+                delay = entry["delay"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
+                groupName = entry["group"]?.let { (it as? JsonPrimitive)?.contentOrNull }.orEmpty(),
             )
         } catch (_: Exception) {
             null

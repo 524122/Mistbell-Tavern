@@ -108,6 +108,7 @@ data class Message(
     @SerialName("memoryIds") val memoryIds: List<String>? = null,
     val swipes: List<String>? = null,
     @SerialName("swipeIndex") val swipeIndex: Int = 0,
+    @SerialName("thinkingSwipes") val thinkingSwipes: List<String>? = null,
 )
 
 @Serializable
@@ -151,6 +152,11 @@ data class WorldBookEntry(
     val probability: Double = 1.0,
     // @D 插入角色：system/user/assistant（仅 depth≥1 生效）；导出键名为酒馆生态的 "role"
     @SerialName("role") val depthRole: String = "system",
+    @SerialName("secondaryKeys") val secondaryKeys: List<String> = emptyList(),
+    val sticky: Boolean = false,
+    val cooldown: Int = 0,
+    val delay: Int = 0,
+    @SerialName("group") val groupName: String = "",
 )
 
 @Serializable

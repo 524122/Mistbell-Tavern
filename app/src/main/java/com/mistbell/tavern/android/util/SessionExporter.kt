@@ -12,6 +12,8 @@ import com.mistbell.tavern.android.data.api.model.SessionSummary
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 
 @Serializable
@@ -26,6 +28,7 @@ enum class SessionExportFormat(
     val mimeType: String,
 ) {
     JSON("JSON", "json", "application/json"),
+    JSONL("酒馆 JSONL", "jsonl", "application/x-ndjson"),
 }
 
 data class SessionExportResult(
@@ -91,6 +94,65 @@ object SessionExporter {
                 mimeType = SessionExportFormat.JSON.mimeType,
                 bytes = jsonString.toByteArray(Charsets.UTF_8),
             )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /** 酒馆兼容 JSONL：首行保存会话元数据，后续每行一个消息对象。 */
+    fun exportToJsonl(
+        context: Context,
+        session: SessionSummary,
+        messages: List<Message>,
+        fileName: String = buildFileName(session.title, session.id, SessionExportFormat.JSONL.extension),
+    ): SessionExportResult? {
+        return try {
+            val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+            val lines = buildString {
+                appendLine(
+                    buildJsonObject {
+                        put("type", "session")
+                        put("session", json.encodeToJsonElement(SessionSummary.serializer(), session))
+                    }.toString(),
+                )
+                messages.forEach { message ->
+                    appendLine(
+                        buildJsonObject {
+                            put("id", message.id)
+                            put("name", message.characterId)
+                            put("is_user", message.role == "user")
+                            put("is_system", message.role == "system")
+                            put("mes", message.content)
+                            put("send_date", message.createdAt)
+                            put("role", message.role)
+                            put("content", message.content)
+                            message.thinking?.let { put("thinking", it) }
+                            message.characterId.takeIf { it.isNotBlank() }?.let { put("characterId", it) }
+                            message.swipeIndex.let { put("swipeIndex", it) }
+                            message.swipes?.let {
+                                put(
+                                    "swipes",
+                                    json.encodeToJsonElement(
+                                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                                        it,
+                                    ),
+                                )
+                            }
+                            message.thinkingSwipes?.let {
+                                put(
+                                    "thinkingSwipes",
+                                    json.encodeToJsonElement(
+                                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                                        it,
+                                    ),
+                                )
+                            }
+                        }.toString(),
+                    )
+                }
+            }
+            saveBytes(context, fileName, SessionExportFormat.JSONL.mimeType, lines.toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             e.printStackTrace()
             null

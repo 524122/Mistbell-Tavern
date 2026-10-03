@@ -25,7 +25,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         ApiConfigEntity::class,
         CustomPromptEntity::class,
     ],
-    version = 24,
+    version = 25,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -529,6 +529,23 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        internal val MIGRATION_24_25_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN secondary_keys_json TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE world_book_entries ADD COLUMN sticky INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE world_book_entries ADD COLUMN cooldown INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE world_book_entries ADD COLUMN delay INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE world_book_entries ADD COLUMN group_name TEXT NOT NULL DEFAULT ''",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_24_25 =
+            object : Migration(24, 25) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_24_25_SQL.forEach(db::execSQL)
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -558,6 +575,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_21_22,
                         MIGRATION_22_23,
                         MIGRATION_23_24,
+                        MIGRATION_24_25,
                     )
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：
                     // 遇到未覆盖的版本 Room 会直接抛 IllegalStateException（明确失败），

@@ -683,15 +683,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun continueMessage() {
         val char = _currentCharacter.value ?: return
-        viewModelScope.launch {
-            _isTyping.value = true
-            try {
-                repo.continueMessage(ownerId, char.id, _activeSessionId.value)
-            } catch (e: Exception) {
-                _error.value = "继续失败: ${e.message}"
-            } finally {
-                _isTyping.value = false
-            }
+        launchGeneration("继续失败") {
+            repo.continueMessage(ownerId, char.id, _activeSessionId.value, onPartial = ::emitStreamingTextThrottled)
         }
     }
 
@@ -700,12 +693,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         direction: String,
     ) {
         val char = _currentCharacter.value ?: return
-        viewModelScope.launch {
-            try {
-                repo.swipeMessage(ownerId, char.id, _activeSessionId.value, messageId, direction)
-            } catch (e: Exception) {
-                _error.value = "切换失败: ${e.message}"
-            }
+        launchGeneration("切换失败") {
+            repo.swipeMessage(
+                ownerId,
+                char.id,
+                _activeSessionId.value,
+                messageId,
+                direction,
+                onPartial = ::emitStreamingTextThrottled,
+            )
         }
     }
 

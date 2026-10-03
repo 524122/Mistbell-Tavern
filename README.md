@@ -240,7 +240,7 @@ APK 输出路径：`app/build/outputs/apk/`
 
 | 文档 | 内容 |
 |------|------|
-| [更新日志](CHANGELOG.md) | 完整的版本历史（v0.1.0 ~ v0.9.2-beta） |
+| [更新日志](CHANGELOG.md) | 完整的版本历史（v0.1.0 ~ v0.9.3-beta） |
 | [路线图](docs/ROADMAP.md) | 现状快照、M1~M3 规划、明确不做的事 |
 | [地基规划](docs/FOUNDATION.md) | 依赖选型、许可证红线、ST 生态格式要点 |
 | [模式设计](docs/MODES.md) | 五种玩法模式的架构设计 |

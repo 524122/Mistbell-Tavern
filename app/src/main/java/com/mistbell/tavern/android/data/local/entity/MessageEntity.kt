@@ -61,6 +61,17 @@ data class MessageEntity(
                 null
             }
 
+        val thinkingSwipes =
+            try {
+                if (thinkingSwipesJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(thinkingSwipesJson)
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+
         return Message(
             id = id,
             role = role,
@@ -71,6 +82,7 @@ data class MessageEntity(
             memoryIds = memoryIds,
             swipes = swipes,
             swipeIndex = swipeIndex,
+            thinkingSwipes = thinkingSwipes,
         )
     }
 
@@ -85,6 +97,7 @@ data class MessageEntity(
             val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
             val memIds = m.memoryIds?.let { json.encodeToString(stringListSerializer, it) } ?: ""
             val swipes = m.swipes?.let { json.encodeToString(stringListSerializer, it) } ?: ""
+            val thinkingSwipes = m.thinkingSwipes?.let { json.encodeToString(stringListSerializer, it) } ?: ""
             return MessageEntity(
                 id = m.id,
                 sessionId = sessionId,
@@ -97,7 +110,7 @@ data class MessageEntity(
                 memoryIdsJson = memIds,
                 swipesJson = swipes,
                 swipeIndex = m.swipeIndex,
-                thinkingSwipesJson = "",
+                thinkingSwipesJson = thinkingSwipes,
             )
         }
     }

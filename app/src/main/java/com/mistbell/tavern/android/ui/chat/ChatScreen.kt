@@ -897,7 +897,8 @@ private fun PromptTraceSheet(
                     )
                     trace?.let {
                         Text(
-                            text = "${it.segments.size} 条消息 · 约 ${it.totalEstimatedTokens} tokens",
+                            text = "${it.segments.size} 条消息 · 约 ${it.totalEstimatedTokens} tokens" +
+                                if (it.truncationReasons.isNotEmpty()) " · 已裁剪" else "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -967,14 +968,19 @@ private fun PromptTraceSheet(
                                 RequestParamsSection(params = requestParams)
                             }
                         }
-                        items(
+                items(
                             count = trace.segments.size,
                             key = { index -> "prompt-${trace.segments[index].message.role}-$index" },
                             contentType = { "prompt-segment" },
-                        ) { index ->
+                ) { index ->
                             PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
                         }
                     }
+                        if (trace.truncationReasons.isNotEmpty() || trace.protocolConversionResults.isNotEmpty()) {
+                            item(key = "__trace_meta__") {
+                                TraceMetadataSection(trace)
+                            }
+                        }
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
                 Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
@@ -1131,6 +1137,21 @@ private fun PromptSegmentCard(
                     )
                 }
             }
+            val metadata =
+                listOfNotNull(
+                    segment.activationReason?.let { "激活：$it" },
+                    segment.insertionPosition?.let { "位置：$it" },
+                    segment.truncationReason?.let { "裁剪：$it" },
+                    segment.protocolConversionResult?.let { "协议：$it" },
+                )
+            if (metadata.isNotEmpty()) {
+                Text(
+                    text = metadata.joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             Text(
                 text = segment.message.content,
                 style = MaterialTheme.typography.bodySmall,
@@ -1139,6 +1160,19 @@ private fun PromptSegmentCard(
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { expanded = !expanded },
             )
+        }
+    }
+}
+
+@Composable
+private fun TraceMetadataSection(trace: PromptTrace) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            trace.truncationReasons.forEach { Text("裁剪：$it", style = MaterialTheme.typography.labelSmall) }
+            trace.protocolConversionResults.forEach { Text("协议：$it", style = MaterialTheme.typography.labelSmall) }
         }
     }
 }
@@ -1213,17 +1247,17 @@ private fun StreamingBubble(
             modifier = Modifier.widthIn(max = 680.dp),
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                // 修复6：Markdown 颜色跟随应用内三态深浅色设置
-                if (visibleText.isNotBlank()) {
-                    MarkdownRenderer(content = visibleText, dark = dark)
-                }
                 if (!thinking.isNullOrBlank()) {
                     thinkingSection(
                         thinking = thinking,
                         expanded = thinkingExpanded,
                         onExpandedChange = { thinkingExpanded = it },
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier.padding(bottom = 4.dp),
                     )
+                }
+                // 修复6：Markdown 颜色跟随应用内三态深浅色设置
+                if (visibleText.isNotBlank()) {
+                    MarkdownRenderer(content = visibleText, dark = dark)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(

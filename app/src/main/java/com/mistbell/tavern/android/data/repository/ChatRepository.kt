@@ -282,6 +282,8 @@ class ChatRepository(private val context: Context) {
                         )
                     }
                 }
+                deleteMessageVectors(msgId)
+                insertedAssistantId?.let { deleteMessageVectors(it) }
                 throw e
             }
         }
@@ -373,7 +375,7 @@ class ChatRepository(private val context: Context) {
     ) {
         withContext(Dispatchers.IO) {
             // 事务保证删除与计数回写原子完成，避免中途失败导致计数漂移
-            val remainingIds =
+            val deletedMessageId =
                 db.withTransaction {
                     val messages = db.messageDao().getBySession(sessionId, ownerId).first()
                     if (messages.isNotEmpty()) {
@@ -383,8 +385,10 @@ class ChatRepository(private val context: Context) {
                             db.sessionDao().upsert(session.copy(messageCount = messages.size - 1))
                         }
                     }
-                    messages.dropLast(1).mapTo(HashSet()) { it.id }
+                    messages.lastOrNull()?.id
                 }
+            deletedMessageId?.let { deleteMessageVectors(it) }
+            val remainingIds = db.messageDao().getBySession(sessionId, ownerId).first().mapTo(HashSet()) { it.id }
             prunePendingExtractionTurns(sessionId, remainingIds)
         }
     }
@@ -400,6 +404,7 @@ class ChatRepository(private val context: Context) {
             val idx = messages.indexOfFirst { it.id == messageId }
             if (idx >= 0) {
                 db.messageDao().deleteAfter(sessionId, messageId, ownerId)
+                messages.drop(idx + 1).forEach { deleteMessageVectors(it.id) }
                 prunePendingExtractionTurns(sessionId, messages.take(idx + 1).mapTo(HashSet()) { it.id })
             }
         }
@@ -453,6 +458,10 @@ class ChatRepository(private val context: Context) {
                     groupContext = groupContext,
                 )
             val sb = StringBuilder()
+            val replacedMessageIds =
+                userMessages
+                    .dropWhile { it.id != messageId }
+                    .map { it.id }
             try {
                 collectReply(llmConfig, prompt, sb, onPartial)
             } catch (e: CancellationException) {
@@ -479,6 +488,7 @@ class ChatRepository(private val context: Context) {
                 speakerNames = groupContext?.speakerNames,
                 mode = ReplyTailMode.Replace(fromMessageId = messageId),
             )
+            replacedMessageIds.forEach { deleteMessageVectors(it) }
         }
     }
 
@@ -486,10 +496,35 @@ class ChatRepository(private val context: Context) {
         ownerId: String,
         characterId: String,
         sessionId: String,
+        onPartial: ((String) -> Unit)? = null,
     ) {
         withContext(Dispatchers.IO) {
-            // Continue message 功能需要 LLM 实现
-            // 待实现：实现本地 LLM 的 continue 功能
+            val messages = db.messageDao().getBySession(sessionId, ownerId).first()
+            val target = messages.lastOrNull { it.role == "assistant" }
+                ?: throw IllegalStateException("没有可继续的助手消息")
+            val lastUser = messages.lastOrNull { it.role == "user" && it.createdAt < target.createdAt }
+                ?: throw IllegalStateException("没有可继续的用户消息")
+            val config = loadLlmConfig(sessionId)
+            if (config.baseUrl.isBlank() || config.apiKey.isBlank()) {
+                throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
+            }
+            val prompt =
+                PromptBuilder.buildPrompt(
+                    db,
+                    ownerId,
+                    characterId,
+                    sessionId,
+                    userMessage = "请自然地继续上一条助手回复，不要重复已经说过的内容。",
+                    groupContext = loadGroupContext(ownerId, characterId, sessionId),
+                )
+            val sb = StringBuilder()
+            try {
+                collectReply(config, prompt, sb, onPartial)
+            } catch (e: CancellationException) {
+                if (sb.isNotEmpty()) appendContinuation(target, sb.toString(), ownerId, characterId, sessionId)
+                throw e
+            }
+            appendContinuation(target, sb.toString(), ownerId, characterId, sessionId)
         }
     }
 
@@ -499,11 +534,141 @@ class ChatRepository(private val context: Context) {
         sessionId: String,
         messageId: String,
         direction: String,
+        onPartial: ((String) -> Unit)? = null,
     ) {
         withContext(Dispatchers.IO) {
-            // Swipe message 功能需要本地实现
-            // 待实现：实现本地的 swipe 功能
+            val entity = db.messageDao().getById(messageId, sessionId, ownerId)
+                ?: throw IllegalArgumentException("消息不存在")
+            if (entity.role != "assistant") throw IllegalArgumentException("只有助手消息支持 swipe")
+            val existing = decodeStringList(entity.swipesJson).ifEmpty { listOf(entity.content) }.toMutableList()
+            val thinkingSwipes = decodeStringList(entity.thinkingSwipesJson).toMutableList()
+            val currentIndex = entity.swipeIndex.coerceIn(0, existing.lastIndex)
+            // Keep imported/legacy swipe arrays index-aligned with their thinking text.
+            while (thinkingSwipes.size < existing.size) {
+                val index = thinkingSwipes.size
+                thinkingSwipes += if (index == currentIndex) entity.thinking.orEmpty() else ""
+            }
+            if (thinkingSwipes.size > existing.size) {
+                thinkingSwipes.subList(existing.size, thinkingSwipes.size).clear()
+            }
+            val step = if (direction.equals("left", ignoreCase = true)) -1 else 1
+            val nextIndex = currentIndex + step
+            if (nextIndex in existing.indices) {
+                db.messageDao().upsert(
+                    entity.copy(
+                        content = existing[nextIndex],
+                        thinking = thinkingSwipes.getOrNull(nextIndex).orEmpty().ifBlank { null },
+                        swipeIndex = nextIndex,
+                        swipesJson = encodeStringList(existing),
+                        thinkingSwipesJson = encodeStringList(thinkingSwipes),
+                    ),
+                )
+                deleteMessageVectors(messageId)
+                storeAssistantMessageVector(existing[nextIndex], ownerId, entity.characterId.ifBlank { characterId }, sessionId, messageId)
+                return@withContext
+            }
+            val lastUser = db.messageDao().getBySession(sessionId, ownerId).first()
+                .lastOrNull { it.role == "user" && it.createdAt < entity.createdAt }
+                ?: throw IllegalStateException("没有可用于生成替代回复的用户消息")
+            val config = loadLlmConfig(sessionId)
+            if (config.baseUrl.isBlank() || config.apiKey.isBlank()) {
+                throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
+            }
+            val prompt =
+                PromptBuilder.buildPrompt(
+                    db,
+                    ownerId,
+                    characterId,
+                    sessionId,
+                    lastUser.content,
+                    currentMessageId = lastUser.id,
+                    excludeFromMessageId = messageId,
+                    groupContext = loadGroupContext(ownerId, characterId, sessionId),
+                )
+            val sb = StringBuilder()
+            try {
+                collectReply(config, prompt, sb, onPartial)
+            } catch (e: CancellationException) {
+                // A stopped swipe still owns a valid partial candidate. Persist it
+                // before propagating cancellation so Room and the UI stay aligned.
+                if (sb.isNotEmpty()) {
+                    val (partialContent, partialThinking, partialCharacterId) =
+                        resolveReplyAttribution(
+                            sb.toString(),
+                            loadGroupContext(ownerId, characterId, sessionId)?.speakerNames,
+                            characterId,
+                        )
+                    if (partialContent.isNotBlank() || !partialThinking.isNullOrBlank()) {
+                        persistSwipeCandidate(
+                            entity,
+                            existing,
+                            thinkingSwipes,
+                            step,
+                            partialContent,
+                            partialThinking,
+                            partialCharacterId,
+                            ownerId,
+                            characterId,
+                            sessionId,
+                        )
+                    }
+                }
+                throw e
+            }
+            val (newContent, newThinking, storedCharacterId) =
+                resolveReplyAttribution(sb.toString(), loadGroupContext(ownerId, characterId, sessionId)?.speakerNames, characterId)
+            if (newContent.isBlank() && newThinking.isNullOrBlank()) return@withContext
+            persistSwipeCandidate(
+                entity,
+                existing,
+                thinkingSwipes,
+                step,
+                newContent,
+                newThinking,
+                storedCharacterId,
+                ownerId,
+                characterId,
+                sessionId,
+            )
         }
+    }
+
+    private suspend fun persistSwipeCandidate(
+        entity: MessageEntity,
+        existing: MutableList<String>,
+        thinkingSwipes: MutableList<String>,
+        step: Int,
+        content: String,
+        thinking: String?,
+        storedCharacterId: String,
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
+        if (step > 0) {
+            existing += content
+            thinkingSwipes += thinking.orEmpty()
+        } else {
+            existing.add(0, content)
+            thinkingSwipes.add(0, thinking.orEmpty())
+        }
+        while (thinkingSwipes.size < existing.size) thinkingSwipes += ""
+        if (thinkingSwipes.size > existing.size) {
+            thinkingSwipes.subList(existing.size, thinkingSwipes.size).clear()
+        }
+        val newIndex = if (step > 0) existing.lastIndex else 0
+        db.messageDao().upsert(
+            entity.copy(
+                characterId = storedCharacterId,
+                content = content,
+                thinking = thinking,
+                swipesJson = encodeStringList(existing),
+                swipeIndex = newIndex,
+                thinkingSwipesJson = encodeStringList(thinkingSwipes),
+            ),
+        )
+        deleteMessageVectors(entity.id)
+        storeAssistantMessageVector(content, ownerId, storedCharacterId.ifBlank { characterId }, sessionId, entity.id)
     }
 
     suspend fun clearConversation(
@@ -514,8 +679,59 @@ class ChatRepository(private val context: Context) {
         withContext(Dispatchers.IO) {
             // 会话级删除：群聊 NPC 消息与主角色消息同属一个归属单元，一并清空
             db.messageDao().deleteBySession(sessionId, ownerId)
+            deleteSessionVectors(ownerId, characterId, sessionId)
         }
     }
+
+    private suspend fun appendContinuation(
+        target: MessageEntity,
+        rawReply: String,
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+    ) {
+        val (continuation, continuationThinking, storedCharacterId) =
+            resolveReplyAttribution(rawReply, loadGroupContext(ownerId, characterId, sessionId)?.speakerNames, characterId)
+        if (continuation.isBlank() && continuationThinking.isNullOrBlank()) return
+        val mergedContent = listOf(target.content.trimEnd(), continuation.trimStart()).filter { it.isNotBlank() }.joinToString("\n")
+        val mergedThinking = listOfNotNull(target.thinking?.takeIf { it.isNotBlank() }, continuationThinking).joinToString("\n\n").ifBlank { null }
+        val swipes = decodeStringList(target.swipesJson).toMutableList()
+        val thinkingSwipes = decodeStringList(target.thinkingSwipesJson).toMutableList()
+        if (swipes.isNotEmpty()) {
+            val currentIndex = target.swipeIndex.coerceIn(0, swipes.lastIndex)
+            while (thinkingSwipes.size < swipes.size) thinkingSwipes += ""
+            if (thinkingSwipes.size > swipes.size) thinkingSwipes.subList(swipes.size, thinkingSwipes.size).clear()
+            swipes[currentIndex] = mergedContent
+            thinkingSwipes[currentIndex] = mergedThinking.orEmpty()
+        }
+        db.messageDao().upsert(
+            target.copy(
+                characterId = storedCharacterId,
+                content = mergedContent,
+                thinking = mergedThinking,
+                swipesJson = if (swipes.isEmpty()) target.swipesJson else encodeStringList(swipes),
+                thinkingSwipesJson = if (swipes.isEmpty()) target.thinkingSwipesJson else encodeStringList(thinkingSwipes),
+            ),
+        )
+        deleteMessageVectors(target.id)
+        storeAssistantMessageVector(mergedContent, ownerId, storedCharacterId, sessionId, target.id)
+        db.sessionDao().get(sessionId, ownerId, characterId)?.let { session ->
+            db.sessionDao().upsert(session.copy(updatedAt = java.time.Instant.now().toString()))
+        }
+    }
+
+    private fun decodeStringList(jsonText: String): List<String> =
+        try {
+            if (jsonText.isBlank()) emptyList() else Json.decodeFromString<List<String>>(jsonText)
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+    private fun encodeStringList(values: List<String>): String =
+        Json.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+            values,
+        )
 
     // null = 跟随全局默认（读取时解析）；显式值才会压过全局——建会话不再快照全局默认
     suspend fun createSession(
@@ -569,6 +785,7 @@ class ChatRepository(private val context: Context) {
             db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
             structuredMemoryRepo.deleteMemoriesBySession(ownerId, sessionId)
             db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
+            deleteSessionVectors(ownerId, characterId, sessionId)
             android.util.Log.d("ChatRepository", "Deleted memories for session: $sessionId")
 
             // 删除消息和会话（会话级删除，含群聊 NPC 消息）
@@ -729,6 +946,7 @@ class ChatRepository(private val context: Context) {
                     )
                 }
             }
+            deleteMessageVectors(replaceFromMessageId)
         } else {
             db.messageDao().upsert(
                 MessageEntity.fromDomain(partialMsg, scope.sessionId, scope.ownerId, storedCharacterId),
@@ -743,6 +961,13 @@ class ChatRepository(private val context: Context) {
                 )
             }
         }
+        storeAssistantMessageVector(
+            content = content,
+            ownerId = scope.ownerId,
+            characterId = storedCharacterId,
+            sessionId = scope.sessionId,
+            messageId = partialMsg.id,
+        )
     }
 
     /**
@@ -782,6 +1007,10 @@ class ChatRepository(private val context: Context) {
 
         when (mode) {
             is ReplyTailMode.Replace -> {
+                val replacedIds =
+                    db.messageDao().getBySession(scope.sessionId, scope.ownerId).first()
+                        .dropWhile { it.id != mode.fromMessageId }
+                        .map { it.id }
                 // 替换场景：删除旧消息、落库新回复、按真实行数回写计数在同一事务内原子完成
                 // （自愈式计数，不依赖增量加减）；失败回滚语义由调用方保证——删除只发生在新回复已到手之后
                 db.withTransaction {
@@ -800,6 +1029,7 @@ class ChatRepository(private val context: Context) {
                         )
                     }
                 }
+                replacedIds.forEach { deleteMessageVectors(it) }
                 // 重生覆盖：凡引用被删消息的待发轮次整轮剔除（新回复与改动前一致，不进缓冲）
                 val remainingIds =
                     db.messageDao().getBySession(scope.sessionId, scope.ownerId).first()

@@ -9,6 +9,35 @@
 
 ---
 
+## [0.9.3-beta] - 2026-10-03
+
+### 🧩 聊天生成与消息落库
+- 补齐 `continue` 和 `swipe`，统一正常发送、重生、继续、取消和部分回复的 Room 落库链路。
+- 保持正文、思维链、候选回复和 `swipeIndex` 对齐；切换候选时同步恢复对应思维链，取消生成时保存已收到的部分候选。
+
+### 🌍 World Info
+- 合并会话、角色卡和全局世界书来源，支持主关键词、次关键词、通配符和正则匹配。
+- 增加最多三轮递归/深度扫描，支持 sticky、cooldown、delay、probability 和同组条目评分择优。
+- World Info 条目增加 `secondaryKeys`、`sticky`、`cooldown`、`delay`、`groupName` 字段，Room schema 升级到 25。
+
+### 🔎 PromptTrace
+- 为提示词分段增加激活原因、插入位置、历史裁剪原因和协议转换结果。
+- 提示词查看页可检查 World Info 触发、上下文裁剪以及 OpenAI/custom、Anthropic、Gemini 的消息映射。
+
+### 🧹 消息与向量一致性
+- 删除、撤销、回退、重生、取消回滚、清空会话和聊天列表删除会话时清理对应 VectorStore 记录。
+- 保持 Room 为主存储，向量服务只作为可失败的检索副本，不影响消息主流程。
+
+### 📦 酒馆 JSONL
+- 增加酒馆 JSONL 双向导入导出，保留消息顺序、角色归属、时间、thinking、swipes、thinkingSwipes 和会话模式。
+- 兼容原生酒馆 JSONL 的 `mes`、`is_user`、`is_system`、`name` 和 metadata 行，并将角色名映射回本地角色。
+
+### 🔧 发布
+- 更新版本号：`0.9.2-beta` → `0.9.3-beta`（versionCode 13 → 14）。
+- 通过 `:app:testDebugUnitTest` 和 `git diff --check`。
+
+---
+
 ## [0.9.1-beta] - 2026-10-02
 
 ### 🎨 界面与响应式布局
@@ -595,7 +624,7 @@
 
 ### 发布计划
 
-- **v0.9.1-beta** → 当前版本（聊天布局稳定性与 UI 工程优化）
+- **v0.9.3-beta** → 当前版本（聊天生成、World Info、PromptTrace、向量一致性与酒馆 JSONL）
 - **v1.0.0** → 正式版（所有核心功能完成并稳定）
 
 ### 图例

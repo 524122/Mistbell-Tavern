@@ -166,7 +166,10 @@ fun MessageInput(
                         enabled = enabled,
                         decorationBox = { innerTextField ->
                             Box(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 8.dp),
                                 contentAlignment = Alignment.CenterStart,
                             ) {
                                 if (textFieldValue.text.isBlank()) {

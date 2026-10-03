@@ -164,7 +164,8 @@ fun ChatListScreen(
                     title = "会话",
                     subtitle = "继续你的故事",
                     actions = {
-                        IconButton(onClick = { importLauncher.launch("application/json") }) {
+                        // JSONL 使用 ndjson MIME；GetContent 仍允许用户选择扩展名不标准的酒馆导出。
+                        IconButton(onClick = { importLauncher.launch("*/*") }) {
                             Icon(Icons.Default.FileUpload, contentDescription = "导入会话")
                         }
                         Box {

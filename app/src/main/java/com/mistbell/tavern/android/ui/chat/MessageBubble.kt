@@ -126,6 +126,21 @@ fun MessageBubble(
             }
         }
 
+        // 思考过程显示在对应回复上方，与消息保持同一侧对齐，但仍作为独立区域。
+        if (!displayedThinking.isNullOrBlank()) {
+            thinkingSection(
+                thinking = displayedThinking.orEmpty(),
+                expanded = thinkingExpanded,
+                onExpandedChange = { thinkingExpanded = it },
+                modifier =
+                    Modifier.padding(
+                        bottom = 4.dp,
+                        start = if (isUser) 0.dp else 16.dp,
+                        end = if (isUser) 16.dp else 0.dp,
+                    ),
+            )
+        }
+
         // Message row
         Row(
             modifier =
@@ -308,21 +323,6 @@ fun MessageBubble(
             }
 
             // 头像已完全移除
-        }
-
-        // Thinking section (collapsible)
-        if (!displayedThinking.isNullOrBlank()) {
-            thinkingSection(
-                thinking = displayedThinking.orEmpty(),
-                expanded = thinkingExpanded,
-                onExpandedChange = { thinkingExpanded = it },
-                modifier =
-                    Modifier.padding(
-                        top = 4.dp,
-                        start = if (isUser) 0.dp else 16.dp,
-                        end = if (isUser) 16.dp else 0.dp,
-                    ),
-            )
         }
 
         // Timestamp

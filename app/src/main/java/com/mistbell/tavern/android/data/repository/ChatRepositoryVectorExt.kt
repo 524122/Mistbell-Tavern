@@ -2,10 +2,8 @@ package com.mistbell.tavern.android.data.repository
 
 import android.util.Log
 import com.mistbell.tavern.android.TavernApplication
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ChatRepository 扩展 - 向量存储功能
@@ -14,23 +12,19 @@ import kotlinx.coroutines.launch
  */
 
 private const val TAG = "ChatRepository"
-private val backgroundScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
 /**
  * 存储用户消息到向量数据库
  */
-fun storeUserMessageVector(
+suspend fun storeUserMessageVector(
     content: String,
     ownerId: String,
     characterId: String,
     sessionId: String,
     messageId: String,
-) {
+) = withContext(Dispatchers.IO) {
     // F3-FTS: 无真实 embedding 服务（available=false）时不写伪向量，杜绝新增坏数据（孤儿向量）
-    if (!TavernApplication.instance.container.vectorMemoryService.available) return
-
-    // 异步存储，不阻塞主流程
-    backgroundScope.launch {
+    if (TavernApplication.instance.container.vectorMemoryService.available) {
         try {
             val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
 
@@ -54,18 +48,15 @@ fun storeUserMessageVector(
 /**
  * 存储 AI 回复到向量数据库
  */
-fun storeAssistantMessageVector(
+suspend fun storeAssistantMessageVector(
     content: String,
     ownerId: String,
     characterId: String,
     sessionId: String,
     messageId: String,
-) {
+) = withContext(Dispatchers.IO) {
     // F3-FTS: 无真实 embedding 服务（available=false）时不写伪向量，杜绝新增坏数据（孤儿向量）
-    if (!TavernApplication.instance.container.vectorMemoryService.available) return
-
-    // 异步存储，不阻塞主流程
-    backgroundScope.launch {
+    if (TavernApplication.instance.container.vectorMemoryService.available) {
         try {
             val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
 
@@ -84,4 +75,14 @@ fun storeAssistantMessageVector(
             Log.e(TAG, "Failed to store assistant message vector: ${e.message}", e)
         }
     }
+}
+
+suspend fun deleteMessageVectors(messageId: String) = withContext(Dispatchers.IO) {
+    if (!TavernApplication.instance.container.vectorMemoryService.available) return@withContext
+    TavernApplication.instance.container.vectorMemoryService.deleteByMessageId(messageId)
+}
+
+suspend fun deleteSessionVectors(ownerId: String, characterId: String, sessionId: String) = withContext(Dispatchers.IO) {
+    if (!TavernApplication.instance.container.vectorMemoryService.available) return@withContext
+    TavernApplication.instance.container.vectorMemoryService.deleteSessionVectors(ownerId, characterId, sessionId)
 }

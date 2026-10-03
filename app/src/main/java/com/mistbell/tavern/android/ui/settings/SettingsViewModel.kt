@@ -484,26 +484,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
-                version = "0.9.2-beta",
-                versionCode = 13,
+                version = "0.9.3-beta",
+                versionCode = 14,
                 releaseDate = "2026-10-03",
                 changes =
                     listOf(
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "feature",
-                            "支持 OpenAI/DeepSeek、Anthropic 和 Gemini 思维链解析，正文与思维链分开保存并在聊天气泡中显示",
+                            "补齐 continue、swipe 与正常发送、重生、继续、取消、部分回复的统一落库链路，保持正文、思维链和候选索引一致",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "增强 World Info：多来源合并、次关键词、三轮递归扫描、sticky/cooldown/delay、概率和分组择优",
                         ),
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "improvement",
-                            "优化聊天输入区、格式快捷字符和 Markdown 语义高亮，降低输入栏整体高度并改善主题适配",
+                            "PromptTrace 增加激活原因、插入位置、历史裁剪原因和 OpenAI/Anthropic/Gemini 协议映射说明",
                         ),
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "fix",
-                            "修复横屏前摄安全区、左侧 NavigationRail 空白、导航裁切和连续旋转后的 inset 失效问题",
+                            "删除、撤销、回退、重生和清空会话时同步清理 VectorStore，避免 Room 消息与向量记录脱节",
                         ),
                         com.mistbell.tavern.android.data.model.ChangeItem(
-                            "improvement",
-                            "优化首屏启动、提示词装配、记忆抽取和列表重组性能，减少无效主线程工作",
+                            "feature",
+                            "保持 Room 为主存储，新增酒馆 JSONL 双向导入导出并保留消息顺序、角色归属、thinking、swipes 和 thinkingSwipes",
                         ),
                     ),
             ),

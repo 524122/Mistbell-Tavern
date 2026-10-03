@@ -28,6 +28,8 @@ class LocalWorldBookService {
         entries: List<WorldBookEntryEntity>,
         scanText: String,
         maxBudget: Int = DEFAULT_MAX_BUDGET,
+        recentTexts: List<String> = emptyList(),
+        maxDepth: Int = 3,
     ): List<ActivatedEntry> {
         val activated = mutableListOf<ActivatedEntry>()
         var usedBudget = 0
@@ -55,9 +57,11 @@ class LocalWorldBookService {
                 }
 
             // 检查关键词匹配
-            val keyMatched = isConstant || matchKeywords(keys, scanText)
+            val scanCorpus = buildScanCorpus(scanText, recentTexts, maxDepth)
+            val keyMatched = isConstant || matchKeywords(keys, scanCorpus)
 
             if (!keyMatched) continue
+            if (!isConstant && !checkProbability(entry.probability)) continue
 
             // 检查预算
             val entrySize = entry.content.length
@@ -76,7 +80,7 @@ class LocalWorldBookService {
                     position = "before", // 默认位置
                     depth = null,
                     order = entry.order,
-                    probability = 1.0,
+                    probability = entry.probability,
                     enabled = true,
                 ),
             )
@@ -86,6 +90,13 @@ class LocalWorldBookService {
 
         return activated
     }
+
+    /** 合并当前消息、历史和条目次关键词，供递归/深度扫描使用。 */
+    fun buildScanCorpus(current: String, recentTexts: List<String>, maxDepth: Int): String =
+        buildString {
+            appendLine(current)
+            recentTexts.takeLast(maxDepth.coerceAtLeast(0)).forEach(::appendLine)
+        }
 
     /**
      * 关键词匹配

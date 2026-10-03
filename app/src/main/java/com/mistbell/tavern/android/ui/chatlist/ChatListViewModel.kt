@@ -252,6 +252,13 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         sessionId: String,
         characterId: String,
     ) {
+        // Room is the source of truth, but message vectors live outside Room and
+        // must be removed for this session as well.
+        TavernApplication.instance.container.vectorMemoryService.deleteSessionVectors(
+            ownerId = ownerId,
+            characterId = characterId,
+            sessionId = sessionId,
+        )
         db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
         db.structuredMemoryDao().deleteBySession(ownerId, sessionId)
         db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
@@ -262,6 +269,15 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteAllSessions() {
         viewModelScope.launch {
+            db.sessionDao().getAllOnce()
+                .filter { it.ownerId == ownerId }
+                .forEach { session ->
+                    TavernApplication.instance.container.vectorMemoryService.deleteSessionVectors(
+                        ownerId = ownerId,
+                        characterId = session.characterId,
+                        sessionId = session.id,
+                    )
+                }
             db.memoryDao().deleteAll()
             db.structuredMemoryDao().deleteAll()
             db.vectorMemoryDao().deleteAll()
@@ -375,15 +391,30 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                                 null
                             },
                         swipeIndex = msg.swipeIndex,
+                        thinkingSwipes =
+                            try {
+                                kotlinx.serialization.json.Json.decodeFromString<List<String>>(msg.thinkingSwipesJson)
+                            } catch (_: Exception) {
+                                null
+                            },
                     )
                 }
 
-            SessionExporter.exportToJson(
-                context = context,
-                session = sessionSummary,
-                messages = apiMessages,
-                fileName = fileName,
-            )
+            if (format == SessionExportFormat.JSONL) {
+                SessionExporter.exportToJsonl(
+                    context = context,
+                    session = sessionSummary,
+                    messages = apiMessages,
+                    fileName = fileName,
+                )
+            } else {
+                SessionExporter.exportToJson(
+                    context = context,
+                    session = sessionSummary,
+                    messages = apiMessages,
+                    fileName = fileName,
+                )
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -463,23 +494,29 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // 1. 解析 JSON 文件
-                val exportData = SessionImporter.importFromJson(getApplication(), uri)
+                val exportData = SessionImporter.importFromAny(getApplication(), uri)
                 if (exportData == null) {
                     _importError.value = "无法解析导入文件，请检查文件格式"
                     return@launch
                 }
 
                 // 2. 检查角色是否存在
-                val characterExists = db.characterDao().getById(exportData.session.characterId ?: "") != null
-                if (!characterExists) {
-                    _importError.value = "导入失败：找不到角色 ID ${exportData.session.characterId}\n请先导入对应的角色卡"
+                val characterKey =
+                    exportData.session.characterId?.takeIf { it.isNotBlank() }
+                        ?: exportData.messages.firstOrNull { it.role == "assistant" }?.characterId.orEmpty()
+                val character =
+                    db.characterDao().getById(characterKey)
+                        ?: db.characterDao().getAll().first().firstOrNull { it.name.equals(characterKey, ignoreCase = true) }
+                if (character == null) {
+                    _importError.value = "导入失败：找不到角色 ${characterKey.ifBlank { "ID 未提供" }}，请先导入对应角色卡"
                     return@launch
                 }
+                val knownCharacters = db.characterDao().getAll().first()
 
                 // 3. 生成新的会话 ID（避免冲突）
                 val newSessionId = "session-${System.currentTimeMillis()}-${(0..9999).random()}"
                 val now = nowUtc()
-                val characterId = exportData.session.characterId ?: ""
+                val characterId = character.id
 
                 // 4. 创建会话实体
                 val sessionEntity =
@@ -518,11 +555,26 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
 
                 exportData.messages.forEach { message ->
                     val newMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
+                    val messageCharacterId =
+                        if (message.role == "assistant" && message.characterId.isNotBlank()) {
+                            knownCharacters.firstOrNull {
+                                it.id == message.characterId || it.name.equals(message.characterId, ignoreCase = true)
+                            }?.id ?: characterId
+                        } else {
+                            characterId
+                        }
 
                     // 序列化 swipes
                     val swipesJson =
                         if (message.swipes != null && message.swipes.isNotEmpty()) {
                             json.encodeToString(stringListSerializer, message.swipes)
+                        } else {
+                            ""
+                        }
+
+                    val thinkingSwipesJson =
+                        if (message.thinkingSwipes != null && message.thinkingSwipes.isNotEmpty()) {
+                            json.encodeToString(stringListSerializer, message.thinkingSwipes)
                         } else {
                             ""
                         }
@@ -539,7 +591,9 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                         com.mistbell.tavern.android.data.local.entity.MessageEntity(
                             id = newMessageId,
                             ownerId = ownerId,
-                            characterId = characterId,
+                            // Preserve per-message speaker attribution for group chats;
+                            // classic/legacy exports without it fall back to the session character.
+                            characterId = messageCharacterId,
                             sessionId = newSessionId,
                             role = message.role,
                             content = message.content,
@@ -548,7 +602,7 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
                             memoryIdsJson = memoryIdsJson,
                             swipesJson = swipesJson,
                             swipeIndex = message.swipeIndex,
-                            thinkingSwipesJson = "",
+                            thinkingSwipesJson = thinkingSwipesJson,
                             isRead = true,
                         )
                     db.messageDao().upsert(messageEntity)

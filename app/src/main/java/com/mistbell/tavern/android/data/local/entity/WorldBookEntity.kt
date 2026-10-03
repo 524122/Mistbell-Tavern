@@ -47,12 +47,27 @@ data class WorldBookEntryEntity(
     // @D 插入角色（v21，对齐酒馆 role）：system/user/assistant——仅 depth≥1 时生效，
     // 决定该条目以什么身份插到历史倒数第 depth 条之前
     @ColumnInfo(name = "depth_role", defaultValue = "system") val depthRole: String = "system",
+    @ColumnInfo(name = "secondary_keys_json", defaultValue = "") val secondaryKeysJson: String = "",
+    @ColumnInfo(name = "sticky", defaultValue = "0") val sticky: Boolean = false,
+    @ColumnInfo(name = "cooldown", defaultValue = "0") val cooldown: Int = 0,
+    @ColumnInfo(name = "delay", defaultValue = "0") val delay: Int = 0,
+    @ColumnInfo(name = "group_name", defaultValue = "") val groupName: String = "",
 ) {
     fun toDomain(): WorldBookEntry {
         val keyList =
             try {
                 if (keysJson.isNotBlank()) {
                     kotlinx.serialization.json.Json.decodeFromString<List<String>>(keysJson)
+                } else {
+                    emptyList()
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        val secondaryKeyList =
+            try {
+                if (secondaryKeysJson.isNotBlank()) {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(secondaryKeysJson)
                 } else {
                     emptyList()
                 }
@@ -72,6 +87,11 @@ data class WorldBookEntryEntity(
             probability = probability,
             depthRole = depthRole,
             order = order,
+            secondaryKeys = secondaryKeyList,
+            sticky = sticky,
+            cooldown = cooldown,
+            delay = delay,
+            groupName = groupName,
         )
     }
 
@@ -83,6 +103,7 @@ data class WorldBookEntryEntity(
             val json = kotlinx.serialization.json.Json
             val stringListSerializer = kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
             val keysStr = json.encodeToString(stringListSerializer, e.key)
+            val secondaryKeysStr = json.encodeToString(stringListSerializer, e.secondaryKeys)
             return WorldBookEntryEntity(
                 id = e.id,
                 bookId = bookId,
@@ -96,6 +117,11 @@ data class WorldBookEntryEntity(
                 probability = e.probability,
                 depthRole = e.depthRole,
                 order = e.order,
+                secondaryKeysJson = secondaryKeysStr,
+                sticky = e.sticky,
+                cooldown = e.cooldown,
+                delay = e.delay,
+                groupName = e.groupName,
             )
         }
     }

@@ -190,7 +190,9 @@ object CharacterExporter {
                         putJsonArray("keys") {
                             e.toDomain().key.forEach { add(JsonPrimitive(it)) }
                         }
-                        putJsonArray("secondary_keys") {}
+                        putJsonArray("secondary_keys") {
+                            e.toDomain().secondaryKeys.forEach { add(JsonPrimitive(it)) }
+                        }
                         put("comment", e.comment)
                         put("content", e.content)
                         put("constant", e.constant)
@@ -206,6 +208,10 @@ object CharacterExporter {
                             }
                         put("position", specPosition)
                         put("use_regex", false)
+                        put("sticky", e.sticky)
+                        put("cooldown", e.cooldown)
+                        put("delay", e.delay)
+                        put("group", e.groupName)
                         putJsonObject("extensions") {
                             put("position", StInterop.toStPosition(e.insertPosition, e.depth))
                             put("exclude_recursion", false)
