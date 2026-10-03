@@ -484,6 +484,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.2-beta",
+                versionCode = 13,
+                releaseDate = "2026-10-03",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "支持 OpenAI/DeepSeek、Anthropic 和 Gemini 思维链解析，正文与思维链分开保存并在聊天气泡中显示",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "优化聊天输入区、格式快捷字符和 Markdown 语义高亮，降低输入栏整体高度并改善主题适配",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "修复横屏前摄安全区、左侧 NavigationRail 空白、导航裁切和连续旋转后的 inset 失效问题",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "优化首屏启动、提示词装配、记忆抽取和列表重组性能，减少无效主线程工作",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.1-beta",
                 versionCode = 12,
                 releaseDate = "2026-10-02",

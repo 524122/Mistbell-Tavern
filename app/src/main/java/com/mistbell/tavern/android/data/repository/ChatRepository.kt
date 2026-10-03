@@ -452,19 +452,9 @@ class ChatRepository(private val context: Context) {
                     excludeFromMessageId = messageId,
                     groupContext = groupContext,
                 )
-            // SSE 真流式：逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
             val sb = StringBuilder()
             try {
-                if (llmConfig.streamingEnabled) {
-                    // 流式开：SSE 真流式，逐增量收集累计全文，onPartial 每次回调累计全文供 UI 渲染
-                    LlmClient.chatStream(llmConfig, prompt).collect { delta ->
-                        sb.append(delta)
-                        onPartial?.invoke(sb.toString())
-                    }
-                } else {
-                    // 流式关：整包返回，不调 onPartial
-                    sb.append(LlmClient.chat(llmConfig, prompt))
-                }
+                collectReply(llmConfig, prompt, sb, onPartial)
             } catch (e: CancellationException) {
                 // 用户主动停止重新生成：不触发失败回滚。
                 // 已收到部分回复则按替换事务落库（群聊先做与成功路径一致的归属解析，
@@ -598,12 +588,30 @@ class ChatRepository(private val context: Context) {
         onPartial: ((String) -> Unit)?,
     ) {
         if (llmConfig.streamingEnabled) {
-            LlmClient.chatStream(llmConfig, promptMessages).collect { delta ->
-                sb.append(delta)
+            val thinking = StringBuilder()
+            val content = StringBuilder()
+            LlmClient.chatStreamWithThinking(llmConfig, promptMessages).collect { delta ->
+                if (!delta.thinking.isNullOrBlank()) thinking.append(delta.thinking)
+                if (delta.text.isNotEmpty()) content.append(delta.text)
+                sb.replace(0, sb.length, formatReply(content.toString(), thinking.toString()))
                 onPartial?.invoke(sb.toString())
             }
         } else {
-            sb.append(LlmClient.chat(llmConfig, promptMessages))
+            val response = LlmClient.chatWithThinking(llmConfig, promptMessages)
+            sb.append(formatReply(response.text, response.thinking))
+        }
+    }
+
+    /** 将协议层分离出的思维链重新编码为现有消息存储格式。 */
+    private fun formatReply(
+        content: String,
+        thinking: String?,
+    ): String {
+        val cleanThinking = thinking?.trim().orEmpty()
+        return if (cleanThinking.isBlank()) {
+            content
+        } else {
+            "<think>\n$cleanThinking\n</think>\n$content"
         }
     }
 
@@ -683,8 +691,11 @@ class ChatRepository(private val context: Context) {
             thinking = attribution.second
             storedCharacterId = attribution.third
         } else {
-            content = partialReply
-            thinking = null
+            // 协议层的 reasoning 在收集阶段编码成 <think> 块；取消生成也要清洗并落入独立字段，
+            // 避免半截思维链出现在正文气泡中。
+            val cleaned = splitThinking(partialReply)
+            content = cleaned.first
+            thinking = cleaned.second
             storedCharacterId = scope.characterId
         }
 

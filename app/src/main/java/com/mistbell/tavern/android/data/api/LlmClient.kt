@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -49,6 +50,12 @@ data class ThinkingConfig(
     val type: String,
 )
 
+/** 流式响应中的一帧，正文与思维链分开，避免把 reasoning 当成可见正文。 */
+data class ChatDelta(
+    val text: String = "",
+    val thinking: String? = null,
+)
+
 /**
  * 用量统计（OpenAI 兼容响应 usage）。DeepSeek 另附 prompt_cache_hit_tokens /
  * prompt_cache_miss_tokens，用于观测前缀缓存命中率——忽略未知键的 Json 会保持默认值 0。
@@ -78,7 +85,10 @@ data class ChatCompletionResponse(
     @Serializable
     data class ChatChoiceMessage(
         val role: String = "",
-        val content: String = "",
+        val content: String? = null,
+        @SerialName("reasoning_content") val reasoningContent: String? = null,
+        val reasoning: String? = null,
+        val thinking: String? = null,
     )
 }
 
@@ -101,6 +111,9 @@ data class ChunkChoice(
 data class Delta(
     val role: String? = null,
     val content: String? = null,
+    @SerialName("reasoning_content") val reasoningContent: String? = null,
+    val reasoning: String? = null,
+    val thinking: String? = null,
 )
 
 /**
@@ -127,6 +140,13 @@ object SseParser {
         val content = choice.delta?.content ?: return null
         if (content.isBlank()) return null
         return content
+    }
+
+    /** OpenAI/DeepSeek 兼容网关的思维链增量字段。 */
+    fun thinkingOf(chunk: ChatCompletionChunk): String? {
+        val delta = chunk.choices.firstOrNull()?.delta ?: return null
+        return listOfNotNull(delta.reasoningContent, delta.reasoning, delta.thinking)
+            .firstOrNull { it.isNotBlank() }
     }
 
     private val json =
@@ -268,7 +288,12 @@ object LlmClient {
     private fun executeChatRequest(
         config: LlmConfig,
         messages: List<ChatMessage>,
-    ): String {
+    ): String = executeChatContentRequest(config, messages).text
+
+    private fun executeChatContentRequest(
+        config: LlmConfig,
+        messages: List<ChatMessage>,
+    ): ProtocolContent {
         val request = buildChatRequest(config, messages, stream = false)
 
         val response = clientFor(config).newCall(request).execute()
@@ -289,8 +314,52 @@ object LlmClient {
                 "Response truncated by max_tokens (finishReason=${content.finishReason}, model=${config.model})",
             )
         }
-        return content.text
+        return content
     }
+
+    /** 非流式响应的正文与思维链，供聊天落库使用；普通 [chat] 保持只返回正文的兼容接口。 */
+    suspend fun chatWithThinking(
+        config: LlmConfig,
+        messages: List<ChatMessage>,
+    ): ProtocolContent =
+        try {
+            chatContentWithRetries(config, messages)
+        } catch (e: Exception) {
+            if (config.disableThinking && isThinkingParamRejected(e)) {
+                android.util.Log.w("LlmClient", "thinking 参数被网关拒绝，回退为不发送后重试: ${e.message}")
+                chatContentWithRetries(config.copy(disableThinking = false), messages)
+            } else {
+                throw e
+            }
+        }
+
+    private suspend fun chatContentWithRetries(
+        config: LlmConfig,
+        messages: List<ChatMessage>,
+    ): ProtocolContent =
+        withContext(Dispatchers.IO) {
+            var lastException: Exception? = null
+            val maxAttempts = maxAttemptsFor(config)
+            repeat(maxAttempts) { attempt ->
+                try {
+                    return@withContext executeChatContentRequest(config, messages)
+                } catch (e: SocketTimeoutException) {
+                    lastException = e
+                    if (attempt < maxAttempts - 1) delay(INITIAL_RETRY_DELAY_MS * (1 shl attempt))
+                } catch (e: IOException) {
+                    lastException = e
+                    if (attempt < maxAttempts - 1) delay(INITIAL_RETRY_DELAY_MS * (1 shl attempt))
+                } catch (e: Exception) {
+                    if (e.message?.contains("429") == true && attempt < maxAttempts - 1) {
+                        lastException = e
+                        delay(INITIAL_RETRY_DELAY_MS * (1 shl attempt) * 2)
+                    } else {
+                        throw e
+                    }
+                }
+            }
+            throw lastException ?: Exception("LLM request failed after $maxAttempts retries")
+        }
 
     /**
      * F1: SSE 真流式入口。冷流，每次发射一个 content 增量。
@@ -299,7 +368,13 @@ object LlmClient {
     fun chatStream(
         config: LlmConfig,
         messages: List<ChatMessage>,
-    ): Flow<String> =
+    ): Flow<String> = chatStreamWithThinking(config, messages).map { it.text }
+
+    /** 流式正文接口的增强版，保留思维链增量。 */
+    fun chatStreamWithThinking(
+        config: LlmConfig,
+        messages: List<ChatMessage>,
+    ): Flow<ChatDelta> =
         flow {
             val maxAttempts = maxAttemptsFor(config) // S1: 复用配置重试上限（流式）
             for (attempt in 0 until maxAttempts) {
@@ -334,7 +409,7 @@ object LlmClient {
     private fun chatStreamOnce(
         config: LlmConfig,
         messages: List<ChatMessage>,
-    ): Flow<String> =
+    ): Flow<ChatDelta> =
         callbackFlow {
             val request = buildChatRequest(config, messages, stream = true)
             val protocol = chatProtocolFor(config.type)
@@ -349,7 +424,7 @@ object LlmClient {
                         data: String,
                     ) {
                         when (val result = protocol.parseStreamData(data)) {
-                            is StreamParseResult.Delta -> trySend(result.text)
+                            is StreamParseResult.Delta -> trySend(ChatDelta(result.text, result.thinking))
                             is StreamParseResult.UsageUpdate -> {
                                 sawUsage = true
                                 logUsage(result.usage, config.model, "stream")

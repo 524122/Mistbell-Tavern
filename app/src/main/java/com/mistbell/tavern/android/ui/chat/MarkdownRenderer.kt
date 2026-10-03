@@ -49,12 +49,16 @@ private val ACTION_PATTERN = Regex("""(?<!\])\(([^)]+?)\)|（([^）]+?)）""")
 // 行内代码背景（半透明黑，深浅色共用，保持原行为）
 private val INLINE_CODE_BACKGROUND = Color(0x1A000000)
 
+@Suppress("FunctionNaming")
 @Composable
 fun MarkdownRenderer(
     content: String,
     // 深浅色必须由调用方显式传入（应用内三态 darkModeSetting 算出的结果），
     // 本组件不再自行读取 isSystemInDarkTheme()：系统深色 ≠ 应用内选择的深色
     dark: Boolean,
+    // 气泡背景可能是角色主题色；传入后让括号高亮与当前气泡保持足够对比度。
+    highlightColor: Color? = null,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier,
 ) {
     // 记忆化：同一 content 只解析一次，重组/流式增量时避免重复解析整篇
@@ -90,14 +94,15 @@ fun MarkdownRenderer(
                         // 主题颜色在组合期读取后作为参数传入 remember 块，
                         // 避免 remember 内读取 snapshot state 把首次颜色固化
                         val linkColor = MaterialTheme.colorScheme.primary
+                        val resolvedHighlightColor = highlightColor ?: MaterialTheme.colorScheme.tertiary
                         // 记忆化：同一文本 + 同一主题状态只构建一次 AnnotatedString
                         val annotated =
-                            remember(segment.text, dark, linkColor) {
+                            remember(segment.text, dark, linkColor, resolvedHighlightColor) {
                                 buildAnnotatedString {
-                                    appendInlineMarkdown(segment.text, dark, linkColor)
+                                    appendInlineMarkdown(segment.text, dark, linkColor, resolvedHighlightColor)
                                 }
                             }
-                        Text(text = annotated, style = MaterialTheme.typography.bodyMedium)
+                        Text(text = annotated, style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                 }
             }
@@ -231,10 +236,12 @@ private fun isParagraphContinuation(line: String): Boolean =
  * 它被 remember 块包裹，内部读取 snapshot state 不会订阅更新，会把首次颜色固化；
  * 深浅色（darkTheme）与链接颜色（linkColor）由组合期调用方读取后作为参数传入。
  */
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun AnnotatedString.Builder.appendInlineMarkdown(
     text: String,
     darkTheme: Boolean,
     linkColor: Color,
+    highlightColor: Color? = null,
 ) {
     // 获取主题感知的引号颜色
     val quoteColor =
@@ -245,12 +252,7 @@ fun AnnotatedString.Builder.appendInlineMarkdown(
         }
 
     // 获取主题感知的动作颜色
-    val actionColor =
-        if (darkTheme) {
-            AccentOrangeDark
-        } else {
-            AccentOrange
-        }
+    val actionColor = highlightColor ?: if (darkTheme) AccentOrangeDark else AccentOrange
 
     // Handle bold, italic, inline code, links, quotes, and actions
     var remaining = text

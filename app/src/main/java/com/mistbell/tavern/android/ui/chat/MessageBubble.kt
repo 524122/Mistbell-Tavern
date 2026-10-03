@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -51,7 +52,16 @@ fun MessageBubble(
     onSwipeRight: () -> Unit = {},
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var thinkingExpanded by remember { mutableStateOf(false) }
+    // 有思维链的消息进入聊天页时直接显示正文；仍可点击标题收起，避免用户误以为思维链没有生成。
+    var thinkingExpanded by remember { mutableStateOf(true) }
+
+    // 兼容早期版本：部分消息把 <think>...</think> 保存在 content，而没有单独写入 thinking 列。
+    // 先从正文拆出再渲染，避免 Markdown 处理 HTML 标签后把思维链完全吞掉。
+    val (inlineContent, inlineThinking) = remember(message.content, message.thinking) {
+        splitThinkingForDisplay(message.content)
+    }
+    val displayedContent = if (inlineThinking != null) inlineContent else message.content
+    val displayedThinking = message.thinking?.takeIf { it.isNotBlank() } ?: inlineThinking
 
     val bubbleShape = MaterialTheme.shapes.medium
     val cardBackgroundColor =
@@ -148,15 +158,19 @@ fun MessageBubble(
                     if (isUser) {
                         // 用户消息也使用 MarkdownRenderer 以支持语义高亮（引号、括号变色）
                         MarkdownRenderer(
-                            content = message.content,
+                            content = displayedContent,
                             dark = dark,
+                            highlightColor = MaterialTheme.colorScheme.onPrimary,
+                            textColor = cardTextColor,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         MarkdownRenderer(
-                            content = message.content,
+                            content = displayedContent,
                             // 透传应用内三态深浅色，而非组件内部读系统设置
                             dark = dark,
+                            highlightColor = MaterialTheme.colorScheme.tertiary,
+                            textColor = cardTextColor,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -297,54 +311,18 @@ fun MessageBubble(
         }
 
         // Thinking section (collapsible)
-        if (!message.thinking.isNullOrBlank()) {
-            Column(
+        if (!displayedThinking.isNullOrBlank()) {
+            thinkingSection(
+                thinking = displayedThinking.orEmpty(),
+                expanded = thinkingExpanded,
+                onExpandedChange = { thinkingExpanded = it },
                 modifier =
-                    Modifier
-                        .padding(
-                            top = 4.dp,
-                            start = if (isUser) 0.dp else 16.dp,
-                            end = if (isUser) 16.dp else 0.dp,
-                        )
-                        .widthIn(max = 520.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                        .combinedClickable(
-                            onClick = { thinkingExpanded = !thinkingExpanded },
-                            onLongClick = {},
-                        )
-                        .padding(12.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "💭 思考过程",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(
-                        if (thinkingExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                AnimatedVisibility(
-                    visible = thinkingExpanded,
-                    enter = expandVertically(),
-                    exit = shrinkVertically(),
-                ) {
-                    Text(
-                        text = message.thinking,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        lineHeight = 16.sp,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-            }
+                    Modifier.padding(
+                        top = 4.dp,
+                        start = if (isUser) 0.dp else 16.dp,
+                        end = if (isUser) 16.dp else 0.dp,
+                    ),
+            )
         }
 
         // Timestamp
@@ -363,6 +341,76 @@ fun MessageBubble(
                     ),
             )
         }
+    }
+}
+
+/** 可复用的思维链折叠区，正式消息与流式占位消息保持同一交互。 */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun thinkingSection(
+    thinking: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .widthIn(max = 520.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                .combinedClickable(
+                    onClick = { onExpandedChange(!expanded) },
+                    onLongClick = {},
+                )
+                .padding(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "💭 思考过程",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (expanded) "收起思考过程" else "展开思考过程",
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically(),
+        ) {
+            SelectionContainer {
+                Text(
+                    text = thinking,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    lineHeight = 16.sp,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+/** 允许流式中的未闭合 <think> 标签实时显示，而不是等回复结束才出现。 */
+internal fun splitThinkingForDisplay(reply: String): Pair<String, String?> {
+    val open = reply.indexOf("<think>", ignoreCase = true)
+    if (open < 0) return reply to null
+    val contentStart = open + "<think>".length
+    val close = reply.indexOf("</think>", contentStart, ignoreCase = true)
+    return if (close >= 0) {
+        val thinking = reply.substring(contentStart, close).trim()
+        val content = (reply.removeRange(open, close + "</think>".length)).trim()
+        content to thinking.ifBlank { null }
+    } else {
+        "" to reply.substring(contentStart).trim().ifBlank { null }
     }
 }
 

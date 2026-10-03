@@ -1,9 +1,19 @@
 package com.mistbell.tavern.android.ui.main
 
 import android.app.Activity
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Chat
@@ -73,7 +83,6 @@ fun MainScreen(
     // 竖屏手机维持底部 NavigationBar
     val windowSizeClass = calculateWindowSizeClass(LocalContext.current as Activity)
     val useNavigationRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
-
     // tab 内容（bottomPadding：底部导航占用的高度；Rail 模式下为 0）。
     // 直接切换当前页面，避免 AnimatedContent 在首帧同时建立动画测量层。
     val tabContent: @Composable (Modifier) -> Unit = { contentModifier ->
@@ -133,29 +142,60 @@ fun MainScreen(
     }
 
     if (useNavigationRail) {
-        Row(modifier = Modifier.fillMaxSize()) {
+        // 横屏导航栏只避让真正位于起始边的前摄安全区，避免内容被遮挡。
+        // 内容区单独消费末端安全区，避免把导航栏宽度重复算进空白。
+        Row(
+            modifier = Modifier.fillMaxSize(),
+        ) {
             NavigationRail(
+                modifier =
+                    Modifier
+                        // Keep the rail outside a left-side camera cutout, but keep the
+                        // rail itself compact so the cutout and rail width do not create
+                        // an unnecessarily large blank column.
+                        .windowInsetsPadding(
+                            WindowInsets.displayCutout.only(WindowInsetsSides.Start),
+                        )
+                        .width(72.dp)
+                        .padding(vertical = 8.dp),
+                // The rail owns vertical system-bar handling; the explicit horizontal
+                // cutout padding above is applied only when a left-side cutout exists.
+                windowInsets = NavigationRailDefaults.windowInsets.only(WindowInsetsSides.Vertical),
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
-                mainDestinations.forEachIndexed { index, destination ->
-                    NavigationRailItem(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        icon = { Icon(destination.icon, contentDescription = null) },
-                        label = { Text(destination.label) },
-                        colors =
-                            NavigationRailItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                    )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp, androidx.compose.ui.Alignment.Top),
+                ) {
+                    mainDestinations.forEachIndexed { index, destination ->
+                        NavigationRailItem(
+                            modifier = Modifier.width(64.dp).height(68.dp),
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            icon = { Icon(destination.icon, contentDescription = null) },
+                            label = { Text(destination.label) },
+                            colors =
+                                NavigationRailItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                        )
+                    }
                 }
             }
-            tabContent(Modifier.fillMaxSize())
+            tabContent(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .windowInsetsPadding(
+                        WindowInsets.displayCutout.only(WindowInsetsSides.End),
+                    ),
+            )
         }
     } else {
         Scaffold(

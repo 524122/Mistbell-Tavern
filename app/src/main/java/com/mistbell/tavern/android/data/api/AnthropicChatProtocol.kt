@@ -54,6 +54,7 @@ internal object AnthropicChatProtocol : ChatProtocol {
         data class ContentBlock(
             val type: String = "",
             val text: String = "",
+            val thinking: String = "",
         )
 
         @Serializable
@@ -74,6 +75,7 @@ internal object AnthropicChatProtocol : ChatProtocol {
         data class EventDelta(
             val type: String = "",
             val text: String = "",
+            val thinking: String = "",
         )
     }
 
@@ -117,6 +119,11 @@ internal object AnthropicChatProtocol : ChatProtocol {
     override fun parseContent(body: String): ProtocolContent {
         val response = json.decodeFromString(AnthropicResponse.serializer(), body)
         val text = response.content.filter { it.type == "text" }.joinToString("") { it.text }
+        val thinking =
+            response.content
+                .filter { it.type == "thinking" || it.type == "redacted_thinking" }
+                .joinToString("") { it.thinking.ifBlank { it.text } }
+                .ifBlank { null }
         val usage =
             response.usage?.let {
                 Usage(
@@ -126,17 +133,22 @@ internal object AnthropicChatProtocol : ChatProtocol {
                 )
             }
         // stop_reason=max_tokens 对应截断（同 OpenAI 的 finish_reason=length）
-        return ProtocolContent(text = text, usage = usage, finishReason = response.stopReason)
+        return ProtocolContent(text = text, usage = usage, finishReason = response.stopReason, thinking = thinking)
     }
 
     override fun parseStreamData(data: String): StreamParseResult {
         val event = parseEvent(data) ?: return StreamParseResult.Ignore
         return when (event.type) {
-            "content_block_delta" ->
-                event.delta
-                    ?.takeIf { it.type == "text_delta" && it.text.isNotBlank() }
-                    ?.let { StreamParseResult.Delta(it.text) }
-                    ?: StreamParseResult.Ignore
+            "content_block_delta" -> {
+                val delta = event.delta
+                val text = delta?.takeIf { it.type == "text_delta" }?.text.orEmpty()
+                val thinking = delta?.takeIf { it.type == "thinking_delta" }?.thinking.orEmpty()
+                if (text.isNotBlank() || thinking.isNotBlank()) {
+                    StreamParseResult.Delta(text, thinking.ifBlank { null })
+                } else {
+                    StreamParseResult.Ignore
+                }
+            }
             // message_start 携带 input_tokens；message_delta 携带累计 output_tokens
             "message_start", "message_delta" ->
                 event.usage?.let {

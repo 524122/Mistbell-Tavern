@@ -38,7 +38,8 @@ internal object GeminiChatProtocol : ChatProtocol {
     ) {
         @Serializable
         data class GeminiPart(
-            val text: String,
+            val text: String = "",
+            val thought: Boolean = false,
         )
     }
 
@@ -124,8 +125,14 @@ internal object GeminiChatProtocol : ChatProtocol {
         val text =
             response.candidates
                 .mapNotNull { it.content }
-                .flatMap { it.parts }
+                .flatMap { it.parts.filterNot(GeminiContent.GeminiPart::thought) }
                 .joinToString("") { it.text }
+        val thinking =
+            response.candidates
+                .mapNotNull { it.content }
+                .flatMap { it.parts.filter(GeminiContent.GeminiPart::thought) }
+                .joinToString("") { it.text }
+                .ifBlank { null }
         val usage =
             response.usageMetadata?.let {
                 Usage(
@@ -138,15 +145,24 @@ internal object GeminiChatProtocol : ChatProtocol {
             text = text,
             usage = usage,
             finishReason = response.candidates.firstOrNull()?.finishReason,
+            thinking = thinking,
         )
     }
 
     override fun parseStreamData(data: String): StreamParseResult {
         val response = parseResponse(data) ?: return StreamParseResult.Ignore
-        val deltaText =
+        val parts =
             response.candidates
                 .mapNotNull { it.content }
                 .flatMap { it.parts }
+        val deltaText =
+            parts
+                .filterNot(GeminiContent.GeminiPart::thought)
+                .joinToString("") { it.text }
+                .takeIf { it.isNotBlank() }
+        val deltaThinking =
+            parts
+                .filter(GeminiContent.GeminiPart::thought)
                 .joinToString("") { it.text }
                 .takeIf { it.isNotBlank() }
         val usageUpdate =
@@ -159,7 +175,11 @@ internal object GeminiChatProtocol : ChatProtocol {
                     ),
                 )
             }
-        return deltaText?.let { StreamParseResult.Delta(it) } ?: usageUpdate ?: StreamParseResult.Ignore
+        return if (deltaText != null || deltaThinking != null) {
+            StreamParseResult.Delta(deltaText.orEmpty(), deltaThinking)
+        } else {
+            usageUpdate ?: StreamParseResult.Ignore
+        }
     }
 
     /** 解析 SSE data 负载为响应对象；[DONE] 与坏 JSON 返回 null */

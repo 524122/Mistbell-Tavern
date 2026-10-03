@@ -50,10 +50,14 @@ internal object OpenAiChatProtocol : ChatProtocol {
     override fun parseContent(body: String): ProtocolContent {
         val completion = json.decodeFromString(ChatCompletionResponse.serializer(), body)
         val choice = completion.choices.firstOrNull()
+        val message = choice?.message
         return ProtocolContent(
-            text = choice?.message?.content ?: "",
+            text = message?.content ?: "",
             usage = completion.usage,
             finishReason = choice?.finishReason,
+            thinking =
+                listOfNotNull(message?.reasoningContent, message?.reasoning, message?.thinking)
+                    .firstOrNull { it.isNotBlank() },
         )
     }
 
@@ -61,7 +65,14 @@ internal object OpenAiChatProtocol : ChatProtocol {
         val chunk = SseParser.parseChunk(data) ?: return StreamParseResult.Ignore
         val usageUpdate =
             chunk.usage?.let { StreamParseResult.UsageUpdate(it) }
-        val delta = SseParser.contentOf(chunk)?.let { StreamParseResult.Delta(it) }
+        val deltaText = SseParser.contentOf(chunk)
+        val deltaThinking = SseParser.thinkingOf(chunk)
+        val delta =
+            if (!deltaText.isNullOrBlank() || !deltaThinking.isNullOrBlank()) {
+                StreamParseResult.Delta(deltaText.orEmpty(), deltaThinking)
+            } else {
+                null
+            }
         return delta ?: usageUpdate ?: StreamParseResult.Ignore
     }
 }

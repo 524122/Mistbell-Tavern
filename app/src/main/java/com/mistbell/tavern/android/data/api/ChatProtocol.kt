@@ -28,10 +28,13 @@ data class ProtocolContent(
     val text: String,
     val usage: Usage?,
     val finishReason: String?,
+    /** 模型通过独立 reasoning/thinking 字段返回的思维链。 */
+    val thinking: String? = null,
 )
 
 sealed class StreamParseResult {
-    data class Delta(val text: String) : StreamParseResult()
+    /** 一帧可以同时带正文和思维链（部分网关会这样返回）。 */
+    data class Delta(val text: String, val thinking: String? = null) : StreamParseResult()
 
     data class UsageUpdate(val usage: Usage) : StreamParseResult()
 

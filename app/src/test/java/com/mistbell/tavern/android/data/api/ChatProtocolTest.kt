@@ -93,6 +93,33 @@ class ChatProtocolTest {
     }
 
     @Test
+    fun `openai 非流式解析 reasoning_content 与正文分离`() {
+        val body =
+            """{"choices":[{"message":{"role":"assistant","content":"答案","reasoning_content":"先分析"}}]}"""
+        val content = OpenAiChatProtocol.parseContent(body)
+
+        assertEquals("答案", content.text)
+        assertEquals("先分析", content.thinking)
+    }
+
+    @Test
+    fun `openai 流式解析 reasoning_content 增量`() {
+        val data =
+            """{"choices":[{"delta":{"role":"assistant","content":"","reasoning_content":"推理"}}]}"""
+        assertEquals(StreamParseResult.Delta("", "推理"), OpenAiChatProtocol.parseStreamData(data))
+    }
+
+    @Test
+    fun `anthropic thinking block 与正文分离`() {
+        val body =
+            """{"content":[{"type":"thinking","thinking":"先想"},{"type":"text","text":"答案"}]}"""
+        val content = AnthropicChatProtocol.parseContent(body)
+
+        assertEquals("答案", content.text)
+        assertEquals("先想", content.thinking)
+    }
+
+    @Test
     fun `anthropic 流式 message_start 与 message_delta 产出用量`() {
         val start =
             AnthropicChatProtocol.parseStreamData(
@@ -162,6 +189,13 @@ class ChatProtocolTest {
         val data =
             """{"candidates":[{"content":{"parts":[{"text":"逐字"}],"role":"model"}}]}"""
         assertEquals(StreamParseResult.Delta("逐字"), GeminiChatProtocol.parseStreamData(data))
+    }
+
+    @Test
+    fun `gemini thought part 作为思维链增量`() {
+        val data =
+            """{"candidates":[{"content":{"parts":[{"text":"推理","thought":true}],"role":"model"}}]}"""
+        assertEquals(StreamParseResult.Delta("", "推理"), GeminiChatProtocol.parseStreamData(data))
     }
 
     @Test

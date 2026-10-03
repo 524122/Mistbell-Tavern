@@ -747,7 +747,16 @@ fun ChatScreen(
     }
 
     // 应用主题包：tokens 覆盖 scheme + 背景图铺底
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                // Chat has no navigation rail to absorb a side cutout, so the whole
+                // route consumes only the current camera cutout area.
+                .windowInsetsPadding(
+                    WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+                ),
+    ) {
         if (bgBitmap != null) {
             Image(
                 bitmap = bgBitmap,
@@ -1188,6 +1197,9 @@ private fun StreamingBubble(
     // 修复6：应用内三态深浅色透传给 MarkdownRenderer
     dark: Boolean,
 ) {
+    val (visibleText, thinking) = splitThinkingForDisplay(text)
+    // 流式思维链直接可见；点击标题仍可收起，保证生成过程中也能确认模型正在返回 reasoning。
+    var thinkingExpanded by remember { mutableStateOf(true) }
     Box(
         modifier =
             Modifier
@@ -1202,7 +1214,17 @@ private fun StreamingBubble(
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 // 修复6：Markdown 颜色跟随应用内三态深浅色设置
-                MarkdownRenderer(content = text, dark = dark)
+                if (visibleText.isNotBlank()) {
+                    MarkdownRenderer(content = visibleText, dark = dark)
+                }
+                if (!thinking.isNullOrBlank()) {
+                    thinkingSection(
+                        thinking = thinking,
+                        expanded = thinkingExpanded,
+                        onExpandedChange = { thinkingExpanded = it },
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "生成中…",
