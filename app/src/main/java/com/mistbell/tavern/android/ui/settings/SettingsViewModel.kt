@@ -563,6 +563,34 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.4-beta",
+                versionCode = 15,
+                releaseDate = "2026-10-19",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "API 配置升级为版本化文档，提供 request 参数模板、请求预览、协议保护字段和 URL 凭据清理",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "API 编辑器改为基础配置、请求参数、请求预览三个页签，支持模板重置和脱敏 JSON 导入导出",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "记忆系统改为会话内长期记忆，支持历史裁剪后的召回和严格会话隔离",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "新增向量同步持久化待办和崩溃恢复，避免进程中断后缺失、旧版本或已删除摘要残留",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "完成真实本地 ONNX embedding 生成、重启恢复、缓存召回和模型指纹隔离验收",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.3-beta",
                 versionCode = 14,
                 releaseDate = "2026-10-03",
