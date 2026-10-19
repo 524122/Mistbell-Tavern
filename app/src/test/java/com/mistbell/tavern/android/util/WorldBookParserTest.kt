@@ -137,6 +137,28 @@ class WorldBookParserTest {
     }
 
     @Test
+    fun `sticky数值按大于0视为开启`() {
+        // 酒馆 sticky 是数值（保持 N 条消息）；应用内为布尔开关——数值 > 0 不得丢成 false
+        val json =
+            """
+            {
+              "entries": {
+                "1": { "content": "数值粘性", "sticky": 3 },
+                "2": { "content": "零", "sticky": 0 },
+                "3": { "content": "布尔真", "sticky": true },
+                "4": { "content": "缺省" }
+              }
+            }
+            """.trimIndent()
+        val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
+        val byId = entries.associateBy { it.id }
+        assertEquals(true, byId["1"]?.sticky)
+        assertEquals(false, byId["2"]?.sticky)
+        assertEquals(true, byId["3"]?.sticky)
+        assertEquals(false, byId["4"]?.sticky)
+    }
+
+    @Test
     fun `酒馆独立世界书位置概率映射`() {
         // 按实测酒馆独立世界书结构（Eldoria.json / 美奈.json）构造：
         // Eldoria 锚点条目带 UI 残留 depth=4；美奈 atDepth 条目 position=4、depth=0

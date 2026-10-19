@@ -10,8 +10,8 @@ import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
  *   [POSITION_BEFORE_PROMPT] 角色定义之前 / [POSITION_AFTER_PROMPT] 角色定义之后（LTM 之前）/
  *   [POSITION_AN_BEFORE] 作者注释之前 / [POSITION_AN_AFTER] 作者注释之后 /
  *   [POSITION_EM_BEFORE] 示例消息块之前 / [POSITION_EM_AFTER] 示例消息块之后；
- * - depth ≥ 1：@D 模式，插入历史倒数第 D 条之前（越靠近生成点权重越高），
- *   insertPosition 不再生效；
+ * - depth ≥ 1：@D 模式，对齐酒馆 position=4（atDepth）：depth 越小越靠近生成点
+ *   （酒馆 depth=1 紧贴最新一条消息）；insertPosition 不再生效；
  * - disable 条目一律不参与。
  */
 object WorldBookPlacement {
@@ -22,7 +22,7 @@ object WorldBookPlacement {
     const val POSITION_EM_BEFORE = "em_before"
     const val POSITION_EM_AFTER = "em_after"
 
-    /** @D 插入角色（对齐酒馆 role）：条目以什么身份插到历史第 D 条之前 */
+    /** @D 插入角色（对齐酒馆 role）：条目以什么身份注入 @D 深度块 */
     const val DEPTH_ROLE_SYSTEM = "system"
     const val DEPTH_ROLE_USER = "user"
     const val DEPTH_ROLE_ASSISTANT = "assistant"
@@ -34,9 +34,18 @@ object WorldBookPlacement {
         val emAfter: List<WorldBookEntryEntity>,
         val anBefore: List<WorldBookEntryEntity>,
         val anAfter: List<WorldBookEntryEntity>,
-        /** @D 分组，key = (深度, 角色)，深度升序；同组多条合成一条该角色的消息 */
+        /** @D 分组，key = (深度, 角色)；按深度降序（大 D 在前、D=1 最贴近生成点），
+         *  同深度角色序为 assistant → user → system（对齐酒馆最终呈现序）；同组多条合成一条该角色的消息 */
         val byDepth: Map<Pair<Int, String>, List<WorldBookEntryEntity>>,
     )
+
+    /** 酒馆同深度多 role 的最终呈现顺序（script.js doChatInject 反转数组所致）：assistant 最前，system 最靠底 */
+    internal fun depthRoleRank(role: String): Int =
+        when (role) {
+            DEPTH_ROLE_ASSISTANT -> 0
+            DEPTH_ROLE_USER -> 1
+            else -> 2
+        }
 
     fun plan(entries: List<WorldBookEntryEntity>): Plan {
         val active = entries.filter { !it.disable }
@@ -52,7 +61,9 @@ object WorldBookPlacement {
                 active
                     .filter { it.depth > 0 }
                     .groupBy { it.depth to it.depthRole }
-                    .toSortedMap(compareBy({ it.first }, { it.second })),
+                    .toSortedMap(
+                        compareByDescending<Pair<Int, String>> { it.first }.thenBy { depthRoleRank(it.second) },
+                    ),
         )
     }
 }

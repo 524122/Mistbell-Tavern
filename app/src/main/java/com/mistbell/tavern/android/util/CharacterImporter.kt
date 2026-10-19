@@ -314,7 +314,7 @@ object CardParser {
                             kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                             secondaryKeys,
                         ),
-                    sticky = entry["sticky"]?.jsonPrimitive?.booleanOrNull ?: false,
+                    sticky = StInterop.parseSticky(entry["sticky"] as? JsonPrimitive),
                     cooldown = entry["cooldown"]?.jsonPrimitive?.intOrNull ?: 0,
                     delay = entry["delay"]?.jsonPrimitive?.intOrNull ?: 0,
                     groupName = entry["group"]?.jsonPrimitive?.contentOrNull.orEmpty(),

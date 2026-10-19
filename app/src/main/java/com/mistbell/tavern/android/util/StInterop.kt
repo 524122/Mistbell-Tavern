@@ -131,6 +131,13 @@ internal object StInterop {
         }
 
     /**
+     * 酒馆 sticky 语义是数值（激活后保持 N 条消息）；应用内 sticky 为布尔开关（激活后持续生效）。
+     * 兼容两种写法：布尔直接取；数值 > 0 视为开——酒馆导出的 `sticky: 3` 等数值
+     * 此前按布尔解析会静默丢成 false，粘性直接失效。
+     */
+    fun parseSticky(raw: JsonPrimitive?): Boolean = raw?.booleanOrNull ?: ((raw?.intOrNull ?: 0) > 0)
+
+    /**
      * 从条目（含 extensions）解析应用内位置字段：
      * extensions.position（酒馆数字）优先，其次条目顶层 position（数字按酒馆枚举、
      * 字符串按 CCv2/v3 规范），最后兜底角色定义前。

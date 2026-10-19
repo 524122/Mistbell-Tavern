@@ -152,7 +152,7 @@ object WorldBookParser {
                         kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                         secondaryKeys,
                     ),
-                sticky = entry["sticky"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false,
+                sticky = StInterop.parseSticky(entry["sticky"] as? JsonPrimitive),
                 cooldown = entry["cooldown"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
                 delay = entry["delay"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
                 groupName = entry["group"]?.let { (it as? JsonPrimitive)?.contentOrNull }.orEmpty(),

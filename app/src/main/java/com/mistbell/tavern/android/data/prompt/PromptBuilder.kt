@@ -535,10 +535,10 @@ object PromptBuilder {
             WorldInfoRuntime.activate(sessionId, worldBookEntries, worldInfoScanText)
         val wbPlan = WorldBookPlacement.plan(worldBookEntries)
         // 缓存优化：只注入 constant 条目到历史之前，activated 条目稍后注入到历史之后
-        worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx, constantOnly = true)?.let {
+        worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
             messages.addSegment("system", it, "世界书·角色定义后")
         }
-        worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx, constantOnly = true)?.let {
+        worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
             // add(0)：beforePrompt 条目压到整条提示词最前（角色定义之前）
             messages.add(0, Segment(ChatMessage(role = "system", content = it), "世界书·角色定义前"))
         }
@@ -552,13 +552,13 @@ object PromptBuilder {
         // 群聊取主角色示例；示例内容同样过宏渲染
         // 缓存优化：只注入 constant 条目到历史之前
         val mesExample = character?.mesExample?.trim().orEmpty()
-        worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx, constantOnly = true)?.let {
+        worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
             messages.addSegment("system", it, "世界书·示例消息前")
         }
         if (mesExample.isNotEmpty()) {
             messages.addSegment("system", "Example dialogue:\n${MacroEngine.render(mesExample, mctx)}", "示例对话")
         }
-        worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx, constantOnly = true)?.let {
+        worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
             messages.addSegment("system", it, "世界书·示例消息后")
         }
 
@@ -645,35 +645,34 @@ object PromptBuilder {
         // AN 锚点（作者注释前/后）：紧贴【附加指令】块上沿/下沿；会话无附加指令时
         // 两块依次落在历史之后，位置语义保持稳定
         // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
-        worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx, constantOnly = true)?.let {
+        worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
             messages.addSegment("system", it, "世界书·作者注释前")
         }
-        worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx, constantOnly = true)?.let {
+        worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
             messages.addSegment("system", it, "世界书·作者注释后")
         }
 
-        // 缓存优化：@D 深度插入改为后移到历史之后，不再插入历史内部破坏前缀稳定性。
-        // 保持语义：按深度倒序排列（D=1 最后/最靠近生成点，D=10 最前），但整体在历史后统一注入
-        // 注意：暂时注释掉原有的历史内插入逻辑，改为收集到 depthBlocks 列表稍后统一注入
+        // 缓存优化：@D 深度插入整体后移到历史之后（不插进历史内部，保住「角色卡 + 历史」前缀缓存）。
+        // 语义对齐酒馆：byDepth 已按深度降序、同深度 assistant→user→system 排列，迭代即得
+        // 「大 D 在前、D=1 最贴近生成点」的最终呈现序（酒馆 depth 越小越靠底）。
+        // 渲染用 ALL：constant 条目恒注入 ∪ 非常驻按激活——此前 @D 只渲染激活条目，
+        // constant 的 @D 条目在历史前/后两遍都轮不到，整条丢失。
         val depthBlocks = mutableListOf<Segment>()
-        wbPlan.byDepth
-            .toList()
-            .sortedBy { it.first.first } // 按深度升序（D=1, D=2, ...）
-            .forEach { (key, group) ->
-                val (depth, role) = key
-                worldInfoBlock(group, activatedEntryIds, mctx, constantOnly = false)?.let { block ->
-                    depthBlocks.add(
-                        Segment(
-                            message = ChatMessage(role = role, content = block),
-                            source = "世界书·插入深度 @D$depth",
-                            activationReason = if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
-                            insertionPosition = "@D$depth/$role",
-                        ),
-                    )
-                }
+        wbPlan.byDepth.forEach { (key, group) ->
+            val (depth, role) = key
+            worldInfoBlock(group, activatedEntryIds, mctx, selection = WiSelection.ALL)?.let { block ->
+                depthBlocks.add(
+                    Segment(
+                        message = ChatMessage(role = role, content = block),
+                        source = "世界书·插入深度 @D$depth",
+                        activationReason = if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
+                        insertionPosition = "@D$depth/$role",
+                    ),
+                )
             }
+        }
 
-        // 长期记忆块：排在历史与 @D 之后、最终用户消息之前——
+        // 长期记忆块：排在历史之后、激活锚点块与 @D 块之前、最终用户消息之前——
         // 让「角色卡 + 历史」保持逐字节稳定的前缀（前缀缓存命中率），同时记忆贴着生成点注入。
         // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
         // 召回片段必然与之重复（纯浪费 token 且拉低缓存命中率），此判定无信息损失
@@ -684,24 +683,29 @@ object PromptBuilder {
         )
 
         // 缓存优化：在长期记忆之后统一注入所有激活条目（非 constant）。
-        // 顺序：按原语义锚点排列 afterPrompt → emBefore → emAfter → anBefore → anAfter → @D深度块，
-        // 保持语义逻辑但整体后移到历史之后，不破坏前缀稳定性
-        worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx, constantOnly = false)?.let {
+        // 顺序：按原语义锚点排列 beforePrompt → afterPrompt → emBefore → emAfter → anBefore → anAfter → @D深度块，
+        // 保持语义逻辑但整体后移到历史之后，不破坏前缀稳定性。
+        // beforePrompt 的激活条目此前在历史前/后两遍都不渲染（第一遍仅 constant），整条丢失——此处补回
+        worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx)?.let {
+            messages.addSegment("system", it, "世界书·角色定义前（激活）")
+        }
+        worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·角色定义后（激活）")
         }
-        worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx, constantOnly = false)?.let {
+        worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·示例消息前（激活）")
         }
-        worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx, constantOnly = false)?.let {
+        worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·示例消息后（激活）")
         }
-        worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx, constantOnly = false)?.let {
+        worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·作者注释前（激活）")
         }
-        worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx, constantOnly = false)?.let {
+        worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·作者注释后（激活）")
         }
-        // @D 深度块按深度升序注入（D=1 最后，最靠近生成点）
+        // @D 深度块：byDepth 已按深度降序排列，追加后即「大 D 在前、D=1 最贴近最终用户消息」，
+        // 与酒馆「depth 越小越靠底」一致
         messages.addAll(depthBlocks)
 
         // 最后的当前用户消息参与宏渲染；continueGroupChat 场景（groupNudge 非 null）无新用户消息，
@@ -1299,29 +1303,31 @@ object PromptBuilder {
         }
     }
 
+    /** 世界书渲染过滤：CONSTANT=仅常驻（历史前注入）；ACTIVATED=仅非常驻且已激活（历史后注入）；ALL=常驻 ∪ 已激活（@D 用） */
+    private enum class WiSelection { CONSTANT, ACTIVATED, ALL }
+
     /**
      * 组内条目渲染为一条 system 消息文本（World Info 常驻段 + Activated World Info 激活段）；
      * 组内无有效内容（空组或非常驻条目均未激活）返回 null，不产生空消息
      *
-     * @param constantOnly true=仅渲染 constant 条目（用于历史前注入），false=仅渲染激活条目（用于历史后注入）
+     * @param selection CONSTANT=仅渲染 constant 条目（用于历史前注入，保持前缀稳定）；
+     *                  ACTIVATED=仅渲染激活条目（用于历史后注入，易变部分）；
+     *                  ALL=constant 恒注入 ∪ 非常驻按激活（@D 深度块用，酒馆 constant 恒激活语义）
      */
     private fun worldInfoBlock(
         group: List<WorldBookEntryEntity>,
         activatedIds: Set<String>,
         mctx: MacroContext,
-        constantOnly: Boolean = false,
+        selection: WiSelection = WiSelection.ACTIVATED,
     ): String? {
-        if (constantOnly) {
-            // 仅渲染 constant 条目（历史前注入，保持前缀稳定）
-            return renderWorldInfoSection("World Info:", group.filter { it.constant }, mctx)
-        } else {
-            // 仅渲染激活条目（历史后注入，易变部分）
-            return renderWorldInfoSection(
-                "Activated World Info:",
-                group.filter { !it.constant && "${it.bookId}:${it.id}" in activatedIds },
-                mctx,
-            )
-        }
+        val entries =
+            when (selection) {
+                WiSelection.CONSTANT -> group.filter { it.constant }
+                WiSelection.ACTIVATED -> group.filter { !it.constant && "${it.bookId}:${it.id}" in activatedIds }
+                WiSelection.ALL -> group.filter { it.constant || "${it.bookId}:${it.id}" in activatedIds }
+            }
+        val title = if (selection == WiSelection.ACTIVATED) "Activated World Info:" else "World Info:"
+        return renderWorldInfoSection(title, entries, mctx)
     }
 
     /** 单段渲染：标题 + 逐条 "[comment] 宏渲染内容"；空列表返回 null */

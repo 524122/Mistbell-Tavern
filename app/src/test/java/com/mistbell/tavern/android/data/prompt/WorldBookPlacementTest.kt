@@ -7,8 +7,8 @@ import org.junit.Test
 
 /**
  * 世界书插入位置规划（WorldBookPlacement）纯函数单测。
- * 语义：depth=0 按 insertPosition 锚定提示词区；depth≥1 为 @D 模式（历史倒数第 D 条之前）；
- * disable 条目一律不参与。
+ * 语义：depth=0 按 insertPosition 锚定提示词区；depth≥1 为 @D 模式（对齐酒馆 atDepth，
+ * 深度越小越贴近生成点）；disable 条目一律不参与。
  */
 class WorldBookPlacementTest {
     private fun entry(
@@ -58,7 +58,7 @@ class WorldBookPlacementTest {
     }
 
     @Test
-    fun `byDepth按深度升序排列`() {
+    fun `byDepth按深度降序排列_小深度贴近生成点`() {
         val entries =
             listOf(
                 entry("d5", depth = 5),
@@ -66,8 +66,25 @@ class WorldBookPlacementTest {
                 entry("d3", depth = 3),
             )
         val plan = WorldBookPlacement.plan(entries)
+        // 与酒馆一致：depth 越小越靠底——注入序大 D 在前、D=1 最贴近最终用户消息
         assertEquals(
-            listOf(1 to "system", 3 to "system", 5 to "system"),
+            listOf(5 to "system", 3 to "system", 1 to "system"),
+            plan.byDepth.keys.toList(),
+        )
+    }
+
+    @Test
+    fun `同深度角色序为assistant到user到system`() {
+        // 酒馆 doChatInject 反转数组 splice 的最终呈现序：assistant 最前、system 最靠底
+        val entries =
+            listOf(
+                entry("sys", depth = 2, depthRole = "system"),
+                entry("usr", depth = 2, depthRole = "user"),
+                entry("asst", depth = 2, depthRole = "assistant"),
+            )
+        val plan = WorldBookPlacement.plan(entries)
+        assertEquals(
+            listOf(2 to "assistant", 2 to "user", 2 to "system"),
             plan.byDepth.keys.toList(),
         )
     }
