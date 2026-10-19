@@ -417,11 +417,9 @@ object PromptBuilder {
                 contextTokenLimitOverride
                     ?: ChatSettingsResolver.globalDefaultContextTokens(settingsDao.getValue("default_context_tokens")),
             )
+        // 全局默认记忆开关已删除：会话显式值优先，未设置即为关
         val longTermMemoryEnabled =
-            ChatSettingsResolver.longTermMemoryEnabled(
-                session,
-                ChatSettingsResolver.globalDefaultLtmEnabled(settingsDao.getValue("default_ltm_enabled")),
-            )
+            ChatSettingsResolver.longTermMemoryEnabled(session, false)
         val participantCharacterIds = session?.participantCharacterIds() ?: listOf(characterId)
         val participantById =
             db.characterDao()

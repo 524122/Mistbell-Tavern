@@ -11,7 +11,10 @@ import kotlinx.serialization.json.JsonObject
  * API 配置编辑器的纯状态逻辑（不依赖 Compose，可直接单测）。
  *
  * 关键约束：
- * - 非法 JSON 草稿优先：修改基础字段/API Key 不得静默用格式化文档覆盖用户草稿；
+ * - 非法 JSON 草稿优先（仅当 protectInvalidDraft = true，即用户手动改坏 JSON 时）：
+ *   修改基础字段/API Key 不得静默用格式化文档覆盖用户草稿；
+ *   表单自动生成的草稿在填写过程中可能暂时不完整（如 model 未填），不属于受保护的
+ *   「用户草稿」，此时不得设置 sticky 错误，否则后续表单修改会被永久冻结（保存即失败）；
  * - API Key 不在 JSON 中，但修改它必须重新校验并清除“合法 JSON 上的陈旧错误”；
  * - 复制永远从解析成功的脱敏文档生成，非法/含凭据的草稿一律拒绝复制。
  */
@@ -61,14 +64,18 @@ internal object ApiConfigEditorLogic {
         }
     }
 
-    /** 基础字段修改：只有当前草稿没有错误时才重新生成 JSON；否则原样保留草稿。 */
+    /**
+     * 基础字段修改：当前草稿没有错误时重新生成 JSON；
+     * 仅当错误来自用户手动改坏的草稿（[protectInvalidDraft]）时才原样保留草稿。
+     */
     fun afterBaseEdit(
         currentText: String,
         currentError: String?,
         next: ApiConfigDocument,
         hasApiKey: Boolean,
+        protectInvalidDraft: Boolean = true,
     ): String =
-        if (currentError != null) {
+        if (currentError != null && protectInvalidDraft) {
             currentText
         } else {
             formatForEditor(next, hasApiKey)
@@ -77,13 +84,21 @@ internal object ApiConfigEditorLogic {
     /**
      * API Key 修改：Key 不会写进 JSON，因此不改变 request 内容；
      * 但必须重新解析当前草稿——合法草稿清除陈旧 jsonError，非法草稿保留原文与真实错误。
+     * [protectInvalidDraft] = false（表单自动草稿）时，解析失败只保留原文、不置错误：
+     * 草稿可能因表单尚未填完（model/name 为空）而通不过 validate，这不是用户改坏的 JSON。
      */
     fun afterApiKeyEdit(
         currentText: String,
         hasApiKey: Boolean,
+        protectInvalidDraft: Boolean = true,
     ): JsonEdit =
         when (val parsed = ApiConfigJson.parse(currentText)) {
-            is ApiConfigJsonResult.Invalid -> JsonEdit(currentText, parsed.message)
+            is ApiConfigJsonResult.Invalid ->
+                if (protectInvalidDraft) {
+                    JsonEdit(currentText, parsed.message)
+                } else {
+                    JsonEdit(currentText, error = null)
+                }
             is ApiConfigJsonResult.Valid ->
                 JsonEdit(
                     text = formatForEditor(parsed.document, hasApiKey),

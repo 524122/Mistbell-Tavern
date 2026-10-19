@@ -47,13 +47,9 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     private val _globalDefaultContextTokens = MutableStateFlow(4096)
     val globalDefaultContextTokens: StateFlow<Int> = _globalDefaultContextTokens.asStateFlow()
 
-    private val _globalDefaultLtmEnabled = MutableStateFlow(false)
-    val globalDefaultLtmEnabled: StateFlow<Boolean> = _globalDefaultLtmEnabled.asStateFlow()
-
     init {
         viewModelScope.launch {
             _globalDefaultContextTokens.value = settingsRepo.defaultContextTokens()
-            _globalDefaultLtmEnabled.value = settingsRepo.defaultLtmEnabled()
         }
     }
 
@@ -376,7 +372,6 @@ fun ChatSettingsScreen(
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
     val contextTokenLimit by viewModel.contextTokenLimit.collectAsState()
     val globalDefaultContextTokens by viewModel.globalDefaultContextTokens.collectAsState()
-    val globalDefaultLtmEnabled by viewModel.globalDefaultLtmEnabled.collectAsState()
     val selectedCharacterIds by viewModel.selectedCharacterIds.collectAsState()
     val authorNote by viewModel.authorNote.collectAsState()
     var showProviderDialog by remember { mutableStateOf(false) }
@@ -728,31 +723,21 @@ fun ChatSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text =
-                            if (enableLongTermMemory == null) {
-                                "跟随全局（当前：${if (globalDefaultLtmEnabled) "开" else "关"}）"
-                            } else {
-                                "当前生效：${if (enableLongTermMemory == true) "开" else "关"}"
-                            },
+                        text = "当前生效：${if (enableLongTermMemory == true) "开" else "关"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
-                            selected = enableLongTermMemory == null,
-                            onClick = { viewModel.setLongTermMemory(null) },
-                            label = { Text("跟随全局") },
+                            selected = enableLongTermMemory != true,
+                            onClick = { viewModel.setLongTermMemory(false) },
+                            label = { Text("关闭") },
                         )
                         FilterChip(
                             selected = enableLongTermMemory == true,
                             onClick = { viewModel.setLongTermMemory(true) },
                             label = { Text("开启") },
-                        )
-                        FilterChip(
-                            selected = enableLongTermMemory == false,
-                            onClick = { viewModel.setLongTermMemory(false) },
-                            label = { Text("关闭") },
                         )
                     }
                 }

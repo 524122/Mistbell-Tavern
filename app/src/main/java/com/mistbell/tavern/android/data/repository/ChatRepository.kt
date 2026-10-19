@@ -1256,11 +1256,12 @@ class ChatRepository(private val context: Context) {
                 // （开场白已经在创建会话时插入，不参与这里的逻辑）。
                 // 群聊 MVP：记忆提取仍归属主角色 characterId（按说话者 witness 分账是后续增强）
                 enqueueMemoryExtraction(
-                    // 三态覆盖：会话显式值 > 全局默认（与 PromptBuilder 的注入判断同一解析器，防双源真相）
+                    // 全局默认记忆开关已删除：会话显式值优先，未设置即为关
+                    // （与 PromptBuilder 的注入判断同一解析器，防双源真相）
                     enabled =
                         ChatSettingsResolver.longTermMemoryEnabled(
                             sessionAfterReply,
-                            settingsRepo.defaultLtmEnabled(),
+                            false,
                         ),
                     providerId = sessionAfterReply.providerId,
                     userMessage = mode.userMessageForMemory,

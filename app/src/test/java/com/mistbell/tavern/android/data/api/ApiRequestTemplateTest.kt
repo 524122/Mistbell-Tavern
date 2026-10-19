@@ -21,14 +21,14 @@ class ApiRequestTemplateTest {
         }.toString()
 
     @Test
-    fun `openai 模板默认值来自 balanced 与默认输出预算`() {
+    fun `openai 模板默认值与默认输出预算`() {
         val template = ApiRequestTemplate.templateFor(ApiType.OPENAI)
 
-        assertEquals(SamplerPresets.BALANCED.temperature.toString(), template.value("temperature"))
+        assertEquals("0.8", template.value("temperature"))
         assertEquals(LlmConfig.DEFAULT_MAX_TOKENS.toString(), template.value("max_tokens"))
-        assertEquals(SamplerPresets.BALANCED.topP.toString(), template.value("top_p"))
+        assertEquals("0.9", template.value("top_p"))
         assertEquals("null", template.value("top_k"))
-        assertEquals(SamplerPresets.BALANCED.frequencyPenalty.toString(), template.value("frequency_penalty"))
+        assertEquals("0.0", template.value("frequency_penalty"))
         assertEquals("null", template.value("thinking"))
         assertEquals("null", template.value("reasoning_effort"))
         assertEquals("null", template.value("response_format"))

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
+import com.mistbell.tavern.android.data.api.ApiConfigDocument
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiConfigJsonResult
 import com.mistbell.tavern.android.data.api.ApiRequestTemplate
@@ -232,6 +233,34 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                 _message.value = "已更新 API 配置"
             } catch (e: Exception) {
                 _message.value = "更新失败: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * 静默更新默认配置的文档（模型参数区块专用）：只改 configJson/updatedAt 两列，
+     * 不动 apiKey；成功不写 _message（滑块连续调整不触发 snackbar），失败才提示。
+     */
+    fun updateDefaultConfigDocument(transform: (ApiConfigDocument) -> ApiConfigDocument) {
+        viewModelScope.launch {
+            try {
+                val entity = apiConfigDao.getDefault() ?: return@launch
+                val next =
+                    transform(ApiConfigJson.fromEntity(entity)).copy(
+                        apiKeyRef = if (entity.apiKey.isBlank()) "" else "secure:${entity.id}",
+                    )
+                ApiConfigJson.validate(next)?.let {
+                    _message.value = "参数未保存: $it"
+                    return@launch
+                }
+                apiConfigDao.update(
+                    entity.copy(
+                        configJson = ApiConfigJson.format(next),
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+            } catch (e: Exception) {
+                _message.value = "参数保存失败: ${e.message}"
             }
         }
     }

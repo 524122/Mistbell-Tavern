@@ -1,11 +1,13 @@
 package com.mistbell.tavern.android.data.repository
 
+import com.mistbell.tavern.android.data.api.ApiType
+import com.mistbell.tavern.android.data.api.RequestSamplingParams
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * providers_json → api_configs 迁移的纯函数单测（解析 / id 保留 / 默认归属 / 覆盖键映射）。
+ * providers_json → api_configs 迁移的纯函数单测（解析 / id 保留 / 默认归属 / 采样参数映射）。
  */
 class ApiConfigMigrationTest {
     // ---- parseProvidersJson ----
@@ -90,32 +92,49 @@ class ApiConfigMigrationTest {
         assertEquals(true, entities.single().isDefault)
     }
 
-    // ---- activeProviderOverrides ----
+    // ---- activeProviderSampling ----
 
     @Test
-    fun `高级参数映射到 llm 覆盖键且 null 为空串`() {
+    fun `高级参数映射到 request 采样字段`() {
         val providers =
             ApiConfigMigration.parseProvidersJson(
                 """[{"id":"p1","name":"A","endpoint":"u","apiKey":"k","selectedModel":"m",
                      "temperature":0.7,"top_p":0.9,"top_k":40,"frequency_penalty":0.1,"max_tokens":2048}]""",
             )
-        val overrides = ApiConfigMigration.activeProviderOverrides(providers.single()).toMap()
+        val sampling = ApiConfigMigration.activeProviderSampling(providers.single())
 
-        assertEquals("0.7", overrides["llm_temperature"])
-        assertEquals("0.9", overrides["llm_top_p"])
-        assertEquals("40", overrides["llm_top_k"])
-        assertEquals("0.1", overrides["llm_frequency_penalty"])
-        assertEquals("2048", overrides["llm_max_tokens"])
+        assertEquals(0.7, sampling.temperature!!, 1e-9)
+        assertEquals(0.9, sampling.topP!!, 1e-9)
+        assertEquals(40, sampling.topK)
+        assertEquals(0.1, sampling.frequencyPenalty!!, 1e-9)
+        assertEquals(2048, sampling.maxTokens)
+
+        // 写入 openai request JSON 后键位与 getLlmConfig 读取约定一致
+        val request =
+            RequestSamplingParams.write(
+                kotlinx.serialization.json.buildJsonObject { },
+                ApiType.OPENAI,
+                sampling,
+            )
+        assertEquals("0.7", request.getValue("temperature").toString())
+        assertEquals("0.9", request.getValue("top_p").toString())
+        assertEquals("40", request.getValue("top_k").toString())
+        assertEquals("0.1", request.getValue("frequency_penalty").toString())
+        assertEquals("2048", request.getValue("max_tokens").toString())
     }
 
     @Test
-    fun `高级参数全缺省映射为空串`() {
+    fun `高级参数全缺省映射为 null（未设置不发送）`() {
         val providers =
             ApiConfigMigration.parseProvidersJson(
                 """[{"id":"p1","name":"A","endpoint":"u","apiKey":"k","selectedModel":"m"}]""",
             )
-        val overrides = ApiConfigMigration.activeProviderOverrides(providers.single())
-        assertEquals(5, overrides.size)
-        assertTrue(overrides.all { it.second.isEmpty() })
+        val sampling = ApiConfigMigration.activeProviderSampling(providers.single())
+
+        assertEquals(null, sampling.temperature)
+        assertEquals(null, sampling.topP)
+        assertEquals(null, sampling.topK)
+        assertEquals(null, sampling.frequencyPenalty)
+        assertEquals(null, sampling.maxTokens)
     }
 }

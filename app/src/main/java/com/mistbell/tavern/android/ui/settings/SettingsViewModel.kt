@@ -9,9 +9,6 @@ import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.repository.BackupManager
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.SettingsRepository
-import com.mistbell.tavern.android.data.repository.VectorIndexRebuilder
-import com.mistbell.tavern.android.data.vector.VectorStatistics
-import com.mistbell.tavern.android.data.vector.getStatistics
 import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MAX
 import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MIN
 import kotlinx.coroutines.flow.*
@@ -22,10 +19,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     companion object {
         // stateIn 订阅超时：与全仓 ViewModel 的 WhileSubscribed(5000) 同值，收敛为具名常量
         private const val SUBSCRIBE_TIMEOUT_MS = 5000L
-
-        // 本机单用户：仓库层的 ownerId 目前散落在多处字面量（AppNavigation / TavernApi 等），
-        // 此处沿用同一取值，不新增第二个来源
-        private const val LOCAL_OWNER = "local-user"
     }
 
     private val repo = SettingsRepository(application)
@@ -45,59 +38,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _darkMode = MutableStateFlow("system")
     val darkMode: StateFlow<String> = _darkMode
-
-    private val _memoryExtractionPrompt = MutableStateFlow("")
-    val memoryExtractionPrompt: StateFlow<String> = _memoryExtractionPrompt
-
-    // --- S2 向量记忆召回设置（键解析实现收敛到 ChatSettingsResolver） ---
-    // 源：auto（默认，有 key 走 API）/ api / local（本地 ONNX，实验性）
-    val embeddingSource: StateFlow<String> =
-        db.settingsDao()
-            .observeValue("embedding_source")
-            .map { it ?: "auto" }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), "auto")
-
-    val memoryRecallTopK: StateFlow<Int> =
-        db.settingsDao()
-            .observeValue("memory_recall_top_k")
-            .map { ChatSettingsResolver.memoryRecallTopK(it) }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS),
-                ChatSettingsResolver.DEFAULT_RECALL_TOP_K,
-            )
-
-    val memorySimilarityThreshold: StateFlow<Float> =
-        db.settingsDao()
-            .observeValue("memory_similarity_threshold")
-            .map { ChatSettingsResolver.memorySimilarityThreshold(it) }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS),
-                ChatSettingsResolver.DEFAULT_SIMILARITY_THRESHOLD,
-            )
-
-    /**
-     * 索引容量快照（条数 + 占盘字节 + 预算）。
-     *
-     * 磁盘容量治理必须**可观测**：不显示占用的话，用户只会看到"想不起来以前的事"，却不知道
-     * 是索引满了在淘汰，也不知道该删点什么。重建/备份/恢复后刷新。
-     */
-    private val _vectorIndexUsage = MutableStateFlow<VectorStatistics?>(null)
-    val vectorIndexUsage: StateFlow<VectorStatistics?> = _vectorIndexUsage
-
-    init {
-        refreshVectorIndexUsage()
-    }
-
-    /** 读一次索引占用（失败静默：这只是展示信息，不该影响设置页可用性） */
-    private fun refreshVectorIndexUsage() {
-        viewModelScope.launch {
-            _vectorIndexUsage.value =
-                runCatching { TavernApplication.instance.container.vectorMemoryService.getStatistics() }
-                    .getOrNull()
-        }
-    }
 
     // --- 提示词模板（全局 KV，明文存储；空值语义见各 resolver） ---
     //
@@ -134,86 +74,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // --- 对话生成设置（KV 缺省值：流式开 / 上下文 4096 / 长期记忆默认关） ---
+    // --- 对话生成设置（KV 缺省值：流式开 / 上下文 4096） ---
     private val _streamingEnabled = MutableStateFlow(true)
     val streamingEnabled: StateFlow<Boolean> = _streamingEnabled
 
     private val _defaultContextTokens = MutableStateFlow(4096)
     val defaultContextTokens: StateFlow<Int> = _defaultContextTokens
 
-    private val _defaultLtmEnabled = MutableStateFlow(false)
-    val defaultLtmEnabled: StateFlow<Boolean> = _defaultLtmEnabled
-
-    // --- 生成与采样设置（KV 键与 SettingsRepository.getLlmConfig 的组装约定一致） ---
-    // 采样预设：creative/balanced/precise/custom（custom = 不套预设，去提供商页调参）
-    private val _samplingPreset = MutableStateFlow("balanced")
-    val samplingPreset: StateFlow<String> = _samplingPreset
-
-    // 请求超时（秒，15..600）与重试次数（0..5）
-    private val _requestTimeout = MutableStateFlow(90)
-    val requestTimeout: StateFlow<Int> = _requestTimeout
-
-    private val _requestRetries = MutableStateFlow(2)
-    val requestRetries: StateFlow<Int> = _requestRetries
-
     init {
         loadSettings()
         loadLlmConfig()
         loadDarkMode()
-        loadMemoryExtractionPrompt()
         observeGenerationSettings()
-        observeSamplingSettings()
     }
 
-    // 观察采样预设 / 超时 / 重试三个 KV 键（缺省：balanced / 90s / 2 次）
-    private fun observeSamplingSettings() {
-        viewModelScope.launch {
-            db.settingsDao().observeValue("sampling_preset")
-                .map { it ?: "balanced" }
-                .collect { _samplingPreset.value = it }
-        }
-        viewModelScope.launch {
-            db.settingsDao().observeValue("request_timeout_seconds")
-                .map { (it?.toIntOrNull() ?: 90).coerceIn(15, 600) }
-                .collect { _requestTimeout.value = it }
-        }
-        viewModelScope.launch {
-            db.settingsDao().observeValue("request_retries")
-                .map { (it?.toIntOrNull() ?: 2).coerceIn(0, 5) }
-                .collect { _requestRetries.value = it }
-        }
-    }
-
-    fun setSamplingPreset(name: String) {
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity("sampling_preset", name),
-            )
-            _samplingPreset.value = name
-        }
-    }
-
-    fun setRequestTimeout(seconds: Int) {
-        val v = seconds.coerceIn(15, 600)
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity("request_timeout_seconds", v.toString()),
-            )
-            _requestTimeout.value = v
-        }
-    }
-
-    fun setRequestRetries(n: Int) {
-        val v = n.coerceIn(0, 5)
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity("request_retries", v.toString()),
-            )
-            _requestRetries.value = v
-        }
-    }
-
-    // 从 settings 表观察三个对话生成相关 KV 键并解析灌入 StateFlow
+    // 从 settings 表观察对话生成相关 KV 键并解析灌入 StateFlow
     private fun observeGenerationSettings() {
         viewModelScope.launch {
             db.settingsDao().observeValue("streaming_enabled")
@@ -224,11 +99,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             db.settingsDao().observeValue("default_context_tokens")
                 .map { (it?.toIntOrNull() ?: 4096).coerceIn(CONTEXT_TOKEN_MIN, CONTEXT_TOKEN_MAX) }
                 .collect { _defaultContextTokens.value = it }
-        }
-        viewModelScope.launch {
-            db.settingsDao().observeValue("default_ltm_enabled")
-                .map { it == "1" } // 缺省/null 视为关闭
-                .collect { _defaultLtmEnabled.value = it }
         }
     }
 
@@ -248,15 +118,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 com.mistbell.tavern.android.data.local.entity.SettingsEntity("default_context_tokens", v.toString()),
             )
             _defaultContextTokens.value = v
-        }
-    }
-
-    fun setDefaultLtmEnabled(v: Boolean) {
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity("default_ltm_enabled", if (v) "1" else "0"),
-            )
-            _defaultLtmEnabled.value = v
         }
     }
 
@@ -298,96 +159,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _message.value = null
     }
 
-    // --- S2 向量记忆设置写入口 ---
-
-    fun setEmbeddingSource(source: String) {
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity("embedding_source", source),
-            )
-        }
-    }
-
-    fun setMemoryRecallTopK(value: Int) {
-        val normalized =
-            value.coerceIn(
-                ChatSettingsResolver.RECALL_TOP_K_MIN,
-                ChatSettingsResolver.RECALL_TOP_K_MAX,
-            )
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
-                    "memory_recall_top_k",
-                    normalized.toString(),
-                ),
-            )
-        }
-    }
-
-    fun setMemorySimilarityThreshold(value: Float) {
-        val normalized =
-            value.coerceIn(
-                ChatSettingsResolver.SIMILARITY_THRESHOLD_MIN,
-                ChatSettingsResolver.SIMILARITY_THRESHOLD_MAX,
-            )
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
-                    "memory_similarity_threshold",
-                    normalized.toString(),
-                ),
-            )
-        }
-    }
-
-    // 索引重建进度（"已重建 n / N"）；null 表示没有正在进行的重建
-    private val _vectorRebuildProgress = MutableStateFlow<String?>(null)
-    val vectorRebuildProgress: StateFlow<String?> = _vectorRebuildProgress
-
-    /**
-     * 重建向量索引：把消息库里最近的对话重新灌回索引。
-     *
-     * 索引超限会按价值淘汰，被淘汰的向量无法自动重建，这是唯一的恢复入口。
-     */
-    fun rebuildVectorIndex() {
-        if (_isLoading.value) return
-        viewModelScope.launch {
-            try {
-                _isLoading.value = true
-                val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
-                if (!vectorMemoryService.available) {
-                    // Mock/占位服务写进去的向量没有语义，重建只会污染索引
-                    _message.value = "当前是词法回退（未启用语义记忆源），无需重建索引"
-                    return@launch
-                }
-
-                _vectorRebuildProgress.value = "准备中…"
-                val result =
-                    VectorIndexRebuilder.forDatabase(db, vectorMemoryService)
-                        .rebuild(ownerId = LOCAL_OWNER) { done, total ->
-                            _vectorRebuildProgress.value = "已重建 $done / $total"
-                        }
-
-                _message.value =
-                    when {
-                        result.total == 0 -> "消息库里没有可重建的消息"
-                        else ->
-                            "索引重建完成：新写入 ${result.embedded} 条，" +
-                                "已在索引中跳过 ${result.skipped} 条" +
-                                (if (result.failed > 0) "，失败 ${result.failed} 条" else "") +
-                                (if (result.declined > 0) "，因索引已满放弃 ${result.declined} 条" else "")
-                    }
-                refreshVectorIndexUsage()
-            } catch (e: Exception) {
-                android.util.Log.e("Settings", "Vector index rebuild failed", e)
-                _message.value = "重建失败：${e.message}"
-            } finally {
-                _isLoading.value = false
-                _vectorRebuildProgress.value = null
-            }
-        }
-    }
-
     // --- 数据（S4 全量备份/恢复） ---
     fun createBackup(uri: android.net.Uri) {
         viewModelScope.launch {
@@ -395,7 +166,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _isLoading.value = true
                 val summary = BackupManager(getApplication()).exportToUri(uri)
                 _message.value = "备份完成：已导出 ${summary.totalAdded} 项数据"
-                refreshVectorIndexUsage()
             } catch (e: Exception) {
                 android.util.Log.e("Settings", "Backup export failed", e)
                 _message.value = e.message ?: "备份失败"
@@ -413,7 +183,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _message.value =
                     "恢复完成：合并 ${summary.totalAdded} 项" +
                     (if (summary.totalSkipped > 0) "（跳过已存在 ${summary.totalSkipped} 项）" else "")
-                refreshVectorIndexUsage()
             } catch (e: Exception) {
                 android.util.Log.e("Settings", "Backup restore failed", e)
                 _message.value = e.message ?: "恢复失败"
@@ -421,119 +190,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _isLoading.value = false
             }
         }
-    }
-
-    private fun loadMemoryExtractionPrompt() {
-        viewModelScope.launch {
-            val prompt =
-                db.settingsDao().getValue("memory_extraction_prompt")
-                    ?: getDefaultMemoryExtractionPrompt()
-            _memoryExtractionPrompt.value = prompt
-        }
-    }
-
-    fun saveMemoryExtractionPrompt(prompt: String) {
-        viewModelScope.launch {
-            db.settingsDao().upsert(
-                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
-                    "memory_extraction_prompt",
-                    prompt,
-                ),
-            )
-            _memoryExtractionPrompt.value = prompt
-            _message.value = "记忆提取提示词已保存"
-        }
-    }
-
-    fun getDefaultMemoryExtractionPrompt(): String {
-        return """
-            你是角色扮演聊天系统的长期记忆抽取引擎。请分析这一轮对话中是否存在值得长期保存的记忆。
-
-            只输出一个 JSON 对象，结构必须完全如下：
-            {
-              "emotion": {
-                "primaryEmotion": "简短情绪标签或空字符串",
-                "secondaryEmotion": "简短情绪标签或空字符串",
-                "intensity": 0.0,
-                "situationType": "normal",
-                "memoryWorthiness": 0.0,
-                "stabilityMultiplier": 1.0,
-                "emotionalAtmosphere": "简短氛围或空字符串",
-                "reasoning": "简短理由"
-              },
-              "triplets": [
-                {
-                  "subject": "规范主体，用户事实通常使用 user",
-                  "relation": "关系或动词",
-                  "object": "目标或取值",
-                  "memoryType": "fact|event|emotion|core|preference|identity|relationship|goal|note",
-                  "importance": 0.0,
-                  "tags": ["3-8 个用于检索的稳定关键词"],
-                  "aliases": ["0-6 个用户可能用来提起这条记忆的说法"],
-                  "rawText": "一条基于原文的正式记忆句"
-                }
-              ],
-              "npcMentions": []
-            }
-
-            situationType must be one of:
-            life_death, deep_trauma, sacred_moment, vulnerability, betrayal,
-            reunion, parting, identity_reveal, normal.
-
-            只抽取持久信息：身份、稳定偏好、关系、重要事件、创伤/恐惧、承诺、目标、边界、反复关注的问题。
-            可以从 User 和 Assistant 两侧抽取：User 表达的偏好/边界/身份，以及 Assistant 回复中已经发生或确认的剧情事件。
-            不要保存寒暄、填充语、临时情绪，或原文没有表达的事实。
-            core 记忆只用于生死、誓言、关键身份揭示、神圣转折点。
-            如果没有值得保存的内容，triplets 返回 []。
-
-            语言规则非常重要：
-            - rawText、object、tags、aliases 必须优先使用用户原文语言。
-            - 用户用中文表达时，rawText 必须是中文正式记忆句，不要翻译成英文。
-            - 可以保留主体 user，但其余内容尽量中文化。
-            - 不要输出 "user refuse to wear women's clothing" 这类英文句；应输出 "user 拒绝穿女装"。
-
-            rawText 必须是正式记忆句，不是一句第一人称原话。
-            用户事实优先使用 subject "user"。例如：
-            - "我叫墨轩" -> subject "user", relation "name", object "墨轩", rawText "user 的名字是墨轩"
-            - "我喜欢结构化长期记忆" -> rawText "user 喜欢结构化长期记忆"
-            - "我可不穿女人衣服，给我个斗笠" -> rawText "user 拒绝穿女装" / "user 想要斗笠"
-
-            ⚠️ 重要：区分"陈述事实"和"告知信息"
-            当 NPC 告诉 user 某个信息时，记录"NPC 知道/告知"，而非直接断言：
-            - ❌ 错误："角色：你不会游泳" -> rawText "user 不会游泳"（这是直接断言）
-            - ✅ 正确："角色：你不会游泳" -> subject "角色名", relation "知道", object "user不会游泳", rawText "角色名知道user不会游泳"
-            - ❌ 错误："医生：你的血压偏高" -> rawText "user 血压偏高"
-            - ✅ 正确："医生：你的血压偏高" -> rawText "医生告知user血压偏高"
-
-            只有当 user 自己陈述或事实已确认时，才直接记录为 user 的属性：
-            - ✅ 正确："User: 我确实不会游泳" -> rawText "user 不会游泳"
-            - ✅ 正确："角色检查后确认user对花粉过敏" -> rawText "user 对花粉过敏（角色确认）"
-
-            当 user 向 NPC 告知自己的信息时，可以同时记录事实和知情关系：
-            - "User: 我不会游泳" -> 可提取两条：rawText "user 不会游泳" + rawText "角色名知道user不会游泳"
-
-            ❌ 错误示例（不要这样做）：
-            - rawText: "User: 想带我走就带嘛 Assistant: 角色听你这么说..." （这是原对话，不是记忆句）
-            - rawText: "下午-市中心>咖啡店>靠窗位置..." （这是场景描述，不是记忆）
-            - rawText: "她笑够了，站起身来，拍了拍衣服..." （这是过程描写，不是记忆）
-
-            ✅ 正确示例：
-            - rawText: "user 表达了愿意跟随角色"
-            - rawText: "角色指出 user 需要帮助"
-            - rawText: "user 和角色在公园中对话"
-
-            重要约束：
-            - rawText 长度必须在 10-100 字之间
-            - 不要包含 "User:" "Assistant:" 等对话标记
-            - 不要包含场景描述标签（如 [下午-地点>场所...]）
-            - 不要包含大段角色动作或心理描写
-            - 只提取核心事实、关系、偏好、事件
-
-            对话片段：
-            %s
-
-            不要输出 Markdown，不要解释，只输出 JSON。
-            """.trimIndent()
     }
 
     // --- Changelog ---

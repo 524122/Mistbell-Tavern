@@ -18,14 +18,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -129,100 +126,6 @@ private fun RestoreConfirmDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
-        },
-    )
-}
-
-/** 记忆提取提示词编辑对话框。原位于 SettingsScreen.kt，双轨 UI 收敛时迁出。 */
-@Suppress("FunctionNaming", "LongMethod") // Compose 对话框组件的既有形态
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-@Composable
-internal fun MemoryExtractionPromptDialog(
-    viewModel: SettingsViewModel,
-    onDismiss: () -> Unit,
-) {
-    val memoryPrompt by viewModel.memoryExtractionPrompt.collectAsState()
-    var editedPrompt by remember(memoryPrompt) { mutableStateOf(memoryPrompt) }
-    val coroutineScope = rememberCoroutineScope()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "记忆提取提示词",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-        },
-        text = {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = "自定义 LLM 提取会话记忆时使用的提示词。提示词中必须包含 %s 占位符用于插入对话内容。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                OutlinedTextField(
-                    value = editedPrompt,
-                    onValueChange = { editedPrompt = it },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 300.dp, max = 500.dp),
-                    placeholder = {
-                        Text(
-                            "输入记忆提取提示词...",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    },
-                    textStyle =
-                        MaterialTheme.typography.bodySmall.copy(
-                            lineHeight = 20.sp,
-                        ),
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        ),
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            editedPrompt = viewModel.getDefaultMemoryExtractionPrompt()
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("恢复默认")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    coroutineScope.launch {
-                        viewModel.saveMemoryExtractionPrompt(editedPrompt)
-                        onDismiss()
-                    }
-                },
-            ) {
-                Text("保存")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
         },
     )
 }

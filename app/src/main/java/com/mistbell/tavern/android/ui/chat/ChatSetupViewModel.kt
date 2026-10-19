@@ -75,19 +75,11 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // 长期记忆三态：null = 跟随全局默认，true/false = 显式覆盖（必须声明在 init 块之前——
-    // Kotlin 属性按声明顺序初始化）
+    // 长期记忆开关：true/false 显式设置；null（历史三态残留）按关处理
     private val _enableLongTermMemory = MutableStateFlow<Boolean?>(null)
     val enableLongTermMemory: StateFlow<Boolean?> = _enableLongTermMemory.asStateFlow()
 
-    // 全局默认长期记忆（展示"跟随全局"时的当前生效值）
-    private val _globalDefaultLtmEnabled = MutableStateFlow(false)
-    val globalDefaultLtmEnabled: StateFlow<Boolean> = _globalDefaultLtmEnabled.asStateFlow()
-
     init {
-        viewModelScope.launch {
-            _globalDefaultLtmEnabled.value = settingsRepo.defaultLtmEnabled()
-        }
         // 当角色选择变化时，自动更新世界书默认值（仅在用户未手动选择时）
         viewModelScope.launch {
             characterDefaultWorldBookId.collect { defaultId ->

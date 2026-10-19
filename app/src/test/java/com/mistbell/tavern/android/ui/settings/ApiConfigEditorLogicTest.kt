@@ -70,6 +70,64 @@ class ApiConfigEditorLogicTest {
     }
 
     @Test
+    fun `表单自动草稿未填完模型时密钥输入不冻结后续表单同步`() {
+        // 新配置自然填写顺序（名称 → 密钥 → 模型）：密钥输入时草稿 model 为空，validate 不通过
+        val incompleteDraft = ApiConfigJson.format(document(name = "A").copy(model = ""))
+        assertTrue(
+            com.mistbell.tavern.android.data.api.ApiConfigJson.parse(incompleteDraft) is
+                com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Invalid,
+        )
+
+        // 非手动编辑：不得把“草稿暂时不完整”当作 sticky JSON 错误
+        val edit =
+            ApiConfigEditorLogic.afterApiKeyEdit(
+                incompleteDraft,
+                hasApiKey = true,
+                protectInvalidDraft = false,
+            )
+        assertNull(edit.error)
+        assertNull(edit.parsed)
+
+        // 随后填写模型，afterBaseEdit 必须重新生成可保存的 JSON
+        val text =
+            ApiConfigEditorLogic.afterBaseEdit(
+                currentText = incompleteDraft,
+                currentError = edit.error,
+                next = document(name = "A"),
+                hasApiKey = true,
+                protectInvalidDraft = false,
+            )
+        assertTrue(text.contains("\"model\": \"model-1\""))
+        assertTrue(
+            com.mistbell.tavern.android.data.api.ApiConfigJson.parse(text) is
+                com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid,
+        )
+    }
+
+    @Test
+    fun `用户手改坏的 JSON 在保护开启时仍不被覆盖且保留错误`() {
+        val draft = """{"name": "draft", bad"""
+        val text =
+            ApiConfigEditorLogic.afterBaseEdit(
+                currentText = draft,
+                currentError = "JSON 格式错误",
+                next = document(),
+                hasApiKey = true,
+                protectInvalidDraft = true,
+            )
+        assertEquals(draft, text)
+
+        val edit =
+            ApiConfigEditorLogic.afterApiKeyEdit(
+                "{bad",
+                hasApiKey = false,
+                protectInvalidDraft = true,
+            )
+        assertEquals("{bad", edit.text)
+        assertNotNull(edit.error)
+    }
+
+    @Test
     fun `复制脱敏 JSON 拒绝非法草稿`() {
         assertNull(ApiConfigEditorLogic.safeJsonForClipboard("{bad", hasApiKey = true))
         assertNull(

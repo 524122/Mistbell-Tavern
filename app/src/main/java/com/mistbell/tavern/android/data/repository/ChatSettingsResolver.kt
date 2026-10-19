@@ -8,7 +8,7 @@ import com.mistbell.tavern.android.data.local.entity.SessionEntity
  * 差异在读取时合并，而不是在建会话时拷贝（旧快照语义导致全局默认改动对存量会话永久失效，
  * 且"用户显式设置"与"当时默认值的拷贝"在数据上无法区分）。
  *
- * 全局默认值的原始字符串解析也收敛于此（[globalDefaultContextTokens]/[globalDefaultLtmEnabled]），
+ * 全局默认值的原始字符串解析也收敛于此（[globalDefaultContextTokens]），
  * SettingsRepository 与 PromptBuilder 等读取路径共用同一份实现，杜绝键解析的双源真相。
  */
 object ChatSettingsResolver {
@@ -25,9 +25,6 @@ object ChatSettingsResolver {
             ?.coerceIn(CONTEXT_TOKEN_LIMIT_MIN, CONTEXT_TOKEN_LIMIT_MAX)
             ?: FALLBACK_CONTEXT_TOKENS
 
-    // settings KV 原始值 → 全局默认长期记忆开关（仅显式 "1" 为开，缺省关）
-    fun globalDefaultLtmEnabled(raw: String?): Boolean = raw == "1"
-
     // 生效上下文长度：会话显式值（钳制）优先，null（跟随全局）回落到全局默认
     fun contextTokenLimit(
         session: SessionEntity?,
@@ -36,7 +33,7 @@ object ChatSettingsResolver {
         session?.contextTokenLimit?.coerceIn(CONTEXT_TOKEN_LIMIT_MIN, CONTEXT_TOKEN_LIMIT_MAX)
             ?: globalDefaultTokens.coerceIn(CONTEXT_TOKEN_LIMIT_MIN, CONTEXT_TOKEN_LIMIT_MAX)
 
-    // 生效长期记忆开关：会话显式值优先，null（跟随全局）回落到全局默认
+    // 生效长期记忆开关：会话显式值优先，null（未设置）回落到全局默认（全局开关已删除，调用方传 false）
     fun longTermMemoryEnabled(
         session: SessionEntity?,
         globalDefaultEnabled: Boolean,

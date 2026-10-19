@@ -66,8 +66,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
@@ -527,12 +525,13 @@ fun ApiConfigEditorDialog(
     var document by remember { mutableStateOf(initialDocument) }
     var jsonValue by remember { mutableStateOf(TextFieldValue(ApiConfigEditorLogic.formatForEditor(initialDocument, apiConfig?.apiKey?.isNotBlank() == true))) }
     var jsonError by remember { mutableStateOf<String?>(null) }
+    // 用户是否手动改过 JSON 文本：只有手改坏的草稿才阻止表单字段重新生成 JSON；
+    // 表单自动草稿在填写过程中暂时不完整（model/name 为空）不属于受保护对象。
+    var manualJsonEdited by remember { mutableStateOf(false) }
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var protocolNotice by remember { mutableStateOf<String?>(null) }
     var clipboardMessage by remember { mutableStateOf<String?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
-    val jsonFocusRequester = remember { FocusRequester() }
-    val apiUrlFocusRequester = remember { FocusRequester() }
     var name by remember { mutableStateOf(initialDocument.name) }
     var type by remember { mutableStateOf(initialDocument.type) }
     var apiUrl by remember { mutableStateOf(initialDocument.baseUrl) }
@@ -561,11 +560,21 @@ fun ApiConfigEditorDialog(
     }
 
     /**
-     * 基础字段修改：非法 JSON 草稿优先，保留用户正在编辑的原文与错误，不静默格式化覆盖。
+     * 基础字段修改：用户手改坏的 JSON 草稿优先，保留原文与错误；
+     * 否则（表单自动草稿）总是重新生成并清除自动草稿上的暂时性校验错误。
      */
     fun editBase(next: ApiConfigDocument) {
         document = next
-        setJsonText(ApiConfigEditorLogic.afterBaseEdit(jsonValue.text, jsonError, next, apiKey.isNotBlank()))
+        if (!manualJsonEdited) jsonError = null
+        setJsonText(
+            ApiConfigEditorLogic.afterBaseEdit(
+                jsonValue.text,
+                jsonError,
+                next,
+                apiKey.isNotBlank(),
+                protectInvalidDraft = manualJsonEdited,
+            ),
+        )
     }
 
     /** “重置为协议模板”恢复当前协议的完整参数模板（不是清空 request），允许覆盖草稿。 */
@@ -573,6 +582,7 @@ fun ApiConfigEditorDialog(
         document = next
         setJsonText(ApiConfigEditorLogic.formatForEditor(next, apiKey.isNotBlank()))
         jsonError = null
+        manualJsonEdited = false
     }
 
     fun updateFromJson(text: String) {
@@ -659,12 +669,14 @@ fun ApiConfigEditorDialog(
                         when (val parsed = ApiConfigJson.parse(jsonValue.text)) {
                             is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Invalid -> {
                                 jsonError = parsed.message
-                                jsonFocusRequester.requestFocus()
+                                // 切到请求参数页展示错误：JSON 输入框可能从未组合，
+                                // 直接 requestFocus 未 attach 的 FocusRequester 会崩溃
+                                selectedTab = 1
                             }
                             is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid -> {
                                 if (ApiConfigJson.sanitizeBaseUrl(apiUrl) == null) {
                                     apiUrlError = "API 地址包含无法安全清理的凭据或格式错误，请修正后再保存"
-                                    apiUrlFocusRequester.requestFocus()
+                                    selectedTab = 0
                                 } else {
                                     jsonError = null
                                     val finalDocument =
@@ -787,10 +799,7 @@ fun ApiConfigEditorDialog(
                     supportingText = {
                         apiUrlError?.let { Text(it) }
                     },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .focusRequester(apiUrlFocusRequester),
+                    modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -803,7 +812,12 @@ fun ApiConfigEditorDialog(
                         apiKey = newKey
                         // Key 不在 JSON 内：重校验当前草稿，清掉“合法草稿上的陈旧 jsonError”；
                         // 若草稿本身非法，则保留原文并继续展示真实错误。
-                        val edit = ApiConfigEditorLogic.afterApiKeyEdit(jsonValue.text, newKey.isNotBlank())
+                        val edit =
+                            ApiConfigEditorLogic.afterApiKeyEdit(
+                                jsonValue.text,
+                                newKey.isNotBlank(),
+                                protectInvalidDraft = manualJsonEdited,
+                            )
                         setJsonText(edit.text)
                         jsonError = edit.error
                         edit.parsed?.let { parsed ->
@@ -912,13 +926,11 @@ fun ApiConfigEditorDialog(
                     OutlinedTextField(
                         value = jsonValue,
                         onValueChange = { value ->
+                            manualJsonEdited = true
                             jsonValue = value
                             updateFromJson(value.text)
                         },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .focusRequester(jsonFocusRequester),
+                        modifier = Modifier.fillMaxWidth(),
                         minLines = 8,
                         maxLines = 14,
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -967,7 +979,10 @@ fun ApiConfigEditorDialog(
                         ) { Text("复制脱敏") }
                         TextButton(
                             onClick = {
-                                clipboard.getText()?.text?.let(::updateFromJson)
+                                clipboard.getText()?.text?.let { text ->
+                                    manualJsonEdited = true
+                                    updateFromJson(text)
+                                }
                                 clipboardMessage = "已粘贴，保存前仍需通过校验"
                             },
                             contentPadding = PaddingValues(horizontal = 4.dp),

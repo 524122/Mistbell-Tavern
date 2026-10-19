@@ -246,7 +246,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // 与会话级覆盖后的真实请求同源（ChatRepository.effectiveLlmConfig），否则诊断栏
         // 显示全局默认配置，与会话实际使用的模型/端点不一致
         val config = repo.effectiveLlmConfig(_activeSessionId.value)
-        val preset = db.settingsDao().getValue("sampling_preset") ?: "balanced"
 
         fun num(value: Double?): String = value?.toString() ?: "未设置（不发送）"
         val protectedFields = ApiConfigJson.protectedFieldsForType(config.type)
@@ -262,7 +261,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             add("top_p" to num(config.topP))
             add("top_k" to num(config.topK?.toDouble()))
             add("frequency_penalty" to num(config.frequencyPenalty))
-            add("采样预设" to preset)
             add("思考模式" to if (config.disableThinking) "已关闭" else "跟随模型默认（开启）")
             add("超时/重试" to "${config.timeoutSeconds}s / ${config.retries} 次")
             add("contextTokenLimit" to "${config.contextTokenLimit}（本地 prompt 输入预算，与 max_tokens 不同）")

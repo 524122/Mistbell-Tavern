@@ -108,14 +108,6 @@ class ChatSettingsResolverTest {
         assertTrue(ChatSettingsResolver.longTermMemoryEnabled(null, true))
     }
 
-    @Test
-    fun `全局默认长期记忆仅显式开才为真`() {
-        assertTrue(ChatSettingsResolver.globalDefaultLtmEnabled("1"))
-        assertFalse(ChatSettingsResolver.globalDefaultLtmEnabled("0"))
-        assertFalse(ChatSettingsResolver.globalDefaultLtmEnabled(null))
-        assertFalse(ChatSettingsResolver.globalDefaultLtmEnabled("true"))
-    }
-
     // ---- S2 向量记忆召回设置 ----
 
     @Test

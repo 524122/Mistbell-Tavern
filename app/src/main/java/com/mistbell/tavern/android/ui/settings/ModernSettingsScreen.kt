@@ -19,19 +19,15 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -52,7 +48,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.ui.common.ModernDivider
 import com.mistbell.tavern.android.ui.common.ModernSettingsGroup
 import com.mistbell.tavern.android.ui.common.ModernSettingsItem
-import com.mistbell.tavern.android.ui.common.ModernSwitchItem
 import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.components.ContextTokenLimitSelector
 import com.mistbell.tavern.android.ui.components.formatTokenLimit
@@ -61,8 +56,8 @@ import com.mistbell.tavern.android.ui.components.formatTokenLimit
  * 主设置界面（现代化风格，唯一设置入口）。
  *
  * 原 SettingsScreen 的功能已全部并入本页（双轨 UI 收敛）：
- * 采样预设、请求超时、重试次数、上下文长度、深色模式、提示词模板、
- * 记忆提取提示词、向量记忆召回、全量备份/恢复、反馈日志。
+ * 模型参数（编辑默认 API 配置的采样与超时/重试）、上下文长度、深色模式、
+ * 提示词模板、全量备份/恢复、反馈日志。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("FunctionNaming", "LongMethod", "LongParameterList") // Compose 屏幕级组件的既有形态
@@ -71,6 +66,7 @@ fun ModernSettingsScreen(
     onBack: (() -> Unit)? = null,
     onNavigateToThemeManager: () -> Unit,
     onNavigateToPromptManagement: () -> Unit,
+    onNavigateToModelParams: () -> Unit = {},
     onNavigateToVersionChangelog: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
@@ -123,8 +119,6 @@ fun ModernSettingsScreen(
 
             AppearanceSettingsSection(viewModel, onNavigateToThemeManager)
 
-            MemorySettingsSection(viewModel, advanced = false)
-
             DataManagementSection(viewModel, isLoading)
 
             // ============ 高级设置（折叠）============
@@ -145,7 +139,7 @@ fun ModernSettingsScreen(
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "提示词、采样、记忆召回、网络与实验功能",
+                            text = "提示词、采样、网络与实验功能",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -169,11 +163,7 @@ fun ModernSettingsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     PromptSettingsSection(onNavigateToPromptManagement)
 
-                    MemorySettingsSection(viewModel, advanced = true)
-
-                    SamplingPresetSection(viewModel)
-
-                    AdvancedSamplingSection(viewModel)
+                    ModelParamsEntrySection(onNavigateToModelParams)
 
                     ExperimentalFeaturesSection()
                 }
@@ -203,55 +193,19 @@ private fun ApiSettingsSection(
     }
 }
 
-/** 酒馆玩家常用的生成风格预设；新手使用平衡预设即可，不在首屏增加决策。 */
+/**
+ * 模型参数入口：下钻到独立页面（编辑默认 API 配置的采样与超时/重试）
+ */
 @Suppress("FunctionNaming")
 @Composable
-private fun SamplingPresetSection(viewModel: SettingsViewModel) {
-    val samplingPreset by viewModel.samplingPreset.collectAsState()
-
-    ModernSettingsGroup(title = "🎛️ 生成风格") {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "采样预设",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = samplingPreset == "creative",
-                    onClick = { viewModel.setSamplingPreset("creative") },
-                    label = { Text("创意") },
-                )
-                FilterChip(
-                    selected = samplingPreset == "balanced",
-                    onClick = { viewModel.setSamplingPreset("balanced") },
-                    label = { Text("平衡") },
-                )
-                FilterChip(
-                    selected = samplingPreset == "precise",
-                    onClick = { viewModel.setSamplingPreset("precise") },
-                    label = { Text("精确") },
-                )
-                FilterChip(
-                    selected = samplingPreset == "custom",
-                    onClick = { viewModel.setSamplingPreset("custom") },
-                    label = { Text("自定义") },
-                )
-            }
-            if (samplingPreset == "custom") {
-                Text(
-                    text = "自定义参数请在 API 卡片编辑页的高级区域调整",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+private fun ModelParamsEntrySection(onNavigateToModelParams: () -> Unit) {
+    ModernSettingsGroup(title = "🎛️ 模型参数") {
+        ModernSettingsItem(
+            title = "模型参数",
+            subtitle = "采样、输出预算、超时与重试（作用于默认 API 配置）",
+            icon = Icons.Default.Tune,
+            onClick = onNavigateToModelParams,
+        )
     }
 }
 
@@ -424,51 +378,6 @@ private fun AppearanceSettingsSection(
 }
 
 /**
- * 记忆设置区域：默认会话记忆开关 + 记忆提取提示词 + 向量记忆召回（源 / top-k / 相似度阈值）
- */
-@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
-@Composable
-private fun MemorySettingsSection(
-    viewModel: SettingsViewModel,
-    advanced: Boolean,
-) {
-    val defaultLtmEnabled by viewModel.defaultLtmEnabled.collectAsState()
-    var showMemoryPromptDialog by remember { mutableStateOf(false) }
-
-    ModernSettingsGroup(title = "🧠 记忆") {
-        ModernSwitchItem(
-            title = "默认会话记忆（实验性）",
-            subtitle = "新会话默认开启记忆抽取；向量记忆处于实验阶段",
-            icon = Icons.Default.Psychology,
-            checked = defaultLtmEnabled,
-            onCheckedChange = { viewModel.setDefaultLtmEnabled(it) },
-        )
-
-        if (advanced) {
-            ModernDivider()
-
-            ModernSettingsItem(
-                title = "记忆提取提示词",
-                subtitle = "自定义会话记忆提取的提示词",
-                icon = Icons.Default.Description,
-                onClick = { showMemoryPromptDialog = true },
-            )
-        }
-    }
-
-    if (showMemoryPromptDialog) {
-        MemoryExtractionPromptDialog(
-            viewModel = viewModel,
-            onDismiss = { showMemoryPromptDialog = false },
-        )
-    }
-
-    if (advanced) {
-        VectorMemorySettingsCard(viewModel = viewModel)
-    }
-}
-
-/**
  * 数据管理区域（全量备份/恢复）
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
@@ -478,100 +387,6 @@ private fun DataManagementSection(
     isLoading: Boolean,
 ) {
     DataBackupCard(viewModel = viewModel, isLoading = isLoading)
-}
-
-/**
- * 高级采样参数区域：请求超时 + 重试次数
- */
-@Suppress("FunctionNaming", "LongMethod", "MagicNumber") // Compose 屏幕级 section；0..5 档重试为设计常量
-@Composable
-private fun AdvancedSamplingSection(viewModel: SettingsViewModel) {
-    val requestTimeout by viewModel.requestTimeout.collectAsState()
-    val requestRetries by viewModel.requestRetries.collectAsState()
-
-    ModernSettingsGroup(title = "🎛️ 采样参数") {
-        // 请求超时：数值输入，范围 15..600 秒（越界自动收敛）
-        var timeoutText by remember(requestTimeout) { mutableStateOf(requestTimeout.toString()) }
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "请求超时",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = "单次请求最长等待时间（15–600 秒）",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            OutlinedTextField(
-                value = timeoutText,
-                onValueChange = { input ->
-                    // 只允许数字；可解析且在范围内时立即落盘
-                    if (input.all { it.isDigit() }) {
-                        timeoutText = input.take(4)
-                        input.toIntOrNull()?.let { if (it in 15..600) viewModel.setRequestTimeout(it) }
-                    }
-                },
-                modifier = Modifier.width(96.dp),
-                singleLine = true,
-                trailingIcon = { Text("秒", style = MaterialTheme.typography.labelMedium) },
-                shape = RoundedCornerShape(8.dp),
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    ),
-            )
-        }
-
-        ModernDivider()
-
-        // 重试次数：失败后自动重试，范围 0..5
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "重试次数",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        text = "请求失败后的自动重试上限",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Text(
-                    text = requestRetries.toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Slider(
-                value = requestRetries.toFloat(),
-                onValueChange = { viewModel.setRequestRetries(it.toInt()) },
-                valueRange = 0f..5f,
-                steps = 4,
-            )
-        }
-    }
 }
 
 /**

@@ -18,20 +18,24 @@ data class ApiRequestTemplateField(
 /**
  * API request 的唯一模板/物化来源。
  *
- * 模板展示“完整可编辑参数文档”：缺省参数以 BALANCED 采样预设和
+ * 模板展示“完整可编辑参数文档”：缺省参数以模板默认采样值和
  * [LlmConfig.DEFAULT_MAX_TOKENS] 物化；未设置项显式写成 null。
  * 实际协议合并前统一用 [withoutNulls] 去掉 null，因此模板里的 null 只用于 UI 表达“未设置”。
  */
 object ApiRequestTemplate {
-    fun templateFor(type: String): JsonObject {
-        val balanced = SamplerPresets.BALANCED
-        return when (normalizeApiType(type)) {
+    // 模板默认采样值（原 BALANCED 预设内联）：temperature 0.8 / top_p 0.9 / top_k 未设置 / frequency_penalty 0.0
+    private const val TEMPLATE_TEMPERATURE = 0.8
+    private const val TEMPLATE_TOP_P = 0.9
+    private const val TEMPLATE_FREQUENCY_PENALTY = 0.0
+
+    fun templateFor(type: String): JsonObject =
+        when (normalizeApiType(type)) {
             ApiType.ANTHROPIC ->
                 buildJsonObject {
-                    putNumber("temperature", balanced.temperature)
+                    putNumber("temperature", TEMPLATE_TEMPERATURE)
                     putNumber("max_tokens", LlmConfig.DEFAULT_MAX_TOKENS)
-                    putNumberOrNull("top_p", balanced.topP)
-                    putNumberOrNull("top_k", balanced.topK)
+                    putNumberOrNull("top_p", TEMPLATE_TOP_P)
+                    putNumberOrNull("top_k", null)
                     put("thinking", JsonNull)
                     put("metadata", JsonNull)
                 }
@@ -41,9 +45,9 @@ object ApiRequestTemplate {
                         "generationConfig",
                         buildJsonObject {
                             putNumber("maxOutputTokens", LlmConfig.DEFAULT_MAX_TOKENS)
-                            putNumber("temperature", balanced.temperature)
-                            putNumberOrNull("topP", balanced.topP)
-                            putNumberOrNull("topK", balanced.topK)
+                            putNumber("temperature", TEMPLATE_TEMPERATURE)
+                            putNumberOrNull("topP", TEMPLATE_TOP_P)
+                            putNumberOrNull("topK", null)
                             put("responseMimeType", JsonNull)
                             put("responseSchema", JsonNull)
                             put("thinkingConfig", JsonNull)
@@ -53,17 +57,16 @@ object ApiRequestTemplate {
                 }
             else ->
                 buildJsonObject {
-                    putNumber("temperature", balanced.temperature)
+                    putNumber("temperature", TEMPLATE_TEMPERATURE)
                     putNumber("max_tokens", LlmConfig.DEFAULT_MAX_TOKENS)
-                    putNumberOrNull("top_p", balanced.topP)
-                    putNumberOrNull("top_k", balanced.topK)
-                    putNumberOrNull("frequency_penalty", balanced.frequencyPenalty)
+                    putNumberOrNull("top_p", TEMPLATE_TOP_P)
+                    putNumberOrNull("top_k", null)
+                    putNumberOrNull("frequency_penalty", TEMPLATE_FREQUENCY_PENALTY)
                     put("thinking", JsonNull)
                     put("reasoning_effort", JsonNull)
                     put("response_format", JsonNull)
                 }
         }
-    }
 
     fun templateFields(type: String): List<ApiRequestTemplateField> = flattenLeaves(templateFor(type))
 

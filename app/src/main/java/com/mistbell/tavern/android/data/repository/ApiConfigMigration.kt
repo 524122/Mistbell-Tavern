@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.data.repository
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiType
+import com.mistbell.tavern.android.data.api.RequestSamplingParams
 import com.mistbell.tavern.android.data.api.normalizeApiType
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
@@ -50,7 +51,7 @@ internal data class ProviderConfig(
  * - **保留原 ProviderConfig.id 作为 ApiConfigEntity.id**：存量 session.providerId 引用不断链；
  * - 迁移在 ApiConfigViewModel.init（应用启动后首次触达配置页）执行，幂等（标志键
  *   [MIGRATED_FLAG_KEY]，且 api_configs 非空即跳过，恢复备份场景同样安全）；
- * - 激活提供商的高级采样参数继续平铺写入 llm_* 覆盖键（getLlmConfig 后半段机制不变）。
+ * - 激活提供商的高级采样参数写入其迁移配置的 request JSON（协议键位见 RequestSamplingParams）。
  */
 object ApiConfigMigration {
     const val MIGRATED_FLAG_KEY = "providers_migrated_v1"
@@ -89,14 +90,14 @@ object ApiConfigMigration {
             )
         }
 
-    /** 纯函数：激活提供商的高级采样参数 → llm_* 平铺覆盖键（null = 空串清除覆盖） */
-    internal fun activeProviderOverrides(active: ProviderConfig): List<Pair<String, String>> =
-        listOf(
-            "llm_temperature" to (active.temperature?.toString() ?: ""),
-            "llm_top_p" to (active.topP?.toString() ?: ""),
-            "llm_top_k" to (active.topK?.toString() ?: ""),
-            "llm_frequency_penalty" to (active.frequencyPenalty?.toString() ?: ""),
-            "llm_max_tokens" to (active.maxTokens?.toString() ?: ""),
+    /** 纯函数：激活提供商的高级采样参数 → request JSON 采样字段（null = 未设置不发送） */
+    internal fun activeProviderSampling(active: ProviderConfig): RequestSamplingParams =
+        RequestSamplingParams(
+            temperature = active.temperature,
+            maxTokens = active.maxTokens,
+            topP = active.topP,
+            topK = active.topK,
+            frequencyPenalty = active.frequencyPenalty,
         )
 
     /**
@@ -122,27 +123,38 @@ object ApiConfigMigration {
 
         val activeId = settingsDao.getValue("active_provider_id") ?: ""
         val now = System.currentTimeMillis()
+        val activeIndex = providers.indexOfFirst { it.id == activeId }.takeIf { it >= 0 } ?: 0
 
         // The pure mapping keeps historical test/read semantics; the database write wraps keys
         // so the new api_configs rows never persist a newly migrated secret in plain text.
         db.apiConfigDao().insertAll(
-            toApiConfigEntities(providers, activeId, now).map { entity ->
+            toApiConfigEntities(providers, activeId, now).mapIndexed { index, entity ->
+                val baseDocument = ApiConfigJson.fromEntity(entity)
+                // 激活提供商的高级采样参数随文档落库（request JSON），不再写 llm_* 平铺键
+                val document =
+                    if (index == activeIndex) {
+                        baseDocument.copy(
+                            request =
+                                RequestSamplingParams.write(
+                                    baseDocument.request,
+                                    baseDocument.type,
+                                    activeProviderSampling(providers[index]),
+                                ),
+                        )
+                    } else {
+                        baseDocument
+                    }
                 entity.copy(
                     apiKey = SecureStore.wrap(entity.apiKey),
                     configJson =
                         ApiConfigJson.format(
-                            ApiConfigJson.fromEntity(entity).copy(
+                            document.copy(
                                 apiKeyRef = if (entity.apiKey.isBlank()) "" else "secure:${entity.id}",
                             ),
                         ),
                 )
             },
         )
-
-        val active = providers.firstOrNull { it.id == activeId } ?: providers.first()
-        activeProviderOverrides(active).forEach { (key, value) ->
-            settingsDao.upsert(SettingsEntity(key, value))
-        }
 
         settingsDao.upsert(SettingsEntity(MIGRATED_FLAG_KEY, "1"))
     }

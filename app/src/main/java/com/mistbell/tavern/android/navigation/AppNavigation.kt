@@ -48,6 +48,7 @@ object Routes {
     const val THEME_MANAGER = "theme_manager"
     const val ABOUT = "about"
     const val PROMPT_MANAGEMENT = "prompt_management"
+    const val MODEL_PARAMS = "model_params"
 
     fun chat(
         sessionId: String,
@@ -222,6 +223,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     },
                     onNavigateToPromptManagement = {
                         navController.navigate(Routes.promptManagement())
+                    },
+                    onNavigateToModelParams = {
+                        navController.navigate(Routes.MODEL_PARAMS)
                     },
                     onNavigateToWorldBookDetail = { bookId ->
                         navController.navigate(Routes.worldBookDetail(bookId))
@@ -419,6 +423,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     onNavigateToPromptManagement = {
                         navController.navigate(Routes.promptManagement())
                     },
+                    onNavigateToModelParams = {
+                        navController.navigate(Routes.MODEL_PARAMS)
+                    },
                     onNavigateToVersionChangelog = {
                         android.util.Log.d("AppNavigation", "导航到版本更新日志页面")
                         navController.navigate(Routes.VERSION_CHANGELOG)
@@ -556,6 +563,18 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     onDeletePrompt = { id -> viewModel.deletePrompt(id) },
                     onTogglePrompt = { id, enabled -> viewModel.togglePrompt(id, enabled) },
                     onReorderPrompts = { /* 待实现：实现重排序 */ },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = Routes.MODEL_PARAMS,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.settings.ModelParamsScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
