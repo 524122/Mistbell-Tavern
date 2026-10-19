@@ -219,6 +219,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.5-beta",
+                versionCode = 16,
+                releaseDate = "2026-10-20",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "新增模型参数独立页面：五个采样参数滑条与请求超时/重试，直接编辑默认 API 配置并与面板 JSON 双向同步",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "请求超时/重试迁入每个 API 配置的 JSON 文档；长期记忆全局默认开关删除，会话设置改为普通开关",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "修复新增 API 配置按名称→密钥→模型顺序填写时保存闪退的问题",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "移除设置页记忆栏、全局采样预设与 llm_* 覆盖键等旧参数链路（记忆与向量引擎保留）",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.4-beta",
                 versionCode = 15,
                 releaseDate = "2026-10-19",
