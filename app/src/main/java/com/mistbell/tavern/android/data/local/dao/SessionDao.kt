@@ -35,6 +35,32 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE id = :sessionId LIMIT 1")
     suspend fun getById(sessionId: String): SessionEntity?
 
+    /**
+     * 该角色名下的会话 id。**遗留方法**：会话内长期记忆（RecallWindow）不再跨会话扩集，
+     * 生产路径不再调用，保留仅供旧代码/旧测试引用。
+     *
+     * 只认 `sessions.character_id`（会话主角色），不含 `participant_character_ids_json`——
+     * 按参与者放宽需要扫全表 JSON，而放宽的代价是把别的角色的整段对话倒进本角色提示词。
+     */
+    @Query("SELECT id FROM sessions WHERE owner_id = :ownerId AND character_id = :characterId")
+    suspend fun sessionIdsByCharacter(
+        ownerId: String,
+        characterId: String,
+    ): List<String>
+
+    /** 该用户的全部会话 id。**遗留方法**：会话内长期记忆（RecallWindow）不再跨会话扩集，
+     *  生产路径不再调用，保留仅供旧代码/旧测试引用。 */
+    @Query("SELECT id FROM sessions WHERE owner_id = :ownerId")
+    suspend fun sessionIdsByOwner(ownerId: String): List<String>
+
+    /** 启动对账用：库里现存的全部会话 id（跨 owner） */
+    @Query("SELECT id FROM sessions")
+    suspend fun allSessionIds(): List<String>
+
+    /** 会话表是否为空——对账前的安全检查，空库不得当成"全部会话都已删除" */
+    @Query("SELECT COUNT(*) FROM sessions")
+    suspend fun countAll(): Int
+
     @Query("SELECT * FROM sessions WHERE id = :sessionId LIMIT 1")
     fun observeById(sessionId: String): Flow<SessionEntity?>
 
@@ -63,7 +89,8 @@ interface SessionDao {
     )
 
     @Query(
-        "UPDATE sessions SET title = :title, updated_at = :updatedAt WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId",
+        "UPDATE sessions SET title = :title, updated_at = :updatedAt " +
+            "WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId",
     )
     suspend fun updateTitle(
         sessionId: String,
@@ -74,7 +101,8 @@ interface SessionDao {
     )
 
     @Query(
-        "UPDATE sessions SET is_pinned = :pinned, pinned_at = :pinnedAt WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId",
+        "UPDATE sessions SET is_pinned = :pinned, pinned_at = :pinnedAt " +
+            "WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId",
     )
     suspend fun updatePinned(
         sessionId: String,

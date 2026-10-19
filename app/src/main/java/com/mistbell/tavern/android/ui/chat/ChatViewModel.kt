@@ -7,6 +7,8 @@ import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.network.NetworkMonitor
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.data.api.ApiConfigJson
+import kotlinx.serialization.json.buildJsonObject
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
@@ -212,6 +214,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     db.messageDao().getBySession(sessionId, ownerId).first()
                         .lastOrNull { it.role == "user" }
                 val groupContext = groupContextFor(sessionId, characterId)
+                val requestConfig = repo.effectiveLlmConfig(sessionId)
                 _promptTrace.value =
                     PromptBuilder.buildPromptTrace(
                         db = db,
@@ -222,6 +225,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         // 已落库的最后一条用户消息需排除，否则预览里会重复出现
                         currentMessageId = lastUserMessage?.id,
                         groupContext = groupContext,
+                        contextTokenLimitOverride = requestConfig.contextTokenLimit,
                     )
                 _promptRequestParams.value = describeRequestParams()
             } catch (e: Exception) {
@@ -245,19 +249,33 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val preset = db.settingsDao().getValue("sampling_preset") ?: "balanced"
 
         fun num(value: Double?): String = value?.toString() ?: "未设置（不发送）"
+        val protectedFields = ApiConfigJson.protectedFieldsForType(config.type)
+        val merge = ApiConfigJson.mergeRequest(buildJsonObject { }, config.request, protectedFields)
         return buildList {
             add("模型" to config.model.ifBlank { "未配置" })
-            add("接口" to config.baseUrl.ifBlank { "未配置" })
+            add("接口类型" to config.type)
+            add("接口" to ApiConfigJson.redactUrl(config.baseUrl).ifBlank { "未配置" })
             add("密钥" to if (config.apiKey.isBlank()) "未配置" else "已配置（${config.apiKey.length} 字符）")
             add("流式输出" to if (config.streamingEnabled) "开" else "关")
             add("temperature" to num(config.temperature))
-            add("max_tokens" to config.maxTokens.toString())
+            add("max_tokens" to "${config.maxTokens}（模型输出预算）")
             add("top_p" to num(config.topP))
             add("top_k" to num(config.topK?.toDouble()))
             add("frequency_penalty" to num(config.frequencyPenalty))
             add("采样预设" to preset)
             add("思考模式" to if (config.disableThinking) "已关闭" else "跟随模型默认（开启）")
             add("超时/重试" to "${config.timeoutSeconds}s / ${config.retries} 次")
+            add("contextTokenLimit" to "${config.contextTokenLimit}（本地 prompt 输入预算，与 max_tokens 不同）")
+            // 递归展开扩展字段的实际值（thinking.type / reasoning_effort 等嵌套字段也逐叶显示）
+            add("request 扩展字段" to ApiConfigJson.flattenRequest(config.request).joinToString("；").ifBlank { "无" })
+            add("request 已应用" to merge.applied.joinToString("；").ifBlank { "无" })
+            add("request 被忽略" to merge.ignored.joinToString("；").ifBlank { "无" })
+            add("受保护字段（${config.type}）" to protectedFields.toSortedSet().joinToString())
+            // 与本次预览装配的提示词同源：消息条数 + 估算输入 token
+            _promptTrace.value?.let { trace ->
+                add("消息数量" to "${trace.segments.size} 条")
+                add("估算输入 token" to "约 ${trace.totalEstimatedTokens}")
+            }
         }
     }
 

@@ -66,6 +66,10 @@ interface VectorMemoryDao {
     @Query("DELETE FROM vector_memory WHERE message_id = :messageId")
     suspend fun deleteByMessageId(messageId: String)
 
+    /** 按 owner 全量删除（deleteAllSessions 的孤儿清理用；不带 owner 条件的 deleteAll 会越界） */
+    @Query("DELETE FROM vector_memory WHERE owner_id = :ownerId")
+    suspend fun deleteByOwner(ownerId: String)
+
     @Query("DELETE FROM vector_memory")
     suspend fun deleteAll()
 

@@ -1,6 +1,9 @@
 package com.mistbell.tavern.android.data.repository
 
 import com.mistbell.tavern.android.data.local.AppDatabase
+import com.mistbell.tavern.android.data.api.ApiConfigJson
+import com.mistbell.tavern.android.data.api.ApiType
+import com.mistbell.tavern.android.data.api.normalizeApiType
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.util.SecureStore
@@ -72,12 +75,13 @@ object ApiConfigMigration {
             ApiConfigEntity(
                 id = provider.id.ifBlank { UUID.randomUUID().toString() },
                 name = provider.name,
-                apiUrl = provider.endpoint,
+                // 旧 providers_json 可能把 ?key= 存在 endpoint 里；迁移时同样只保留清理后的 URL
+                apiUrl = ApiConfigJson.sanitizeBaseUrl(provider.endpoint).orEmpty(),
                 apiKey = provider.apiKey,
                 model = provider.selectedModel,
                 isDefault = provider.id == activeId || (activeId.isBlank() && index == 0),
                 sortOrder = index,
-                type = provider.type.ifBlank { "openai" },
+                type = normalizeApiType(provider.type.ifBlank { ApiType.OPENAI }),
                 context1m = provider.context1M,
                 streamingEnabled = true,
                 createdAt = now,
@@ -119,7 +123,21 @@ object ApiConfigMigration {
         val activeId = settingsDao.getValue("active_provider_id") ?: ""
         val now = System.currentTimeMillis()
 
-        db.apiConfigDao().insertAll(toApiConfigEntities(providers, activeId, now))
+        // The pure mapping keeps historical test/read semantics; the database write wraps keys
+        // so the new api_configs rows never persist a newly migrated secret in plain text.
+        db.apiConfigDao().insertAll(
+            toApiConfigEntities(providers, activeId, now).map { entity ->
+                entity.copy(
+                    apiKey = SecureStore.wrap(entity.apiKey),
+                    configJson =
+                        ApiConfigJson.format(
+                            ApiConfigJson.fromEntity(entity).copy(
+                                apiKeyRef = if (entity.apiKey.isBlank()) "" else "secure:${entity.id}",
+                            ),
+                        ),
+                )
+            },
+        )
 
         val active = providers.firstOrNull { it.id == activeId } ?: providers.first()
         activeProviderOverrides(active).forEach { (key, value) ->

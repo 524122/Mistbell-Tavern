@@ -9,6 +9,9 @@ import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.repository.BackupManager
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.SettingsRepository
+import com.mistbell.tavern.android.data.repository.VectorIndexRebuilder
+import com.mistbell.tavern.android.data.vector.VectorStatistics
+import com.mistbell.tavern.android.data.vector.getStatistics
 import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MAX
 import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MIN
 import kotlinx.coroutines.flow.*
@@ -19,6 +22,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     companion object {
         // stateIn 订阅超时：与全仓 ViewModel 的 WhileSubscribed(5000) 同值，收敛为具名常量
         private const val SUBSCRIBE_TIMEOUT_MS = 5000L
+
+        // 本机单用户：仓库层的 ownerId 目前散落在多处字面量（AppNavigation / TavernApi 等），
+        // 此处沿用同一取值，不新增第二个来源
+        private const val LOCAL_OWNER = "local-user"
     }
 
     private val repo = SettingsRepository(application)
@@ -69,6 +76,28 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS),
                 ChatSettingsResolver.DEFAULT_SIMILARITY_THRESHOLD,
             )
+
+    /**
+     * 索引容量快照（条数 + 占盘字节 + 预算）。
+     *
+     * 磁盘容量治理必须**可观测**：不显示占用的话，用户只会看到"想不起来以前的事"，却不知道
+     * 是索引满了在淘汰，也不知道该删点什么。重建/备份/恢复后刷新。
+     */
+    private val _vectorIndexUsage = MutableStateFlow<VectorStatistics?>(null)
+    val vectorIndexUsage: StateFlow<VectorStatistics?> = _vectorIndexUsage
+
+    init {
+        refreshVectorIndexUsage()
+    }
+
+    /** 读一次索引占用（失败静默：这只是展示信息，不该影响设置页可用性） */
+    private fun refreshVectorIndexUsage() {
+        viewModelScope.launch {
+            _vectorIndexUsage.value =
+                runCatching { TavernApplication.instance.container.vectorMemoryService.getStatistics() }
+                    .getOrNull()
+        }
+    }
 
     // --- 提示词模板（全局 KV，明文存储；空值语义见各 resolver） ---
     //
@@ -311,6 +340,54 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    // 索引重建进度（"已重建 n / N"）；null 表示没有正在进行的重建
+    private val _vectorRebuildProgress = MutableStateFlow<String?>(null)
+    val vectorRebuildProgress: StateFlow<String?> = _vectorRebuildProgress
+
+    /**
+     * 重建向量索引：把消息库里最近的对话重新灌回索引。
+     *
+     * 索引超限会按价值淘汰，被淘汰的向量无法自动重建，这是唯一的恢复入口。
+     */
+    fun rebuildVectorIndex() {
+        if (_isLoading.value) return
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
+                if (!vectorMemoryService.available) {
+                    // Mock/占位服务写进去的向量没有语义，重建只会污染索引
+                    _message.value = "当前是词法回退（未启用语义记忆源），无需重建索引"
+                    return@launch
+                }
+
+                _vectorRebuildProgress.value = "准备中…"
+                val result =
+                    VectorIndexRebuilder.forDatabase(db, vectorMemoryService)
+                        .rebuild(ownerId = LOCAL_OWNER) { done, total ->
+                            _vectorRebuildProgress.value = "已重建 $done / $total"
+                        }
+
+                _message.value =
+                    when {
+                        result.total == 0 -> "消息库里没有可重建的消息"
+                        else ->
+                            "索引重建完成：新写入 ${result.embedded} 条，" +
+                                "已在索引中跳过 ${result.skipped} 条" +
+                                (if (result.failed > 0) "，失败 ${result.failed} 条" else "") +
+                                (if (result.declined > 0) "，因索引已满放弃 ${result.declined} 条" else "")
+                    }
+                refreshVectorIndexUsage()
+            } catch (e: Exception) {
+                android.util.Log.e("Settings", "Vector index rebuild failed", e)
+                _message.value = "重建失败：${e.message}"
+            } finally {
+                _isLoading.value = false
+                _vectorRebuildProgress.value = null
+            }
+        }
+    }
+
     // --- 数据（S4 全量备份/恢复） ---
     fun createBackup(uri: android.net.Uri) {
         viewModelScope.launch {
@@ -318,6 +395,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _isLoading.value = true
                 val summary = BackupManager(getApplication()).exportToUri(uri)
                 _message.value = "备份完成：已导出 ${summary.totalAdded} 项数据"
+                refreshVectorIndexUsage()
             } catch (e: Exception) {
                 android.util.Log.e("Settings", "Backup export failed", e)
                 _message.value = e.message ?: "备份失败"
@@ -335,6 +413,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _message.value =
                     "恢复完成：合并 ${summary.totalAdded} 项" +
                     (if (summary.totalSkipped > 0) "（跳过已存在 ${summary.totalSkipped} 项）" else "")
+                refreshVectorIndexUsage()
             } catch (e: Exception) {
                 android.util.Log.e("Settings", "Backup restore failed", e)
                 _message.value = e.message ?: "恢复失败"
@@ -512,6 +591,42 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     ),
             ),
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.2-beta",
+                versionCode = 13,
+                releaseDate = "2026-10-03",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "支持 OpenAI/DeepSeek、Anthropic 和 Gemini 思维链解析，正文与思维链分开保存并在聊天气泡中显示",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "优化聊天输入区、格式快捷字符和 Markdown 语义高亮，降低输入栏整体高度并改善主题适配",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "修复横屏前摄安全区、左侧 NavigationRail 空白、导航裁切和连续旋转后的 inset 失效问题",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "适配 Android 17（API 37）编译与目标 SDK，保留 Android 8.0（API 26）最低支持",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "优化首屏启动、角色头像解码、会话搜索、提示词装配、记忆抽取和 Compose 列表重组",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "完善提示词模板与 PromptTrace，补齐主提示词、用户人设、post-history 指令、群聊规范和世界书位置/深度语义",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "改善长期记忆抽取可靠性与向量同步，降低重复召回，并将动态世界书条目后移以稳定提示词前缀缓存",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.1-beta",
                 versionCode = 12,
                 releaseDate = "2026-10-02",
@@ -599,7 +714,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     listOf(
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "feature",
-                            "群聊模式：多角色会话（上限 4），AI 轮流以各角色身份发言，气泡按说话者显示名字与配色",
+                            "群聊模式：多角色会话（上限 20），AI 轮流以各角色身份发言，气泡按说话者显示名字与配色",
                         ),
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "feature",

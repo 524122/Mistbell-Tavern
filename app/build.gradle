@@ -6,6 +6,18 @@ plugins {
     id "com.google.devtools.ksp"
     id "io.gitlab.arturbosch.detekt"
     id "org.jlleitschuh.gradle.ktlint"
+    id "com.github.jk1.dependency-license-report"
+}
+
+// 依赖许可证报告（供根项目 licenseGuard 消费；输出目录对齐根 build/reports/licenses）
+licenseReport {
+    outputDir = "$rootDir/build/reports/licenses"
+    renderers = [new com.github.jk1.license.render.JsonReportRenderer("index.json", false)]
+}
+
+// jk1 插件任务持有 Project 引用，与配置缓存不兼容
+tasks.named('generateLicenseReport') {
+    notCompatibleWithConfigurationCache('jk1 dependency-license-report 尚未适配配置缓存')
 }
 
 android {
@@ -41,6 +53,13 @@ android {
             // Debug 构建也启用资源压缩（但不混淆代码）
             shrinkResources false
             minifyEnabled false
+            // 隔离验收构建：显式传 -PisolatedMemoryValidation 才改测试包名，不影响常规 debug/release。
+            if (project.hasProperty('isolatedMemoryValidation')) {
+                applicationIdSuffix '.memoryvalidation'
+            }
+            if (project.hasProperty('isolatedApplicationIdSuffix')) {
+                applicationIdSuffix = project.property('isolatedApplicationIdSuffix')
+            }
             // 产出未签名 APK 的开关：gradlew :app:assembleDebug -PbuildUnsigned
             // （未签名包不能直接安装，需自行 apksigner 签名；用于自定义签名/分发场景）
             if (project.hasProperty('buildUnsigned')) {
@@ -76,6 +95,14 @@ android {
     buildFeatures {
         compose true
         buildConfig true
+    }
+
+    // JVM 单元测试没有 Android 运行时：未 stub 的框架方法（android.util.Log 等）返回默认值，
+    // 而不是抛 "not mocked"。注入式服务（VectorMemoryService 等）因此可以做纯 JVM 回归测试。
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+        }
     }
 }
 
@@ -122,7 +149,9 @@ dependencies {
     implementation "androidx.core:core-ktx:1.15.0"
 
     // Room
-    def roomVersion = '2.6.1'
+    // Room 2.8.x is compatible with the current Kotlin/KSP toolchain; 2.6.1
+    // crashes in KSP while resolving Unit-returning @Query methods (JVM V signature).
+    def roomVersion = '2.8.5'
     implementation "androidx.room:room-runtime:$roomVersion"
     implementation "androidx.room:room-ktx:$roomVersion"
     ksp "androidx.room:room-compiler:$roomVersion"

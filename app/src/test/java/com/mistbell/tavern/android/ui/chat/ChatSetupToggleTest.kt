@@ -72,18 +72,18 @@ class ChatSetupToggleTest {
 
     @Test
     fun `群聊模式满员后点新角色被拒绝原集不变`() {
-        val full = setOf("a", "b", "c", "d")
-        val result = resolveCharacterSelection(full, "e", SESSION_MODE_GROUP)
+        val full = (1..MAX_SELECTABLE_CHARACTERS).map { "character-$it" }.toSet()
+        val result = resolveCharacterSelection(full, "new-character", SESSION_MODE_GROUP)
         // 超上限拒绝：返回与输入相同的集合（ViewModel 据此弹提示），绝不静默挤掉已有选中
         assertEquals(full, result)
-        assertTrue(MAX_SELECTABLE_CHARACTERS == 4)
+        assertTrue(MAX_SELECTABLE_CHARACTERS > 10)
     }
 
     @Test
     fun `群聊模式满员时点已选角色仍可移除`() {
         // 上限只拦截"新增"，toggle-off 移除不受影响
-        val full = setOf("a", "b", "c", "d")
-        val result = resolveCharacterSelection(full, "d", SESSION_MODE_GROUP)
-        assertEquals(setOf("a", "b", "c"), result)
+        val full = (1..MAX_SELECTABLE_CHARACTERS).map { "character-$it" }.toSet()
+        val result = resolveCharacterSelection(full, "character-$MAX_SELECTABLE_CHARACTERS", SESSION_MODE_GROUP)
+        assertEquals(full - "character-$MAX_SELECTABLE_CHARACTERS", result)
     }
 }

@@ -41,39 +41,15 @@ class ChatRepository(private val context: Context) {
         // 群聊推动语（continueGroupChat）：由 ChatRepository 作为 system 消息传给 PromptBuilder
         // （classic 路径不涉及）；文案要求"让最合适的下一位角色自然接话"
         internal const val GROUP_CONTINUE_NUDGE = "（请让最合适的下一位角色自然接话，保持对话推进）"
-
-        // 记忆抽取攒批：满 3 轮才合并发起一次 LLM 调用（抽取的输出/思考成本约占每轮总成本 80%+，
-        // 批量化把每次调用的固定输入/思考开销摊到 1/3）；不足一批的尾巴由
-        // flushPendingMemoryExtractions 在切会话/退出聊天页时抽掉
-        private const val MEMORY_EXTRACTION_BATCH_TURNS = 3
     }
 
-    /** 一轮待抽取对话（append 落库时入缓冲；被撤销/回退/重生覆盖的轮次会被剔除） */
-    private data class PendingExtractionTurn(
-        val userMessage: String,
-        val assistantMessage: String,
-        val messageIds: List<String>,
-    )
-
-    /** 同一 session 的待发缓冲：会话归属固定，providerId 每次入队刷新为最新值 */
-    private class PendingExtractionBuffer(
-        val ownerId: String,
-        val characterId: String,
-        var providerId: String,
-        val turns: MutableList<PendingExtractionTurn> = mutableListOf(),
-    )
-
-    /** 攒满一批（或 flush 排空）后交给后台抽取的不可变快照 */
-    private data class PendingExtractionBatch(
-        val ownerId: String,
-        val characterId: String,
-        val sessionId: String,
-        val providerId: String,
-        val turns: List<PendingExtractionTurn>,
-    )
-
-    private val pendingExtractionLock = Any()
-    private val pendingExtractions = mutableMapOf<String, PendingExtractionBuffer>()
+    /**
+     * 待抽取缓冲挂在 AppContainer 上，而不是本实例的字段。
+     *
+     * 两层原因：每个聊天页都会新建一个 ChatRepository，缓冲若随实例走就会各攒一半、谁也攒不满；
+     * 且缓冲需要落盘，进程被杀后重启还能接着攒（原实现只活在内存里，未满一批的轮次会丢）。
+     */
+    private val pendingExtractionStore get() = TavernApplication.instance.container.pendingExtractionStore
 
     // --- Local-first reads ---
 
@@ -176,14 +152,17 @@ class ChatRepository(private val context: Context) {
                 MessageEntity.fromDomain(userMsg, sessionId, ownerId, characterId),
             )
 
-            // 1.5. 向量化用户消息（异步，不阻塞主流程）
-            storeUserMessageVector(
-                content = message,
-                ownerId = ownerId,
-                characterId = characterId,
-                sessionId = sessionId,
-                messageId = msgId,
-            )
+            // 1.5. 源插入与恢复意图已由同一 Room 事务记录；后台恢复器自行在锁外 embedding、
+            // 锁内核验版本，删除/回滚后的旧任务不会把消息写回索引。
+            backgroundScope.launch {
+                storeUserMessageVector(
+                    content = message,
+                    ownerId = ownerId,
+                    characterId = characterId,
+                    sessionId = sessionId,
+                    messageId = msgId,
+                )
+            }
 
             // 2. Update session message count
             val session = db.sessionDao().get(sessionId, ownerId, characterId)
@@ -231,6 +210,7 @@ class ChatRepository(private val context: Context) {
                             message,
                             currentMessageId = msgId,
                             groupContext = effectiveGroupContext,
+                            contextTokenLimitOverride = llmConfig.contextTokenLimit,
                         )
                     collectReply(llmConfig, promptMessages, sb, onPartial)
                     // 公共尾部：群聊归属解析 + 落库 + 向量化 + 计数回写 + 记忆提取
@@ -269,17 +249,23 @@ class ChatRepository(private val context: Context) {
                 // LLM 调用或收尾失败：事务内回滚本条消息（用户消息，若已插入还包括回复），
                 // 计数按真实行数重算（自愈，不依赖增量加减），再抛出异常让 UI 显示错误。
                 // 已知残留：已异步写入的向量无法按消息清理（无对应接口，见 ROADMAP 向量双写一致性）
-                db.withTransaction {
-                    db.messageDao().deleteById(msgId)
-                    insertedAssistantId?.let { db.messageDao().deleteById(it) }
-                    val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
-                    if (sessionForRollback != null) {
-                        db.sessionDao().upsert(
-                            sessionForRollback.copy(
-                                messageCount = db.messageDao().getBySession(sessionId, ownerId).first().size,
-                                title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title,
-                            ),
-                        )
+                //
+                // 回滚的 Room 删除放进会话锁：与抽取保存的版本复核 + 落库临界区互斥——
+                // 否则"复查通过 → 回滚删消息 → 保存引用已删轮次的记忆"的窗口仍在。
+                // 向量删除留在锁外（删除意图机制本身就是提交时校验）。
+                SessionMutationLocks.withSessionLock(sessionId) {
+                    db.withTransaction {
+                        db.messageDao().deleteById(msgId)
+                        insertedAssistantId?.let { db.messageDao().deleteById(it) }
+                        val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
+                        if (sessionForRollback != null) {
+                            db.sessionDao().upsert(
+                                sessionForRollback.copy(
+                                    messageCount = db.messageDao().getBySession(sessionId, ownerId).first().size,
+                                    title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title,
+                                ),
+                            )
+                        }
                     }
                 }
                 deleteMessageVectors(msgId)
@@ -294,7 +280,10 @@ class ChatRepository(private val context: Context) {
      * 回复归属解析/落库/向量化/会话计数回写与 sendMessage 共用 persistAssistantReply 公共尾部。
      *
      * @param worldBookId 预留参数（与 sendMessage 一致，实际世界书由 PromptBuilder 按会话/角色解析）
+     *
+     * 函数体在会话锁改造前即为 61 行（阈值 60），仅超 1 行；拆分取消/异常路径风险高于收益，豁免。
      */
+    @Suppress("LongMethod")
     suspend fun continueGroupChat(
         ownerId: String,
         characterId: String,
@@ -306,14 +295,14 @@ class ChatRepository(private val context: Context) {
             // 仅群聊会话可推动；classic 会话直接报错（UI 由 groupMode 门控，此处双保险）
             val groupContext =
                 loadGroupContext(ownerId, characterId, sessionId)
-                    ?: throw IllegalStateException("会话不存在或不是群聊模式，无法推动群聊")
+                    ?: error("会话不存在或不是群聊模式，无法推动群聊")
             var insertedAssistantId: String? = null
             val scope = SessionScope(ownerId, characterId, sessionId)
             val sb = StringBuilder()
             try {
                 val llmConfig = loadLlmConfig(sessionId)
-                if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
-                    throw Exception("LLM 未配置：请在设置中配置 API 密钥")
+                check(llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
+                    "LLM 未配置：请在设置中配置 API 密钥"
                 }
                 val promptMessages =
                     PromptBuilder.buildPrompt(
@@ -325,6 +314,7 @@ class ChatRepository(private val context: Context) {
                         userMessage = "",
                         groupContext = groupContext,
                         groupNudge = GROUP_CONTINUE_NUDGE,
+                        contextTokenLimitOverride = llmConfig.contextTokenLimit,
                     )
                 collectReply(llmConfig, promptMessages, sb, onPartial)
                 // 公共尾部：归属解析/落库/计数回写与 sendMessage 完全一致；本轮无用户消息参与记忆提取
@@ -351,16 +341,19 @@ class ChatRepository(private val context: Context) {
                 }
                 throw e
             } catch (e: Exception) {
-                // LLM 调用或收尾失败：无用户消息可回滚，仅删除已插入的助手回复并按真实行数重算计数
-                db.withTransaction {
-                    insertedAssistantId?.let { db.messageDao().deleteById(it) }
-                    val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
-                    if (sessionForRollback != null) {
-                        db.sessionDao().upsert(
-                            sessionForRollback.copy(
-                                messageCount = db.messageDao().getBySession(sessionId, ownerId).first().size,
-                            ),
-                        )
+                // LLM 调用或收尾失败：无用户消息可回滚，仅删除已插入的助手回复并按真实行数重算计数。
+                // Room 删除放进会话锁（同 sendMessage 回滚的理由）
+                SessionMutationLocks.withSessionLock(sessionId) {
+                    db.withTransaction {
+                        insertedAssistantId?.let { db.messageDao().deleteById(it) }
+                        val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
+                        if (sessionForRollback != null) {
+                            db.sessionDao().upsert(
+                                sessionForRollback.copy(
+                                    messageCount = db.messageDao().getBySession(sessionId, ownerId).first().size,
+                                ),
+                            )
+                        }
                     }
                 }
                 throw e
@@ -374,18 +367,21 @@ class ChatRepository(private val context: Context) {
         sessionId: String,
     ) {
         withContext(Dispatchers.IO) {
-            // 事务保证删除与计数回写原子完成，避免中途失败导致计数漂移
+            // 事务保证删除与计数回写原子完成，避免中途失败导致计数漂移。
+            // 放进会话锁：删除源消息与抽取保存的版本复核 + 落库临界区互斥
             val deletedMessageId =
-                db.withTransaction {
-                    val messages = db.messageDao().getBySession(sessionId, ownerId).first()
-                    if (messages.isNotEmpty()) {
-                        db.messageDao().deleteById(messages.last().id)
-                        val session = db.sessionDao().get(sessionId, ownerId, characterId)
-                        if (session != null) {
-                            db.sessionDao().upsert(session.copy(messageCount = messages.size - 1))
+                SessionMutationLocks.withSessionLock(sessionId) {
+                    db.withTransaction {
+                        val messages = db.messageDao().getBySession(sessionId, ownerId).first()
+                        if (messages.isNotEmpty()) {
+                            db.messageDao().deleteById(messages.last().id)
+                            val session = db.sessionDao().get(sessionId, ownerId, characterId)
+                            if (session != null) {
+                                db.sessionDao().upsert(session.copy(messageCount = messages.size - 1))
+                            }
                         }
+                        messages.lastOrNull()?.id
                     }
-                    messages.lastOrNull()?.id
                 }
             deletedMessageId?.let { deleteMessageVectors(it) }
             val remainingIds = db.messageDao().getBySession(sessionId, ownerId).first().mapTo(HashSet()) { it.id }
@@ -403,7 +399,10 @@ class ChatRepository(private val context: Context) {
             val messages = db.messageDao().getBySession(sessionId, ownerId).first()
             val idx = messages.indexOfFirst { it.id == messageId }
             if (idx >= 0) {
-                db.messageDao().deleteAfter(sessionId, messageId, ownerId)
+                // 放进会话锁：截断删除源消息与抽取保存的版本复核 + 落库临界区互斥
+                SessionMutationLocks.withSessionLock(sessionId) {
+                    db.messageDao().deleteAfter(sessionId, messageId, ownerId)
+                }
                 messages.drop(idx + 1).forEach { deleteMessageVectors(it.id) }
                 prunePendingExtractionTurns(sessionId, messages.take(idx + 1).mapTo(HashSet()) { it.id })
             }
@@ -456,6 +455,7 @@ class ChatRepository(private val context: Context) {
                     currentMessageId = lastUserMsg.id,
                     excludeFromMessageId = messageId,
                     groupContext = groupContext,
+                    contextTokenLimitOverride = llmConfig.contextTokenLimit,
                 )
             val sb = StringBuilder()
             val replacedMessageIds =
@@ -500,14 +500,14 @@ class ChatRepository(private val context: Context) {
     ) {
         withContext(Dispatchers.IO) {
             val messages = db.messageDao().getBySession(sessionId, ownerId).first()
-            val target = messages.lastOrNull { it.role == "assistant" }
-                ?: throw IllegalStateException("没有可继续的助手消息")
-            val lastUser = messages.lastOrNull { it.role == "user" && it.createdAt < target.createdAt }
-                ?: throw IllegalStateException("没有可继续的用户消息")
+            val target =
+                messages.lastOrNull { it.role == "assistant" }
+                    ?: error("没有可继续的助手消息")
+            val lastUser =
+                messages.lastOrNull { it.role == "user" && it.createdAt < target.createdAt }
+                    ?: error("没有可继续的用户消息")
             val config = loadLlmConfig(sessionId)
-            if (config.baseUrl.isBlank() || config.apiKey.isBlank()) {
-                throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
-            }
+            check(config.baseUrl.isNotBlank() && config.apiKey.isNotBlank()) { "LLM 未配置：请在设置中配置 API 密钥" }
             val prompt =
                 PromptBuilder.buildPrompt(
                     db,
@@ -516,6 +516,7 @@ class ChatRepository(private val context: Context) {
                     sessionId,
                     userMessage = "请自然地继续上一条助手回复，不要重复已经说过的内容。",
                     groupContext = loadGroupContext(ownerId, characterId, sessionId),
+                    contextTokenLimitOverride = config.contextTokenLimit,
                 )
             val sb = StringBuilder()
             try {
@@ -528,6 +529,9 @@ class ChatRepository(private val context: Context) {
         }
     }
 
+    // 本函数的体量/分支在会话锁改造前已超阈值；拆分需要改动取消路径与 swipe 生成路径的
+    // 控制流（安全风险高于收益），豁免并在后续专项重构中处理。
+    @Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod")
     suspend fun swipeMessage(
         ownerId: String,
         characterId: String,
@@ -537,9 +541,9 @@ class ChatRepository(private val context: Context) {
         onPartial: ((String) -> Unit)? = null,
     ) {
         withContext(Dispatchers.IO) {
-            val entity = db.messageDao().getById(messageId, sessionId, ownerId)
-                ?: throw IllegalArgumentException("消息不存在")
-            if (entity.role != "assistant") throw IllegalArgumentException("只有助手消息支持 swipe")
+            val entity =
+                requireNotNull(db.messageDao().getById(messageId, sessionId, ownerId)) { "消息不存在" }
+            require(entity.role == "assistant") { "只有助手消息支持 swipe" }
             val existing = decodeStringList(entity.swipesJson).ifEmpty { listOf(entity.content) }.toMutableList()
             val thinkingSwipes = decodeStringList(entity.thinkingSwipesJson).toMutableList()
             val currentIndex = entity.swipeIndex.coerceIn(0, existing.lastIndex)
@@ -554,26 +558,42 @@ class ChatRepository(private val context: Context) {
             val step = if (direction.equals("left", ignoreCase = true)) -1 else 1
             val nextIndex = currentIndex + step
             if (nextIndex in existing.indices) {
-                db.messageDao().upsert(
-                    entity.copy(
-                        content = existing[nextIndex],
-                        thinking = thinkingSwipes.getOrNull(nextIndex).orEmpty().ifBlank { null },
-                        swipeIndex = nextIndex,
-                        swipesJson = encodeStringList(existing),
-                        thinkingSwipesJson = encodeStringList(thinkingSwipes),
-                    ),
-                )
+                // 换 swipe 是"同 id 消息内容变更"：Room upsert 放进会话锁，与抽取保存的
+                // 版本复核互斥（签名失配的轮次会在保存时被整轮作废）；锁内复查会话仍在——
+                // 删除方先拿到锁则放弃写入，不复活已删数据。
+                // 向量删除/重写留在锁外——删除意图机制（addIfAllowed 提交时闸门）兜底在途写入。
+                val persisted =
+                    SessionMutationLocks.withSessionLock(sessionId) {
+                        val session = db.sessionDao().getById(sessionId)
+                        if (session == null || session.ownerId != ownerId) return@withSessionLock false
+                        db.messageDao().upsert(
+                            entity.copy(
+                                content = existing[nextIndex],
+                                thinking = thinkingSwipes.getOrNull(nextIndex).orEmpty().ifBlank { null },
+                                swipeIndex = nextIndex,
+                                swipesJson = encodeStringList(existing),
+                                thinkingSwipesJson = encodeStringList(thinkingSwipes),
+                            ),
+                        )
+                        true
+                    }
+                if (!persisted) return@withContext
                 deleteMessageVectors(messageId)
-                storeAssistantMessageVector(existing[nextIndex], ownerId, entity.characterId.ifBlank { characterId }, sessionId, messageId)
+                storeAssistantMessageVector(
+                    existing[nextIndex],
+                    ownerId,
+                    entity.characterId.ifBlank { characterId },
+                    sessionId,
+                    messageId,
+                )
                 return@withContext
             }
-            val lastUser = db.messageDao().getBySession(sessionId, ownerId).first()
-                .lastOrNull { it.role == "user" && it.createdAt < entity.createdAt }
-                ?: throw IllegalStateException("没有可用于生成替代回复的用户消息")
+            val lastUser =
+                db.messageDao().getBySession(sessionId, ownerId).first()
+                    .lastOrNull { it.role == "user" && it.createdAt < entity.createdAt }
+                    ?: error("没有可用于生成替代回复的用户消息")
             val config = loadLlmConfig(sessionId)
-            if (config.baseUrl.isBlank() || config.apiKey.isBlank()) {
-                throw IllegalStateException("LLM 未配置：请在设置中配置 API 密钥")
-            }
+            check(config.baseUrl.isNotBlank() && config.apiKey.isNotBlank()) { "LLM 未配置：请在设置中配置 API 密钥" }
             val prompt =
                 PromptBuilder.buildPrompt(
                     db,
@@ -584,6 +604,7 @@ class ChatRepository(private val context: Context) {
                     currentMessageId = lastUser.id,
                     excludeFromMessageId = messageId,
                     groupContext = loadGroupContext(ownerId, characterId, sessionId),
+                    contextTokenLimitOverride = config.contextTokenLimit,
                 )
             val sb = StringBuilder()
             try {
@@ -616,7 +637,11 @@ class ChatRepository(private val context: Context) {
                 throw e
             }
             val (newContent, newThinking, storedCharacterId) =
-                resolveReplyAttribution(sb.toString(), loadGroupContext(ownerId, characterId, sessionId)?.speakerNames, characterId)
+                resolveReplyAttribution(
+                    sb.toString(),
+                    loadGroupContext(ownerId, characterId, sessionId)?.speakerNames,
+                    characterId,
+                )
             if (newContent.isBlank() && newThinking.isNullOrBlank()) return@withContext
             persistSwipeCandidate(
                 entity,
@@ -633,6 +658,9 @@ class ChatRepository(private val context: Context) {
         }
     }
 
+    // 参数即一条 swipe 候选落库所需的全部上下文（收对象只会把同一批字段在调用方再拼一遍），
+    // 函数先于本轮改造存在，豁免。
+    @Suppress("LongParameterList")
     private suspend fun persistSwipeCandidate(
         entity: MessageEntity,
         existing: MutableList<String>,
@@ -657,32 +685,68 @@ class ChatRepository(private val context: Context) {
             thinkingSwipes.subList(existing.size, thinkingSwipes.size).clear()
         }
         val newIndex = if (step > 0) existing.lastIndex else 0
-        db.messageDao().upsert(
-            entity.copy(
-                characterId = storedCharacterId,
-                content = content,
-                thinking = thinking,
-                swipesJson = encodeStringList(existing),
-                swipeIndex = newIndex,
-                thinkingSwipesJson = encodeStringList(thinkingSwipes),
-            ),
-        )
+        // 新生成 swipe 候选落库（同 id 内容变更）：Room upsert 放进会话锁，与抽取保存的
+        // 版本复核互斥；锁内复查会话与目标消息仍在（慢 LLM 期间会话可能已被删、消息可能
+        // 已被清空/回退）——失效则整段放弃（含向量重写），不复活已删数据。
+        // 向量删除/重写留在锁外——删除意图机制兜底在途写入。
+        val persisted =
+            SessionMutationLocks.withSessionLock(sessionId) {
+                val session = db.sessionDao().getById(sessionId)
+                if (session == null || session.ownerId != ownerId) return@withSessionLock false
+                if (db.messageDao().getById(entity.id, sessionId, ownerId) == null) {
+                    return@withSessionLock false
+                }
+                db.messageDao().upsert(
+                    entity.copy(
+                        characterId = storedCharacterId,
+                        content = content,
+                        thinking = thinking,
+                        swipesJson = encodeStringList(existing),
+                        swipeIndex = newIndex,
+                        thinkingSwipesJson = encodeStringList(thinkingSwipes),
+                    ),
+                )
+                true
+            }
+        if (!persisted) return
         deleteMessageVectors(entity.id)
-        storeAssistantMessageVector(content, ownerId, storedCharacterId.ifBlank { characterId }, sessionId, entity.id)
+        storeAssistantMessageVector(
+            content = content,
+            ownerId = ownerId,
+            characterId = storedCharacterId.ifBlank { characterId },
+            sessionId = sessionId,
+            messageId = entity.id,
+            // 这是"同一条消息换了 swipe 内容"的替换写入：上面那次删除会登记删除意图，
+            // 不解除的话新 swipe 的向量会被永久压住
+            replacePrevious = true,
+        )
     }
 
     suspend fun clearConversation(
         ownerId: String,
-        characterId: String,
+        // 会话级删除以 (owner, session) 为键，主角色不再参与向量过滤（群聊 NPC 向量须一并清除）；
+        // 保留参数位以免破坏调用方签名
+        @Suppress("UnusedParameter") characterId: String,
         sessionId: String,
     ) {
         withContext(Dispatchers.IO) {
-            // 会话级删除：群聊 NPC 消息与主角色消息同属一个归属单元，一并清空
-            db.messageDao().deleteBySession(sessionId, ownerId)
-            deleteSessionVectors(ownerId, characterId, sessionId)
+            // 整段放入会话锁：与在途的记忆保存、消息向量化互斥，删除期间不会有新写入落地
+            SessionMutationLocks.withSessionLock(sessionId) {
+                pendingExtractionStore.discard(sessionId)
+                // 与 deleteSession 对称：清空连本会话的结构化记忆一起清掉——
+                // 旧记忆留在库里只会被召回注入一个"什么都没发生过"的提示词
+                structuredMemoryRepo.deleteMemoriesBySession(ownerId, sessionId)
+                // 会话级删除：群聊 NPC 消息与主角色消息同属一个归属单元，一并清空
+                val messageIds = db.messageDao().idsBySession(sessionId, ownerId)
+                db.messageDao().deleteBySession(sessionId, ownerId)
+                deleteSessionVectors(ownerId, sessionId, messageIds)
+            }
         }
     }
 
+    // 体量因本轮锁内复查从阈值下升到 68 行；合并逻辑（swipes 对齐 + 锁内 upsert）强耦合，
+    // 拆分需引入参数对象且收益有限，豁免。
+    @Suppress("LongMethod")
     private suspend fun appendContinuation(
         target: MessageEntity,
         rawReply: String,
@@ -691,10 +755,21 @@ class ChatRepository(private val context: Context) {
         sessionId: String,
     ) {
         val (continuation, continuationThinking, storedCharacterId) =
-            resolveReplyAttribution(rawReply, loadGroupContext(ownerId, characterId, sessionId)?.speakerNames, characterId)
+            resolveReplyAttribution(
+                rawReply,
+                loadGroupContext(ownerId, characterId, sessionId)?.speakerNames,
+                characterId,
+            )
         if (continuation.isBlank() && continuationThinking.isNullOrBlank()) return
-        val mergedContent = listOf(target.content.trimEnd(), continuation.trimStart()).filter { it.isNotBlank() }.joinToString("\n")
-        val mergedThinking = listOfNotNull(target.thinking?.takeIf { it.isNotBlank() }, continuationThinking).joinToString("\n\n").ifBlank { null }
+        val mergedContent =
+            listOf(target.content.trimEnd(), continuation.trimStart())
+                .filter { it.isNotBlank() }
+                .joinToString("\n")
+        val mergedThinking =
+            listOfNotNull(
+                target.thinking?.takeIf { it.isNotBlank() },
+                continuationThinking,
+            ).joinToString("\n\n").ifBlank { null }
         val swipes = decodeStringList(target.swipesJson).toMutableList()
         val thinkingSwipes = decodeStringList(target.thinkingSwipesJson).toMutableList()
         if (swipes.isNotEmpty()) {
@@ -704,17 +779,49 @@ class ChatRepository(private val context: Context) {
             swipes[currentIndex] = mergedContent
             thinkingSwipes[currentIndex] = mergedThinking.orEmpty()
         }
-        db.messageDao().upsert(
-            target.copy(
-                characterId = storedCharacterId,
-                content = mergedContent,
-                thinking = mergedThinking,
-                swipesJson = if (swipes.isEmpty()) target.swipesJson else encodeStringList(swipes),
-                thinkingSwipesJson = if (swipes.isEmpty()) target.thinkingSwipesJson else encodeStringList(thinkingSwipes),
-            ),
-        )
+        // 续写是"同 id 消息内容合并变更"：Room upsert 放进会话锁，与抽取保存的
+        // 版本复核互斥；锁内复查会话与目标消息仍在（慢 LLM 期间会话可能已被删、消息可能
+        // 已被清空/回退）——失效则整段放弃（含向量重写），不复活已删数据。
+        // 向量替换写入留在锁外——删除意图机制兜底在途写入。
+        val persisted =
+            SessionMutationLocks.withSessionLock(sessionId) {
+                val session = db.sessionDao().getById(sessionId)
+                if (session == null || session.ownerId != ownerId) return@withSessionLock false
+                if (db.messageDao().getById(target.id, sessionId, ownerId) == null) {
+                    return@withSessionLock false
+                }
+                db.messageDao().upsert(
+                    target.copy(
+                        characterId = storedCharacterId,
+                        content = mergedContent,
+                        thinking = mergedThinking,
+                        swipesJson =
+                            if (swipes.isEmpty()) {
+                                target.swipesJson
+                            } else {
+                                encodeStringList(swipes)
+                            },
+                        thinkingSwipesJson =
+                            if (thinkingSwipes.isEmpty()) {
+                                target.thinkingSwipesJson
+                            } else {
+                                encodeStringList(thinkingSwipes)
+                            },
+                    ),
+                )
+                true
+            }
+        if (!persisted) return
         deleteMessageVectors(target.id)
-        storeAssistantMessageVector(mergedContent, ownerId, storedCharacterId, sessionId, target.id)
+        storeAssistantMessageVector(
+            content = mergedContent,
+            ownerId = ownerId,
+            characterId = storedCharacterId,
+            sessionId = sessionId,
+            messageId = target.id,
+            // 同上：继续生成是"合并进同一条消息"，属于替换而非新增
+            replacePrevious = true,
+        )
         db.sessionDao().get(sessionId, ownerId, characterId)?.let { session ->
             db.sessionDao().upsert(session.copy(updatedAt = java.time.Instant.now().toString()))
         }
@@ -781,16 +888,23 @@ class ChatRepository(private val context: Context) {
         sessionId: String,
     ) {
         withContext(Dispatchers.IO) {
-            // 删除该会话的所有记忆
-            db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
-            structuredMemoryRepo.deleteMemoriesBySession(ownerId, sessionId)
-            db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
-            deleteSessionVectors(ownerId, characterId, sessionId)
-            android.util.Log.d("ChatRepository", "Deleted memories for session: $sessionId")
+            // 整段放入会话锁：与在途的记忆保存（LLM 抽取落库）、消息向量化互斥——
+            // 锁内执行期间不会有新写入落地，删除完成后在途任务的锁内复查会发现会话已消失
+            SessionMutationLocks.withSessionLock(sessionId) {
+                // 待抽取缓冲同步丢弃：源消息都要没了，留着只会在以后 drain 时抽出悬空记忆
+                pendingExtractionStore.discard(sessionId)
+                // 删除该会话的所有记忆
+                db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
+                structuredMemoryRepo.deleteMemoriesBySession(ownerId, sessionId)
+                val messageIds = db.messageDao().idsBySession(sessionId, ownerId)
+                db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
+                deleteSessionVectors(ownerId, sessionId, messageIds)
+                android.util.Log.d("ChatRepository", "Deleted memories for session: $sessionId")
 
-            // 删除消息和会话（会话级删除，含群聊 NPC 消息）
-            db.messageDao().deleteBySession(sessionId, ownerId)
-            db.sessionDao().delete(sessionId, ownerId, characterId)
+                // 删除消息和会话（会话级删除，含群聊 NPC 消息）
+                db.messageDao().deleteBySession(sessionId, ownerId)
+                db.sessionDao().delete(sessionId, ownerId, characterId)
+            }
         }
     }
 
@@ -892,7 +1006,10 @@ class ChatRepository(private val context: Context) {
      * - 追加场景（replaceFromMessageId 为 null）：直接 upsert 并回写计数 +1；
      * - 替换场景（regenerateMessage）：先删目标及其后的全部消息再落库，计数按真实行数重算，
      *   同一事务内原子完成。
+     *
+     * 体量在锁改造前已超阈值；Replace/Append 两路径的事务边界是正确性关键，不做纯为缩行的拆分，豁免。
      */
+    @Suppress("LongMethod")
     private suspend fun persistPartialReplyOnCancel(
         partialReply: String,
         scope: SessionScope,
@@ -929,30 +1046,49 @@ class ChatRepository(private val context: Context) {
             )
 
         if (replaceFromMessageId != null) {
-            // 替换场景：删除旧消息与落库部分回复在同一事务内原子完成，计数按真实行数自愈重算
-            db.withTransaction {
-                db.messageDao().deleteAfter(scope.sessionId, replaceFromMessageId, scope.ownerId)
-                db.messageDao().deleteById(replaceFromMessageId)
-                db.messageDao().upsert(
-                    MessageEntity.fromDomain(partialMsg, scope.sessionId, scope.ownerId, storedCharacterId),
-                )
-                val session = db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)
-                if (session != null) {
-                    db.sessionDao().upsert(
-                        session.copy(
-                            messageCount =
-                                db.messageDao().getBySession(scope.sessionId, scope.ownerId).first().size,
-                        ),
-                    )
+            // 替换场景：删除旧消息与落库部分回复在同一事务内原子完成，计数按真实行数自愈重算。
+            // 事务放进会话锁：删除/替换源消息与抽取保存的版本复核 + 落库临界区互斥；
+            // 锁内复查会话仍在——已删则放弃，不复活已删数据
+            val persisted =
+                SessionMutationLocks.withSessionLock(scope.sessionId) {
+                    val sessionNow = db.sessionDao().getById(scope.sessionId)
+                    if (sessionNow == null || sessionNow.ownerId != scope.ownerId) {
+                        return@withSessionLock false
+                    }
+                    db.withTransaction {
+                        db.messageDao().deleteAfter(scope.sessionId, replaceFromMessageId, scope.ownerId)
+                        db.messageDao().deleteById(replaceFromMessageId)
+                        db.messageDao().upsert(
+                            MessageEntity.fromDomain(partialMsg, scope.sessionId, scope.ownerId, storedCharacterId),
+                        )
+                        db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)?.let { session ->
+                            db.sessionDao().upsert(
+                                session.copy(
+                                    messageCount =
+                                        db.messageDao().getBySession(scope.sessionId, scope.ownerId).first().size,
+                                ),
+                            )
+                        }
+                    }
+                    true
                 }
-            }
+            if (!persisted) return
             deleteMessageVectors(replaceFromMessageId)
         } else {
-            db.messageDao().upsert(
-                MessageEntity.fromDomain(partialMsg, scope.sessionId, scope.ownerId, storedCharacterId),
-            )
-            val sessionAfterPartial = db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)
-            if (sessionAfterPartial != null) {
+            // 追加场景：锁内复查会话仍在才落库（慢生成期间会话可能已被删）
+            val persisted =
+                SessionMutationLocks.withSessionLock(scope.sessionId) {
+                    val sessionNow = db.sessionDao().getById(scope.sessionId)
+                    if (sessionNow == null || sessionNow.ownerId != scope.ownerId) {
+                        return@withSessionLock false
+                    }
+                    db.messageDao().upsert(
+                        MessageEntity.fromDomain(partialMsg, scope.sessionId, scope.ownerId, storedCharacterId),
+                    )
+                    true
+                }
+            if (!persisted) return
+            db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)?.let { sessionAfterPartial ->
                 db.sessionDao().upsert(
                     sessionAfterPartial.copy(
                         messageCount = sessionAfterPartial.messageCount + 1,
@@ -1005,6 +1141,9 @@ class ChatRepository(private val context: Context) {
                 swipeIndex = 0,
             )
 
+        // 会话已删除（慢 LLM 期间）→ 不落库、不向量化、不计数：返回消息仅供 UI 展示已流式内容
+        var persisted = false
+
         when (mode) {
             is ReplyTailMode.Replace -> {
                 val replacedIds =
@@ -1012,40 +1151,89 @@ class ChatRepository(private val context: Context) {
                         .dropWhile { it.id != mode.fromMessageId }
                         .map { it.id }
                 // 替换场景：删除旧消息、落库新回复、按真实行数回写计数在同一事务内原子完成
-                // （自愈式计数，不依赖增量加减）；失败回滚语义由调用方保证——删除只发生在新回复已到手之后
-                db.withTransaction {
-                    db.messageDao().deleteAfter(scope.sessionId, mode.fromMessageId, scope.ownerId)
-                    db.messageDao().deleteById(mode.fromMessageId)
-                    db.messageDao().upsert(
-                        MessageEntity.fromDomain(assistantMsg, scope.sessionId, scope.ownerId, storedCharacterId),
-                    )
-                    val session = db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)
-                    if (session != null) {
-                        db.sessionDao().upsert(
-                            session.copy(
-                                messageCount =
-                                    db.messageDao().getBySession(scope.sessionId, scope.ownerId).first().size,
-                            ),
-                        )
+                // （自愈式计数，不依赖增量加减）；失败回滚语义由调用方保证——删除只发生在新回复已到手之后。
+                // 事务放进会话锁：删除/替换源消息与抽取保存的版本复核 + 落库临界区互斥；
+                // 锁内复查会话仍在（ownerId 匹配）——会话已被删则整段放弃，不复活已删数据
+                persisted =
+                    SessionMutationLocks.withSessionLock(scope.sessionId) {
+                        val sessionNow = db.sessionDao().getById(scope.sessionId)
+                        if (sessionNow == null || sessionNow.ownerId != scope.ownerId) {
+                            return@withSessionLock false
+                        }
+                        db.withTransaction {
+                            db.messageDao().deleteAfter(scope.sessionId, mode.fromMessageId, scope.ownerId)
+                            db.messageDao().deleteById(mode.fromMessageId)
+                            db.messageDao().upsert(
+                                MessageEntity.fromDomain(
+                                    assistantMsg,
+                                    scope.sessionId,
+                                    scope.ownerId,
+                                    storedCharacterId,
+                                ),
+                            )
+                            db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)?.let { session ->
+                                db.sessionDao().upsert(
+                                    session.copy(
+                                        messageCount =
+                                            db.messageDao().getBySession(scope.sessionId, scope.ownerId).first().size,
+                                    ),
+                                )
+                            }
+                        }
+                        true
                     }
+                if (persisted) {
+                    replacedIds.forEach { deleteMessageVectors(it) }
+                    // 重生覆盖：凡引用被删消息的待发轮次整轮剔除（新回复与改动前一致，不进缓冲）
+                    val remainingIds =
+                        db.messageDao().getBySession(scope.sessionId, scope.ownerId).first()
+                            .mapTo(HashSet()) { it.id }
+                    prunePendingExtractionTurns(scope.sessionId, remainingIds)
                 }
-                replacedIds.forEach { deleteMessageVectors(it) }
-                // 重生覆盖：凡引用被删消息的待发轮次整轮剔除（新回复与改动前一致，不进缓冲）
-                val remainingIds =
-                    db.messageDao().getBySession(scope.sessionId, scope.ownerId).first()
-                        .mapTo(HashSet()) { it.id }
-                prunePendingExtractionTurns(scope.sessionId, remainingIds)
             }
             is ReplyTailMode.Append -> {
-                db.messageDao().upsert(
-                    MessageEntity.fromDomain(assistantMsg, scope.sessionId, scope.ownerId, storedCharacterId),
-                )
+                // 追加场景：纯 INSERT，但慢 LLM 期间会话可能已被删——锁内复查会话仍在才落库
+                persisted =
+                    SessionMutationLocks.withSessionLock(scope.sessionId) {
+                        val sessionNow = db.sessionDao().getById(scope.sessionId)
+                        if (sessionNow == null || sessionNow.ownerId != scope.ownerId) {
+                            return@withSessionLock false
+                        }
+                        db.messageDao().upsert(
+                            MessageEntity.fromDomain(
+                                assistantMsg,
+                                scope.sessionId,
+                                scope.ownerId,
+                                storedCharacterId,
+                            ),
+                        )
+                        true
+                    }
             }
         }
 
+        // 会话已删除（慢 LLM 期间）→ 不落库、不向量化、不计数：返回消息仅供 UI 展示已流式内容
+        if (persisted) {
+            finalizePersistedReply(scope, mode, assistantMsg, storedCharacterId)
+        }
+
+        return assistantMsg
+    }
+
+    /**
+     * 回复成功落库后的收尾（从 persistAssistantReply 抽出以收敛其圈复杂度）：
+     * 向量化 AI 回复 + 会话计数回写 + 记忆抽取攒批。
+     * 正文/思考直接取 [assistantMsg]（构建时即 storedContent/replyThinking，逐字节一致）。
+     */
+    private suspend fun finalizePersistedReply(
+        scope: SessionScope,
+        mode: ReplyTailMode,
+        assistantMsg: Message,
+        storedCharacterId: String,
+    ) {
         // 3.5. 向量化 AI 回复（异步，不阻塞主流程）——群聊归属实际说话角色
         storeAssistantMessageVector(
-            content = storedContent,
+            content = assistantMsg.content,
             ownerId = scope.ownerId,
             characterId = storedCharacterId,
             sessionId = scope.sessionId,
@@ -1053,44 +1241,50 @@ class ChatRepository(private val context: Context) {
         )
 
         val updatedSession = db.sessionDao().get(scope.sessionId, scope.ownerId, scope.characterId)
-        if (updatedSession != null) {
-            when (mode) {
-                is ReplyTailMode.Append -> {
-                    // 追加场景：计数 +1 并触发记忆提取
-                    val sessionAfterReply =
-                        updatedSession.copy(
-                            messageCount = updatedSession.messageCount + 1,
-                            updatedAt = assistantMsg.createdAt,
-                        )
-                    db.sessionDao().upsert(sessionAfterReply)
-
-                    // 记忆抽取攒批：本轮入缓冲，满 MEMORY_EXTRACTION_BATCH_TURNS 轮合并为一次调用
-                    // （开场白已经在创建会话时插入，不参与这里的逻辑）。
-                    // 群聊 MVP：记忆提取仍归属主角色 characterId（按说话者 witness 分账是后续增强）
-                    enqueueMemoryExtraction(
-                        // 三态覆盖：会话显式值 > 全局默认（与 PromptBuilder 的注入判断同一解析器，防双源真相）
-                        enabled =
-                            ChatSettingsResolver.longTermMemoryEnabled(
-                                sessionAfterReply,
-                                settingsRepo.defaultLtmEnabled(),
-                            ),
-                        providerId = sessionAfterReply.providerId,
-                        userMessage = mode.userMessageForMemory,
-                        assistantMessage = storedContent,
-                        ownerId = scope.ownerId,
-                        characterId = scope.characterId,
-                        sessionId = scope.sessionId,
-                        messageIds = listOfNotNull(mode.userMessageId, assistantMsg.id),
+        if (updatedSession == null) return
+        when (mode) {
+            is ReplyTailMode.Append -> {
+                // 追加场景：计数 +1 并触发记忆提取
+                val sessionAfterReply =
+                    updatedSession.copy(
+                        messageCount = updatedSession.messageCount + 1,
+                        updatedAt = assistantMsg.createdAt,
                     )
-                }
-                is ReplyTailMode.Replace -> {
-                    // 替换场景：计数已在替换事务内按真实行数回写，仅刷新 updatedAt
-                    db.sessionDao().upsert(updatedSession.copy(updatedAt = assistantMsg.createdAt))
-                }
+                db.sessionDao().upsert(sessionAfterReply)
+
+                // 记忆抽取攒批：本轮入缓冲，满 PendingExtractionStore.BATCH_TURNS 轮合并为一次调用
+                // （开场白已经在创建会话时插入，不参与这里的逻辑）。
+                // 群聊 MVP：记忆提取仍归属主角色 characterId（按说话者 witness 分账是后续增强）
+                enqueueMemoryExtraction(
+                    // 三态覆盖：会话显式值 > 全局默认（与 PromptBuilder 的注入判断同一解析器，防双源真相）
+                    enabled =
+                        ChatSettingsResolver.longTermMemoryEnabled(
+                            sessionAfterReply,
+                            settingsRepo.defaultLtmEnabled(),
+                        ),
+                    providerId = sessionAfterReply.providerId,
+                    userMessage = mode.userMessageForMemory,
+                    assistantMessage = assistantMsg.content,
+                    ownerId = scope.ownerId,
+                    characterId = scope.characterId,
+                    sessionId = scope.sessionId,
+                    messageIds = listOfNotNull(mode.userMessageId, assistantMsg.id),
+                    // 入队快照：各消息正文（content + thinking）的内容签名，
+                    // 锁内保存前逐轮核对"未被编辑/重生成篡改"（见 turnContentMatches）
+                    messageSignatures =
+                        listOfNotNull(
+                            mode.userMessageId?.let {
+                                messageContentSignature(mode.userMessageForMemory, null)
+                            },
+                            messageContentSignature(assistantMsg.content, assistantMsg.thinking),
+                        ),
+                )
+            }
+            is ReplyTailMode.Replace -> {
+                // 替换场景：计数已在替换事务内按真实行数回写，仅刷新 updatedAt
+                db.sessionDao().upsert(updatedSession.copy(updatedAt = assistantMsg.createdAt))
             }
         }
-
-        return assistantMsg
     }
 
     // 群聊上下文兜底构建：VM 已传 groupContext 时直接使用；未传时按会话 mode + 参与者列表查角色名。
@@ -1134,13 +1328,8 @@ class ChatRepository(private val context: Context) {
                 ?.takeIf { it.isNotBlank() }
                 ?.let { db.apiConfigDao().getById(it) }
         return if (apiConfig != null) {
-            base.copy(
-                baseUrl = apiConfig.apiUrl,
-                apiKey = apiConfig.apiKey,
-                model = session.modelId.ifBlank { apiConfig.model },
-                type = apiConfig.type,
-                streamingEnabled = apiConfig.streamingEnabled,
-            )
+            val selected = settingsRepo.getLlmConfig(apiConfig)
+            selected.copy(model = session.modelId.ifBlank { selected.model })
         } else {
             base
         }
@@ -1153,9 +1342,61 @@ class ChatRepository(private val context: Context) {
     internal suspend fun effectiveLlmConfig(sessionId: String?): LlmConfig = loadLlmConfig(sessionId)
 
     /**
-     * 一轮回复入抽取缓冲：攒满 MEMORY_EXTRACTION_BATCH_TURNS 轮后排空并合并发起一次后台抽取。
-     * 不满一批的尾巴靠 flushPendingMemoryExtractions 兜底（切会话/退出聊天页时调用）。
+     * 消息内容签名：content + thinking 的 SHA-256（hex）。
+     *
+     * 抽取批次在入队时快照每轮的来源消息签名；LLM 抽取完成、进保存临界区前逐轮核对——
+     * 消息被编辑/换 swipe/重生成覆盖（同 id 内容变）或删除（id 消失）都会使轮次失效。
      */
+    private fun messageContentSignature(
+        content: String,
+        thinking: String?,
+    ): String =
+        java.security.MessageDigest.getInstance("SHA-256")
+            .digest((content + "\u0000" + (thinking ?: "")).toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+
+    /**
+     * 抽取批次的版本核对（锁内调用）：
+     * - 轮内每条消息必须仍存在；
+     * - 入队快照带签名时，每条消息的内容签名必须与快照一致（防"同 id 内容已变"）；
+     * - 签名缺失/错位（旧格式持久化数据）退化为只查存在并记 warning。
+     *
+     * 回退/重生/编辑路径（regenerateMessage、换 swipe 等）删除或替换消息后，已启动抽取
+     * 适用同一规则：失配的轮次整轮作废，不信任被污染上下文产出的候选。
+     */
+    private fun turnContentMatches(
+        turn: PendingExtractionTurn,
+        liveMessages: Map<String, MessageEntity>,
+    ): Boolean {
+        if (turn.messageIds.isEmpty()) return true
+        val allPresent = turn.messageIds.all { it in liveMessages }
+        val signaturesUsable =
+            turn.messageSignatures.isNotEmpty() && turn.messageSignatures.size == turn.messageIds.size
+        if (!signaturesUsable) {
+            android.util.Log.w(
+                "ChatRepository",
+                "抽取轮签名缺失或错位（旧格式数据），仅校验消息存在性: turnIds=${turn.messageIds.size}",
+            )
+        }
+        // 消息缺失 → 整轮失效；签名缺失/错位（旧格式数据）退化为只查存在；否则逐条比对签名
+        val signaturesMatch =
+            !signaturesUsable ||
+                turn.messageIds.withIndex().all { (index, id) ->
+                    val message = liveMessages.getValue(id)
+                    messageContentSignature(message.content, message.thinking) ==
+                        turn.messageSignatures[index]
+                }
+        return allPresent && signaturesMatch
+    }
+
+    /**
+     * 一轮回复入抽取缓冲：攒满 PendingExtractionStore.BATCH_TURNS 轮后排空并合并发起一次后台抽取。
+     * 不满一批的尾巴靠 flushPendingMemoryExtractions 兜底（切会话/退出聊天页时调用）。
+     *
+     * 参数即一轮抽取入队的全部维度（消息签名快照是本轮新增的版本复核维度），
+     * 收对象只会把同一批字段在调用方再拼一遍，豁免 LongParameterList。
+     */
+    @Suppress("LongParameterList")
     private fun enqueueMemoryExtraction(
         enabled: Boolean,
         providerId: String,
@@ -1165,64 +1406,42 @@ class ChatRepository(private val context: Context) {
         characterId: String,
         sessionId: String,
         messageIds: List<String>,
+        messageSignatures: List<String>,
     ) {
         if (!enabled) {
             // 长期记忆被关掉：丢弃该会话的待发缓冲——已停用的功能不应在 flush 时又抽一批
             android.util.Log.d("ChatRepository", "Long-term memory disabled for this session")
-            synchronized(pendingExtractionLock) { pendingExtractions.remove(sessionId) }
+            pendingExtractionStore.discard(sessionId)
             return
         }
 
-        val batch: PendingExtractionBatch? =
-            synchronized(pendingExtractionLock) {
-                val buffer =
-                    pendingExtractions.getOrPut(sessionId) {
-                        PendingExtractionBuffer(ownerId, characterId, providerId)
-                    }
-                buffer.providerId = providerId
-                buffer.turns.add(PendingExtractionTurn(userMessage, assistantMessage, messageIds))
-                if (buffer.turns.size >= MEMORY_EXTRACTION_BATCH_TURNS) {
-                    pendingExtractions.remove(sessionId)
-                    PendingExtractionBatch(ownerId, characterId, sessionId, providerId, buffer.turns.toList())
-                } else {
-                    android.util.Log.d(
-                        "ChatRepository",
-                        "Memory extraction buffered: session=$sessionId, pending=${buffer.turns.size}",
-                    )
-                    null
-                }
-            }
-        if (batch != null) launchMemoryExtraction(batch)
+        val batch =
+            pendingExtractionStore.enqueue(
+                ownerId = ownerId,
+                characterId = characterId,
+                sessionId = sessionId,
+                providerId = providerId,
+                turn = PendingExtractionTurn(userMessage, assistantMessage, messageIds, messageSignatures),
+            )
+        if (batch != null) {
+            launchMemoryExtraction(batch)
+        } else {
+            android.util.Log.d("ChatRepository", "Memory extraction buffered: session=$sessionId")
+        }
     }
 
     /**
      * 排空全部会话的抽取缓冲（不足一批的尾巴也立即抽取）。
      * fire-and-forget：抽取走独立 backgroundScope，可在 ViewModel.onCleared 等不可挂起的时机调用；
-     * 进程被强杀时最多丢一批缓冲（原文仍在消息库），语义同改动前的逐轮抽取失败。
+     * 缓冲已落盘，进程被强杀也只会丢"最后一次入队"的那一轮（原文仍在消息库）。
      */
     fun flushPendingMemoryExtractions() {
-        val batches: List<PendingExtractionBatch> =
-            synchronized(pendingExtractionLock) {
-                val drained =
-                    pendingExtractions
-                        .map { (sessionId, buffer) ->
-                            PendingExtractionBatch(
-                                buffer.ownerId,
-                                buffer.characterId,
-                                sessionId,
-                                buffer.providerId,
-                                buffer.turns.toList(),
-                            )
-                        }.filter { it.turns.isNotEmpty() }
-                pendingExtractions.clear()
-                drained
-            }
-        batches.forEach { launchMemoryExtraction(it) }
+        pendingExtractionStore.drainAll().forEach { launchMemoryExtraction(it) }
     }
 
     /** 会话被删除/清空时丢弃其缓冲：源消息已不存在，抽出结果的 relatedMessageIds 只会指向悬空 id */
     fun discardPendingMemoryExtractions(sessionId: String) {
-        synchronized(pendingExtractionLock) { pendingExtractions.remove(sessionId) }
+        pendingExtractionStore.discard(sessionId)
     }
 
     /**
@@ -1233,44 +1452,209 @@ class ChatRepository(private val context: Context) {
         sessionId: String,
         remainingMessageIds: Set<String>,
     ) {
-        synchronized(pendingExtractionLock) {
-            val buffer = pendingExtractions[sessionId] ?: return
-            buffer.turns.removeAll { turn -> turn.messageIds.any { it !in remainingMessageIds } }
-            if (buffer.turns.isEmpty()) pendingExtractions.remove(sessionId)
-        }
+        pendingExtractionStore.prune(sessionId, remainingMessageIds)
     }
 
+    /**
+     * 启动一批记忆抽取。extract/save 两阶段 + 会话锁 + 版本复核：
+     *
+     * 1. 抽取（慢，锁外）：LLM 调用纯计算，持锁会卡住删除路径数十秒；
+     * 2. 保存（快，锁内）：与 deleteSession/clearConversation 同一把会话锁互斥——
+     *    锁内复查会话仍存在，并逐轮核对"消息存在且内容与入队签名一致"；
+     *    会话已删 / 轮次全部失效 → **ack 丢弃**（不是 nack：nack 会让已删会话的批次无限重试）；
+     *    部分轮次失效 → 整批候选作废，对仍有效轮次重新抽取（锁外），再走一遍本协议；
+     * 3. 向量收尾（锁外）：重要性达标的记忆出锁后同步向量摘要（慢 embedding 不占锁，
+     *    写前复查源记忆/会话仍在）。
+     * 保存失败仍走 nack（网络/磁盘类错误可重试）。
+     */
     private fun launchMemoryExtraction(batch: PendingExtractionBatch) {
         backgroundScope.launch {
             try {
+                val precheck = precheckExtractionBatch(batch)
+                if (precheck !is BatchPrecheck.Proceed) return@launch
+
+                var turnsToExtract = precheck.turns
+                var candidates =
+                    extractBatchCandidates(batch, turnsToExtract, precheck.config)
+                        ?: return@launch
+
+                // 版本复核循环：锁内逐轮核对"消息存在且内容与入队快照一致"。任何一轮失效 →
+                // 整批候选作废（不信任被污染上下文产出的记忆），对仍有效轮次重新抽取（锁外），
+                // 再走一遍同一互斥协议。每轮循环至少剔除 1 个失效轮次，循环次数有界。
+                while (true) {
+                    val attempt = saveExtractionBatchUnderLock(batch, turnsToExtract, candidates)
+
+                    // 出锁后：慢 embedding 不占用会话锁；runVectorFollowUps 写前会复查
+                    // 源记忆/会话仍存在（复查失败放弃——向量是可重建投影，Room 才是权威）
+                    structuredMemoryRepo.runVectorFollowUps(attempt.vectorFollowUps)
+
+                    val nextTurns = attempt.reextractTurns ?: return@launch
+                    turnsToExtract = nextTurns
+                    candidates =
+                        extractBatchCandidates(batch, turnsToExtract, precheck.config)
+                            ?: return@launch
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ChatRepository", "Memory extraction failed: ${e.message}", e)
+                pendingExtractionStore.nack(batch.batchId)
+            }
+        }
+    }
+
+    /** 批次前置筛选结果：[Proceed] 继续抽取；[Acked]/[Nacked] 表示批次已被处置，调用方直接结束 */
+    private sealed interface BatchPrecheck {
+        class Proceed(
+            val turns: List<PendingExtractionTurn>,
+            val config: LlmConfig,
+        ) : BatchPrecheck
+
+        data object Acked : BatchPrecheck
+
+        data object Nacked : BatchPrecheck
+    }
+
+    /**
+     * 锁外的粗筛：会话已删 / 无有效轮次 → ack；配置暂缺 → nack（保留批次待重试）。
+     * 删除/回滚可能发生在批次排队之后，只把仍存在的消息轮次交给 LLM，
+     * 避免已删除会话在重启后重新生成长期记忆。
+     */
+    private suspend fun precheckExtractionBatch(batch: PendingExtractionBatch): BatchPrecheck {
+        val sessionExists = db.sessionDao().getById(batch.sessionId) != null
+        val remainingMessageIds =
+            db.messageDao()
+                .getBySession(batch.sessionId, batch.ownerId)
+                .first()
+                .mapTo(mutableSetOf()) { it.id }
+        val validTurns =
+            batch.turns.filter { turn ->
+                turn.messageIds.isEmpty() || turn.messageIds.all { it in remainingMessageIds }
+            }
+        val config = resolveExtractionConfig(batch.providerId)
+        return when {
+            !sessionExists -> {
+                // 批次出队后源会话已被删除：消息已经不存在，抽出来的记忆只会指向悬空 messageId
+                android.util.Log.d("ChatRepository", "会话 ${batch.sessionId} 已删除，跳过本批记忆抽取")
+                pendingExtractionStore.ack(batch.batchId)
+                BatchPrecheck.Acked
+            }
+            validTurns.isEmpty() -> {
+                pendingExtractionStore.ack(batch.batchId)
+                BatchPrecheck.Acked
+            }
+            config == null -> {
+                // 配置暂不可用时保留批次，稍后 flush/重启可以重试。
+                pendingExtractionStore.nack(batch.batchId)
+                BatchPrecheck.Nacked
+            }
+            else -> {
                 android.util.Log.d(
                     "ChatRepository",
                     "Long-term memory enabled, extracting memories for ${batch.turns.size} turn(s)...",
                 )
-
-                val extractionConfig = resolveExtractionConfig(batch.providerId)
-
-                val savedCount =
-                    memoryExtractionService.extractAndSaveMemories(
-                        turns =
-                            batch.turns.map {
-                                MemoryExtractionService.DialogueTurn(
-                                    userMessage = it.userMessage,
-                                    assistantMessage = it.assistantMessage,
-                                    messageIds = it.messageIds,
-                                )
-                            },
-                        ownerId = batch.ownerId,
-                        characterId = batch.characterId,
-                        sessionId = batch.sessionId,
-                        config = extractionConfig,
-                    )
-                android.util.Log.d("ChatRepository", "Memory extraction completed, saved $savedCount memories")
-            } catch (e: Exception) {
-                android.util.Log.e("ChatRepository", "Memory extraction failed: ${e.message}", e)
+                BatchPrecheck.Proceed(validTurns, config)
             }
         }
     }
+
+    /** 阶段 1（锁外，慢）：LLM 抽取；空候选 → ack 并返回 null（调用方结束本批） */
+    private suspend fun extractBatchCandidates(
+        batch: PendingExtractionBatch,
+        turnsToExtract: List<PendingExtractionTurn>,
+        config: LlmConfig,
+    ): List<MemoryExtractionService.MemoryCandidate>? {
+        val candidates =
+            memoryExtractionService.extractValidatedCandidates(
+                turns = turnsToExtract.toDialogueTurns(),
+                ownerId = batch.ownerId,
+                config = config,
+            )
+        return if (candidates.isEmpty()) {
+            pendingExtractionStore.ack(batch.batchId)
+            null
+        } else {
+            candidates
+        }
+    }
+
+    /** 阶段 2（锁内，快）的产出：需要重新抽取的轮次（null = 批次已终结）+ 锁外向量收尾 */
+    private class SaveAttempt(
+        val reextractTurns: List<PendingExtractionTurn>?,
+        val vectorFollowUps: List<StructuredMemoryRepository.VectorFollowUp>,
+    )
+
+    /**
+     * 阶段 2（快，锁内）：与删除/清空互斥——复查会话存在，逐轮核对消息存在且内容签名
+     * 与入队快照一致；全部有效才落库（Room 写入在锁内，向量收尾带出锁执行）。
+     * 会话已删 / 轮次全部失效 → ack 丢弃（不 nack：会话不存在是终态，nack 会无限重提）；
+     * 部分失效 → 返回仍有效轮次，调用方整批候选作废后重新抽取。
+     */
+    private suspend fun saveExtractionBatchUnderLock(
+        batch: PendingExtractionBatch,
+        turnsToExtract: List<PendingExtractionTurn>,
+        candidates: List<MemoryExtractionService.MemoryCandidate>,
+    ): SaveAttempt =
+        SessionMutationLocks.withSessionLock(batch.sessionId) {
+            val session = db.sessionDao().getById(batch.sessionId)
+            if (session == null || session.ownerId != batch.ownerId) {
+                android.util.Log.d(
+                    "ChatRepository",
+                    "抽取完成后会话 ${batch.sessionId} 已删除，丢弃本批 ${candidates.size} 条候选",
+                )
+                pendingExtractionStore.ack(batch.batchId)
+                return@withSessionLock SaveAttempt(null, emptyList())
+            }
+
+            // 锁内版本复查：逐轮核对消息存在 + 内容签名与入队快照一致
+            val liveMessages =
+                db.messageDao()
+                    .getBySession(batch.sessionId, batch.ownerId)
+                    .first()
+                    .associateBy { it.id }
+            val freshTurns = turnsToExtract.filter { turnContentMatches(it, liveMessages) }
+            when {
+                freshTurns.isEmpty() && turnsToExtract.isNotEmpty() -> {
+                    android.util.Log.d("ChatRepository", "本批全部轮次在抽取期间被删除/编辑，ack 丢弃")
+                    pendingExtractionStore.ack(batch.batchId)
+                    SaveAttempt(null, emptyList())
+                }
+                freshTurns.size < turnsToExtract.size -> {
+                    android.util.Log.w(
+                        "ChatRepository",
+                        "${turnsToExtract.size - freshTurns.size} 轮在抽取期间被删除/编辑，" +
+                            "整批 ${candidates.size} 条候选作废，对剩余 ${freshTurns.size} 轮重新抽取",
+                    )
+                    SaveAttempt(freshTurns, emptyList())
+                }
+                else -> {
+                    val saveResult =
+                        memoryExtractionService.saveCandidatesLocked(
+                            candidates = candidates,
+                            ownerId = batch.ownerId,
+                            characterId = batch.characterId,
+                            sessionId = batch.sessionId,
+                            // 归因只使用实际有效轮次的消息 id（整批共用归因的
+                            // 单条事实来源覆盖是已知限制，属后续优化，此处不假装已解决）
+                            messageIds = freshTurns.flatMap { it.messageIds }.distinct(),
+                        )
+                    android.util.Log.d(
+                        "ChatRepository",
+                        "Memory extraction completed, saved ${saveResult.savedCount} memories",
+                    )
+                    pendingExtractionStore.ack(batch.batchId)
+                    SaveAttempt(null, saveResult.vectorFollowUps)
+                }
+            }
+        }
+
+    /** 缓冲轮次 → 抽取服务的对话轮（纯映射） */
+    private fun List<PendingExtractionTurn>.toDialogueTurns() =
+        map {
+            MemoryExtractionService.DialogueTurn(
+                userMessage = it.userMessage,
+                assistantMessage = it.assistantMessage,
+                messageIds = it.messageIds,
+            )
+        }
 
     // 解析记忆抽取用的 LLM 配置：会话指定配置 → api_configs 默认配置 → 活跃 LLM 配置兜底；都没有则返回 null（抽取跳过）
     private suspend fun resolveExtractionConfig(providerId: String): LlmConfig? {
@@ -1279,11 +1663,7 @@ class ChatRepository(private val context: Context) {
         val fallback = matched ?: dao.getDefault()
         if (fallback != null) {
             android.util.Log.d("ChatRepository", "Memory extraction using config: ${fallback.name}")
-            return LlmConfig(
-                baseUrl = fallback.apiUrl,
-                apiKey = fallback.apiKey,
-                model = fallback.model,
-            )
+            return settingsRepo.getLlmConfig(fallback)
         }
 
         val llmConfig = loadLlmConfig()

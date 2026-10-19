@@ -1,34 +1,26 @@
 plugins {
-    id "com.android.application" version '8.13.0' apply false
-    id "org.jetbrains.kotlin.android" version '2.0.21' apply false
-    id "org.jetbrains.kotlin.plugin.compose" version '2.0.21' apply false
-    id "org.jetbrains.kotlin.plugin.serialization" version '2.0.21' apply false
-    id "com.google.devtools.ksp" version '2.0.21-1.0.28' apply false
+    id "com.android.application" version '9.2.1' apply false
+    id "org.jetbrains.kotlin.android" version '2.2.10' apply false
+    id "org.jetbrains.kotlin.plugin.compose" version '2.2.10' apply false
+    id "org.jetbrains.kotlin.plugin.serialization" version '2.2.10' apply false
+    id "com.google.devtools.ksp" version '2.3.2' apply false
 
     // F0 质量门（见 docs/FOUNDATION.md）：静态检查 + 许可证审计
     id "io.gitlab.arturbosch.detekt" version "1.23.8" apply false
     id "org.jlleitschuh.gradle.ktlint" version "12.1.1" apply false
-    id "com.github.jk1.dependency-license-report" version "2.9"
+    id "com.github.jk1.dependency-license-report" version "3.1.4" apply false
 }
 
-// 依赖许可证报告：只扫 :app（JSON 输出供 licenseGuard 消费）
-licenseReport {
-    projects = [project(':app')]
-    outputDir = "$buildDir/reports/licenses"
-    renderers = [new com.github.jk1.license.render.JsonReportRenderer("index.json", false)]
-}
-
-// jk1 插件任务持有 Project 引用，与配置缓存不兼容（复用缓存条目会 NPE）；
-// 用官方任务级退出机制声明：含此任务的构建不存/不复用配置缓存
-tasks.named('generateLicenseReport') {
-    notCompatibleWithConfigurationCache('jk1 dependency-license-report 尚未适配配置缓存')
-}
+// 依赖许可证报告：只在 :app 模块应用插件（Gradle 9 禁止根任务跨项目解析
+// :app 的 configuration——"without an exclusive lock"；模块内任务则持有项目锁）。
+// JSON 输出供 licenseGuard 消费；输出目录保持在根 build 下，licenseGuard 无需改动。
+// jk1 任务与配置缓存不兼容：含此任务的构建不存/不复用配置缓存。
 
 // 许可证红线门（观点件自研，格式无关的递归扫描）：
 // 报告中出现 GPL/AGPL/AFFERO/SSPL 即构建失败。正则用 [^A-Za-z]GPL 窄化，
 // 避免 LGPL（JVM 动态链接下可接受）误伤；命中项逐条打印便于人工复核。
 tasks.register('licenseGuard') {
-    dependsOn 'generateLicenseReport'
+    dependsOn ':app:generateLicenseReport'
     group = 'verification'
     description = 'Fails if any dependency license hits copyleft red lines (GPL/AGPL/AFFERO/SSPL).'
     doLast {

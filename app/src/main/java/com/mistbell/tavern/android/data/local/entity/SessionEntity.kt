@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.data.local.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
+import com.mistbell.tavern.android.data.api.model.MAX_GROUP_PARTICIPANTS
 import com.mistbell.tavern.android.data.api.model.SessionSummary
 import kotlinx.serialization.Serializable
 
@@ -82,7 +83,7 @@ data class SessionEntity(
         )
 
     companion object {
-        private const val MAX_PARTICIPANT_CHARACTERS = 4
+        private const val MAX_PARTICIPANT_CHARACTERS = MAX_GROUP_PARTICIPANTS
 
         fun encodeParticipantCharacterIds(ids: Collection<String>): String {
             val normalized =

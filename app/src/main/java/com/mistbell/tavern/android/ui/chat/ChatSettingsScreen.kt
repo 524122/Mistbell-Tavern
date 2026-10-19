@@ -3,6 +3,8 @@ package com.mistbell.tavern.android.ui.chat
 import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -303,7 +305,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
             if (current.size <= 1) return
             current.remove(characterId)
         } else {
-            if (current.size >= 4) return
+            if (current.size >= MAX_SELECTABLE_CHARACTERS) return
             current.add(characterId)
         }
         saveParticipantCharacters(current)
@@ -312,7 +314,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     fun makePrimaryCharacter(characterId: String) {
         val current = _selectedCharacterIds.value.toMutableList()
         if (!current.contains(characterId)) {
-            if (current.size >= 4) return
+            if (current.size >= MAX_SELECTABLE_CHARACTERS) return
             current.add(characterId)
         }
         current.remove(characterId)
@@ -326,7 +328,7 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                 .ifEmpty { listOf(mainCharacterId) }
                 .filter { it.isNotBlank() }
                 .distinct()
-                .take(4)
+                .take(MAX_SELECTABLE_CHARACTERS)
         _selectedCharacterIds.value = normalized
         currentSessionId?.let { sessionId ->
             viewModelScope.launch {
@@ -705,7 +707,7 @@ fun ChatSettingsScreen(
                 }
             }
 
-            // 长期记忆三态：跟随全局 / 开启 / 关闭
+            // 会话记忆三态：跟随全局 / 开启 / 关闭
             Card(
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -716,12 +718,12 @@ fun ChatSettingsScreen(
                             .padding(16.dp),
                 ) {
                     Text(
-                        text = "长期记忆",
+                        text = "会话记忆",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        text = "保存对话内容到长期记忆",
+                        text = "保存对话内容到会话记忆",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -817,66 +819,75 @@ fun ChatSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "可选择 1-4 个角色；第一位作为主角色。",
+                        "可选择 1-${MAX_SELECTABLE_CHARACTERS} 个角色；第一位作为主角色。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    characters.forEach { character ->
-                        val selected = selectedCharacterIds.contains(character.id)
-                        val isPrimary = selectedCharacterIds.firstOrNull() == character.id
-                        Card(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.toggleParticipantCharacter(character.id) },
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor =
-                                        if (selected) {
-                                            MaterialTheme.colorScheme.secondaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.surface
-                                        },
-                                ),
-                        ) {
-                            Row(
+                    // AlertDialog 的 text 区域有固定的可用高度；直接 forEach 会让大量角色
+                    // 超出对话框边界，后面的角色既看不到也无法触摸。使用受限高度的
+                    // LazyColumn，让角色数量只影响列表内容，手指可以在列表内部滚动。
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 2.dp),
+                    ) {
+                        items(characters, key = { it.id }) { character ->
+                            val selected = selectedCharacterIds.contains(character.id)
+                            val isPrimary = selectedCharacterIds.firstOrNull() == character.id
+                            Card(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                CompositeCharacterAvatar(
-                                    characters = listOf(character),
-                                    modifier = Modifier.size(36.dp),
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(character.name, fontWeight = FontWeight.Medium)
-                                    Text(
-                                        text =
-                                            if (isPrimary) {
-                                                "主角色"
-                                            } else if (selected) {
-                                                "参与聊天"
+                                        .clickable { viewModel.toggleParticipantCharacter(character.id) },
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor =
+                                            if (selected) {
+                                                MaterialTheme.colorScheme.secondaryContainer
                                             } else {
-                                                "点击加入"
+                                                MaterialTheme.colorScheme.surface
                                             },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                            ) {
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    CompositeCharacterAvatar(
+                                        characters = listOf(character),
+                                        modifier = Modifier.size(36.dp),
                                     )
-                                }
-                                if (selected && !isPrimary) {
-                                    TextButton(onClick = { viewModel.makePrimaryCharacter(character.id) }) {
-                                        Text("设为主")
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(character.name, fontWeight = FontWeight.Medium)
+                                        Text(
+                                            text =
+                                                if (isPrimary) {
+                                                    "主角色"
+                                                } else if (selected) {
+                                                    "参与聊天"
+                                                } else {
+                                                    "点击加入"
+                                                },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                     }
-                                }
-                                if (selected) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
+                                    if (selected && !isPrimary) {
+                                        TextButton(onClick = { viewModel.makePrimaryCharacter(character.id) }) {
+                                            Text("设为主")
+                                        }
+                                    }
+                                    if (selected) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -31,7 +31,7 @@
 | JDK | 17+ |
 | Android Studio | Hedgehog (2023.1.1) 或更高 |
 | Gradle | 8.13 |
-| Android SDK | compileSdk 35 / minSdk 26 |
+| Android SDK | compileSdk 37 / targetSdk 37 / minSdk 26（Android 17）|
 
 构建与安装：
 

@@ -78,17 +78,32 @@ interface MessageDao {
         ownerId: String,
     ): MessageEntity?
 
+    @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
+    suspend fun getAnyById(messageId: String): MessageEntity?
+
     @Upsert
     suspend fun upsert(msg: MessageEntity)
 
     @Upsert
     suspend fun upsertAll(messages: List<MessageEntity>)
 
+    @Query(
+        "UPDATE messages SET vector_revision = lower(hex(randomblob(16))) " +
+            "WHERE id = :messageId AND vector_revision = ''",
+    )
+    suspend fun ensureVectorRevision(messageId: String)
+
     @Query("DELETE FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId")
     suspend fun deleteBySession(
         sessionId: String,
         ownerId: String,
     )
+
+    @Query("SELECT id FROM messages WHERE session_id = :sessionId AND owner_id = :ownerId")
+    suspend fun idsBySession(
+        sessionId: String,
+        ownerId: String,
+    ): List<String>
 
     // 注意：必须先于 deleteById(target) 调用——本查询通过子查询定位目标消息的时间，
     // 若目标行已不存在则整条条件为 NULL，不会删除任何消息（安全边界，调用方依赖此语义）。
@@ -116,6 +131,10 @@ interface MessageDao {
 
     @Query("DELETE FROM messages WHERE id = :messageId")
     suspend fun deleteById(messageId: String)
+
+    /** 按 owner 全量删除（deleteAllSessions 的孤儿清理用；不带 owner 条件的 deleteAll 会越界） */
+    @Query("DELETE FROM messages WHERE owner_id = :ownerId")
+    suspend fun deleteByOwner(ownerId: String)
 
     @Query("DELETE FROM messages")
     suspend fun deleteAll()
@@ -181,14 +200,23 @@ interface MessageDao {
 
     // F3-FTS 词法召回：按关键词（LIKE）检索历史消息，排除近期窗口内的 id。
     // 未用满的词位由调用方填充 "~~nomatch~~%"（不会匹配任何真实内容），LIKE 对 % 无需转义（模式固定）。
-    // 参数即固定 6 个 LIKE 词位 + 排除集 + 结果上限的 SQL 绑定槽位，均为语义必需；
-    // 压缩参数会改变召回行为或引入 @RawQuery 动态拼装，故本地豁免 detekt LongParameterList。
+    //
+    // 作用域（"能看多远"）由 RecallWindow 统一解析后以 [sessionIds] 传入，本查询**不自己解释**档位：
+    // 历史缺陷正是这里——词法层把 CHARACTER 档也当成"sessionId = null"，而本查询在 sessionId 为 null
+    // 时只按 owner 过滤，于是 CHARACTER 档实际退化成 OWNER 档：别的角色的会话内容会被注入本角色
+    // 提示词。向量通道按 character_id 收窄、结构化通道按 character_id + 会话收窄，同一个设置
+    // 在三条通道下能看见的东西不同。
+    //
+    // 参数个数由本查询的语义决定（会话集合 + 当前会话排除窗 + 结果上限 + 6 个词位），压缩会让
+    // 召回行为变得不可读，故本地豁免 detekt LongParameterList。
     @Suppress("LongParameterList")
     @Query(
         """
         SELECT * FROM messages
-        WHERE session_id = :sessionId
-          AND owner_id = :ownerId
+        WHERE owner_id = :ownerId
+          AND session_id IN (:sessionIds)
+          AND (:characterId IS NULL OR character_id = :characterId)
+          AND (:excludeSessionId IS NULL OR session_id != :excludeSessionId)
           AND id NOT IN (:excludedIds)
           AND (content LIKE :t1 OR content LIKE :t2 OR content LIKE :t3
             OR content LIKE :t4 OR content LIKE :t5 OR content LIKE :t6)
@@ -196,9 +224,11 @@ interface MessageDao {
         LIMIT :resultLimit
         """,
     )
-    suspend fun searchByContentTerms(
-        sessionId: String,
+    suspend fun searchByContentTermsInSessions(
+        sessionIds: List<String>,
+        excludeSessionId: String?,
         ownerId: String,
+        characterId: String?,
         excludedIds: List<String>,
         t1: String,
         t2: String,
@@ -207,6 +237,21 @@ interface MessageDao {
         t5: String,
         t6: String,
         resultLimit: Int,
+    ): List<MessageEntity>
+
+    // 向量索引重建：取该用户最近的消息（跨会话，最新优先）。
+    // 重建要的是"最近的一段对话"，所以按时间倒序取，而不是像上面那样按会话各取最新一条。
+    @Query(
+        """
+        SELECT * FROM messages
+        WHERE owner_id = :ownerId
+        ORDER BY created_at DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getRecentByOwner(
+        ownerId: String,
+        limit: Int,
     ): List<MessageEntity>
 
     /** 备份导出用：一次性全表读取（全 owner 完整快照） */

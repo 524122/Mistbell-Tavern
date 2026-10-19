@@ -1,8 +1,10 @@
 package com.mistbell.tavern.android.data.api
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -16,12 +18,19 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * - 采样参数在 generationConfig（maxOutputTokens/temperature/topP/topK），无 frequency_penalty
  * - 响应 candidates[].content.parts[] 拼接；用量在 usageMetadata
  */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 internal object GeminiChatProtocol : ChatProtocol {
+    // contents/systemInstruction 由协议从消息装配；key 走 URL query，均不允许用户 JSON 覆盖
+    override val protectedRequestFields: Set<String> =
+        ApiConfigJson.DEFAULT_PROTECTED_FIELDS + setOf("contents", "systeminstruction", "key")
+
     private val json =
         Json {
             ignoreUnknownKeys = true
             isLenient = true
             explicitNulls = false
+            // maxOutputTokens=1024 / temperature=0.8 是有效值，不能按“等于默认值”省略
+            encodeDefaults = true
         }
 
     @Serializable
@@ -39,7 +48,8 @@ internal object GeminiChatProtocol : ChatProtocol {
         @Serializable
         data class GeminiPart(
             val text: String = "",
-            val thought: Boolean = false,
+            // 响应里才有的标记；请求 parts 不带 thought=false 噪音
+            @EncodeDefault(EncodeDefault.Mode.NEVER) val thought: Boolean = false,
         )
     }
 
@@ -103,15 +113,30 @@ internal object GeminiChatProtocol : ChatProtocol {
                     ),
             )
 
-        val bodyJson = json.encodeToString(GeminiRequest.serializer(), requestBody)
+        val baseJson = json.encodeToJsonElement(GeminiRequest.serializer(), requestBody).jsonObject
+        val bodyJson =
+            mergeProtocolRequestBody(
+                base = baseJson,
+                config = config,
+                protectedFields = protectedRequestFields,
+            ).toString()
         val base = config.baseUrl.trimEnd('/')
-        val modelPath = "models/${config.model}:generateContent"
-        val url =
-            buildString {
-                append(if (base.endsWith("/v1beta")) "$base/$modelPath" else "$base/v1beta/$modelPath")
-                append("?key=${config.apiKey}")
-                if (stream) append("&alt=sse")
+        val modelPath =
+            if (ApiUrl.hasPathSuffix(base, "v1beta")) {
+                "models/${config.model}:generateContent"
+            } else {
+                "v1beta/models/${config.model}:generateContent"
             }
+        // 先追加路径（位于 query 之前），再用结构化 builder 合并 key/alt=sse；
+        // baseUrl 里已有的非凭据 query 参数与分隔符保持不变。
+        val endpoint = ApiUrl.appendPath(base, modelPath)
+        val query =
+            buildMap {
+                put("key", config.apiKey)
+                if (stream) put("alt", "sse")
+            }
+        // alt 是协议控制的开关：旧 baseUrl 里的 alt 不允许与前缀重复/冲突
+        val url = ApiUrl.withQueryParameters(endpoint, query, replacedParameters = setOf("alt"))
 
         return Request.Builder()
             .url(url)

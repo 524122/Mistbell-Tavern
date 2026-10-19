@@ -2,6 +2,7 @@ package com.mistbell.tavern.android.ui.prompt
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -86,11 +87,15 @@ fun PromptPreviewScreen(
                         shape = RoundedCornerShape(8.dp),
                     )
                     ExposedDropdownMenu(expanded = charExpanded, onDismissRequest = { charExpanded = false }) {
-                        characters.forEach { char ->
-                            DropdownMenuItem(text = { Text(char.name) }, onClick = {
-                                viewModel.setSelectedCharacterId(char.id)
-                                charExpanded = false
-                            })
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 420.dp),
+                        ) {
+                            items(characters, key = { it.id }) { char ->
+                                DropdownMenuItem(text = { Text(char.name) }, onClick = {
+                                    viewModel.setSelectedCharacterId(char.id)
+                                    charExpanded = false
+                                })
+                            }
                         }
                     }
                 }

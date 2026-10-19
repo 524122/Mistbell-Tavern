@@ -163,7 +163,7 @@ internal fun MemoryExtractionPromptDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "自定义 LLM 提取长期记忆时使用的提示词。提示词中必须包含 %s 占位符用于插入对话内容。",
+                    text = "自定义 LLM 提取会话记忆时使用的提示词。提示词中必须包含 %s 占位符用于插入对话内容。",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

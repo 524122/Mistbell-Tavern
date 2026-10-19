@@ -6,14 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Chat
@@ -78,6 +78,28 @@ fun MainScreen(
     val app = LocalContext.current.applicationContext as android.app.Application
     val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(app)
     val scope = rememberCoroutineScope()
+
+    // 升级清零一次性提示：挂在主导航层，覆盖横竖屏两种形态下的首页。
+    // 点击外部/返回不允许绕过确认——"1" 标记保留，下次启动继续提示，保证用户一定看到升级说明
+    val noticeViewModel: SessionMemoryResetNoticeViewModel = viewModel(factory = factory)
+    val showResetNotice by noticeViewModel.showNotice.collectAsState()
+    if (showResetNotice) {
+        AlertDialog(
+            onDismissRequest = { /* 仅"知道了"确认后清除标记，见 ViewModel 注释 */ },
+            title = { Text("记忆系统已升级") },
+            text = {
+                Text(
+                    "本次升级重构了记忆系统：历史记忆已全部清空，此后每个会话的记忆相互独立，" +
+                        "不会同步到其他聊天。聊天消息、角色和世界书均不受影响。",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { noticeViewModel.dismissNotice() }) {
+                    Text("知道了")
+                }
+            },
+        )
+    }
 
     // 自适应：宽度非 Compact（横屏手机/平板/折叠屏展开）时用左侧 NavigationRail，
     // 竖屏手机维持底部 NavigationBar

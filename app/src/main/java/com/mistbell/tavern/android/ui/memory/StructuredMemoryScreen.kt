@@ -165,11 +165,11 @@ fun StructuredMemoryScreen(
         MemoryEditDialog(
             memory = editingMemory,
             onDismiss = { viewModel.hideCreateDialog() },
-            onSave = { type, title, content, importance, tags ->
+            onSave = { draft ->
                 if (editingMemory != null) {
-                    viewModel.updateMemory(editingMemory!!.id, type, title, content, importance, tags)
+                    viewModel.updateMemory(editingMemory!!.id, draft)
                 } else {
-                    viewModel.createMemory(type, title, content, importance, tags)
+                    viewModel.createMemory(draft)
                 }
             },
         )
@@ -200,17 +200,19 @@ fun MemoryCard(
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    // 类型标签
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(4.dp),
-                    ) {
-                        Text(
-                            text = MemoryType.getDescription(memory.memoryType),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // 类型标签
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(4.dp),
+                        ) {
+                            Text(
+                                text = MemoryType.getDescription(memory.memoryType),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -326,11 +328,12 @@ fun MemoryCard(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionNaming", "LongMethod")
 @Composable
 fun MemoryEditDialog(
     memory: StructuredMemory?,
     onDismiss: () -> Unit,
-    onSave: (type: String, title: String, content: String, importance: Int, tags: List<String>) -> Unit,
+    onSave: (MemoryDraft) -> Unit,
 ) {
     var selectedType by remember { mutableStateOf(memory?.memoryType ?: MemoryType.FACT) }
     var title by remember { mutableStateOf(memory?.title ?: "") }
@@ -349,39 +352,10 @@ fun MemoryEditDialog(
                         .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // 类型选择
-                var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                ) {
-                    OutlinedTextField(
-                        value = MemoryType.getDescription(selectedType),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("类型") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    )
-
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                    ) {
-                        MemoryType.getAll().forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(MemoryType.getDescription(type)) },
-                                onClick = {
-                                    selectedType = type
-                                    expanded = false
-                                },
-                            )
-                        }
-                    }
-                }
+                MemoryTypeDropdown(
+                    selectedType = selectedType,
+                    onSelect = { selectedType = it },
+                )
 
                 // 标题
                 OutlinedTextField(
@@ -428,7 +402,15 @@ fun MemoryEditDialog(
             TextButton(
                 onClick = {
                     val tags = tagsText.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                    onSave(selectedType, title, content, importance, tags)
+                    onSave(
+                        MemoryDraft(
+                            memoryType = selectedType,
+                            title = title,
+                            content = content,
+                            importance = importance,
+                            tags = tags,
+                        ),
+                    )
                 },
                 enabled = content.isNotBlank(),
             ) {
@@ -441,4 +423,45 @@ fun MemoryEditDialog(
             }
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionNaming")
+@Composable
+private fun MemoryTypeDropdown(
+    selectedType: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = MemoryType.getDescription(selectedType),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("类型") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            MemoryType.getAll().forEach { type ->
+                DropdownMenuItem(
+                    text = { Text(MemoryType.getDescription(type)) },
+                    onClick = {
+                        onSelect(type)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
 }

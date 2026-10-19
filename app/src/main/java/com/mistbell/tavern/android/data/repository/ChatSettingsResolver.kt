@@ -62,6 +62,10 @@ object ChatSettingsResolver {
         raw?.toFloatOrNull()?.coerceIn(SIMILARITY_THRESHOLD_MIN, SIMILARITY_THRESHOLD_MAX)
             ?: DEFAULT_SIMILARITY_THRESHOLD
 
+    // settings KV 原始值 → 召回范围：会话内长期记忆（见 MemoryScope 的产品决策），
+    // 召回范围已永久固定为当前会话，该设置项不再产生任何作用；保留本函数签名仅为兼容既有调用方
+    fun memoryScope(raw: String?): MemoryScope = MemoryScope.fromRaw(raw)
+
     // ---- 提示词模板（全局行为项，无会话覆盖） ----
     //
     // 键名一律引用本组常量，禁止在别处手写字符串字面量（照会话模式常量那条纪律：

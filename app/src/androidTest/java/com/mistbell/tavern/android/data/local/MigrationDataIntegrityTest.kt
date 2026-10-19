@@ -294,6 +294,18 @@ class MigrationDataIntegrityTest {
         )
         raw.execSQL(
             """
+            INSERT INTO structured_memory (
+                id, owner_id, character_id, session_id, memory_type, title, content, structured_data,
+                importance, tags, keywords, created_at, updated_at, last_accessed_at, access_count,
+                related_message_ids, source_type
+            ) VALUES (
+                41, 'local-user', 'char-1', 'sess-1', 'fact', '旧版记忆', '升级前合成事实', NULL,
+                9, NULL, NULL, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', NULL, 0, NULL, 'manual'
+            )
+            """.trimIndent(),
+        )
+        raw.execSQL(
+            """
             INSERT INTO messages (id, session_id, owner_id, character_id, role, content, thinking, created_at, memory_ids_json, swipes_json, swipe_index, thinking_swipes_json, is_read)
             VALUES ('msg-1', 'sess-1', 'local-user', 'char-1', 'user', '你好', NULL, '2026-01-01T00:01:00Z', '', '', 0, '', 1)
             """.trimIndent(),
@@ -314,7 +326,7 @@ class MigrationDataIntegrityTest {
         raw.close()
     }
 
-    /** 打开数据库并执行迁移（用生产同款迁移链——AppDatabase 伴生对象的 internal 成员，直达最新版本 21） */
+    /** 打开数据库并执行迁移（用生产同款迁移链，直达当前版本 27） */
     private fun openWithRoom(): AppDatabase {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         return Room.databaseBuilder(context, AppDatabase::class.java, dbName)
@@ -337,7 +349,14 @@ class MigrationDataIntegrityTest {
                 AppDatabase.Companion.MIGRATION_18_19,
                 AppDatabase.Companion.MIGRATION_19_20,
                 AppDatabase.Companion.MIGRATION_20_21,
+                AppDatabase.Companion.MIGRATION_21_22,
+                AppDatabase.Companion.MIGRATION_22_23,
+                AppDatabase.Companion.MIGRATION_23_24,
+                AppDatabase.Companion.MIGRATION_24_25,
+                AppDatabase.Companion.MIGRATION_25_26,
+                AppDatabase.Companion.MIGRATION_26_27,
             )
+            .addCallback(AppDatabase.vectorSyncCallback)
             .allowMainThreadQueries()
             .build()
     }
@@ -361,7 +380,7 @@ class MigrationDataIntegrityTest {
             // 验证消息
             val messages =
                 db.messageDao()
-                    .getBySession("sess-1", "local-user", "char-1")
+                    .getBySession("sess-1", "local-user")
                     .first()
             assertEquals("消息应全部保留", 3, messages.size)
             assertEquals("你好", messages[0].content)
@@ -416,7 +435,7 @@ class MigrationDataIntegrityTest {
             )
             val messages =
                 db.messageDao()
-                    .getBySession("sess-1", "local-user", "char-1")
+                    .getBySession("sess-1", "local-user")
                     .first()
             assertEquals("迁移后写入的新消息应在查询中", 4, messages.size)
         }
@@ -589,5 +608,22 @@ class MigrationDataIntegrityTest {
             assertEquals(3, entries[0].depth)
             assertEquals("assistant", entries[0].depthRole)
             assertEquals(0.5, entries[0].probability, 0.0001)
+        }
+
+    @Test
+    fun migrateLegacyDatabase_seedsRecoveryWithoutClearingMemoryOrBusinessData() =
+        runBlocking {
+            createV11Database()
+            db = openWithRoom()
+
+            val memory = db.structuredMemoryDao().getById(41)
+            assertNotNull(memory)
+            assertEquals("升级前合成事实", memory?.content)
+            assertTrue("迁移必须为旧记忆分配持久化修订号", memory?.vectorRevision?.isNotBlank() == true)
+            val operation = db.vectorSyncOutboxDao().getAll().single { it.sourceId == "41" }
+            assertEquals("UPSERT", operation.operation)
+            assertEquals(memory?.vectorRevision, operation.sourceRevision)
+            assertEquals(3, db.messageDao().getBySession("sess-1", "local-user").first().size)
+            assertEquals(1, db.characterDao().getAll().first().size)
         }
 }

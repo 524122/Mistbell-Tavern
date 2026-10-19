@@ -1,6 +1,7 @@
 package com.mistbell.tavern.android.data.api
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -15,6 +16,8 @@ internal object OpenAiChatProtocol : ChatProtocol {
             ignoreUnknownKeys = true
             isLenient = true
             explicitNulls = false
+            // temperature=0.8 / max_tokens=1024 也是有效配置值，不能因为等于默认值被省略
+            encodeDefaults = true
         }
 
     override fun buildRequest(
@@ -36,9 +39,16 @@ internal object OpenAiChatProtocol : ChatProtocol {
                 thinking = ThinkingConfig(type = "disabled").takeIf { config.disableThinking },
             )
 
-        val bodyJson = json.encodeToString(ChatCompletionRequest.serializer(), requestBody)
+        val baseJson = json.encodeToJsonElement(ChatCompletionRequest.serializer(), requestBody).jsonObject
+        val bodyJson =
+            mergeProtocolRequestBody(
+                base = baseJson,
+                config = config,
+                protectedFields = protectedRequestFields,
+            ).toString()
 
-        val url = "${config.baseUrl.trimEnd('/')}/chat/completions"
+        // 路径必须追加在 baseUrl 的 query 之前；已有非凭据 query 参数原样保留
+        val url = ApiUrl.appendPath(config.baseUrl, "chat/completions")
         return Request.Builder()
             .url(url)
             .addHeader("Authorization", "Bearer ${config.apiKey}")

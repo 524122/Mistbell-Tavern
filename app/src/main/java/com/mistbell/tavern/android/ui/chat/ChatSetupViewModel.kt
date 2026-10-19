@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
+import com.mistbell.tavern.android.data.api.model.MAX_GROUP_PARTICIPANTS
 import com.mistbell.tavern.android.data.api.model.SESSION_MODE_CLASSIC
 import com.mistbell.tavern.android.data.api.model.SESSION_MODE_GROUP
 import com.mistbell.tavern.android.data.api.model.WorldBook
@@ -22,7 +23,7 @@ import java.util.UUID
 // 群聊模式角色数量限制
 // internal：ChatSetupScreen 的模式提示文案复用
 internal const val MIN_GROUP_CHARACTERS = 2
-internal const val MAX_SELECTABLE_CHARACTERS = 4
+internal const val MAX_SELECTABLE_CHARACTERS = MAX_GROUP_PARTICIPANTS
 
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
@@ -300,7 +301,7 @@ internal fun resolveCharacterSelection(
         when {
             // 群聊多选：已选中 → 移除（toggle-off）
             targetId in current -> current - targetId
-            // 群聊上限：已满 4 个且目标未选中 → 拒绝（原样返回，无变化）
+            // 群聊上限：已满上限且目标未选中 → 拒绝（原样返回，无变化）
             current.size >= MAX_SELECTABLE_CHARACTERS -> current
             // 群聊多选：未选中且未满 → 加入
             else -> current + targetId

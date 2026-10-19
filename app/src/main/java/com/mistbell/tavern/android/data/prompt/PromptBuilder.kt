@@ -3,12 +3,18 @@ package com.mistbell.tavern.android.data.prompt
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ChatMessage
 import com.mistbell.tavern.android.data.api.model.GroupChatContext
+import com.mistbell.tavern.android.data.api.model.MemoryType
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
+import com.mistbell.tavern.android.data.api.model.truncateMemoryContent
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
+import com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.LexicalMemoryService
+import com.mistbell.tavern.android.data.repository.MemoryScope
+import com.mistbell.tavern.android.data.repository.RecallWindow
+import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.util.MacroContext
 import com.mistbell.tavern.android.util.MacroEngine
@@ -20,8 +26,11 @@ object PromptBuilder {
     /** World Info 的会话内运行状态：sticky/cooldown/delay 只影响激活决策，不改变 Room 主数据。 */
     private object WorldInfoRuntime {
         private const val MAX_RECURSION_DEPTH = 3
+
         private data class EntryState(var lastTurn: Int = -1, var sticky: Boolean = false)
+
         private data class SessionState(var turn: Int = 0, val entries: MutableMap<String, EntryState> = mutableMapOf())
+
         private data class Candidate(
             val entry: WorldBookEntryEntity,
             val key: String,
@@ -30,6 +39,7 @@ object PromptBuilder {
             val secondaryHits: Int,
             val sticky: Boolean,
         )
+
         private val sessions = mutableMapOf<String, SessionState>()
 
         /**
@@ -39,7 +49,11 @@ object PromptBuilder {
          * sharing a non-empty group compete by score and only the highest scoring entry wins.
          */
         @Synchronized
-        fun activate(sessionId: String, entries: List<WorldBookEntryEntity>, scanText: String): Set<String> {
+        fun activate(
+            sessionId: String,
+            entries: List<WorldBookEntryEntity>,
+            scanText: String,
+        ): Set<String> {
             val state = sessions.getOrPut(sessionId) { SessionState() }
             state.turn += 1
             val activated = linkedSetOf<String>()
@@ -87,8 +101,15 @@ object PromptBuilder {
                         .groupBy { it.entry.groupName }
                         .values
                         .flatMap { group ->
-                            if (group.first().entry.groupName.isBlank()) group
-                            else listOf(group.maxWithOrNull(compareBy<Candidate> { it.score }.thenByDescending { it.primaryHits }.thenBy { it.entry.order })!!)
+                            if (group.first().entry.groupName.isBlank()) {
+                                group
+                            } else {
+                                listOf(
+                                    group.maxWithOrNull(
+                                        compareBy<Candidate> { it.score }.thenByDescending { it.primaryHits }.thenBy { it.entry.order },
+                                    )!!,
+                                )
+                            }
                         }.sortedWith(compareBy<Candidate> { it.entry.order }.thenBy { it.key })
                 if (winners.isEmpty()) return@repeat
                 val newlyActivated = mutableListOf<String>()
@@ -111,14 +132,26 @@ object PromptBuilder {
         private fun parseKeywords(keysJson: String): List<String> =
             runCatching { if (keysJson.isBlank()) emptyList() else Json.decodeFromString<List<String>>(keysJson) }.getOrDefault(emptyList())
 
-        private fun matchingKeywords(keysJson: String, text: String): Int = matchingKeywords(parseKeywords(keysJson), text)
+        private fun matchingKeywords(
+            keysJson: String,
+            text: String,
+        ): Int = matchingKeywords(parseKeywords(keysJson), text)
 
-        private fun matchingKeywords(keys: List<String>, text: String): Int =
+        private fun matchingKeywords(
+            keys: List<String>,
+            text: String,
+        ): Int =
             keys.count { key ->
                 val normalized = key.trim()
-                if (normalized.isBlank()) false
-                else if (normalized.startsWith("/") && normalized.endsWith("/")) {
-                    runCatching { Regex(normalized.substring(1, normalized.length - 1), RegexOption.IGNORE_CASE).containsMatchIn(text) }.getOrDefault(false)
+                if (normalized.isBlank()) {
+                    false
+                } else if (normalized.startsWith("/") && normalized.endsWith("/")) {
+                    runCatching {
+                        Regex(
+                            normalized.substring(1, normalized.length - 1),
+                            RegexOption.IGNORE_CASE,
+                        ).containsMatchIn(text)
+                    }.getOrDefault(false)
                 } else if (normalized.contains("*")) {
                     val pattern = normalized.split("*").joinToString(".*") { Regex.escape(it) }
                     runCatching { Regex("(?is).*" + pattern + ".*").matches(text) }.getOrDefault(false)
@@ -149,6 +182,54 @@ object PromptBuilder {
     // 记忆重复注入判定的最小长度：短于该值的正文不做"内容包含"比对，避免误伤不同事实
     private const val MIN_DUPLICATE_LENGTH = 8
     private const val MEMORY_CANDIDATE_LIMIT = 100
+
+    /**
+     * 记忆链就绪闸门（可注入，object 无构造注入点，测试可整体替换）：
+     * 默认走 AppContainer 生产闸门——升级清零未完成时抛 [MemoryResetPendingException]。
+     * 召回入口（buildMemoryContext/recallCandidates）只许以"空结果"降级，绝不把异常
+     * 抛进对话主流程，也绝不放行旧数据扩大召回。
+     */
+    internal var memoryResetGate: suspend () -> Unit = {
+        TavernApplication.instance.container.sessionMemoryResetGate()
+    }
+
+    internal var vectorMemoryServiceProvider: () -> VectorMemoryService = {
+        TavernApplication.instance.container.vectorMemoryService
+    }
+
+    /**
+     * 召回路径的闸门等待：未通过返回 false（调用方按空结果降级）。
+     * 不召回优于召错——清零期间读到的记忆是待删除的旧数据，泄进提示词就是串线。
+     */
+    private suspend fun awaitGateForRecall(): Boolean =
+        try {
+            memoryResetGate()
+            true
+        } catch (e: Exception) {
+            android.util.Log.w("PromptBuilder", "记忆链闸门未通过，召回降级为空：${e.message}")
+            false
+        }
+
+    // 记忆块 token 预算：占上下文长度的比例 + 上下限。
+    // 注入条数（最多 10 条）挡不住长正文——10 条各上千字足以顶掉整段历史，
+    // 只有 token 预算才是硬约束（上下文极小时不至于一点记忆都放不下，极大时也不放任膨胀）。
+    private const val MEMORY_BLOCK_BUDGET_RATIO = 0.25
+    private const val MEMORY_BLOCK_MIN_TOKENS = 120
+    private const val MEMORY_BLOCK_MAX_TOKENS = 1200
+
+    /** 未归入任何分组的记忆统一收在这段标题下 */
+    private const val FACTS_HEADER = "其他事实："
+
+    // 记忆块的分组与注入顺序：归类后的事实比平铺一列更容易被模型分辨和引用
+    private val MEMORY_GROUPS: Map<String, Set<String>> =
+        linkedMapOf(
+            "用户信息" to setOf("character_info", "identity", "preference"),
+            "关系" to setOf("relationship"),
+            "重要事件" to setOf("event", "core", "goal"),
+            "情绪与边界" to setOf("emotion"),
+            "相关物品" to setOf("item"),
+            "相关地点" to setOf("location"),
+        )
     private val THINKING_BLOCK_REGEX = Regex("(?s)<think>[\\s\\S]*?</think>")
 
     // ---- 提示词溯源（聊天页「查看提示词」用） ----
@@ -287,6 +368,8 @@ object PromptBuilder {
         // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）；
         // 非 null 时不再追加最终用户消息，改为注入这条 system 消息
         groupNudge: String? = null,
+        // API 配置文档提供的本地 prompt 输入预算；会话显式覆盖仍优先
+        contextTokenLimitOverride: Int? = null,
     ): List<ChatMessage> {
         val trace =
             buildPromptTrace(
@@ -299,6 +382,7 @@ object PromptBuilder {
                 excludeFromMessageId,
                 groupContext,
                 groupNudge,
+                contextTokenLimitOverride,
             )
         return trace.segments.map { it.message }
     }
@@ -319,6 +403,7 @@ object PromptBuilder {
         excludeFromMessageId: String? = null,
         groupContext: GroupChatContext? = null,
         groupNudge: String? = null,
+        contextTokenLimitOverride: Int? = null,
     ): PromptTrace {
         val messages = mutableListOf<Segment>()
 
@@ -329,7 +414,8 @@ object PromptBuilder {
         val contextTokenLimit =
             ChatSettingsResolver.contextTokenLimit(
                 session,
-                ChatSettingsResolver.globalDefaultContextTokens(settingsDao.getValue("default_context_tokens")),
+                contextTokenLimitOverride
+                    ?: ChatSettingsResolver.globalDefaultContextTokens(settingsDao.getValue("default_context_tokens")),
             )
         val longTermMemoryEnabled =
             ChatSettingsResolver.longTermMemoryEnabled(
@@ -488,7 +574,11 @@ object PromptBuilder {
         // 保证历史窗口与改动前完全一致，不会因记忆块后移而撑爆上下文
         val memoryContext =
             if (longTermMemoryEnabled) {
-                buildMemoryContext(db, ownerId, characterId, sessionId, userMessage)
+                buildMemoryContext(
+                    db = db,
+                    query = MemoryRecallQuery(ownerId, characterId, sessionId, userMessage),
+                    contextTokenLimit = contextTokenLimit,
+                )
             } else {
                 MemoryContext()
             }
@@ -592,7 +682,7 @@ object PromptBuilder {
         messages.addAll(
             memoryContext
                 .messagesFor(historyTruncated = historyTruncated)
-                .map { Segment(it, "长期记忆") },
+                .map { Segment(it, "会话记忆") },
         )
 
         // 缓存优化：在长期记忆之后统一注入所有激活条目（非 constant）。
@@ -802,7 +892,12 @@ object PromptBuilder {
         val structuredBlock: ChatMessage? = null,
         val recallBlock: ChatMessage? = null,
     ) {
-        /** 组装用：会话历史未裁剪时丢弃召回块（无信息损失） */
+        /**
+         * 组装用。
+         *
+         * 召回范围已永久固定为当前会话（见 [RecallWindow]）：历史未裁剪时召回内容必然已在
+         * 历史里，整段丢弃不丢任何信息；历史被裁剪时才注入召回块补回更早的本会话内容。
+         */
         fun messagesFor(historyTruncated: Boolean): List<ChatMessage> =
             listOfNotNull(structuredBlock, recallBlock.takeIf { historyTruncated })
 
@@ -810,78 +905,162 @@ object PromptBuilder {
         fun allMessages(): List<ChatMessage> = listOfNotNull(structuredBlock, recallBlock)
     }
 
+    /** 一次记忆召回的查询维度（收拢成单一入参，避免装配函数的参数表随维度膨胀） */
+    private data class MemoryRecallQuery(
+        val ownerId: String,
+        val characterId: String,
+        val sessionId: String,
+        val userMessage: String,
+    )
+
     private suspend fun buildMemoryContext(
         db: AppDatabase,
-        ownerId: String,
-        characterId: String,
-        sessionId: String,
-        userMessage: String,
+        query: MemoryRecallQuery,
+        contextTokenLimit: Int,
     ): MemoryContext {
-        var structuredBlock: ChatMessage? = null
-        var recallBlock: ChatMessage? = null
+        // 闸门失败 = 记忆链未就绪：整条记忆上下文降级为空（结构化 + 召回一起不注入），
+        // 对话可以继续，只是这一轮没有长期记忆——不召回优于召错
+        if (!awaitGateForRecall()) return MemoryContext()
 
-        val memories =
-            db.structuredMemoryDao()
-                .getPromptCandidates(ownerId, characterId, MEMORY_CANDIDATE_LIMIT)
-                .map { it.toDomain() }
+        // 召回范围：结构化 / 向量 / 词法三条通道共用同一窗口（见 [RecallWindow]）。
+        // 长期记忆已永久固定为「owner + 当前会话」：档位设置（MemoryScope）归一化为 SESSION，
+        // 窗口不再按任何设置扩大会话集合；缺失会话 id 时三条通道一致拒绝召回。
+        val window =
+            RecallWindow.resolve(
+                db = db,
+                ownerId = query.ownerId,
+                characterId = query.characterId,
+                currentSessionId = query.sessionId,
+                scope = MemoryScope.SESSION,
+            )
+        val (structuredBlock, injectedContents) = structuredMemoryBlock(db, query, window, contextTokenLimit)
+        return MemoryContext(
+            structuredBlock = structuredBlock,
+            recallBlock = recallBlock(db, query, window, injectedContents),
+        )
+    }
 
-        val recalledMemories = selectRelevantMemories(memories, userMessage)
-        val recalledContents = recalledMemories.map { it.content }.filter { it.isNotBlank() }
-        if (recalledMemories.isNotEmpty()) {
-            val accessedAt = Instant.now().toString()
-            recalledMemories.map { it.id }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.let {
-                db.structuredMemoryDao().incrementAccessCount(it, accessedAt)
-            }
-            structuredBlock =
-                ChatMessage(
-                    role = "system",
-                    content = "## Known Information\n${formatStructuredMemoryContext(recalledMemories)}",
-                )
+    /**
+     * 结构化记忆块：按召回窗口取候选 → 相关性选择 → 按 token 预算渲染。
+     *
+     * @return (注入块, 实际注入的记忆正文)；正文供向量召回去重——被预算裁掉的不算"已覆盖"
+     */
+    private suspend fun structuredMemoryBlock(
+        db: AppDatabase,
+        query: MemoryRecallQuery,
+        window: RecallWindow,
+        contextTokenLimit: Int,
+    ): Pair<ChatMessage?, List<String>> {
+        val memories = recallCandidates(db, window).map { it.toDomain() }
+        val selected = selectRelevantMemories(memories, query.userMessage)
+        // 记忆块按 token 预算裁剪：选择器已按重要度/相关性排好序，被裁掉的是最不重要的尾巴
+        val (text, injected) =
+            formatStructuredMemoryContext(selected, memoryBlockBudget(contextTokenLimit))
+        if (injected.isEmpty()) return null to emptyList()
+
+        val accessedAt = Instant.now().toString()
+        injected.map { it.id }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.let {
+            db.structuredMemoryDao().incrementAccessCount(it, accessedAt)
         }
+        return ChatMessage(role = "system", content = "## Known Information\n$text") to
+            injected.map { it.content }.filter { it.isNotBlank() }
+    }
 
-        // 记忆检索：有真实 embedding 服务（API 或本地 ONNX，F3）→ 向量检索；否则词法回退（F3-FTS）
+    /**
+     * 按召回窗口取候选：**owner + 当前会话**（档位语义见 [RecallWindow] 文件头的产品决策）。
+     *
+     * 当前会话 id 缺失（blank）→ 空列表：宁可不召回，绝不退化成 owner 级（跨会话串线）。
+     * 不按角色收窄：群聊里 NPC 与主角色的记忆同属这一次对话，会话边界已覆盖角色隔离。
+     */
+    private suspend fun recallCandidates(
+        db: AppDatabase,
+        window: RecallWindow,
+    ): List<StructuredMemoryEntity> {
+        // 防御性收口（不信任调用方装配的窗口）：ownerId / currentSessionId 为空 → 拒绝召回；
+        // 记忆链闸门（recallCandidates 也是结构化召回的独立入口，不能只吃 buildMemoryContext 的闸）：
+        // 未通过 → 空候选，与 blank 收口同一降级语义。短路求值保证身份合法才走闸门（与原行为一致）。
+        val gatePassed =
+            window.ownerId.isNotBlank() && window.currentSessionId.isNotBlank() &&
+                awaitGateForRecall()
+        if (!gatePassed) return emptyList()
+
+        val dao = db.structuredMemoryDao()
+        val currentSessionId = window.currentSessionId
+
+        // DAO 内已按 importance DESC, created_at DESC 排序并 LIMIT——单一查询无需再合并截断
+        return dao.getPromptCandidatesInSessions(
+            window.ownerId,
+            listOf(currentSessionId),
+            MEMORY_CANDIDATE_LIMIT,
+        )
+    }
+
+    /** 语义召回块：有真实 embedding 服务（API 或本地 ONNX，F3）→ 向量检索；否则词法回退（F3-FTS） */
+    @Suppress("TooGenericExceptionCaught") // 检索失败不应阻塞对话
+    private suspend fun recallBlock(
+        db: AppDatabase,
+        query: MemoryRecallQuery,
+        window: RecallWindow,
+        injectedContents: List<String>,
+    ): ChatMessage? =
         try {
-            val vectorMemoryService = TavernApplication.instance.container.vectorMemoryService
+            val vectorMemoryService = vectorMemoryServiceProvider()
             if (vectorMemoryService.available) {
-                // S2 召回设置：top-k 与相似度阈值全局可配（读取时解析，存储为纯数值）
-                val topK = ChatSettingsResolver.memoryRecallTopK(db.settingsDao().getValue("memory_recall_top_k"))
-                val threshold =
-                    ChatSettingsResolver.memorySimilarityThreshold(
-                        db.settingsDao().getValue("memory_similarity_threshold"),
-                    )
-                val vectorResults =
-                    vectorMemoryService.searchRelevantMemories(
-                        query = userMessage,
-                        ownerId = ownerId,
-                        characterId = characterId,
-                        sessionId = sessionId,
-                        topK = topK * 2,
-                    ).filter { it.score >= threshold }
-                        .take(topK)
-
-                if (vectorResults.isNotEmpty()) {
-                    // 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
-                    // 内容已被本提示词覆盖的向量行直接丢弃，同一事实不再烧两次 token
-                    val vectorContext = buildVectorMemoryContextForPrompt(vectorResults, recalledContents)
-                    if (vectorContext.isNotBlank()) {
-                        recallBlock = ChatMessage(role = "system", content = vectorContext)
-                    }
-                }
+                vectorRecallBlock(db, query, window, injectedContents, vectorMemoryService)
             } else {
-                // 无 embedding API：诚实的关键词词法召回（OMate 式历史全文检索思路）
-                val lexical = LexicalMemoryService(TavernApplication.instance)
-                val items = lexical.searchRelevantHistory(ownerId, characterId, sessionId, userMessage)
-                val lexicalContext = lexical.formatHistory(items)
-                if (lexicalContext.isNotBlank()) {
-                    recallBlock = ChatMessage(role = "system", content = lexicalContext)
-                }
+                lexicalRecallBlock(query, window)
             }
         } catch (e: Exception) {
-            // 检索失败不应阻塞对话
             android.util.Log.e("PromptBuilder", "Memory search failed: ${e.message}", e)
+            null
         }
 
-        return MemoryContext(structuredBlock = structuredBlock, recallBlock = recallBlock)
+    private suspend fun vectorRecallBlock(
+        db: AppDatabase,
+        query: MemoryRecallQuery,
+        window: RecallWindow,
+        injectedContents: List<String>,
+        vectorMemoryService: VectorMemoryService,
+    ): ChatMessage? {
+        // S2 召回设置：top-k 与相似度阈值全局可配（读取时解析，存储为纯数值）
+        val topK = ChatSettingsResolver.memoryRecallTopK(db.settingsDao().getValue("memory_recall_top_k"))
+        val threshold =
+            ChatSettingsResolver.memorySimilarityThreshold(
+                db.settingsDao().getValue("memory_similarity_threshold"),
+            )
+        val outcome =
+            vectorMemoryService.searchRelevantMemories(
+                query = query.userMessage,
+                // 作用域整体交给 RecallWindow：本方法不再自己解释档位（角色是否收窄、
+                // 会话是否收窄都在窗口里），三通道口径才不会各自漂移
+                window = window,
+                topK = topK * 2,
+            )
+        val vectorResults = outcome.results.filter { it.score >= threshold }.take(topK)
+
+        // sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——结果必为空，
+        // 无需像旧版本那样提示"召回范围比设定更宽"（跨会话退化路径已整体移除）
+        if (vectorResults.isEmpty()) return null
+        // 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
+        // 内容已被本提示词覆盖的向量行直接丢弃，同一事实不再烧两次 token
+        val context = buildVectorMemoryContextForPrompt(vectorResults, injectedContents)
+        return context.takeIf { it.isNotBlank() }?.let { ChatMessage(role = "system", content = it) }
+    }
+
+    private suspend fun lexicalRecallBlock(
+        query: MemoryRecallQuery,
+        window: RecallWindow,
+    ): ChatMessage? {
+        // 无 embedding API：诚实的关键词词法召回（OMate 式历史全文检索思路）
+        val lexical = LexicalMemoryService(TavernApplication.instance)
+        val items =
+            lexical.searchRelevantHistory(
+                window = window,
+                query = query.userMessage,
+            )
+        return lexical.formatHistory(items).takeIf { it.isNotBlank() }?.let {
+            ChatMessage(role = "system", content = it)
+        }
     }
 
     private fun selectRelevantMemories(
@@ -927,41 +1106,87 @@ object PromptBuilder {
             .take(10)
     }
 
-    private fun formatStructuredMemoryContext(memories: List<StructuredMemory>): String {
-        val groups =
-            linkedMapOf(
-                "用户信息" to setOf("character_info", "identity", "preference"),
-                "关系" to setOf("relationship"),
-                "重要事件" to setOf("event", "core", "goal"),
-                "情绪与边界" to setOf("emotion"),
-                "相关物品" to setOf("item"),
-                "相关地点" to setOf("location"),
-            )
+    /** 记忆块 token 预算：占上下文长度的比例，钳制在上下限内（取值理由见常量注释） */
+    internal fun memoryBlockBudget(contextTokenLimit: Int): Int =
+        (contextTokenLimit * MEMORY_BLOCK_BUDGET_RATIO).toInt()
+            .coerceIn(MEMORY_BLOCK_MIN_TOKENS, MEMORY_BLOCK_MAX_TOKENS)
 
-        val usedKeys = mutableSetOf<Long>()
+    /**
+     * 渲染记忆块，返回 (文本, **实际注入**的记忆)。
+     *
+     * [budgetTokens] 是硬约束：逐行累加 token，超预算即止。选择器已按重要度/相关性排好序，
+     * "先到先得"等价于"优先保留更重要的"——没有任何排序能保证不超长，预算才能。
+     *
+     * 返回实际注入的集合，而不是把入参原样带出去：访问计数与向量去重都只该认真正进了提示词的
+     * 那些记忆，被预算裁掉的不算"被访问"，也不算"内容已被覆盖"。
+     *
+     * internal 仅为单元测试开放（与 [atDepthIndex] / [selectHistoryWithinBudget] 同一先例）。
+     */
+    internal fun formatStructuredMemoryContext(
+        memories: List<StructuredMemory>,
+        budgetTokens: Int,
+    ): Pair<String, List<StructuredMemory>> {
+        val grouped = groupMemories(memories)
+
+        // 第一步：在**全局排序**的候选上分配预算。选择器已按重要度/相关性排好序，先到先得
+        // 就等于"优先保住更重要的"。
+        //
+        // 这一步必须先于分组：此前是边按固定分组顺序（用户信息 → 关系 → 重要事件 …）渲染边扣预算，
+        // 于是低重要度的"用户信息"能先把预算占满，把更高重要度的"重要事件"整组挡在门外——
+        // 注释里"裁掉最不重要的尾巴"对不上实际行为。
+        //
+        // 放不下的**跳过**而不是就此停止：列表已按重要度排序，跳过一条大的不会漏掉更重要的
+        // （后面的只会同等或更不重要），但能让预算装下更多条。若在这里 break，一条超长的
+        // 低优先级记忆就能把后面所有更重要的条目一起饿死。
+        //
+        // 分组标题的开销先整体预留（宁多勿少：部分分组可能因保留项为空而不出现）。
+        val headerTokens = grouped.sumOf { estimateTokens("${it.first}：") } + estimateTokens(FACTS_HEADER)
+        val contentBudget = (budgetTokens - headerTokens).coerceAtLeast(0)
+        var usedTokens = 0
+        val injected = mutableListOf<StructuredMemory>()
+        for (memory in memories) {
+            val cost = estimateTokens(memoryLine(memory))
+            if (usedTokens + cost > contentBudget) continue
+            usedTokens += cost
+            injected.add(memory)
+        }
+
+        // 第二步：只把保留项按分组渲染出来（此时不再扣预算，总量已在预算内）
+        val keptKeys = injected.map { it.stableKey() }.toSet()
         val lines = mutableListOf<String>()
-
-        groups.forEach { (label, types) ->
-            val items = memories.filter { it.memoryType.lowercase() in types }
-            if (items.isNotEmpty()) {
-                lines.add("$label：")
-                items.forEach { memory ->
-                    usedKeys.add(memory.stableKey())
-                    lines.add("  - ${memory.content}（重要度：${memory.importance}/10）")
-                }
-                lines.add("")
+        val groupedKeys = mutableSetOf<Long>()
+        for ((label, items) in grouped) {
+            val shown = items.filter { it.stableKey() in keptKeys }
+            if (shown.isEmpty()) continue
+            lines.add("$label：")
+            shown.forEach { memory ->
+                groupedKeys.add(memory.stableKey())
+                lines.add(memoryLine(memory))
             }
+            lines.add("")
         }
 
-        val facts = memories.filter { it.stableKey() !in usedKeys }
+        val facts = injected.filter { it.stableKey() !in groupedKeys }
         if (facts.isNotEmpty()) {
-            lines.add("其他事实：")
-            facts.forEach { memory ->
-                lines.add("  - ${memory.content}（重要度：${memory.importance}/10）")
-            }
+            lines.add(FACTS_HEADER)
+            facts.forEach { lines.add(memoryLine(it)) }
         }
 
-        return lines.joinToString("\n").trim()
+        return lines.joinToString("\n").trim() to injected
+    }
+
+    /** 按分组归拢记忆，空组不出现（顺序即展示顺序） */
+    private fun groupMemories(memories: List<StructuredMemory>): List<Pair<String, List<StructuredMemory>>> =
+        MEMORY_GROUPS.mapNotNull { (label, types) ->
+            memories
+                .filter { it.memoryType.lowercase() in types }
+                .takeIf { it.isNotEmpty() }
+                ?.let { label to it }
+        }
+
+    /** 记忆渲染成行；存量超长记忆（长度上限引入前落库的）在此再截一次 */
+    private fun memoryLine(memory: StructuredMemory): String {
+        return "  - ${memory.content.truncateMemoryContent()}（重要度：${memory.importance}/10）"
     }
 
     private fun keywordMatchScore(
@@ -1029,13 +1254,9 @@ object PromptBuilder {
 
     private fun Char.isCjk(): Boolean = this in '\u4e00'..'\u9fff'
 
-    private val profileMemoryTypes =
-        setOf(
-            "character_info",
-            "identity",
-            "preference",
-            "relationship",
-        )
+    // profile 类的定义收敛到 MemoryType.PROFILE_TYPES：写侧（抽取落库的作用域）与这里
+    // 必须用同一份——两处各写一份就会出现"选择器优待的类型其实召回不到"
+    private val profileMemoryTypes: Set<String> = MemoryType.PROFILE_TYPES
 
     /**
      * 构建向量记忆上下文（用于 Prompt 注入）。
@@ -1059,7 +1280,8 @@ object PromptBuilder {
             appendLine("## Relevant Past Conversations")
             relevantResults.forEachIndexed { index, result ->
                 val similarityPercent = (result.score * 100).toInt()
-                appendLine("${index + 1}. ${result.content} (similarity: $similarityPercent%)")
+                // 召回行是整条历史消息，逐条截断——条数有上限（topK）、长度没有
+                appendLine("${index + 1}. ${result.content.truncateMemoryContent()} (similarity: $similarityPercent%)")
             }
         }
     }

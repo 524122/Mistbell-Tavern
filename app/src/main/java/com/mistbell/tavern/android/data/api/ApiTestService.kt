@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -37,14 +38,36 @@ object ApiType {
  * 纯函数，便于单测。
  */
 internal fun normalizeApiBaseUrl(apiUrl: String): String {
-    var base = apiUrl.trim()
+    val trimmed = apiUrl.trim()
+    if (trimmed.isBlank()) return trimmed
+
+    val httpUrl = trimmed.toHttpUrlOrNull()
+    if (httpUrl != null) {
+        val path = httpUrl.encodedPath.trimEnd('/').removeSuffix("/chat/completions").trimEnd('/')
+        val builder = httpUrl.newBuilder().encodedPath(path.ifBlank { "/" })
+        val normalized = builder.build().toString()
+        return if (path.isBlank() || path == "/") {
+            if (httpUrl.query == null) {
+                normalized.trimEnd('/')
+            } else {
+                normalized.replaceFirst(Regex("^(https?://[^/]+)/\\?"), "$1?")
+            }
+        } else {
+            normalized
+        }
+    }
+
+    val queryIndex = trimmed.indexOf('?')
+    val pathPart = if (queryIndex >= 0) trimmed.substring(0, queryIndex) else trimmed
+    val queryPart = if (queryIndex >= 0) trimmed.substring(queryIndex) else ""
+    var base = pathPart
     if (base.endsWith("/chat/completions")) {
         base = base.removeSuffix("/chat/completions")
     }
     while (base.endsWith("/")) {
         base = base.dropLast(1)
     }
-    return base
+    return base + queryPart
 }
 
 /**
@@ -58,18 +81,20 @@ internal fun resolveModelsUrl(
     type: String,
 ): String {
     val base = normalizeApiBaseUrl(apiUrl)
-    return when (type) {
-        ApiType.ANTHROPIC -> "$base/v1/models"
-        ApiType.GEMINI -> "$base/v1beta/models"
-        else -> "$base/models"
-    }
+    val path =
+        when (normalizeApiType(type)) {
+            ApiType.ANTHROPIC -> if (ApiUrl.hasPathSuffix(base, "v1")) "models" else "v1/models"
+            ApiType.GEMINI -> if (ApiUrl.hasPathSuffix(base, "v1beta")) "models" else "v1beta/models"
+            else -> "models"
+        }
+    return ApiUrl.appendPath(base, path)
 }
 
 /**
  * 各接口类型的预设 baseUrl（编辑对话框选类型时自动填充）
  */
 fun defaultBaseUrlForType(type: String): String =
-    when (type) {
+    when (normalizeApiType(type)) {
         ApiType.OPENAI -> "https://api.openai.com/v1"
         ApiType.ANTHROPIC -> "https://api.anthropic.com"
         ApiType.GEMINI -> "https://generativelanguage.googleapis.com"
@@ -104,7 +129,7 @@ class ApiTestService {
                 if (apiKey.isBlank()) {
                     return@withContext ApiTestResult.Error("API 密钥不能为空")
                 }
-                when (type) {
+                when (normalizeApiType(type)) {
                     ApiType.ANTHROPIC -> testAnthropic(apiUrl, apiKey, model)
                     ApiType.GEMINI -> testGemini(apiUrl, apiKey, model)
                     else -> testOpenAiCompatible(apiUrl, apiKey, model)
@@ -116,7 +141,8 @@ class ApiTestService {
             } catch (e: javax.net.ssl.SSLException) {
                 ApiTestResult.Error("SSL 证书验证失败")
             } catch (e: Exception) {
-                ApiTestResult.Error("测试失败: ${e.message ?: "未知错误"}")
+                // 异常文本可能携带完整请求 URL（Gemini key 在 query），落 UI 前统一脱敏
+                ApiTestResult.Error("测试失败: ${ApiConfigJson.redactUrl(e.message ?: "未知错误")}")
             }
         }
 
@@ -135,17 +161,19 @@ class ApiTestService {
                     return@withContext FetchModelsResult.Error("API 密钥不能为空")
                 }
 
-                val url = resolveModelsUrl(apiUrl, type)
+                val normalizedType = normalizeApiType(type)
+                val url = resolveModelsUrl(apiUrl, normalizedType)
                 val builder =
                     Request.Builder()
                         .url(
-                            if (type == ApiType.GEMINI) {
-                                "$url?key=$apiKey"
+                            if (normalizedType == ApiType.GEMINI) {
+                                // 先解析/移除旧凭据 query，再合并新 key，避免出现两个 key
+                                ApiUrl.withQueryParameters(url, mapOf("key" to apiKey))
                             } else {
                                 url
                             },
                         )
-                when (type) {
+                when (normalizedType) {
                     ApiType.ANTHROPIC -> {
                         builder.addHeader("x-api-key", apiKey)
                         builder.addHeader("anthropic-version", "2023-06-01")
@@ -160,14 +188,14 @@ class ApiTestService {
                     return@withContext FetchModelsResult.Error("获取模型失败 (${response.code})")
                 }
 
-                val models = parseModelsJson(body, type)
+                val models = parseModelsJson(body, normalizedType)
                 FetchModelsResult.Success(models)
             } catch (e: java.net.UnknownHostException) {
                 FetchModelsResult.Error("无法连接到服务器，请检查网络或 API 地址")
             } catch (e: java.net.SocketTimeoutException) {
                 FetchModelsResult.Error("连接超时，请检查网络")
             } catch (e: Exception) {
-                FetchModelsResult.Error("获取模型失败: ${e.message ?: "未知错误"}")
+                FetchModelsResult.Error("获取模型失败: ${ApiConfigJson.redactUrl(e.message ?: "未知错误")}")
             }
         }
 
@@ -180,10 +208,10 @@ class ApiTestService {
     ): ApiTestResult {
         val base = normalizeApiBaseUrl(apiUrl)
         val testUrl =
-            when {
-                base.endsWith("/v1") -> "$base/chat/completions"
-                else -> "$base/v1/chat/completions"
-            }
+            ApiUrl.appendPath(
+                base,
+                if (ApiUrl.hasPathSuffix(base, "v1")) "chat/completions" else "v1/chat/completions",
+            )
 
         val requestBody =
             JSONObject().apply {
@@ -236,7 +264,11 @@ class ApiTestService {
         model: String,
     ): ApiTestResult {
         val base = normalizeApiBaseUrl(apiUrl)
-        val testUrl = if (base.endsWith("/v1")) "$base/messages" else "$base/v1/messages"
+        val testUrl =
+            ApiUrl.appendPath(
+                base,
+                if (ApiUrl.hasPathSuffix(base, "v1")) "messages" else "v1/messages",
+            )
         val effectiveModel = model.ifBlank { "claude-sonnet-4-20250514" }
 
         val requestBody =
@@ -282,12 +314,13 @@ class ApiTestService {
     ): ApiTestResult {
         val base = normalizeApiBaseUrl(apiUrl)
         val effectiveModel = model.ifBlank { "gemini-2.0-flash" }
-        val testUrl =
-            if (base.endsWith("/v1beta")) {
-                "$base/models/$effectiveModel:generateContent?key=$apiKey"
+        val modelPath =
+            if (ApiUrl.hasPathSuffix(base, "v1beta")) {
+                "models/$effectiveModel:generateContent"
             } else {
-                "$base/v1beta/models/$effectiveModel:generateContent?key=$apiKey"
+                "v1beta/models/$effectiveModel:generateContent"
             }
+        val testUrl = ApiUrl.withQueryParameters(ApiUrl.appendPath(base, modelPath), mapOf("key" to apiKey))
 
         val requestBody =
             JSONObject().apply {
@@ -332,7 +365,7 @@ class ApiTestService {
         ): List<String> =
             runCatching {
                 // 用 kotlinx.serialization 而非 org.json：JVM 单测环境无 Android org.json 实现
-                when (type) {
+                when (normalizeApiType(type)) {
                     ApiType.GEMINI -> {
                         // Gemini: {"models": [{"name": "models/gemini-2.0-flash", ...}]}
                         val json = Json.parseToJsonElement(body).jsonObject

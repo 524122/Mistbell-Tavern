@@ -65,7 +65,7 @@ APK 按 ABI 分包（arm64-v8a / armeabi-v7a / x86 / x86_64），另提供 unive
 - 聊天界面 Markdown 渲染（引号、动作、代码块）
 - **SSE 真流式输出**（逐 token 渲染，可中途停止）
 - 开场白切换（支持 SillyTavern `alternate_greetings` 备用开场白）
-- 多角色群聊（≤4 人，说话者标注与归属、@提及指定回应者、按说话者渲染气泡）
+- 多角色群聊（最多 20 人，说话者标注与归属、@提及指定回应者、按说话者渲染气泡）
 - 会话置顶和静音
 
 ### 长期记忆
@@ -207,7 +207,7 @@ MVVM + Repository + Flow，Compose UI + ViewModel + Room。
 - JDK 17+
 - Android Studio Hedgehog (2023.1.1) 或更高
 - Gradle 8.13
-- compileSdk 35 / minSdk 26 / targetSdk 35
+- compileSdk 37 / minSdk 26 / targetSdk 37（Android 17）
 
 ### 构建步骤
 

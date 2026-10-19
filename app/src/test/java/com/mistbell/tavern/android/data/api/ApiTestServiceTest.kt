@@ -17,6 +17,11 @@ class ApiTestServiceTest {
         assertEquals("https://api.openai.com/v1", normalizeApiBaseUrl("https://api.openai.com/v1/"))
         assertEquals("https://api.openai.com/v1", normalizeApiBaseUrl("https://api.openai.com/v1"))
         assertEquals("https://proxy.example.com", normalizeApiBaseUrl("https://proxy.example.com/"))
+        // query 必须保留，且路径规范化不能把 query 拼坏
+        assertEquals(
+            "https://api.openai.com/v1?tenant=a",
+            normalizeApiBaseUrl("https://api.openai.com/v1/chat/completions/?tenant=a"),
+        )
     }
 
     // ---- resolveModelsUrl ----
@@ -46,6 +51,18 @@ class ApiTestServiceTest {
         assertEquals(
             "https://generativelanguage.googleapis.com/v1beta/models",
             resolveModelsUrl("https://generativelanguage.googleapis.com", ApiType.GEMINI),
+        )
+    }
+
+    @Test
+    fun `模型端点把路径加在已有 query 之前并规范化类型`() {
+        assertEquals(
+            "https://api.openai.com/v1/models?tenant=a",
+            resolveModelsUrl("https://api.openai.com/v1?tenant=a", ApiType.OPENAI),
+        )
+        assertEquals(
+            "https://generativelanguage.googleapis.com/v1beta/models?tenant=a",
+            resolveModelsUrl("https://generativelanguage.googleapis.com?tenant=a", " GeMiNi "),
         )
     }
 

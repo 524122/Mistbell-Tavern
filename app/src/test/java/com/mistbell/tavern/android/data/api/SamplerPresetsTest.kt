@@ -7,9 +7,7 @@ import org.junit.Test
 /**
  * SamplerPresets 纯函数单元测试（S1 采样预设）。
  * 覆盖：byName 三档与 custom/null/未知；resolve 各字段优先级（base 显式 > 预设 > 默认）；
- * temperature 以 != 0.8 视为显式的启发式行为；空预设（custom）只保留 base。
- *
- * 注：temperature 启发式存在已知限制——用户显式填 0.8 时会被视为"未显式"，被预设温度覆盖。
+ * temperature 显式来源由调用方声明，不再用“是否等于 0.8”猜测；空预设（custom）只保留 base。
  */
 class SamplerPresetsTest {
     // ---------- byName ----------
@@ -43,11 +41,11 @@ class SamplerPresetsTest {
 
     // ---------- resolve：字段优先级 ----------
 
-    /** base 全默认（temperature=0.8 视为未显式，其余 null），预设应全部生效。 */
+    /** base 全默认（调用方声明 temperature 未显式，其余 null），预设应全部生效。 */
     @Test
     fun `base全默认时预设参数全部生效`() {
         val base = LlmConfig(baseUrl = "https://x", apiKey = "k", model = "m")
-        val out = SamplerPresets.resolve(base, SamplerPresets.CREATIVE)
+        val out = SamplerPresets.resolve(base, SamplerPresets.CREATIVE, temperatureExplicit = false)
 
         assertEquals(1.1, out.temperature, 1e-9)
         assertEquals(0.95, out.topP!!, 1e-9)
@@ -70,17 +68,17 @@ class SamplerPresetsTest {
                 topK = 10,
                 frequencyPenalty = 0.9,
             )
-        val out = SamplerPresets.resolve(base, SamplerPresets.CREATIVE)
+        val out = SamplerPresets.resolve(base, SamplerPresets.CREATIVE, temperatureExplicit = false)
 
         // 显式字段保留 base 原值
         assertEquals(0.5, out.topP!!, 1e-9)
         assertEquals(10, out.topK)
         assertEquals(0.9, out.frequencyPenalty!!, 1e-9)
-        // temperature=0.8 未显式 → 取预设值
+        // 调用方声明 temperature 未显式 → 取预设值
         assertEquals(1.1, out.temperature, 1e-9)
     }
 
-    /** base.temperature != 0.8 视为显式：不被预设覆盖。 */
+    /** 显式温度（包括 0.8）不被预设覆盖。 */
     @Test
     fun `base温度非08视为显式不被预设覆盖`() {
         val base = LlmConfig(baseUrl = "x", apiKey = "k", model = "m", temperature = 0.3)
@@ -92,15 +90,17 @@ class SamplerPresetsTest {
         assertEquals(0.3, out.frequencyPenalty!!, 1e-9)
     }
 
-    /** temperature=0.8 视为未显式的启发式行为：即使"用户想填 0.8"也会被预设覆盖（文档已注明的限制）。 */
+    /** 显式 0.8 必须保留；只有调用方明确声明“未设置”时才取预设。 */
     @Test
-    fun `base温度恰为08视为未显式被预设覆盖`() {
+    fun `显式温度08不会被创意预设覆盖`() {
         val base = LlmConfig(baseUrl = "x", apiKey = "k", model = "m", temperature = 0.8)
         val out = SamplerPresets.resolve(base, SamplerPresets.BALANCED)
 
-        assertEquals(0.8, out.temperature, 1e-9) // BALANCED 本身是 0.8，结果一致
+        assertEquals(0.8, out.temperature, 1e-9)
         val creative = SamplerPresets.resolve(base, SamplerPresets.CREATIVE)
-        assertEquals(1.1, creative.temperature, 1e-9) // 显式 0.8 被 CREATIVE 的 1.1 覆盖
+        assertEquals(0.8, creative.temperature, 1e-9)
+        val unset = SamplerPresets.resolve(base, SamplerPresets.CREATIVE, temperatureExplicit = false)
+        assertEquals(1.1, unset.temperature, 1e-9)
     }
 
     /** 空预设（params=null，即 custom）：只保留 base，字段不额外改动。 */

@@ -3,6 +3,12 @@ package com.mistbell.tavern.android.di
 import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.data.local.AppDatabase
+import com.mistbell.tavern.android.data.repository.MemoryResetPendingException
+import com.mistbell.tavern.android.data.repository.PendingExtractionStore
+import com.mistbell.tavern.android.data.repository.SessionMemoryReset
+import com.mistbell.tavern.android.data.repository.VectorIndexRecoveryReconciler
+import com.mistbell.tavern.android.data.repository.VectorRecallValidator
+import com.mistbell.tavern.android.data.repository.VectorSyncRecovery
 import com.mistbell.tavern.android.data.vector.CachedVectorStore
 import com.mistbell.tavern.android.data.vector.EmbeddingService
 import com.mistbell.tavern.android.data.vector.InMemoryVectorStore
@@ -12,6 +18,7 @@ import com.mistbell.tavern.android.data.vector.OpenAIEmbeddingService
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.util.SecureStore
+import java.io.File
 
 /**
  * 应用级 DI 容器：集中装配 database / vectorStore / embeddingService / vectorMemoryService。
@@ -25,15 +32,51 @@ class AppContainer(private val appContext: Context) {
         AppDatabase.getInstance(appContext)
     }
 
+    /**
+     * 记忆链闸门（fail-closed）：每次调用先确认一次性升级清零完成；
+     * 未完成（失败/未跑过）即抛 [MemoryResetPendingException]，绝不放行旧数据。
+     *
+     * 调用方语义分级：
+     * - 文件 Store / 写入 / 备份路径：异常原样上抛 = 拒绝加载/写入/导出；
+     * - 召回路径（PromptBuilder）：捕获后返回空结果——不召回优于召错，绝不扩大召回范围。
+     *
+     * 直接调 [SessionMemoryReset.runIfNeeded] 而不是 await 缓存的 Deferred：
+     * Deferred 会把 false 永久缓存成"已拒绝"，清零将永远无法重试；
+     * runIfNeeded 内部只在成功时记完成态，失败后的下一次闸门调用会真正重试清零。
+     */
+    val sessionMemoryResetGate: suspend () -> Unit
+        get() = {
+            if (!SessionMemoryReset.runIfNeeded(appContext, database)) {
+                throw MemoryResetPendingException()
+            }
+        }
+
     val vectorStore: VectorStore by lazy {
         try {
-            val baseStore = InMemoryVectorStore(appContext)
+            // 生产索引不设 1000 条硬上限：向量是长期记忆的持久化派生索引，
+            // 静默淘汰会让早期记忆永久退出召回。受限容量场景仍可在构造时传正数。
+            //
+            // 但**不设条数上限不等于不限容量**：整文件重写的索引会无界增长，低存储设备上
+            // 先是写不进去、再是整份索引一起坏掉。所以改为按字节预算治理磁盘占用
+            // （见 InMemoryVectorStore.DEFAULT_INDEX_BUDGET_BYTES），超预算时按价值淘汰并在
+            // 设置页显示占用——淘汰是可观测的，不再是静默遗忘。
+            val baseStore =
+                InMemoryVectorStore(
+                    appContext,
+                    maxVectorsInMemory = 0,
+                    loadGate = sessionMemoryResetGate,
+                )
             CachedVectorStore(baseStore, cacheSize = 50).also {
                 Log.d(TAG, "Vector store initialized with cache (lazy)")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize vector store: ${e.message}", e)
-            val baseStore = InMemoryVectorStore(appContext)
+            val baseStore =
+                InMemoryVectorStore(
+                    appContext,
+                    maxVectorsInMemory = 0,
+                    loadGate = sessionMemoryResetGate,
+                )
             CachedVectorStore(baseStore, cacheSize = 50)
         }
     }
@@ -96,18 +139,43 @@ class AppContainer(private val appContext: Context) {
         }
     }
 
+    /**
+     * 待抽取记忆缓冲（落盘）。
+     *
+     * 必须全进程唯一：ChatRepository 每个聊天页一个实例，缓冲若各自持有会各攒一半、谁也攒不满。
+     */
+    val pendingExtractionStore: PendingExtractionStore by lazy {
+        PendingExtractionStore(
+            File(appContext.filesDir, PendingExtractionStore.FILE_NAME),
+            loadGate = sessionMemoryResetGate,
+        )
+    }
+
     val vectorMemoryService: VectorMemoryService by lazy {
         try {
             VectorMemoryService(
                 vectorStore = vectorStore,
                 embeddingService = embeddingService,
+                recallValidator = VectorRecallValidator(database)::filterValid,
             ).also {
                 Log.d(TAG, "Vector memory service initialized (lazy)")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize vector memory service: ${e.message}", e)
-            VectorMemoryService(vectorStore, embeddingService)
+            VectorMemoryService(
+                vectorStore,
+                embeddingService,
+                VectorRecallValidator(database)::filterValid,
+            )
         }
+    }
+
+    val vectorSyncRecovery: VectorSyncRecovery by lazy {
+        VectorSyncRecovery(database, vectorMemoryService)
+    }
+
+    val vectorIndexRecoveryReconciler: VectorIndexRecoveryReconciler by lazy {
+        VectorIndexRecoveryReconciler(database, vectorMemoryService)
     }
 
     private fun getEmbeddingApiKey(): String {

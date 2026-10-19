@@ -7,9 +7,10 @@ import com.mistbell.tavern.android.data.api.ChatMessage
 import com.mistbell.tavern.android.data.api.LlmClient
 import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
+import com.mistbell.tavern.android.data.api.withCallOverrides
+import com.mistbell.tavern.android.data.repository.SessionMutationLocks
 import com.mistbell.tavern.android.data.repository.StructuredMemoryRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -46,68 +47,148 @@ class MemoryExtractionService(
         val messageIds: List<String>,
     )
 
-    // 多轮合并抽取：ChatRepository 攒满若干轮后一次性传入，摊薄每轮一次 LLM 调用的固定开销
+    /** 阶段 2 的落库结果：实际保存条数 + 出锁后要执行的向量收尾（慢 embedding 不占用会话锁） */
+    data class SaveResult(
+        val savedCount: Int,
+        val vectorFollowUps: List<StructuredMemoryRepository.VectorFollowUp>,
+    )
+
+    // 多轮合并抽取：ChatRepository 攒满若干轮后一次性传入，摊薄每轮一次 LLM 调用的固定开销。
+    //
+    // 两阶段拆分的默认组合（抽取慢、保存快）：
+    // 1) [extractValidatedCandidates]：LLM 抽取 + 纯函数质量增强，不碰库；
+    // 2) 保存：自行取会话锁，锁内去重 + Room 落库（无嵌套死锁），向量收尾在锁外执行。
+    // ChatRepository.launchMemoryExtraction 持有调用方锁时改用 [saveCandidatesLocked]。
     suspend fun extractAndSaveMemories(
         turns: List<DialogueTurn>,
         ownerId: String,
         characterId: String,
         sessionId: String,
         config: LlmConfig?,
-    ): Int =
+    ): Int {
+        val candidates = extractValidatedCandidates(turns, ownerId, config)
+        if (candidates.isEmpty()) return 0
+        val result =
+            SessionMutationLocks.withSessionLock(sessionId) {
+                saveCandidatesLocked(
+                    candidates = candidates,
+                    ownerId = ownerId,
+                    characterId = characterId,
+                    sessionId = sessionId,
+                    messageIds = turns.flatMap { it.messageIds }.distinct(),
+                )
+            }
+        structuredMemoryRepository.runVectorFollowUps(result.vectorFollowUps)
+        return result.savedCount
+    }
+
+    /**
+     * 阶段 1（慢，锁外）：LLM 抽取 + 质量校验/增强。**不碰库**——会话可能正被删除，
+     * 一切有状态的检查都留给阶段 2（调用方在会话锁内做存在性复查）。
+     *
+     * [ownerId] 现阶段不参与计算（去重已移至保存阶段按会话查库），参数刻意保留以免
+     * 调用方/测试签名变动。
+     *
+     * @return 通过质量校验的候选（未做去重；去重依赖库内现状，属阶段 2）
+     */
+    @Suppress("UnusedParameter")
+    suspend fun extractValidatedCandidates(
+        turns: List<DialogueTurn>,
+        ownerId: String,
+        config: LlmConfig?,
+    ): List<MemoryCandidate> =
         withContext(Dispatchers.IO) {
             val dialogueText = buildDialogueText(turns)
-            val messageIds = turns.flatMap { it.messageIds }.distinct()
 
-            Log.d(TAG, "Extraction start: session=$sessionId, character=$characterId, turns=${turns.size}")
+            Log.d(TAG, "Extraction start: turns=${turns.size}")
             if (!shouldExtractMemory(dialogueText)) {
                 Log.d(TAG, "Skipped by quick quality check")
-                return@withContext 0
+                return@withContext emptyList()
             }
 
             if (config == null) {
                 Log.w(TAG, "No LLM config available, skipping LLM extraction")
-                return@withContext 0
+                return@withContext emptyList()
             }
 
             try {
                 val candidates = extractMemoryCandidatesWithLLM(dialogueText, config)
                 if (candidates.isEmpty()) {
                     Log.d(TAG, "No memory candidates returned")
-                    return@withContext 0
+                    return@withContext emptyList()
                 }
 
-                val validated = validateAndEnhanceCandidates(candidates, ownerId, characterId)
+                val validated = validateAndEnhanceCandidates(candidates)
                 if (validated.isEmpty()) {
                     Log.d(TAG, "No candidates survived quality validation")
-                    return@withContext 0
                 }
-
-                var savedCount = 0
-                validated.forEach { candidate ->
-                    try {
-                        val memory =
-                            convertToMemoryDomain(
-                                candidate = candidate,
-                                ownerId = ownerId,
-                                characterId = characterId,
-                                sessionId = sessionId,
-                                messageIds = messageIds,
-                            )
-                        structuredMemoryRepository.createMemory(memory)
-                        savedCount++
-                        Log.d(TAG, "Saved memory candidate #$savedCount")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to save memory: ${e.message}", e)
-                    }
-                }
-
-                Log.d(TAG, "Extraction complete: ${candidates.size} candidates, ${validated.size} valid, $savedCount saved")
-                savedCount
+                validated
             } catch (e: Exception) {
                 Log.e(TAG, "Memory extraction failed: ${e.message}", e)
-                0
+                // 让持久化抽取队列感知失败并保留 inflight 批次；若在这里吞掉异常，
+                // ChatRepository 会误以为批次已处理，随后 ack，网络失败的记忆将永久丢失。
+                throw e
             }
         }
+
+    /**
+     * 阶段 2（快，**调用方必须已持有该 sessionId 的会话锁**——如 ChatRepository
+     * launchMemoryExtraction 的保存临界区）：会话内去重 + 逐条 Room 落库。
+     *
+     * 去重只查**当前会话**的既有记忆——跨会话查重正是"会话 A 的对话被会话 B 的抽取批次
+     * 判重丢掉的根因。保存失败累计即抛异常（由调用方 nack 重试）。
+     *
+     * 向量层零触碰：重要性达标的记忆以 [StructuredMemoryRepository.VectorFollowUp] 返回，
+     * 由调用方**出锁后**交给 StructuredMemoryRepository.runVectorFollowUps（慢 embedding
+     * 不占会话锁，且写前复查源记忆/会话仍在）。
+     *
+     * @return 保存结果（条数 + 锁外向量收尾待办）
+     */
+    suspend fun saveCandidatesLocked(
+        candidates: List<MemoryCandidate>,
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageIds: List<String>,
+    ): SaveResult {
+        val existingMemories =
+            structuredMemoryRepository.getMemoriesByOwnerAndSession(ownerId, sessionId)
+
+        var savedCount = 0
+        var saveFailures = 0
+        val followUps = mutableListOf<StructuredMemoryRepository.VectorFollowUp>()
+        candidates
+            .filter { candidate -> !isDuplicate(candidate, existingMemories) }
+            .forEach { candidate ->
+                try {
+                    val memory =
+                        convertToMemoryDomain(
+                            candidate = candidate,
+                            ownerId = ownerId,
+                            characterId = characterId,
+                            sourceSessionId = sessionId,
+                            messageIds = messageIds,
+                        )
+                    // createMemoryLocked：调用方已持会话锁，锁内做归属硬校验（owner + session），
+                    // 不嵌套取锁（Mutex 不可重入）；向量收尾收集到 followUps，出锁后统一执行
+                    val (_, createFollowUps) =
+                        structuredMemoryRepository.createMemoryLocked(memory)
+                    followUps.addAll(createFollowUps)
+                    savedCount++
+                    Log.d(TAG, "Saved memory candidate #$savedCount")
+                } catch (e: Exception) {
+                    saveFailures++
+                    Log.e(TAG, "Failed to save memory: ${e.message}", e)
+                }
+            }
+
+        if (saveFailures > 0) {
+            check(saveFailures == 0) { "$saveFailures memory candidates failed to save" }
+        }
+
+        Log.d(TAG, "Memory save complete: ${candidates.size} candidates, $savedCount saved")
+        return SaveResult(savedCount = savedCount, vectorFollowUps = followUps)
+    }
 
     // 多轮拼接：轮间空行分隔；无用户消息的轮次（群聊"让TA继续"）省略 User 行
     private fun buildDialogueText(turns: List<DialogueTurn>): String {
@@ -146,8 +227,10 @@ class MemoryExtractionService(
         llmConfig: LlmConfig,
     ): List<MemoryCandidate> {
         val prompt = buildMemoryExtractionPrompt(dialogueText)
+        // 本次调用的采样覆盖显式进入 requestOverrides（Gemini 的键由 withCallOverrides 转成
+        // generationConfig），避免持久化 request 里的旧 max_tokens/maxOutputTokens 把 4096 压回旧值。
         val config =
-            llmConfig.copy(
+            llmConfig.withCallOverrides(
                 // 抽取温度低（结构化任务）；输出预算必须容纳「最多 10 条 triplet + tags/aliases」
                 // 的完整 JSON：过小的预算会让 JSON 写到一半被截断，解析失败后整轮 0 条（静默丢记忆）
                 temperature = 0.2,
@@ -350,16 +433,11 @@ class MemoryExtractionService(
         }
     }
 
-    private suspend fun validateAndEnhanceCandidates(
-        candidates: List<MemoryCandidate>,
-        ownerId: String,
-        characterId: String,
-    ): List<MemoryCandidate> {
-        val existingMemories =
-            structuredMemoryRepository
-                .getMemoriesByCharacter(ownerId, characterId)
-                .first()
-
+    /**
+     * 质量校验与增强（纯函数，不碰库）：内容清洗、重要性增强、关键词 enriching、
+     * 最低重要度过滤。去重不在这里做——去重依赖库内现状，属保存阶段（会话锁内）。
+     */
+    private suspend fun validateAndEnhanceCandidates(candidates: List<MemoryCandidate>): List<MemoryCandidate> {
         return candidates
             .mapNotNull { candidate ->
                 val normalized =
@@ -374,7 +452,6 @@ class MemoryExtractionService(
                         .copy(keywords = enrichKeywords(normalized).distinct().take(8))
 
                 if (enhanced.importance < MIN_IMPORTANCE_SCORE) return@mapNotNull null
-                if (isDuplicate(enhanced, existingMemories)) return@mapNotNull null
                 enhanced
             }
             .distinctBy { normalizeForCompare(it.content) }
@@ -384,7 +461,7 @@ class MemoryExtractionService(
         candidate: MemoryCandidate,
         ownerId: String,
         characterId: String,
-        sessionId: String,
+        sourceSessionId: String,
         messageIds: List<String>,
     ): StructuredMemory {
         val now = Instant.now().toString()
@@ -399,7 +476,9 @@ class MemoryExtractionService(
             id = 0,
             ownerId = ownerId,
             characterId = characterId,
-            sessionId = sessionId,
+            // 会话内长期记忆：一切抽取落库的记忆都归属产生它的会话（owner + session），
+            // 归属创建时确定、之后不可变；不再按 profile 类落角色级
+            sessionId = sourceSessionId,
             title = title,
             content = candidate.content,
             memoryType = candidate.memoryType,

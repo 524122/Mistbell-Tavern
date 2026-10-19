@@ -1,5 +1,10 @@
 package com.mistbell.tavern.android.data.api
 
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -110,6 +115,30 @@ class ChatProtocolTest {
     }
 
     @Test
+    fun `openai request 扩展字段合并且保护 messages stream`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                request =
+                    buildJsonObject {
+                        put("temperature", 0.2)
+                        put("stream", true)
+                        put("messages", "bad")
+                        put("vendor_flag", true)
+                    },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.2"))
+        assertTrue(body.contains("\"vendor_flag\":true"))
+        // stream 是受保护字段：扩展 JSON 里的 stream=true 不得覆盖调用方的 stream=false
+        assertTrue(body.contains("\"stream\":false"))
+        assertTrue(!body.contains("\"stream\":true"))
+        assertTrue(!body.contains("\"messages\":\"bad\""))
+    }
+
+    @Test
     fun `anthropic thinking block 与正文分离`() {
         val body =
             """{"content":[{"type":"thinking","thinking":"先想"},{"type":"text","text":"答案"}]}"""
@@ -209,6 +238,351 @@ class ChatProtocolTest {
         assertEquals(28, (result as StreamParseResult.UsageUpdate).usage.totalTokens)
     }
 
+    @Test
+    fun `anthropic request 扩展保护 system 且递归合并 thinking`() {
+        val config =
+            anthropicConfig().copy(
+                request =
+                    buildJsonObject {
+                        put("system", "用户旁路注入")
+                        put("temperature", 0.5)
+                        put("thinking", buildJsonObject { put("type", "enabled"); put("budget_tokens", 1024) })
+                    },
+            )
+        val body = bodyOf(AnthropicChatProtocol.buildRequest(config, messages, stream = false))
+
+        // system 是受保护字段：保持协议从消息提取的值，用户 JSON 不得覆盖
+        assertTrue(body.contains("\"system\":\"你是助手\""))
+        assertTrue(!body.contains("用户旁路注入"))
+        assertTrue(body.contains("\"temperature\":0.5"))
+        // Anthropic 供应商扩展字段递归保留
+        assertTrue(body.contains("\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":1024}"))
+    }
+
+    @Test
+    fun `gemini request 扩展保护 contents 且递归合并 generationConfig`() {
+        val config =
+            geminiConfig().copy(
+                request =
+                    buildJsonObject {
+                        put("contents", "bad")
+                        put("systemInstruction", "bad")
+                        put(
+                            "generationConfig",
+                            buildJsonObject {
+                                put("responseMimeType", "application/json")
+                                put("maxOutputTokens", 2048)
+                            },
+                        )
+                    },
+            )
+        val body = bodyOf(GeminiChatProtocol.buildRequest(config, messages, stream = false))
+
+        assertTrue(!body.contains("\"contents\":\"bad\""))
+        assertTrue(!body.contains("\"systemInstruction\":\"bad\""))
+        // generationConfig 递归合并：协议装配的 temperature 保留，用户扩展字段加入并可覆盖输出预算
+        assertTrue(body.contains("\"responseMimeType\":\"application/json\""))
+        assertTrue(body.contains("\"maxOutputTokens\":2048"))
+        assertTrue(body.contains("\"temperature\":0.8"))
+    }
+
+    @Test
+    fun `openai 默认温度与输出预算也会实际发送`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                temperature = 0.8,
+                maxTokens = 1024,
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.8"))
+        assertTrue(body.contains("\"max_tokens\":1024"))
+        assertTrue(body.contains("\"stream\":false"))
+    }
+
+    @Test
+    fun `openai 模板默认值按协议发送且 null 不发送`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                request = ApiRequestTemplate.templateFor(ApiType.OPENAI),
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.8"))
+        assertTrue(body.contains("\"max_tokens\":1024"))
+        assertTrue(body.contains("\"top_p\":0.9"))
+        assertTrue(body.contains("\"frequency_penalty\":0.0"))
+        assertTrue(!body.contains("\"top_k\""))
+        assertTrue(!body.contains("\"thinking\""))
+        assertTrue(!body.contains("\"reasoning_effort\""))
+        assertTrue(!body.contains("\"response_format\""))
+    }
+
+    @Test
+    fun `anthropic 模板默认值按协议发送且 null 不发送`() {
+        val config = anthropicConfig().copy(request = ApiRequestTemplate.templateFor(ApiType.ANTHROPIC))
+        val body = bodyOf(AnthropicChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.8"))
+        assertTrue(body.contains("\"max_tokens\":1024"))
+        assertTrue(body.contains("\"top_p\":0.9"))
+        assertTrue(!body.contains("\"top_k\""))
+        assertTrue(!body.contains("\"thinking\""))
+        assertTrue(!body.contains("\"metadata\""))
+    }
+
+    @Test
+    fun `gemini 模板默认值按协议发送且 null 不发送`() {
+        val config = geminiConfig().copy(request = ApiRequestTemplate.templateFor(ApiType.GEMINI))
+        val body = bodyOf(GeminiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"maxOutputTokens\":1024"))
+        assertTrue(body.contains("\"temperature\":0.8"))
+        assertTrue(body.contains("\"topP\":0.9"))
+        assertTrue(!body.contains("\"topK\""))
+        assertTrue(!body.contains("\"responseMimeType\""))
+        assertTrue(!body.contains("\"responseSchema\""))
+        assertTrue(!body.contains("\"thinkingConfig\""))
+        assertTrue(!body.contains("\"safetySettings\""))
+    }
+
+    @Test
+    fun `协议合并前递归删除 null 但保留 false 零和空容器`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                request =
+                    buildJsonObject {
+                        put("null_field", JsonNull)
+                        put("flag", false)
+                        put("zero", 0)
+                        put("empty_object", buildJsonObject { })
+                        put("empty_array", buildJsonArray { })
+                        put(
+                            "array",
+                            buildJsonArray {
+                                add(1)
+                                add(JsonNull)
+                                add(false)
+                                add(0)
+                            },
+                        )
+                    },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(!body.contains("\"null_field\""))
+        assertTrue(body.contains("\"flag\":false"))
+        assertTrue(body.contains("\"zero\":0"))
+        assertTrue(body.contains("\"empty_object\":{}"))
+        assertTrue(body.contains("\"empty_array\":[]"))
+        assertTrue(body.contains("\"array\":[1,false,0]"))
+    }
+
+    @Test
+    fun `openai per call 输出预算不被持久 request 压掉`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                temperature = 0.2,
+                maxTokens = 4096,
+                request =
+                    buildJsonObject {
+                        put("temperature", 0.9)
+                        put("max_tokens", 1024)
+                    },
+            ).withCallOverrides(temperature = 0.2, maxTokens = 4096)
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.2"))
+        assertTrue(body.contains("\"max_tokens\":4096"))
+    }
+
+    @Test
+    fun `gemini per call 输出预算不被持久 request 压掉`() {
+        val config =
+            geminiConfig()
+                .copy(
+                    request =
+                        buildJsonObject {
+                            put("generationConfig", buildJsonObject { put("maxOutputTokens", 512) })
+                        },
+                ).withCallOverrides(maxTokens = 4096)
+        val body = bodyOf(GeminiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"maxOutputTokens\":4096"))
+        assertTrue(!body.contains("\"maxOutputTokens\":512"))
+    }
+
+    @Test
+    fun `withCallOverrides 支持把输出预算覆盖回默认值`() {
+        val config =
+            geminiConfig()
+                .copy(
+                    maxTokens = 4096,
+                    request = buildJsonObject { put("generationConfig", buildJsonObject { put("maxOutputTokens", 512) }) },
+                ).withCallOverrides(maxTokens = 1024)
+        val body = bodyOf(GeminiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"maxOutputTokens\":1024"))
+        assertTrue(!body.contains("\"maxOutputTokens\":4096"))
+    }
+
+    @Test
+    fun `openai 与 anthropic 端点路径追加在 query 前`() {
+        val openAi =
+            OpenAiChatProtocol.buildRequest(
+                LlmConfig(baseUrl = "https://api.example.com/v1?tenant=a", apiKey = "k", model = "m"),
+                messages,
+                stream = false,
+            )
+        assertEquals("https://api.example.com/v1/chat/completions?tenant=a", openAi.url.toString())
+
+        val anthropic =
+            AnthropicChatProtocol.buildRequest(
+                anthropicConfig().copy(baseUrl = "https://api.anthropic.com?tenant=a"),
+                messages,
+                stream = false,
+            )
+        assertEquals("https://api.anthropic.com/v1/messages?tenant=a", anthropic.url.toString())
+    }
+
+    @Test
+    fun `gemini 端点保留非凭据 query 且 key 与 alt 只合并一次`() {
+        val config =
+            geminiConfig().copy(
+                baseUrl = "https://generativelanguage.googleapis.com/v1beta?foo=1&key=old&alt=sse",
+            )
+        val request = GeminiChatProtocol.buildRequest(config, messages, stream = true)
+        assertEquals(listOf("1"), request.url.queryParameterValues("foo"))
+        assertEquals(listOf("gemini-key"), request.url.queryParameterValues("key"))
+        assertEquals(listOf("sse"), request.url.queryParameterValues("alt"))
+        assertTrue(request.url.encodedPath.endsWith("/v1beta/models/gemini-2.0-flash:generateContent"))
+    }
+
+    @Test
+    fun `request 扩展中的凭据字段不会进入请求体`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                request =
+                    buildJsonObject {
+                        put("apiKey", "real")
+                        put("x-api-key", "real")
+                        put("access_token", "real")
+                        put("headers", buildJsonObject { put("Authorization", "Bearer real") })
+                        put("max_tokens", 1024)
+                    },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(!body.contains("real"))
+        assertTrue(!body.contains("apiKey"))
+        assertTrue(!body.contains("access_token"))
+        assertTrue(body.contains("\"max_tokens\":1024"))
+    }
+
+    @Test
+    fun `anthropic 不会收到 OpenAI 专有的 thinking disabled 字段`() {
+        val config = anthropicConfig().copy(disableThinking = true)
+        val body = bodyOf(AnthropicChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(!body.contains("\"thinking\""))
+    }
+
+    @Test
+    fun `显式 requestOverrides 必须最后覆盖非默认兜底值`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                temperature = 0.6,
+                maxTokens = 2048,
+                request = buildJsonObject { put("max_tokens", 512) },
+                requestOverrides = buildJsonObject { put("temperature", 0.2); put("max_tokens", 1024) },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.2"))
+        assertTrue(body.contains("\"max_tokens\":1024"))
+        assertTrue(!body.contains("\"max_tokens\":2048"))
+    }
+
+    @Test
+    fun `显式 requestOverrides 可恢复默认温度与输出预算`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                temperature = 0.8,
+                maxTokens = 4096,
+                request = buildJsonObject { put("max_tokens", 512); put("temperature", 0.2) },
+                requestOverrides = buildJsonObject { put("max_tokens", 1024); put("temperature", 0.8) },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.8"))
+        assertTrue(body.contains("\"max_tokens\":1024"))
+        assertTrue(!body.contains("\"max_tokens\":4096"))
+    }
+
+    @Test
+    fun `真实配置温度 0_8 在采样预设下仍是 0_8`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                temperature = 0.8,
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"temperature\":0.8"))
+    }
+
+    @Test
+    fun `显式 requestOverrides 优先级高于持久 request`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                request = buildJsonObject { put("max_tokens", 512); put("temperature", 0.9) },
+                requestOverrides = buildJsonObject { put("max_tokens", 4096); put("temperature", 0.2) },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"max_tokens\":4096"))
+        assertTrue(body.contains("\"temperature\":0.2"))
+    }
+
+    @Test
+    fun `连接测试的 5 tokens 覆盖持久 request`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "m",
+                request = buildJsonObject { put("max_tokens", 1024) },
+            ).withCallOverrides(maxTokens = 5)
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"max_tokens\":5"))
+    }
+
+    @Test
+    fun `openai request 扩展不得覆盖 model`() {
+        val config =
+            LlmConfig(
+                baseUrl = "https://api.example.com/v1",
+                apiKey = "secret",
+                model = "real-model",
+                request = buildJsonObject { put("model", "user-model") },
+            )
+        val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
+        assertTrue(body.contains("\"model\":\"real-model\""))
+        assertTrue(!body.contains("user-model"))
+    }
+
     // ---- 分发 ----
 
     @Test
@@ -217,5 +591,13 @@ class ChatProtocolTest {
         assertTrue(chatProtocolFor(ApiType.CUSTOM) is OpenAiChatProtocol)
         assertTrue(chatProtocolFor(ApiType.ANTHROPIC) is AnthropicChatProtocol)
         assertTrue(chatProtocolFor(ApiType.GEMINI) is GeminiChatProtocol)
+    }
+
+    @Test
+    fun `类型大小写与空白差异不影响协议分发`() {
+        assertTrue(chatProtocolFor(" Gemini ") is GeminiChatProtocol)
+        assertTrue(chatProtocolFor("ANTHROPIC\n") is AnthropicChatProtocol)
+        assertTrue(chatProtocolFor("OpenAI") is OpenAiChatProtocol)
+        assertEquals(ApiType.GEMINI, normalizeApiType("  GeMiNi  "))
     }
 }

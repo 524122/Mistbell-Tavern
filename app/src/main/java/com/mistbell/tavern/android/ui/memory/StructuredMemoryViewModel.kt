@@ -1,3 +1,7 @@
+// 下划线前缀私有 StateFlow（_ownerId 等）是 Compose/Flow 的背压私有态约定，
+// 不做重命名（波及全文件引用且无行为收益），对本文件豁免 property-naming。
+@file:Suppress("ktlint:standard:property-naming")
+
 package com.mistbell.tavern.android.ui.memory
 
 import android.app.Application
@@ -8,6 +12,20 @@ import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.repository.StructuredMemoryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
+/**
+ * 新建/编辑记忆时用户可改的字段。
+ *
+ * 收成一个对象：字段再长（比如以后加"重要度来源"），ViewModel 与编辑对话框的签名都不用跟着变。
+ * 会话内长期记忆：一切记忆都归属当前会话（owner + session），不再有跨会话档位。
+ */
+data class MemoryDraft(
+    val memoryType: String,
+    val title: String,
+    val content: String,
+    val importance: Int,
+    val tags: List<String>,
+)
 
 class StructuredMemoryViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = StructuredMemoryRepository(application)
@@ -22,6 +40,12 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    /**
+     * 可见记忆 = 当前会话的记忆（owner + session）。
+     *
+     * 类型/关键词筛选在**这一份集合上**做，而不是各走一条 SQL：否则多条查询的口径得各自维护，
+     * 很容易出现"按类型一筛，某些记忆就消失了"这类不一致。
+     */
     val memories: StateFlow<List<StructuredMemory>> =
         combine(
             _ownerId,
@@ -29,18 +53,34 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
             _sessionId,
             _typeFilter,
             _searchQuery,
-        ) { ownerId, _, sessionId, typeFilter, query ->
-            if (sessionId.isNullOrBlank()) {
-                return@combine flowOf(emptyList())
+        ) { ownerId, characterId, sessionId, typeFilter, query ->
+            MemoryQuery(ownerId, characterId, sessionId, typeFilter, query)
+        }.flatMapLatest { q ->
+            if (q.sessionId.isNullOrBlank()) {
+                flowOf(emptyList())
+            } else {
+                repository.getMemoriesVisibleInSession(q.ownerId, q.characterId.orEmpty(), q.sessionId)
+                    .map { all -> all.filter { q.matches(it) } }
             }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-            when {
-                query.isNotBlank() -> repository.searchMemoriesBySession(ownerId, sessionId, query)
-                typeFilter != null -> repository.getMemoriesBySessionAndType(ownerId, sessionId, typeFilter)
-                else -> repository.getMemoriesBySession(ownerId, sessionId)
-            }
-        }.flatMapLatest { it }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    /** 列表筛选条件：类型精确匹配 + 标题/正文关键词（大小写不敏感） */
+    private data class MemoryQuery(
+        val ownerId: String,
+        val characterId: String?,
+        val sessionId: String?,
+        val typeFilter: String?,
+        val query: String,
+    ) {
+        fun matches(memory: StructuredMemory): Boolean {
+            val typeMatches = typeFilter == null || memory.memoryType == typeFilter
+            val queryMatches =
+                query.isBlank() ||
+                    memory.title?.contains(query, ignoreCase = true) == true ||
+                    memory.content.contains(query, ignoreCase = true)
+            return typeMatches && queryMatches
+        }
+    }
 
     private val _showCreateDialog = MutableStateFlow(false)
     val showCreateDialog: StateFlow<Boolean> = _showCreateDialog.asStateFlow()
@@ -57,6 +97,7 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
         sessionId: String? = null,
     ) {
         _ownerId.value = ownerId
+        // characterId 仅作展示归因保留，不再参与查询与召回（可见集合只看 owner + session）
         _characterId.value = characterId
         _sessionId.value = sessionId
     }
@@ -87,13 +128,7 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
         _showCreateDialog.value = true
     }
 
-    fun createMemory(
-        memoryType: String,
-        title: String,
-        content: String,
-        importance: Int,
-        tags: List<String>,
-    ) {
+    fun createMemory(draft: MemoryDraft) {
         viewModelScope.launch {
             try {
                 val sessionId = _sessionId.value
@@ -106,13 +141,14 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
                     StructuredMemory(
                         ownerId = _ownerId.value,
                         characterId = _characterId.value,
+                        // 会话内长期记忆：一切记忆都归属当前会话
                         sessionId = sessionId,
-                        memoryType = memoryType,
-                        title = title,
-                        content = content,
+                        memoryType = draft.memoryType,
+                        title = draft.title,
+                        content = draft.content,
                         structuredData = null,
-                        importance = importance,
-                        tags = tags,
+                        importance = draft.importance,
+                        tags = draft.tags,
                         keywords = emptyList(),
                         createdAt = "",
                         updatedAt = "",
@@ -132,22 +168,25 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
 
     fun updateMemory(
         id: Long,
-        memoryType: String,
-        title: String,
-        content: String,
-        importance: Int,
-        tags: List<String>,
+        draft: MemoryDraft,
     ) {
         viewModelScope.launch {
             try {
                 val existing = _editingMemory.value ?: return@launch
+                // 归属创建时确定、之后不可变：编辑只改内容，记忆始终留在当前会话
+                val targetSessionId =
+                    _sessionId.value?.takeIf { it.isNotBlank() } ?: run {
+                        _message.value = "请从具体对话进入记忆管理"
+                        return@launch
+                    }
                 val updated =
                     existing.copy(
-                        memoryType = memoryType,
-                        title = title,
-                        content = content,
-                        importance = importance,
-                        tags = tags,
+                        memoryType = draft.memoryType,
+                        title = draft.title,
+                        content = draft.content,
+                        importance = draft.importance,
+                        tags = draft.tags,
+                        sessionId = targetSessionId,
                     )
                 repository.updateMemory(updated)
                 _message.value = "记忆更新成功"
@@ -161,7 +200,13 @@ class StructuredMemoryViewModel(application: Application) : AndroidViewModel(app
     fun deleteMemory(id: Long) {
         viewModelScope.launch {
             try {
-                repository.deleteMemory(id)
+                val sessionId = _sessionId.value
+                if (sessionId.isNullOrBlank()) {
+                    _message.value = "请从具体对话进入记忆管理"
+                    return@launch
+                }
+                // 归属校验在仓库层（owner + session 必须与被删记忆一致），这里按当前会话声明
+                repository.deleteMemory(id, _ownerId.value, sessionId)
                 _message.value = "记忆已删除"
             } catch (e: Exception) {
                 _message.value = "删除失败: ${e.message}"

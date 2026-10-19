@@ -108,50 +108,55 @@ object SessionExporter {
         fileName: String = buildFileName(session.title, session.id, SessionExportFormat.JSONL.extension),
     ): SessionExportResult? {
         return try {
-            val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-            val lines = buildString {
-                appendLine(
-                    buildJsonObject {
-                        put("type", "session")
-                        put("session", json.encodeToJsonElement(SessionSummary.serializer(), session))
-                    }.toString(),
-                )
-                messages.forEach { message ->
+            val json =
+                Json {
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                }
+            val lines =
+                buildString {
                     appendLine(
                         buildJsonObject {
-                            put("id", message.id)
-                            put("name", message.characterId)
-                            put("is_user", message.role == "user")
-                            put("is_system", message.role == "system")
-                            put("mes", message.content)
-                            put("send_date", message.createdAt)
-                            put("role", message.role)
-                            put("content", message.content)
-                            message.thinking?.let { put("thinking", it) }
-                            message.characterId.takeIf { it.isNotBlank() }?.let { put("characterId", it) }
-                            message.swipeIndex.let { put("swipeIndex", it) }
-                            message.swipes?.let {
-                                put(
-                                    "swipes",
-                                    json.encodeToJsonElement(
-                                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                                        it,
-                                    ),
-                                )
-                            }
-                            message.thinkingSwipes?.let {
-                                put(
-                                    "thinkingSwipes",
-                                    json.encodeToJsonElement(
-                                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                                        it,
-                                    ),
-                                )
-                            }
+                            put("type", "session")
+                            put("session", json.encodeToJsonElement(SessionSummary.serializer(), session))
                         }.toString(),
                     )
+                    messages.forEach { message ->
+                        appendLine(
+                            buildJsonObject {
+                                put("id", message.id)
+                                put("name", message.characterId)
+                                put("is_user", message.role == "user")
+                                put("is_system", message.role == "system")
+                                put("mes", message.content)
+                                put("send_date", message.createdAt)
+                                put("role", message.role)
+                                put("content", message.content)
+                                message.thinking?.let { put("thinking", it) }
+                                message.characterId.takeIf { it.isNotBlank() }?.let { put("characterId", it) }
+                                message.swipeIndex.let { put("swipeIndex", it) }
+                                message.swipes?.let {
+                                    put(
+                                        "swipes",
+                                        json.encodeToJsonElement(
+                                            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                                            it,
+                                        ),
+                                    )
+                                }
+                                message.thinkingSwipes?.let {
+                                    put(
+                                        "thinkingSwipes",
+                                        json.encodeToJsonElement(
+                                            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+                                            it,
+                                        ),
+                                    )
+                                }
+                            }.toString(),
+                        )
+                    }
                 }
-            }
             saveBytes(context, fileName, SessionExportFormat.JSONL.mimeType, lines.toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             e.printStackTrace()

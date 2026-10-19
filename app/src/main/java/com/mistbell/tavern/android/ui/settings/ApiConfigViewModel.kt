@@ -4,8 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
+import com.mistbell.tavern.android.data.api.ApiConfigJson
+import com.mistbell.tavern.android.data.api.ApiConfigJsonResult
+import com.mistbell.tavern.android.data.api.ApiRequestTemplate
+import com.mistbell.tavern.android.data.api.normalizeApiType
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.repository.ApiConfigMigration
+import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -73,6 +78,40 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
         // 旧 providers_json 链路 → api_configs 的一次性迁移（幂等，先于默认配置创建）
         viewModelScope.launch {
             ApiConfigMigration.migrateIfNeeded(db)
+            // v25→v26 rows have an empty document column. Backfill every legacy row through
+            // the same pure mapper used by the editor; this keeps config_json authoritative.
+            apiConfigDao.getAll().forEach { entity ->
+                // 非空但不可解析/未来版本的 configJson 必须保留原文，不能回填成旧字段后覆盖。
+                val document = ApiConfigJson.fromEntityForBackfill(entity)
+                if (document == null) {
+                    // configJson 原文不动；apiKey 加密、可清理的 apiUrl 去凭据仍可独立处理。
+                    val normalized =
+                        entity.copy(
+                            apiKey = SecureStore.wrap(entity.apiKey),
+                            apiUrl = ApiConfigJson.sanitizeBaseUrl(entity.apiUrl) ?: entity.apiUrl,
+                        )
+                    if (normalized.apiKey != entity.apiKey || normalized.apiUrl != entity.apiUrl) {
+                        apiConfigDao.update(normalized)
+                    }
+                    return@forEach
+                }
+                val normalized =
+                    entity.copy(
+                        apiKey = SecureStore.wrap(entity.apiKey),
+                        // URL 列与 document 同步；否则 api_url 会继续保留旧 query 凭据/旧地址
+                        apiUrl = document.baseUrl,
+                        configJson =
+                            ApiConfigJson.format(
+                                document.copy(apiKeyRef = if (entity.apiKey.isBlank()) "" else "secure:${entity.id}"),
+                            ),
+                    )
+                if (normalized.apiKey != entity.apiKey ||
+                    normalized.configJson != entity.configJson ||
+                    normalized.apiUrl != entity.apiUrl
+                ) {
+                    apiConfigDao.update(normalized)
+                }
+            }
         }
         // 初始化：如果没有配置，创建默认配置
         viewModelScope.launch {
@@ -102,8 +141,22 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                 isDefault = true,
                 streamingEnabled = true,
                 sortOrder = 0,
+                configJson =
+                    ApiConfigJson.format(
+                        ApiConfigJson.fromFields(
+                            id = "",
+                            name = "OpenAI API",
+                            type = "openai",
+                            baseUrl = "https://api.openai.com/v1",
+                            model = "gpt-4o",
+                            hasApiKey = false,
+                            streamingEnabled = true,
+                            contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+                            request = ApiRequestTemplate.templateFor("openai"),
+                        ).copy(id = ""),
+                    ),
             )
-        apiConfigDao.insert(defaultConfig)
+        apiConfigDao.insert(defaultConfig.copy(configJson = ApiConfigJson.format(ApiConfigJson.fromEntity(defaultConfig))))
     }
 
     /**
@@ -119,21 +172,38 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
         type: String = "openai",
         context1M: Boolean = false,
         streamingEnabled: Boolean = true,
+        contextTokenLimit: Int = if (context1M) ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT else ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+        configJson: String = "",
     ) {
         viewModelScope.launch {
             try {
+                val id = UUID.randomUUID().toString()
+                val document =
+                    parseOrBuildDocument(
+                        configJson = configJson,
+                        id = id,
+                        name = name,
+                        type = type,
+                        apiUrl = apiUrl,
+                        model = model,
+                        streamingEnabled = streamingEnabled,
+                        contextTokenLimit = contextTokenLimit,
+                        hasApiKey = apiKey.isNotBlank(),
+                    )
                 val newConfig =
                     ApiConfigEntity(
-                        id = UUID.randomUUID().toString(),
-                        name = name,
-                        apiUrl = apiUrl,
-                        apiKey = apiKey,
-                        model = model,
+                        id = id,
+                        name = document.name,
+                        // 只持久化清理后的 baseUrl：query 里的 ?key=/token= 属于凭据，真实密钥存 SecureStore
+                        apiUrl = document.baseUrl,
+                        apiKey = SecureStore.wrap(apiKey),
+                        model = document.model,
                         isDefault = false,
                         sortOrder = apiConfigDao.getCount(),
-                        type = type,
+                        type = document.type,
                         context1m = context1M,
                         streamingEnabled = streamingEnabled,
+                        configJson = ApiConfigJson.format(document),
                     )
                 apiConfigDao.insert(newConfig)
 
@@ -154,6 +224,9 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
     fun updateApiConfig(apiConfig: ApiConfig) {
         viewModelScope.launch {
             try {
+                if (apiConfig.configJson.isNotBlank() && ApiConfigJson.parse(apiConfig.configJson) is ApiConfigJsonResult.Invalid) {
+                    throw IllegalArgumentException("配置 JSON 校验失败，未保存")
+                }
                 val entity = apiConfig.toEntity()
                 apiConfigDao.update(entity.copy(updatedAt = System.currentTimeMillis()))
                 _message.value = "已更新 API 配置"
@@ -247,7 +320,7 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                     status = "FAILED",
                     time = System.currentTimeMillis(),
                 )
-                _message.value = "测试失败: ${e.message}"
+                _message.value = "测试失败: ${ApiConfigJson.redactUrl(e.message.orEmpty())}"
             }
         }
     }
@@ -363,12 +436,13 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
  * 实体转换为领域模型
  */
 private fun ApiConfigEntity.toApiConfig(): ApiConfig {
+    val document = ApiConfigJson.fromEntity(this)
     return ApiConfig(
         id = id,
-        name = name,
-        apiUrl = apiUrl,
-        apiKey = apiKey,
-        model = model,
+        name = document.name,
+        apiUrl = document.baseUrl,
+        apiKey = SecureStore.unwrap(apiKey),
+        model = document.model,
         isDefault = isDefault,
         lastTestStatus =
             when (lastTestStatus) {
@@ -378,9 +452,11 @@ private fun ApiConfigEntity.toApiConfig(): ApiConfig {
                 else -> ConnectionStatus.UNKNOWN
             },
         lastTestTime = lastTestTime,
-        type = type,
-        context1M = context1m,
-        streamingEnabled = streamingEnabled,
+        type = document.type,
+        context1M = document.contextTokenLimit >= ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT,
+        streamingEnabled = document.streamingEnabled,
+        contextTokenLimit = document.contextTokenLimit,
+        configJson = ApiConfigJson.format(ApiConfigJson.redacted(document, apiKey.isNotBlank())),
     )
 }
 
@@ -388,12 +464,24 @@ private fun ApiConfigEntity.toApiConfig(): ApiConfig {
  * 领域模型转换为实体
  */
 private fun ApiConfig.toEntity(): ApiConfigEntity {
+    val document =
+        parseOrBuildDocument(
+            configJson = configJson,
+            id = id,
+            name = name,
+            type = type,
+            apiUrl = apiUrl,
+            model = model,
+            streamingEnabled = streamingEnabled,
+            contextTokenLimit = contextTokenLimit,
+            hasApiKey = apiKey.isNotBlank(),
+        )
     return ApiConfigEntity(
         id = id,
-        name = name,
-        apiUrl = apiUrl,
-        apiKey = apiKey,
-        model = model,
+        name = document.name,
+        apiUrl = document.baseUrl,
+        apiKey = SecureStore.wrap(apiKey),
+        model = document.model,
         isDefault = isDefault,
         lastTestStatus =
             when (lastTestStatus) {
@@ -403,12 +491,52 @@ private fun ApiConfig.toEntity(): ApiConfigEntity {
                 ConnectionStatus.UNKNOWN -> "UNKNOWN"
             },
         lastTestTime = lastTestTime,
-        type = type,
-        context1m = context1M,
-        streamingEnabled = streamingEnabled,
+        type = document.type,
+        context1m = document.contextTokenLimit >= ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT,
+        streamingEnabled = document.streamingEnabled,
+        configJson = ApiConfigJson.format(document.copy(apiKeyRef = if (apiKey.isBlank()) "" else "secure:$id")),
         // 待实现：实现排序逻辑，目前默认 sortOrder = 0
         sortOrder = 0,
         createdAt = System.currentTimeMillis(),
         updatedAt = System.currentTimeMillis(),
+    )
+}
+
+private fun parseOrBuildDocument(
+    configJson: String,
+    id: String,
+    name: String,
+    type: String,
+    apiUrl: String,
+    model: String,
+    streamingEnabled: Boolean,
+    contextTokenLimit: Int,
+    hasApiKey: Boolean,
+): com.mistbell.tavern.android.data.api.ApiConfigDocument {
+    val sanitizedBaseUrl =
+        ApiConfigJson.sanitizeBaseUrl(apiUrl)
+            ?: throw IllegalArgumentException("API 地址包含无法安全清理的凭据或格式错误，请修正后再保存")
+    val parsed = (ApiConfigJson.parse(configJson) as? ApiConfigJsonResult.Valid)?.document
+    val base =
+        parsed ?: ApiConfigJson.fromFields(
+            id = id,
+            name = name,
+            type = type,
+            baseUrl = apiUrl,
+            model = model,
+            hasApiKey = hasApiKey,
+            streamingEnabled = streamingEnabled,
+            contextTokenLimit = contextTokenLimit,
+            request = ApiRequestTemplate.templateFor(type),
+        )
+    return base.copy(
+        id = id,
+        name = name,
+        type = normalizeApiType(type),
+        baseUrl = sanitizedBaseUrl,
+        model = model,
+        streamingEnabled = streamingEnabled,
+        contextTokenLimit = contextTokenLimit.coerceIn(ApiConfigJson.MIN_CONTEXT_TOKEN_LIMIT, ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT),
+        apiKeyRef = if (hasApiKey) "secure:$id" else "",
     )
 }

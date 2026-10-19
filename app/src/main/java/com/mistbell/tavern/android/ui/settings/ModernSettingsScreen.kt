@@ -424,7 +424,7 @@ private fun AppearanceSettingsSection(
 }
 
 /**
- * 记忆设置区域：默认长期记忆开关 + 记忆提取提示词 + 向量记忆召回（源 / top-k / 相似度阈值）
+ * 记忆设置区域：默认会话记忆开关 + 记忆提取提示词 + 向量记忆召回（源 / top-k / 相似度阈值）
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
@@ -437,7 +437,7 @@ private fun MemorySettingsSection(
 
     ModernSettingsGroup(title = "🧠 记忆") {
         ModernSwitchItem(
-            title = "默认长期记忆（实验性）",
+            title = "默认会话记忆（实验性）",
             subtitle = "新会话默认开启记忆抽取；向量记忆处于实验阶段",
             icon = Icons.Default.Psychology,
             checked = defaultLtmEnabled,
@@ -449,7 +449,7 @@ private fun MemorySettingsSection(
 
             ModernSettingsItem(
                 title = "记忆提取提示词",
-                subtitle = "自定义长期记忆提取的提示词",
+                subtitle = "自定义会话记忆提取的提示词",
                 icon = Icons.Default.Description,
                 onClick = { showMemoryPromptDialog = true },
             )

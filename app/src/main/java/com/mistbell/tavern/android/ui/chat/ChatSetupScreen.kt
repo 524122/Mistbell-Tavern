@@ -350,7 +350,7 @@ fun ChatSetupScreen(
                 }
             }
 
-            // 长期记忆三态：跟随全局 / 开启 / 关闭（默认跟随，建会话不快照全局默认）
+            // 会话记忆三态：跟随全局 / 开启 / 关闭（默认跟随，建会话不快照全局默认）
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -363,12 +363,12 @@ fun ChatSetupScreen(
                                 .padding(16.dp),
                     ) {
                         Text(
-                            text = "长期记忆",
+                            text = "会话记忆",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "保存对话内容到长期记忆中",
+                            text = "保存对话内容到会话记忆中",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

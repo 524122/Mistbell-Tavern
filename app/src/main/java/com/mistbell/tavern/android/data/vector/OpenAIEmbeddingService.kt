@@ -1,6 +1,8 @@
 package com.mistbell.tavern.android.data.vector
 
 import android.util.Log
+import com.mistbell.tavern.android.data.api.ApiConfigJson
+import com.mistbell.tavern.android.data.api.ApiUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -20,8 +22,11 @@ import java.util.concurrent.TimeUnit
  * 移植自后端 OpenAIEmbeddingService.java
  *
  * 使用 OpenAI 的 text-embedding-3-small 模型生成向量
+ *
+ * open：VectorMemoryService.available 是类型门（只认本类与 LocalEmbeddingService），
+ * instrumented 测试以此继承覆写 embed/embedBatch，获得"可用"的受控替身（行为不变）。
  */
-class OpenAIEmbeddingService(
+open class OpenAIEmbeddingService(
     private val apiKey: String,
     private val baseUrl: String = "https://api.openai.com/v1",
     private val model: String = "text-embedding-3-small",
@@ -62,7 +67,7 @@ class OpenAIEmbeddingService(
                     lastException = e
                     if (attempt < MAX_RETRIES - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")
+                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${ApiConfigJson.redactUrl(e.message.orEmpty())}")
                         delay(delayMs)
                     }
                 } catch (e: Exception) {
@@ -97,7 +102,7 @@ class OpenAIEmbeddingService(
 
         val request =
             Request.Builder()
-                .url("$baseUrl/embeddings")
+                .url(ApiUrl.appendPath(baseUrl, "embeddings"))
                 .addHeader("Authorization", "Bearer $apiKey")
                 .addHeader("Content-Type", "application/json")
                 .post(jsonBody.toRequestBody("application/json".toMediaType()))
@@ -107,7 +112,7 @@ class OpenAIEmbeddingService(
 
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "Unknown error"
-            throw Exception("OpenAI API error: ${response.code} - $errorBody")
+            throw Exception("OpenAI API error: ${response.code} - ${ApiConfigJson.redactUrl(errorBody)}")
         }
 
         val responseBody =
@@ -145,7 +150,7 @@ class OpenAIEmbeddingService(
                     lastException = e
                     if (attempt < MAX_RETRIES - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${e.message}")
+                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${ApiConfigJson.redactUrl(e.message.orEmpty())}")
                         delay(delayMs)
                     }
                 } catch (e: Exception) {
@@ -180,7 +185,7 @@ class OpenAIEmbeddingService(
 
         val request =
             Request.Builder()
-                .url("$baseUrl/embeddings")
+                .url(ApiUrl.appendPath(baseUrl, "embeddings"))
                 .addHeader("Authorization", "Bearer $apiKey")
                 .addHeader("Content-Type", "application/json")
                 .post(jsonBody.toRequestBody("application/json".toMediaType()))
@@ -190,7 +195,7 @@ class OpenAIEmbeddingService(
 
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "Unknown error"
-            throw Exception("OpenAI API error: ${response.code} - $errorBody")
+            throw Exception("OpenAI API error: ${response.code} - ${ApiConfigJson.redactUrl(errorBody)}")
         }
 
         val responseBody =
@@ -211,6 +216,9 @@ class OpenAIEmbeddingService(
     }
 
     override fun getDimension(): Int = DIMENSION
+
+    // 指纹含 model：同 provider 换 embedding 模型也必须隔离（向量空间不同）
+    override val fingerprint: String get() = "openai:$model:$DIMENSION"
 
     @Serializable
     private data class EmbeddingRequestSingle(

@@ -30,17 +30,17 @@ object SamplerPresets {
 
     /**
      * 预设解析: 每个输出字段 = base 显式值 > 预设值 > 保持 base 默认。
-     * 显式判定约定:
+     * 显式判定:
      *  - topP/topK/frequencyPenalty: base 对应字段非 null 即视为显式；
-     *  - temperature: 启发式——base.temperature != 0.8（LlmConfig 默认值）视为显式。
-     *    限制: 用户显式设置 temperature=0.8 时会被误判为未显式而被预设覆盖（文档已注明）。
+     *  - temperature: 由调用方通过 [temperatureExplicit] 明确告知来源，不再用“是否等于 0.8”猜测。
+     *    默认 true 表示保留 base.temperature（调用方未声明“未设置”时不能擅自换掉显式 0.8）。
      */
     fun resolve(
         base: LlmConfig,
         params: SamplingParams?,
+        temperatureExplicit: Boolean = true,
     ): LlmConfig {
         if (params == null) return base
-        val temperatureExplicit = base.temperature != 0.8
         return base.copy(
             temperature = if (temperatureExplicit) base.temperature else params.temperature,
             topP = base.topP ?: params.topP,

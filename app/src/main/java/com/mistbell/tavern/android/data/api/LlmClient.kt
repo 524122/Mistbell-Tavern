@@ -217,12 +217,22 @@ object LlmClient {
             chatWithRetries(config, messages)
         } catch (e: Exception) {
             if (config.disableThinking && isThinkingParamRejected(e)) {
-                android.util.Log.w("LlmClient", "thinking 参数被网关拒绝，回退为不发送后重试: ${e.message}")
+                android.util.Log.w("LlmClient", "thinking 参数被网关拒绝，回退为不发送后重试: ${redactedMessage(e)}")
                 chatWithRetries(config.copy(disableThinking = false), messages)
             } else {
-                throw e
+                throw redactedException(e)
             }
         }
+
+    /** 日志/UI 中的异常消息可能携带请求 URL（Gemini key 在 query），统一脱敏后再落日志或抛出。 */
+    private fun redactedMessage(e: Exception): String = ApiConfigJson.redactUrl(e.message.orEmpty())
+
+    private fun redactedException(e: Exception): Exception {
+        if (e is CancellationException) return e
+        val message = redactedMessage(e)
+        if (message == e.message.orEmpty()) return e
+        return if (e is IOException) IOException(message, e) else Exception(message, e)
+    }
 
     /** 疑似"思考参数被拒"：错误正文提到 thinking，或 HTTP 400（请求格式错误） */
     private fun isThinkingParamRejected(e: Exception): Boolean {
@@ -253,7 +263,7 @@ object LlmClient {
                     // 网络错误可重试
                     if (attempt < maxAttempts - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                        android.util.Log.w("LlmClient", "Network error, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${e.message}")
+                        android.util.Log.w("LlmClient", "Network error, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${redactedMessage(e)}")
                         delay(delayMs)
                     }
                 } catch (e: Exception) {
@@ -299,7 +309,7 @@ object LlmClient {
         val response = clientFor(config).newCall(request).execute()
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "No error details"
-            throw Exception("LLM API error: ${response.code} ${response.message} - $errorBody")
+            throw Exception("LLM API error: ${response.code} ${response.message} - ${ApiConfigJson.redactUrl(errorBody)}")
         }
 
         val responseBody = response.body?.string() ?: throw Exception("Empty response")
@@ -326,10 +336,10 @@ object LlmClient {
             chatContentWithRetries(config, messages)
         } catch (e: Exception) {
             if (config.disableThinking && isThinkingParamRejected(e)) {
-                android.util.Log.w("LlmClient", "thinking 参数被网关拒绝，回退为不发送后重试: ${e.message}")
+                android.util.Log.w("LlmClient", "thinking 参数被网关拒绝，回退为不发送后重试: ${redactedMessage(e)}")
                 chatContentWithRetries(config.copy(disableThinking = false), messages)
             } else {
-                throw e
+                throw redactedException(e)
             }
         }
 
@@ -395,7 +405,7 @@ object LlmClient {
                         val delayMs = 1000L * (1 shl attempt) * (if (e.message?.contains("429") == true) 2 else 1)
                         android.util.Log.w(
                             "LlmClient",
-                            "Stream failed before first token, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${e.message}",
+                            "Stream failed before first token, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${redactedMessage(e)}",
                         )
                         delay(delayMs)
                     } else {
@@ -445,7 +455,7 @@ object LlmClient {
                         t: Throwable?,
                         response: okhttp3.Response?,
                     ) {
-                        val message = t?.message ?: ""
+                        val message = ApiConfigJson.redactUrl(t?.message.orEmpty())
                         // 某些兼容网关流式响应 Content-Type 非 text/event-stream 会被 okhttp-sse 拒收
                         if (message.contains("Content-Type", ignoreCase = true) || message.contains("content type", ignoreCase = true)) {
                             close(IllegalStateException("流式响应 Content-Type 不受支持（$message）：该网关可能不兼容 SSE 流式，请在模型设置中关闭流式输出（降级为普通请求）。"))
@@ -458,9 +468,9 @@ object LlmClient {
                                 } catch (_: Exception) {
                                     "No error details"
                                 }
-                            close(IllegalStateException("LLM API error: ${response.code} ${response.message} - $summary"))
+                            close(IllegalStateException("LLM API error: ${response.code} ${response.message} - ${ApiConfigJson.redactUrl(summary)}"))
                         } else {
-                            close(IOException("LLM stream failed: ${t?.message}", t))
+                            close(IOException("LLM stream failed: ${ApiConfigJson.redactUrl(t?.message.orEmpty())}", t))
                         }
                     }
                 }
@@ -472,7 +482,7 @@ object LlmClient {
     suspend fun testConnection(config: LlmConfig): Boolean {
         return try {
             val testMessages = listOf(ChatMessage(role = "user", content = "Hi"))
-            chat(config.copy(maxTokens = 5), testMessages)
+            chat(config.withCallOverrides(maxTokens = 5), testMessages)
             true
         } catch (_: Exception) {
             false

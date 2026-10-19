@@ -7,6 +7,14 @@ import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.VectorMemory
 import kotlinx.serialization.Serializable
 
+/**
+ * 向量记忆的**元数据**表（遗留）。
+ *
+ * 注意：本表不存向量本身（只有 [vectorId] 等引用字段），**无法重建向量索引**。
+ * 向量召回的权威来源是 `vector_store.json`（[com.mistbell.tavern.android.data.vector.InMemoryVectorStore]），
+ * 运行时写入/检索/删除都只走那里。本表定义保留只为 schema 稳定（删表要走迁移，风险大于收益），
+ * 不再作为任何一份向量数据的来源，也不再进入备份。
+ */
 @Entity(
     tableName = "vector_memory",
     indices = [

@@ -6,6 +6,9 @@ import androidx.room.Upsert
 import com.mistbell.tavern.android.data.local.entity.MemoryEntity
 import kotlinx.coroutines.flow.Flow
 
+// 本轮为 deleteAllSessions 的孤儿清理新增 deleteByOwner，函数数到达阈值 11。
+// DAO 的方法数由 Room 查询面决定，不宜为凑阈值合并查询，豁免。
+@Suppress("TooManyFunctions")
 @Dao
 interface MemoryDao {
     @Query(
@@ -23,7 +26,8 @@ interface MemoryDao {
     ): Flow<List<MemoryEntity>>
 
     @Query(
-        "SELECT * FROM memories WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId AND status = 'active' ORDER BY importance DESC",
+        "SELECT * FROM memories WHERE owner_id = :ownerId AND character_id = :characterId " +
+            "AND session_id = :sessionId AND status = 'active' ORDER BY importance DESC",
     )
     fun getActiveBySession(
         ownerId: String,
@@ -32,7 +36,8 @@ interface MemoryDao {
     ): Flow<List<MemoryEntity>>
 
     @Query(
-        "SELECT * FROM memories WHERE owner_id = :ownerId AND character_id = :characterId AND session_id = :sessionId ORDER BY importance DESC",
+        "SELECT * FROM memories WHERE owner_id = :ownerId AND character_id = :characterId " +
+            "AND session_id = :sessionId ORDER BY importance DESC",
     )
     fun getBySession(
         ownerId: String,
@@ -58,6 +63,10 @@ interface MemoryDao {
         characterId: String,
         sessionId: String,
     )
+
+    /** 按 owner 全量删除（deleteAllSessions 的孤儿清理用；不带 owner 条件的 deleteAll 会越界） */
+    @Query("DELETE FROM memories WHERE owner_id = :ownerId")
+    suspend fun deleteByOwner(ownerId: String)
 
     @Query("DELETE FROM memories")
     suspend fun deleteAll()

@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.data.api
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -19,11 +20,17 @@ import okhttp3.RequestBody.Companion.toRequestBody
 internal object AnthropicChatProtocol : ChatProtocol {
     private const val ANTHROPIC_VERSION = "2023-06-01"
 
+    // system 由协议从消息中提取为顶级字段，不允许用户 JSON 旁路覆盖
+    override val protectedRequestFields: Set<String> =
+        ApiConfigJson.DEFAULT_PROTECTED_FIELDS + setOf("system")
+
     private val json =
         Json {
             ignoreUnknownKeys = true
             isLenient = true
             explicitNulls = false
+            // max_tokens/temperature/stream 的默认值也可能是有效配置，必须显式发送
+            encodeDefaults = true
         }
 
     @Serializable
@@ -103,9 +110,15 @@ internal object AnthropicChatProtocol : ChatProtocol {
                 topK = config.topK,
             )
 
-        val bodyJson = json.encodeToString(AnthropicRequest.serializer(), requestBody)
+        val baseJson = json.encodeToJsonElement(AnthropicRequest.serializer(), requestBody).jsonObject
+        val bodyJson =
+            mergeProtocolRequestBody(
+                base = baseJson,
+                config = config,
+                protectedFields = protectedRequestFields,
+            ).toString()
         val base = config.baseUrl.trimEnd('/')
-        val url = if (base.endsWith("/v1")) "$base/messages" else "$base/v1/messages"
+        val url = ApiUrl.appendPath(base, if (ApiUrl.hasPathSuffix(base, "v1")) "messages" else "v1/messages")
 
         return Request.Builder()
             .url(url)

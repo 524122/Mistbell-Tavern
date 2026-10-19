@@ -204,7 +204,7 @@ private fun WelcomeStep(onStart: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("欢迎来到 Mistbell Tavern", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(
-            "口袋里的 AI 角色酒馆：自定义角色、长期记忆、群聊。所有数据只存在你的设备上。",
+            "口袋里的 AI 角色酒馆：自定义角色、会话记忆、群聊。所有数据只存在你的设备上。",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

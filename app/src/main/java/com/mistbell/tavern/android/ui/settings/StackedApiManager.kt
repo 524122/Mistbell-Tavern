@@ -73,6 +73,10 @@ data class ApiConfig(
     val context1M: Boolean = false,
     // SSE 流式传输开关
     val streamingEnabled: Boolean = true,
+    // 完整配置文档中的本地 prompt 输入预算
+    val contextTokenLimit: Int = 4096,
+    // 脱敏后的完整配置 JSON 编辑缓冲
+    val configJson: String = "",
 )
 
 /**

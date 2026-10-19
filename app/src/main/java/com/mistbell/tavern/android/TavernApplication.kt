@@ -7,8 +7,13 @@ import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.vector.EmbeddingService
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.data.vector.reconcileWithDatabase
 import com.mistbell.tavern.android.di.AppContainer
 import com.mistbell.tavern.android.util.SecureStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class TavernApplication : Application() {
     /**
@@ -27,6 +32,9 @@ class TavernApplication : Application() {
 
     val vectorMemoryService: VectorMemoryService by lazy { container.vectorMemoryService }
 
+    /** 应用级后台作用域：只用于"尽力而为"的收尾工作（如退到后台时补齐向量索引落盘） */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     companion object {
         private const val TAG = "TavernApplication"
         private const val PREFS_NAME = "tavern_settings"
@@ -43,6 +51,41 @@ class TavernApplication : Application() {
 
         // 移除同步初始化，改为完全延迟加载
         Log.d(TAG, "TavernApplication created (services will be initialized on demand)")
+
+        // 启动对账（后台、尽力而为，不阻塞启动）：内存里的删除意图会随进程结束丢失，
+        // 磁盘上却留着"已删会话"的向量，重启后它们照样能被召回——跨会话召回还会放大影响。
+        // 以 Room 的会话表为准收敛一次（见 VectorMemoryService.reconcileWithDatabase）。
+        appScope.launch {
+            try {
+                container.sessionMemoryResetGate()
+                container.vectorIndexRecoveryReconciler.reconcileOnce()
+                container.vectorSyncRecovery.recoverDue()
+                container.vectorMemoryService.reconcileWithDatabase(database)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "向量索引启动恢复失败：${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * 进程退到后台 / 内存紧张：把向量索引的合并写入窗口补齐。
+     *
+     * 索引是"一个窗口内最多落盘一次"的（见 InMemoryVectorStore），这样高频写入不会每条消息
+     * 都重写整份索引；代价是正常情况下落后磁盘一个窗口。这个钩子是零依赖的兜底
+     * （TRIM_MEMORY_UI_HIDDEN 对应用户离开界面），把丢失窗口压到最小。
+     *
+     * **不能 runBlocking**：onTrimMemory 在主线程回调，而 flush 要整份重写索引（满容量时数 MB），
+     * 阻塞等待就是一次 ANR。UI_HIDDEN 只表示"退到后台"，进程仍然活着，后台补齐来得及。
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level < android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) return
+        appScope.launch {
+            runCatching { container.vectorStore.flush() }
+                .onFailure { Log.w(TAG, "向量索引落盘失败：${it.message}") }
+        }
     }
 
     /**

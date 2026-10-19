@@ -24,8 +24,9 @@ import com.mistbell.tavern.android.data.local.entity.*
         ThemePackEntity::class,
         ApiConfigEntity::class,
         CustomPromptEntity::class,
+        VectorSyncOutboxEntity::class,
     ],
-    version = 25,
+    version = 27,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -46,6 +47,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun structuredMemoryDao(): StructuredMemoryDao
 
     abstract fun vectorMemoryDao(): VectorMemoryDao
+
+    abstract fun vectorSyncOutboxDao(): VectorSyncOutboxDao
 
     abstract fun themePackDao(): ThemePackDao
 
@@ -546,6 +549,115 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v25→v26：完整 API 配置 JSON 文档。旧字段保留以便兼容历史代码，
+        // 由 ApiConfigJson/SettingsRepository 在首次读取时生成并回填权威文档。
+        internal val MIGRATION_25_26_SQL: List<String> =
+            listOf(
+                "ALTER TABLE api_configs ADD COLUMN config_json TEXT NOT NULL DEFAULT ''",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_25_26 =
+            object : Migration(25, 26) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_25_26_SQL.forEach(db::execSQL)
+                }
+            }
+
+        internal val MIGRATION_26_27_SQL: List<String> =
+            listOf(
+                """
+                CREATE TABLE IF NOT EXISTS api_configs_new (
+                    id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    apiUrl TEXT NOT NULL,
+                    apiKey TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    isDefault INTEGER NOT NULL,
+                    lastTestStatus TEXT NOT NULL,
+                    lastTestTime INTEGER NOT NULL,
+                    sortOrder INTEGER NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'openai',
+                    context1m INTEGER NOT NULL DEFAULT 0,
+                    streamingEnabled INTEGER NOT NULL DEFAULT 1,
+                    config_json TEXT NOT NULL DEFAULT '',
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+                """
+                INSERT INTO api_configs_new (
+                    id, name, apiUrl, apiKey, model, isDefault, lastTestStatus, lastTestTime,
+                    sortOrder, type, context1m, streamingEnabled, config_json, createdAt, updatedAt
+                )
+                SELECT id, name, apiUrl, apiKey, model, isDefault, lastTestStatus, lastTestTime,
+                    sortOrder, type, context1m, streamingEnabled, config_json, createdAt, updatedAt
+                FROM api_configs
+                """.trimIndent(),
+                "DROP TABLE api_configs",
+                "ALTER TABLE api_configs_new RENAME TO api_configs",
+                "CREATE INDEX IF NOT EXISTS index_api_configs_isDefault ON api_configs(isDefault)",
+                "CREATE INDEX IF NOT EXISTS index_api_configs_sortOrder ON api_configs(sortOrder)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_type ON custom_prompts(type)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_position ON custom_prompts(position)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_isEnabled ON custom_prompts(isEnabled)",
+                "CREATE INDEX IF NOT EXISTS index_custom_prompts_priority ON custom_prompts(priority)",
+                "ALTER TABLE structured_memory ADD COLUMN vector_revision TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE messages ADD COLUMN vector_revision TEXT NOT NULL DEFAULT ''",
+                "UPDATE structured_memory SET vector_revision = lower(hex(randomblob(16)))",
+                "UPDATE messages SET vector_revision = lower(hex(randomblob(16)))",
+                """
+                CREATE TABLE IF NOT EXISTS vector_sync_outbox (
+                    operation_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    source_type TEXT NOT NULL,
+                    owner_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
+                    source_id TEXT NOT NULL,
+                    vector_message_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    source_revision TEXT NOT NULL,
+                    content_type TEXT NOT NULL,
+                    attempt_count INTEGER NOT NULL,
+                    next_attempt_at INTEGER NOT NULL,
+                    last_error TEXT,
+                    created_at INTEGER NOT NULL
+                )
+                """.trimIndent(),
+                "CREATE INDEX IF NOT EXISTS " +
+                    "index_vector_sync_outbox_source_type_owner_id_session_id_source_id_operation_id " +
+                    "ON vector_sync_outbox(source_type, owner_id, session_id, source_id, operation_id)",
+                "CREATE INDEX IF NOT EXISTS index_vector_sync_outbox_next_attempt_at_operation_id " +
+                    "ON vector_sync_outbox(next_attempt_at, operation_id)",
+                """
+                INSERT INTO vector_sync_outbox (
+                    source_type, owner_id, session_id, source_id, vector_message_id, operation,
+                    source_revision, content_type, attempt_count, next_attempt_at, last_error, created_at
+                )
+                SELECT
+                    'summary', owner_id, COALESCE(session_id, ''), CAST(id AS TEXT),
+                    'structured_memory_' || id,
+                    CASE WHEN importance >= 7 THEN 'UPSERT' ELSE 'DELETE' END,
+                    vector_revision, 'summary', 0, 0, NULL, 0
+                FROM structured_memory
+                """.trimIndent(),
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_26_27 =
+            object : Migration(26, 27) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    (MIGRATION_26_27_SQL + VECTOR_SYNC_TRIGGER_SQL).forEach(db::execSQL)
+                }
+            }
+
+        internal val vectorSyncCallback =
+            object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    VECTOR_SYNC_TRIGGER_SQL.forEach(db::execSQL)
+                }
+            }
+
         fun getInstance(context: Context): AppDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -576,7 +688,10 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_22_23,
                         MIGRATION_23_24,
                         MIGRATION_24_25,
+                        MIGRATION_25_26,
+                        MIGRATION_26_27,
                     )
+                    .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：
                     // 遇到未覆盖的版本 Room 会直接抛 IllegalStateException（明确失败），
                     // 而不是静默清空用户数据（ROADMAP"防静默清库"）。

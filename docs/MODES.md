@@ -48,7 +48,7 @@ ST 生态参照：GM 玩法主流即此形态（Sukino Game Master Mode 等预�
 
 ### 模式③ 群聊要点
 
-- 现有 `participantCharacters`（≤4 人）是现成地基，缺：说话方轮转策略、
+- 现有 `participantCharacters`（最多 20 人）是现成地基，缺：说话方轮转策略、
   历史消息说话者标注、按 NPC 分账的记忆（含 **witness 可见性**：
   NPC 只召回自己在场时产生/获知的记忆——知识不对称是群聊沉浸感的灵魂）。
 

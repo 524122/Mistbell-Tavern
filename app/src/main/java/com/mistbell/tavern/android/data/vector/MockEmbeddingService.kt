@@ -40,4 +40,6 @@ class MockEmbeddingService : EmbeddingService {
     }
 
     override fun getDimension(): Int = DIMENSION
+
+    override val fingerprint: String get() = "mock:random:$DIMENSION"
 }

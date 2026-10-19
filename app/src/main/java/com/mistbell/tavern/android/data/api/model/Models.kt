@@ -65,6 +65,9 @@ data class CharacterData(
 const val SESSION_MODE_CLASSIC = "classic"
 const val SESSION_MODE_GROUP = "group"
 
+/** Maximum number of characters persisted in a group session. */
+const val MAX_GROUP_PARTICIPANTS = 20
+
 // 模式②「扮演」骨架常量：实装前创建页仅作占位展示，禁止以此值建会话（无对应提示词链路）
 const val SESSION_MODE_ROLEPLAY = "roleplay"
 

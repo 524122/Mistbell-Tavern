@@ -1,12 +1,16 @@
 package com.mistbell.tavern.android.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * 自定义提示词实体
  */
-@Entity(tableName = "custom_prompts")
+@Entity(
+    tableName = "custom_prompts",
+    indices = [Index("type"), Index("position"), Index("isEnabled"), Index("priority")],
+)
 data class CustomPromptEntity(
     @PrimaryKey val id: String,
     // JAILBREAK, WRITING_STYLE, CHARACTER, CUSTOM

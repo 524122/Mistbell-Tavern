@@ -20,6 +20,27 @@ import org.junit.Test
  * 而是最脆弱环节的前置防线：索引名/列默认值/NOT NULL。
  */
 class MigrationSchemaAlignmentTest {
+    @Test
+    fun `v25 to v26 adds complete api config json column`() {
+        assertEquals(
+            listOf("ALTER TABLE api_configs ADD COLUMN config_json TEXT NOT NULL DEFAULT ''"),
+            AppDatabase.MIGRATION_25_26_SQL,
+        )
+    }
+
+    @Test
+    fun `v26 to v27 adds recovery outbox without deleting business data`() {
+        val sql = AppDatabase.MIGRATION_26_27_SQL
+        assertTrue("ALTER TABLE structured_memory ADD COLUMN vector_revision TEXT NOT NULL DEFAULT ''" in sql)
+        assertTrue("ALTER TABLE messages ADD COLUMN vector_revision TEXT NOT NULL DEFAULT ''" in sql)
+        assertTrue(sql.any { it.contains("CREATE TABLE IF NOT EXISTS vector_sync_outbox") })
+        assertTrue(sql.any { it.contains("INSERT INTO vector_sync_outbox") })
+        assertTrue(sql.any { it.contains("INSERT INTO api_configs_new") })
+        assertFalse(sql.any { it.contains("DROP TABLE structured_memory", ignoreCase = true) })
+        assertFalse(sql.any { it.contains("DROP TABLE messages", ignoreCase = true) })
+        assertFalse(sql.any { it.contains("DELETE FROM", ignoreCase = true) })
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

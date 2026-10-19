@@ -2,7 +2,7 @@ package com.mistbell.tavern.android.service
 
 import android.content.Context
 import com.mistbell.tavern.android.data.api.LlmClient
-import com.mistbell.tavern.android.data.api.LlmConfig
+import com.mistbell.tavern.android.data.api.withCallOverrides
 import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.service.models.LocalChatMessage
 import kotlinx.coroutines.flow.Flow
@@ -32,15 +32,11 @@ class LocalProviderService(private val context: Context) {
             // 获取 LLM 配置
             val config = settingsRepo.getLlmConfig()
 
-            // 使用参数或配置中的默认值
+            // 在完整配置上覆盖本次参数，保留 type/request/stream/timeout 等字段
             val actualConfig =
-                LlmConfig(
-                    baseUrl = config.baseUrl,
-                    apiKey = config.apiKey,
-                    model = model ?: config.model,
-                    temperature = temperature ?: config.temperature,
-                    maxTokens = maxTokens ?: config.maxTokens,
-                )
+                config
+                    .copy(model = model ?: config.model)
+                    .withCallOverrides(temperature = temperature, maxTokens = maxTokens)
 
             // 转换消息格式
             val llmMessages =
@@ -72,13 +68,9 @@ class LocalProviderService(private val context: Context) {
         val config = settingsRepo.getLlmConfig()
 
         val actualConfig =
-            LlmConfig(
-                baseUrl = config.baseUrl,
-                apiKey = config.apiKey,
-                model = model ?: config.model,
-                temperature = temperature ?: config.temperature,
-                maxTokens = maxTokens ?: config.maxTokens,
-            )
+            config
+                .copy(model = model ?: config.model)
+                .withCallOverrides(temperature = temperature, maxTokens = maxTokens)
 
         // 转换消息格式
         val llmMessages =

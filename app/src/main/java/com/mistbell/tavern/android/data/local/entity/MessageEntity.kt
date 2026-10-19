@@ -37,6 +37,7 @@ data class MessageEntity(
     @ColumnInfo(name = "swipe_index") val swipeIndex: Int,
     @ColumnInfo(name = "thinking_swipes_json") val thinkingSwipesJson: String,
     @ColumnInfo(name = "is_read", defaultValue = "1") val isRead: Boolean = true,
+    @ColumnInfo(name = "vector_revision", defaultValue = "") val vectorRevision: String = "",
 ) {
     fun toDomain(): Message {
         val memoryIds =

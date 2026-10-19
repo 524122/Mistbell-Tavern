@@ -63,6 +63,8 @@ data class StructuredMemoryEntity(
     // manual, auto_extract, import
     @ColumnInfo(name = "source_type")
     val sourceType: String = "manual",
+    @ColumnInfo(name = "vector_revision", defaultValue = "")
+    val vectorRevision: String = "",
 ) {
     fun toDomain(): StructuredMemory {
         return StructuredMemory(

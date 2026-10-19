@@ -54,6 +54,9 @@ class LocalEmbeddingService private constructor(
 
     override fun getDimension(): Int = DIM
 
+    // 指纹含模型文件名：换本地 ONNX 模型即换向量空间
+    override val fingerprint: String get() = "local:${MODEL_ASSET.substringAfterLast('/')}:$DIM"
+
     override suspend fun embed(text: String): FloatArray =
         withContext(Dispatchers.Default) {
             val ids = tokenizer.encode(text, MAX_SEQ_LEN)

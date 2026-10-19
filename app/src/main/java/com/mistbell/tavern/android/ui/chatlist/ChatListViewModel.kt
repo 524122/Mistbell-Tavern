@@ -12,6 +12,8 @@ import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.Message
 import com.mistbell.tavern.android.data.api.model.SessionSummary
+import com.mistbell.tavern.android.data.repository.SessionMutationLocks
+import com.mistbell.tavern.android.data.vector.deleteSessionVectors
 import com.mistbell.tavern.android.util.SessionExportFormat
 import com.mistbell.tavern.android.util.SessionExportResult
 import com.mistbell.tavern.android.util.SessionExporter
@@ -252,13 +254,37 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         sessionId: String,
         characterId: String,
     ) {
+        // 整段放入会话锁：与 ChatRepository 的删除/清空/记忆保存/消息向量化共用同一把锁，
+        // 两个平行删除入口不再可能各自跑一半、交叉留残
+        SessionMutationLocks.withSessionLock(sessionId) {
+            deleteSessionDataLocked(sessionId, characterId)
+        }
+    }
+
+    /**
+     * 单个会话的删除序列（**调用方必须已持有该 sessionId 的会话锁**）。
+     *
+     * 所有 DAO 调用都带 ownerId 条件（会话级删除以 (owner, session) 为键），不会越界删到
+     * 其他 owner 的数据。deleteSessionData（单删/多选删）与 deleteAllSessions（批量）共用本序列。
+     */
+    private suspend fun deleteSessionDataLocked(
+        sessionId: String,
+        characterId: String,
+    ) {
         // Room is the source of truth, but message vectors live outside Room and
         // must be removed for this session as well.
+        TavernApplication.instance.container.pendingExtractionStore.discard(sessionId)
+        // 会话级删除以 (owner, session) 为键：群聊同一会话的向量分属多个 NPC，
+        // 按主角色过滤会漏删 NPC 向量（残留于 vector_store.json）。
+        val messageIds = db.messageDao().idsBySession(sessionId, ownerId)
         TavernApplication.instance.container.vectorMemoryService.deleteSessionVectors(
             ownerId = ownerId,
-            characterId = characterId,
             sessionId = sessionId,
+            messageIds = messageIds,
         )
+        // 待抽取缓冲是落盘的：不清掉的话，进程重启后任意一次 drain 都会把已删会话的内容
+        // 重新抽成记忆（写入校验虽有归属复查，但源消息已不存在，抽出来也是悬空记忆）
+        TavernApplication.instance.container.pendingExtractionStore.discard(sessionId)
         db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
         db.structuredMemoryDao().deleteBySession(ownerId, sessionId)
         db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
@@ -269,20 +295,27 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteAllSessions() {
         viewModelScope.launch {
-            db.sessionDao().getAllOnce()
-                .filter { it.ownerId == ownerId }
-                .forEach { session ->
-                    TavernApplication.instance.container.vectorMemoryService.deleteSessionVectors(
-                        ownerId = ownerId,
-                        characterId = session.characterId,
-                        sessionId = session.id,
-                    )
+            // 先快照本 owner 的会话列表，再逐会话取锁执行与单删完全相同的序列。
+            // 锁顺序：任意时刻只持一把会话锁，且全代码库不存在"持锁等待另一把会话锁"的
+            // 嵌套模式（抽取保存走 *Locked 变体、向量收尾在锁外），因此顺序获取不会死锁。
+            // 若某会话有在途抽取/向量化，该会话的删除会等它完成（或先删、其锁内复查发现
+            // 会话已消失而放弃写回）。
+            val sessions =
+                db.sessionDao().getAllOnce()
+                    .filter { it.ownerId == ownerId }
+                    .sortedBy { it.id }
+            sessions.forEach { session ->
+                SessionMutationLocks.withSessionLock(session.id) {
+                    deleteSessionDataLocked(session.id, session.characterId)
                 }
-            db.memoryDao().deleteAll()
-            db.structuredMemoryDao().deleteAll()
-            db.vectorMemoryDao().deleteAll()
-            db.messageDao().deleteAll()
-            db.sessionDao().deleteAll()
+            }
+            // 孤儿清理（仅本 owner）：逐会话删除覆盖不到的历史残留——角色级记忆
+            // （session_id 为空）、悬空消息/向量等。旧实现的 deleteAll() 系列不带 owner
+            // 条件，会越界删掉其他 owner 的数据；一律换成显式的按 owner 删除。
+            db.memoryDao().deleteByOwner(ownerId)
+            db.structuredMemoryDao().deleteByOwner(ownerId)
+            db.vectorMemoryDao().deleteByOwner(ownerId)
+            db.messageDao().deleteByOwner(ownerId)
         }
     }
 

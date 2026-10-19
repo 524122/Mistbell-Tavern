@@ -897,8 +897,9 @@ private fun PromptTraceSheet(
                     )
                     trace?.let {
                         Text(
-                            text = "${it.segments.size} 条消息 · 约 ${it.totalEstimatedTokens} tokens" +
-                                if (it.truncationReasons.isNotEmpty()) " · 已裁剪" else "",
+                            text =
+                                "${it.segments.size} 条消息 · 约 ${it.totalEstimatedTokens} tokens" +
+                                    if (it.truncationReasons.isNotEmpty()) " · 已裁剪" else "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -968,19 +969,19 @@ private fun PromptTraceSheet(
                                 RequestParamsSection(params = requestParams)
                             }
                         }
-                items(
+                        items(
                             count = trace.segments.size,
                             key = { index -> "prompt-${trace.segments[index].message.role}-$index" },
                             contentType = { "prompt-segment" },
-                ) { index ->
+                        ) { index ->
                             PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
                         }
                     }
-                        if (trace.truncationReasons.isNotEmpty() || trace.protocolConversionResults.isNotEmpty()) {
-                            item(key = "__trace_meta__") {
-                                TraceMetadataSection(trace)
-                            }
+                    if (trace.truncationReasons.isNotEmpty() || trace.protocolConversionResults.isNotEmpty()) {
+                        item(key = "__trace_meta__") {
+                            TraceMetadataSection(trace)
                         }
+                    }
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
                 Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
@@ -1171,6 +1172,10 @@ private fun TraceMetadataSection(trace: PromptTrace) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                "最终请求：${trace.segments.size} 条消息，估算输入 ${trace.totalEstimatedTokens} token",
+                style = MaterialTheme.typography.labelSmall,
+            )
             trace.truncationReasons.forEach { Text("裁剪：$it", style = MaterialTheme.typography.labelSmall) }
             trace.protocolConversionResults.forEach { Text("协议：$it", style = MaterialTheme.typography.labelSmall) }
         }
