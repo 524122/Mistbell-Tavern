@@ -7,6 +7,7 @@ import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.vector.EmbeddingService
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.data.vector.reconcileOrphanedSourcesWithDatabase
 import com.mistbell.tavern.android.data.vector.reconcileWithDatabase
 import com.mistbell.tavern.android.di.AppContainer
 import com.mistbell.tavern.android.util.SecureStore
@@ -61,6 +62,9 @@ class TavernApplication : Application() {
                 container.vectorIndexRecoveryReconciler.reconcileOnce()
                 container.vectorSyncRecovery.recoverDue()
                 container.vectorMemoryService.reconcileWithDatabase(database)
+                // 消息级孤儿对账：删除路径"锁内删内存、锁外落盘"被强杀打断时，已删消息/记忆的
+                // 向量会在磁盘上复活；会话级对账管不到这一层（会话还在、源没了），见函数注释
+                container.vectorMemoryService.reconcileOrphanedSourcesWithDatabase(database)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

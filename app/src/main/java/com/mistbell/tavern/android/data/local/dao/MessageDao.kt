@@ -81,6 +81,15 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
     suspend fun getAnyById(messageId: String): MessageEntity?
 
+    // 启动对账（消息级孤儿向量清理）：批量存在性核查。只取 id 不取整行——
+    // 对账只要"还在不在"，正文传输是纯开销。调用方按 500 条分块（SQLite IN 上限 999）。
+    @Query("SELECT id FROM messages WHERE id IN (:ids)")
+    suspend fun existingIds(ids: List<String>): List<String>
+
+    /** 启动对账的安全闸门：表为空时调用方必须跳过孤儿清理（空表不能作为"全被删了"的证据） */
+    @Query("SELECT COUNT(*) FROM messages")
+    suspend fun countAll(): Int
+
     @Upsert
     suspend fun upsert(msg: MessageEntity)
 
