@@ -168,6 +168,8 @@ class CharacterExporterTest {
                     caseSensitive = true,
                     matchWholeWords = false,
                     scanDepth = 7,
+                    sticky = 2,
+                    ignoreBudget = true,
                 ),
                 bookEntry("e1"),
             )
@@ -181,14 +183,18 @@ class CharacterExporterTest {
         assertEquals(true, full.caseSensitive)
         assertEquals(false, full.matchWholeWords)
         assertEquals(7, full.scanDepth)
+        assertEquals(2, full.sticky)
+        assertEquals(true, full.ignoreBudget)
 
-        // 缺省条目：导出非默认才写 → 回读为酒馆默认（selective=true、逻辑 AND_ANY、其余 null）
+        // 缺省条目：导出非默认才写 → 回读为酒馆默认（selective=true、逻辑 AND_ANY、sticky=0、其余 null/false）
         val defaults = byContent["ce1"]!!
         assertEquals(true, defaults.selective)
         assertEquals(0, defaults.selectiveLogic)
         assertNull(defaults.caseSensitive)
         assertNull(defaults.matchWholeWords)
         assertNull(defaults.scanDepth)
+        assertEquals(0, defaults.sticky)
+        assertEquals(false, defaults.ignoreBudget)
     }
 
     @Test

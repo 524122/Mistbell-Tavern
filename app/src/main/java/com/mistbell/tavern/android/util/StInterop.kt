@@ -131,11 +131,10 @@ internal object StInterop {
         }
 
     /**
-     * 触发相关字段解析（对齐酒馆 originalWIDataKeyMap：caseSensitive/matchWholeWords/scanDepth
-     * 在 extensions 下的 snake_case 键；selective/selectiveLogic 为顶层同名字段——两条路径都兼容）。
-     * 默认值对齐酒馆条目模板：selective=true、selectiveLogic=0(AND_ANY)、其余 null（跟随全局/关）。
-     * sticky 酒馆为数值（激活后保持 N 条消息），应用内为布尔开关（N>0 视为开）——
-     * 酒馆导出的 `sticky: 3` 此前按布尔解析会静默丢成 false。
+     * 触发相关字段解析（对齐酒馆 originalWIDataKeyMap：caseSensitive/matchWholeWords/scanDepth/
+     * sticky/ignoreBudget 在 extensions 下的 snake_case 键；selective/selectiveLogic 为顶层同名
+     * 字段——两条路径都兼容）。默认值对齐酒馆条目模板：selective=true、selectiveLogic=0(AND_ANY)、
+     * sticky=0（关闭）、ignoreBudget=false、其余 null（跟随全局/关）。
      */
     fun resolveTriggering(
         entry: JsonObject,
@@ -157,14 +156,17 @@ internal object StInterop {
                     LOGIC_AND_ANY
                 }
             }
-        val stickyRaw = extOrTop("sticky")?.let { it.booleanOrNull ?: ((it.intOrNull ?: 0) > 0) }
+        // sticky 酒馆即数值（保持 N 条消息）；兼容旧布尔写法（true→1）
+        val sticky =
+            extOrTop("sticky")?.let { it.intOrNull ?: (if (it.booleanOrNull == true) 1 else 0) } ?: 0
         return ResolvedTriggering(
             selective = selective,
             selectiveLogic = selectiveLogic,
             caseSensitive = extOrTop("case_sensitive", "caseSensitive")?.booleanOrNull,
             matchWholeWords = extOrTop("match_whole_words", "matchWholeWords")?.booleanOrNull,
             scanDepth = extOrTop("scan_depth", "scanDepth")?.intOrNull,
-            sticky = stickyRaw ?: false,
+            sticky = sticky,
+            ignoreBudget = extOrTop("ignore_budget", "ignoreBudget")?.booleanOrNull ?: false,
         )
     }
 
@@ -179,7 +181,10 @@ internal object StInterop {
         val caseSensitive: Boolean?,
         val matchWholeWords: Boolean?,
         val scanDepth: Int?,
-        val sticky: Boolean,
+        /** 粘性轮数（酒馆数值语义）：0=关闭 */
+        val sticky: Int,
+        /** 预算豁免（酒馆 ignoreBudget） */
+        val ignoreBudget: Boolean,
     )
 
     /**

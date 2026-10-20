@@ -6,6 +6,33 @@ import androidx.room.PrimaryKey
 import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.api.model.WorldBookEntry
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
+
+/** sticky 的容错序列化器：新格式是数值（保持 N 轮），旧备份的布尔值 true/false 读作 1/0 */
+object StickyFieldSerializer : kotlinx.serialization.KSerializer<Int> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("sticky", PrimitiveKind.INT)
+
+    override fun serialize(
+        encoder: Encoder,
+        value: Int,
+    ) = encoder.encodeInt(value)
+
+    override fun deserialize(decoder: Decoder): Int {
+        val element =
+            (decoder as? JsonDecoder)?.decodeJsonElement() as? JsonPrimitive
+                ?: throw SerializationException("sticky 需要 JSON 原始值")
+        return element.intOrNull ?: (if (element.booleanOrNull == true) 1 else 0)
+    }
+}
 
 @Entity(tableName = "world_books")
 @Serializable
@@ -49,10 +76,15 @@ data class WorldBookEntryEntity(
     // 决定该条目以什么身份注入 @D 深度块
     @ColumnInfo(name = "depth_role", defaultValue = "system") val depthRole: String = "system",
     @ColumnInfo(name = "secondary_keys_json", defaultValue = "") val secondaryKeysJson: String = "",
-    @ColumnInfo(name = "sticky", defaultValue = "0") val sticky: Boolean = false,
+    // 粘性轮数（v28 起对齐酒馆数值语义）：0=关闭；激活后保持 N 轮（过期后 cooldown 接力）。
+    // 序列化走容错器：旧备份的布尔值 true/false 读作 1/0
+    @Serializable(with = StickyFieldSerializer::class)
+    @ColumnInfo(name = "sticky", defaultValue = "0") val sticky: Int = 0,
     @ColumnInfo(name = "cooldown", defaultValue = "0") val cooldown: Int = 0,
     @ColumnInfo(name = "delay", defaultValue = "0") val delay: Int = 0,
     @ColumnInfo(name = "group_name", defaultValue = "") val groupName: String = "",
+    // 预算豁免（v29，对齐酒馆 ignoreBudget）：true 时不占 WI token 预算、溢出也不被裁
+    @ColumnInfo(name = "ignore_budget", defaultValue = "0") val ignoreBudget: Boolean = false,
     // 次键门控开关（v28，对齐酒馆 selective）：true 且次键非空时才启用 selectiveLogic 评估
     @ColumnInfo(name = "selective", defaultValue = "1") val selective: Boolean = true,
     // 次关键词四态逻辑（v28，对齐酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
@@ -108,6 +140,7 @@ data class WorldBookEntryEntity(
             caseSensitive = caseSensitive,
             matchWholeWords = matchWholeWords,
             scanDepth = scanDepth,
+            ignoreBudget = ignoreBudget,
         )
     }
 
@@ -143,6 +176,7 @@ data class WorldBookEntryEntity(
                 caseSensitive = e.caseSensitive,
                 matchWholeWords = e.matchWholeWords,
                 scanDepth = e.scanDepth,
+                ignoreBudget = e.ignoreBudget,
             )
         }
     }

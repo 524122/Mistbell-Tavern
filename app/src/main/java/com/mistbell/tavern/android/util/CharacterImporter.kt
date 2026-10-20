@@ -324,6 +324,7 @@ object CardParser {
                     caseSensitive = triggering.caseSensitive,
                     matchWholeWords = triggering.matchWholeWords,
                     scanDepth = triggering.scanDepth,
+                    ignoreBudget = triggering.ignoreBudget,
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）

@@ -228,6 +228,7 @@ object CharacterExporter {
                             e.caseSensitive?.let { put("case_sensitive", it) }
                             e.matchWholeWords?.let { put("match_whole_words", it) }
                             e.scanDepth?.let { put("scan_depth", it) }
+                            if (e.ignoreBudget) put("ignore_budget", true)
                         }
                     }
                 }

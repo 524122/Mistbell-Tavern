@@ -28,6 +28,8 @@ class WorldInfoRuntimeTest {
         scanDepth: Int? = null,
         content: String = "内容$id",
         order: Int = 100,
+        sticky: Int = 0,
+        ignoreBudget: Boolean = false,
     ) = WorldBookEntryEntity(
         id = id,
         bookId = "book",
@@ -47,6 +49,8 @@ class WorldInfoRuntimeTest {
         caseSensitive = caseSensitive,
         matchWholeWords = matchWholeWords,
         scanDepth = scanDepth,
+        sticky = sticky,
+        ignoreBudget = ignoreBudget,
     )
 
     @Suppress("LongParameterList") // 测试辅助函数：参数即 ScanInput 平铺，不再二次封装
@@ -57,10 +61,18 @@ class WorldInfoRuntimeTest {
         userMessage: String = "",
         globalScanDepth: Int = 2,
         budget: Int = Int.MAX_VALUE,
+        recursive: Boolean = false,
     ) = PromptBuilder.WorldInfoRuntime.activate(
         session,
         entries,
-        PromptBuilder.WorldInfoRuntime.ScanInput(history, userMessage, globalScanDepth, mctx, budget),
+        PromptBuilder.WorldInfoRuntime.ScanInput(
+            history,
+            userMessage,
+            globalScanDepth,
+            mctx,
+            budget,
+            recursive,
+        ),
     )
 
     // ---- selectiveLogic 四态（酒馆 world_info_logic）----
@@ -205,12 +217,58 @@ class WorldInfoRuntimeTest {
         val a = entry("a", keys = listOf("k"), content = "b的引子", order = 90)
         val b = entry("b", keys = listOf("b的引子"), order = 10)
         // 预算 4 只够 a（内容 4 CJK 字符）；a 消费完溢出 → 不再递归 → b 永不激活
-        val result = activate("s-budget-recursion", listOf(a, b), userMessage = "k", budget = 4)
+        val result = activate("s-budget-recursion", listOf(a, b), userMessage = "k", budget = 4, recursive = true)
         assertEquals(setOf("book:a"), result.activated)
         assertEquals(listOf("b"), result.droppedByBudget.map { it.id })
         // 对照：预算充足时 b 经递归激活
-        val rich = activate("s-budget-recursion-rich", listOf(a, b), userMessage = "k")
+        val rich = activate("s-budget-recursion-rich", listOf(a, b), userMessage = "k", recursive = true)
         assertEquals(setOf("book:a", "book:b"), rich.activated)
+    }
+
+    @Test
+    fun `递归关闭时连锁条目不激活`() {
+        // 酒馆默认 world_info_recursive=false：b 的关键词只在 a 的内容里，不递归就永不命中
+        val a = entry("a", keys = listOf("k"), content = "b的引子")
+        val b = entry("b", keys = listOf("b的引子"))
+        val result = activate("s-recursive-off", listOf(a, b), userMessage = "k", recursive = false)
+        assertEquals(setOf("book:a"), result.activated)
+    }
+
+    // ---- sticky 数值语义（酒馆：保持 N 轮，过期后 cooldown 接力）----
+
+    @Test
+    fun `sticky条目激活后保持N轮再过期`() {
+        val e = entry("a", keys = listOf("k"), sticky = 2)
+        // 第 1 轮：关键词命中激活并武装粘性
+        assertEquals(setOf("book:a"), activate("s-sticky-1", listOf(e), userMessage = "k").activated)
+        // 第 2、3 轮：无关键词仍激活（粘性保持）
+        assertEquals(setOf("book:a"), activate("s-sticky-1", listOf(e), userMessage = "无关").activated)
+        assertEquals(setOf("book:a"), activate("s-sticky-1", listOf(e), userMessage = "无关").activated)
+        // 第 4 轮：粘性过期（激活轮 1 + 保持 2 轮）
+        assertTrue(activate("s-sticky-1", listOf(e), userMessage = "无关").activated.isEmpty())
+    }
+
+    @Test
+    fun `sticky为0不粘`() {
+        val e = entry("a", keys = listOf("k"), sticky = 0)
+        assertEquals(setOf("book:a"), activate("s-sticky-0", listOf(e), userMessage = "k").activated)
+        assertTrue(activate("s-sticky-0", listOf(e), userMessage = "无关").activated.isEmpty())
+    }
+
+    // ---- ignoreBudget（酒馆：豁免预算且不被溢出裁剪）----
+
+    @Test
+    fun `ignoreBudget条目不占额度且溢出也注入`() {
+        val exempt = entry("big", keys = listOf("k"), order = 90, ignoreBudget = true)
+        val normal = entry("small", keys = listOf("k"), order = 10)
+        // 预算 1：exempt 不消费额度照常注入；normal 消费不起（3 token > 1）进丢弃清单
+        val result = activate("s-ignore-budget", listOf(exempt, normal), userMessage = "k", budget = 1)
+        assertEquals(setOf("book:big"), result.activated)
+        assertEquals(listOf("small"), result.droppedByBudget.map { it.id })
+        // 全程无预算时语义不变
+        val free = activate("s-ignore-budget-free", listOf(exempt, normal), userMessage = "k")
+        assertEquals(setOf("book:big", "book:small"), free.activated)
+        assertTrue(free.droppedByBudget.isEmpty())
     }
 
     @Test
@@ -251,5 +309,14 @@ class WorldInfoRuntimeTest {
         val result = PromptBuilder.allocateConstantBudget(listOf(disabled, notConstant), budgetTokens = 0)
         assertTrue(result.allowed.isEmpty())
         assertTrue(result.dropped.isEmpty())
+    }
+
+    @Test
+    fun `ignoreBudget的constant条目不占预算恒放行`() {
+        val exempt = entry("c1", keys = emptyList()).copy(constant = true, ignoreBudget = true)
+        val normal = entry("c2", keys = emptyList(), order = 20).copy(constant = true)
+        val result = PromptBuilder.allocateConstantBudget(listOf(normal, exempt), budgetTokens = 0)
+        assertEquals(setOf("book:c1"), result.allowed)
+        assertEquals(listOf("c2"), result.dropped.map { it.id })
     }
 }

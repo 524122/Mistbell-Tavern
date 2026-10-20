@@ -68,6 +68,7 @@ object ChatSettingsResolver {
     const val KEY_WORLD_INFO_SCAN_DEPTH = "world_info_scan_depth"
     const val KEY_WORLD_INFO_BUDGET_PERCENT = "world_info_budget_percent"
     const val KEY_WORLD_INFO_IN_HISTORY = "world_info_in_history"
+    const val KEY_WORLD_INFO_RECURSIVE = "world_info_recursive"
 
     const val WORLD_INFO_SCAN_DEPTH_MIN = 1
     const val WORLD_INFO_SCAN_DEPTH_MAX = 50
@@ -92,6 +93,10 @@ object ChatSettingsResolver {
     // settings KV 原始值 → @D 是否插进历史内部：缺省 true（酒馆一致）；
     // "0"=false 时后移到历史之后（省 token：前缀缓存命中更长）
     fun worldInfoInHistory(raw: String?): Boolean = raw != "0"
+
+    // settings KV 原始值 → 递归扫描：缺省 false（对齐酒馆 world_info_recursive 默认关）；
+    // 开启后本轮已激活条目内容参与后续轮匹配（最多 3 轮）
+    fun worldInfoRecursive(raw: String?): Boolean = raw == "1"
 
     // ---- 提示词模板（全局行为项，无会话覆盖） ----
     //

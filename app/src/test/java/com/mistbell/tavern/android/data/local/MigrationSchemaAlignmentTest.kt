@@ -55,6 +55,14 @@ class MigrationSchemaAlignmentTest {
         )
     }
 
+    @Test
+    fun `v28 to v29 adds ignore budget column`() {
+        assertEquals(
+            listOf("ALTER TABLE world_book_entries ADD COLUMN ignore_budget INTEGER NOT NULL DEFAULT 0"),
+            AppDatabase.MIGRATION_28_29_SQL,
+        )
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

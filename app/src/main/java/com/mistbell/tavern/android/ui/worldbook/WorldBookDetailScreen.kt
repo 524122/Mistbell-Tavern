@@ -370,6 +370,9 @@ private fun EntryEditSheet(
             // 深度（@D 档 1-10，仅选中插入深度档时显示）与触发概率（0-1）
             EntryNumericFields(entryForm, viewModel)
 
+            // 粘性/冷却/延迟/分组/预算豁免（酒馆数值语义）
+            EntryTimedFields(entryForm, viewModel)
+
             // Toggles
             EntryFormToggles(entryForm, viewModel)
 
@@ -432,6 +435,61 @@ private fun EntryTriggeringFields(
             onSelect = { logic -> viewModel.updateEntryForm { copy(selectiveLogic = logic) } },
         )
     }
+}
+
+/** 定时与分组字段：粘性/冷却/延迟轮数（0=关闭，酒馆数值语义）、分组名、预算豁免 */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun EntryTimedFields(
+    entryForm: WorldBookEntryForm,
+    viewModel: WorldBookEditorViewModel,
+) {
+    // 轮数输入过滤：仅接受非负整数或空（空按 0 存）
+    fun timed(text: String, current: String): String =
+        if (text.isBlank() || text.toIntOrNull() != null) text else current
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TimedNumberField("粘性轮数", entryForm.sticky, Modifier.weight(1f)) { text ->
+            viewModel.updateEntryForm { copy(sticky = timed(text, sticky)) }
+        }
+        TimedNumberField("冷却轮数", entryForm.cooldown, Modifier.weight(1f)) { text ->
+            viewModel.updateEntryForm { copy(cooldown = timed(text, cooldown)) }
+        }
+        TimedNumberField("延迟轮数", entryForm.delay, Modifier.weight(1f)) { text ->
+            viewModel.updateEntryForm { copy(delay = timed(text, delay)) }
+        }
+    }
+    FormTextField(
+        value = entryForm.groupName,
+        onValueChange = { viewModel.updateEntryForm { copy(groupName = it) } },
+        label = "分组（同组只激活一条，可留空）",
+        placeholder = "分组名",
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = entryForm.ignoreBudget,
+            onCheckedChange = { viewModel.updateEntryForm { copy(ignoreBudget = it) } },
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("不占 token 预算", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/** 定时轮数小数字框：仅接受非负整数或空（空按 0 存） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun TimedNumberField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onChange: (String) -> Unit,
+) {
+    FormTextField(
+        value = value,
+        onValueChange = onChange,
+        label = label,
+        placeholder = "0",
+        modifier = modifier,
+    )
 }
 
 /** 启用/常量/大小写敏感/全字匹配开关行 */

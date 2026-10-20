@@ -290,29 +290,49 @@ private fun WorldBookSettingsSection(viewModel: SettingsViewModel) {
         )
         ModernDivider()
         // @D 落点开关：开=插进历史内部（酒馆一致）；关=尾部注入（省 token，前缀缓存更长）
-        val inHistory by viewModel.worldInfoInHistorySetting.collectAsState()
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "深度插入进历史", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                Text(
-                    text = "开 = 与酒馆一致（@D 插进历史倒数第 N 条）；关 = 注入历史之后，省 token",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(
-                checked = inHistory,
-                onCheckedChange = {
-                    viewModel.saveTextSettingQuietly(
-                        ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY,
-                        if (it) "1" else "0",
-                    )
-                },
+        WorldBookSwitchRow(
+            title = "深度插入进历史",
+            subtitle = "开 = 与酒馆一致（@D 插进历史倒数第 N 条）；关 = 注入历史之后，省 token",
+            checked = viewModel.worldInfoInHistorySetting.collectAsState().value,
+            onToggle = {
+                viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY, if (it) "1" else "0")
+            },
+        )
+        ModernDivider()
+        // 递归扫描开关：开=本轮已激活条目内容参与后续轮匹配（酒馆默认关）
+        WorldBookSwitchRow(
+            title = "递归扫描",
+            subtitle = "开 = 已激活条目的内容会继续触发其他条目（最多 3 轮，对齐酒馆）",
+            checked = viewModel.worldInfoRecursiveSetting.collectAsState().value,
+            onToggle = {
+                viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE, if (it) "1" else "0")
+            },
+        )
+    }
+}
+
+/** 开关设置行：标题 + 说明 + 开关（1/0 存储由调用方转换） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Switch(checked = checked, onCheckedChange = onToggle)
     }
 }
 

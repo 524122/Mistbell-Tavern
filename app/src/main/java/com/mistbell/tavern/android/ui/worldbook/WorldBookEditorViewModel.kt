@@ -30,6 +30,12 @@ data class WorldBookEntryForm(
     val matchWholeWords: Boolean = false,
     // 扫描深度文本：空=跟随全局（酒馆 scanDepth null 语义）
     val scanDepth: String = "",
+    // 粘性/冷却/延迟轮数文本（酒馆数值语义，0=关闭）与分组名、预算豁免
+    val sticky: String = "0",
+    val cooldown: String = "0",
+    val delay: String = "0",
+    val groupName: String = "",
+    val ignoreBudget: Boolean = false,
 )
 
 /** 插入位置显示名：存储值 → UI 文案（6 锚点与酒馆对齐） */
@@ -227,6 +233,11 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                 caseSensitive = entry.caseSensitive ?: false,
                 matchWholeWords = entry.matchWholeWords ?: false,
                 scanDepth = entry.scanDepth?.toString() ?: "",
+                sticky = entry.sticky.toString(),
+                cooldown = entry.cooldown.toString(),
+                delay = entry.delay.toString(),
+                groupName = entry.groupName,
+                ignoreBudget = entry.ignoreBudget,
             )
         _showEntryForm.value = true
     }
@@ -249,6 +260,10 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         // 空串 = 跟随全局（patch 写 JsonNull 清空）；非法输入保持原值（不写入 patch）
         val scanDepthValue = form.scanDepth.trim().toIntOrNull()
         val scanDepthCleared = form.scanDepth.isBlank()
+        // 粘性/冷却/延迟轮数：非法输入按 0（关闭）
+        val stickyValue = form.sticky.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val cooldownValue = form.cooldown.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val delayValue = form.delay.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0
 
         viewModelScope.launch {
             if (_editingEntryId.value != null) {
@@ -273,6 +288,11 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                             caseSensitive = form.caseSensitive,
                             matchWholeWords = form.matchWholeWords,
                             scanDepth = scanDepthValue.takeIf { !scanDepthCleared },
+                            sticky = stickyValue,
+                            cooldown = cooldownValue,
+                            delay = delayValue,
+                            groupName = form.groupName.trim(),
+                            ignoreBudget = form.ignoreBudget,
                         ),
                 )
             }
@@ -318,6 +338,14 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         put("selectiveLogic", kotlinx.serialization.json.JsonPrimitive(form.selectiveLogic))
         put("caseSensitive", kotlinx.serialization.json.JsonPrimitive(form.caseSensitive))
         put("matchWholeWords", kotlinx.serialization.json.JsonPrimitive(form.matchWholeWords))
+        // 粘性/冷却/延迟轮数：非法输入按 0（关闭）
+        fun putRounds(key: String, raw: String) =
+            put(key, kotlinx.serialization.json.JsonPrimitive(raw.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0))
+        putRounds("sticky", form.sticky)
+        putRounds("cooldown", form.cooldown)
+        putRounds("delay", form.delay)
+        put("group", kotlinx.serialization.json.JsonPrimitive(form.groupName.trim()))
+        put("ignoreBudget", kotlinx.serialization.json.JsonPrimitive(form.ignoreBudget))
         when {
             scanDepthCleared -> put("scanDepth", kotlinx.serialization.json.JsonNull)
             scanDepthValue != null -> put("scanDepth", kotlinx.serialization.json.JsonPrimitive(scanDepthValue))

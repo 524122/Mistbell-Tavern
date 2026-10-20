@@ -137,8 +137,8 @@ class WorldBookParserTest {
     }
 
     @Test
-    fun `sticky数值按大于0视为开启`() {
-        // 酒馆 sticky 是数值（保持 N 条消息）；应用内为布尔开关——数值 > 0 不得丢成 false
+    fun `sticky数值直读_兼容旧布尔写法`() {
+        // 酒馆 sticky 是数值（保持 N 条消息）；旧应用内备份/导出可能是布尔（true→1）
         val json =
             """
             {
@@ -152,10 +152,10 @@ class WorldBookParserTest {
             """.trimIndent()
         val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
         val byId = entries.associateBy { it.id }
-        assertEquals(true, byId["1"]?.sticky)
-        assertEquals(false, byId["2"]?.sticky)
-        assertEquals(true, byId["3"]?.sticky)
-        assertEquals(false, byId["4"]?.sticky)
+        assertEquals(3, byId["1"]?.sticky)
+        assertEquals(0, byId["2"]?.sticky)
+        assertEquals(1, byId["3"]?.sticky)
+        assertEquals(0, byId["4"]?.sticky)
     }
 
     @Test

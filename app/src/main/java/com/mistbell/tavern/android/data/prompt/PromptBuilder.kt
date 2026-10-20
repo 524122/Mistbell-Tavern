@@ -25,6 +25,7 @@ import java.time.Instant
 
 object PromptBuilder {
     /** World Info 的会话内运行状态：sticky/cooldown/delay 只影响激活决策，不改变 Room 主数据。 */
+    @Suppress("TooManyFunctions") // 匹配/门控/竞争/预算按职责拆小函数，优于挤进少数大函数
     internal object WorldInfoRuntime {
         private const val MAX_RECURSION_DEPTH = 3
 
@@ -34,7 +35,7 @@ object PromptBuilder {
         const val LOGIC_NOT_ANY = 2
         const val LOGIC_AND_ALL = 3
 
-        private data class EntryState(var lastTurn: Int = -1, var sticky: Boolean = false)
+        private data class EntryState(var lastTurn: Int = -1, var stickyUntil: Int = -1)
 
         private data class SessionState(var turn: Int = 0, val entries: MutableMap<String, EntryState> = mutableMapOf())
 
@@ -55,6 +56,8 @@ object PromptBuilder {
             val mctx: MacroContext,
             /** constant 条目消耗后的剩余预算额度（Int.MAX_VALUE = 不限） */
             val budgetTokens: Int = Int.MAX_VALUE,
+            /** 递归扫描开关（对齐酒馆 world_info_recursive，默认关）：已激活内容是否参与后续轮匹配 */
+            val recursive: Boolean = false,
         )
 
         /** 激活结果：通过判定（含预算）的条目 + 因预算被裁的条目（诊断展示用） */
@@ -62,6 +65,29 @@ object PromptBuilder {
             val activated: Set<String>,
             val droppedByBudget: List<WorldBookEntryEntity>,
         )
+
+        /** WI 预算记账器：charge 返回 false = 该条目因预算被裁（溢出即停并记入 dropped） */
+        private class BudgetTracker(
+            var remaining: Int,
+        ) {
+            var overflowed = false
+                private set
+            val dropped = mutableListOf<WorldBookEntryEntity>()
+
+            fun charge(entry: WorldBookEntryEntity): Boolean {
+                // ignoreBudget（对齐酒馆）：不占额度、溢出也不被裁
+                if (entry.ignoreBudget || remaining == Int.MAX_VALUE) return true
+                val cost = estimateTokens(entry.content)
+                val fits = !overflowed && cost <= remaining
+                if (!fits) {
+                    overflowed = true
+                    dropped += entry
+                } else {
+                    remaining -= cost
+                }
+                return fits
+            }
+        }
 
         private val sessions = mutableMapOf<String, SessionState>()
 
@@ -84,13 +110,12 @@ object PromptBuilder {
             val state = sessions.getOrPut(sessionId) { SessionState() }
             state.turn += 1
             val activated = linkedSetOf<String>()
-            val dropped = mutableListOf<WorldBookEntryEntity>()
             val selectedGroups = mutableSetOf<String>()
             val activatedContents = mutableListOf<String>()
-            var budgetRemaining = scan.budgetTokens
-            var budgetOverflowed = false
-            repeat(MAX_RECURSION_DEPTH) {
-                if (budgetOverflowed) return@repeat // 预算溢出：与酒馆一致，不再递归
+            val budget = BudgetTracker(scan.budgetTokens)
+            // 递归开关关闭时只扫一轮（酒馆默认 world_info_recursive=false）
+            repeat(if (scan.recursive) MAX_RECURSION_DEPTH else 1) {
+                if (budget.overflowed) return@repeat // 预算溢出：与酒馆一致，不再递归
                 val candidates =
                     entries
                         .asSequence()
@@ -106,30 +131,38 @@ object PromptBuilder {
                 if (winners.isEmpty()) return@repeat
                 val newlyActivated = mutableListOf<String>()
                 winners.forEach { candidate ->
-                    val entry = candidate.entry
-                    if (entry.probability < 1.0 && kotlin.random.Random.nextDouble() >= entry.probability) {
-                        return@forEach
+                    if (tryActivateWinner(candidate, state, budget)) {
+                        activated += candidate.key
+                        newlyActivated += candidate.key
+                        candidate.entry.groupName.takeIf { it.isNotBlank() }?.let(selectedGroups::add)
                     }
-                    if (budgetRemaining != Int.MAX_VALUE) {
-                        val cost = estimateTokens(entry.content)
-                        if (budgetOverflowed || cost > budgetRemaining) {
-                            budgetOverflowed = true
-                            dropped += entry
-                            return@forEach
-                        }
-                        budgetRemaining -= cost
-                    }
-                    activated += candidate.key
-                    newlyActivated += candidate.key
-                    entry.groupName.takeIf { it.isNotBlank() }?.let(selectedGroups::add)
-                    val entryState = state.entries.getOrPut(candidate.key) { EntryState() }
-                    entryState.lastTurn = state.turn
-                    entryState.sticky = entry.sticky
                 }
                 if (newlyActivated.isEmpty()) return@repeat
                 activatedContents += entries.filter { "${it.bookId}:${it.id}" in newlyActivated }.map { it.content }
             }
-            return ActivationResult(activated, dropped)
+            return ActivationResult(activated, budget.dropped)
+        }
+
+        /** 单个胜者：概率掷骰 + 预算记账 + 状态更新；返回 true=本轮新激活 */
+        private fun tryActivateWinner(
+            candidate: Candidate,
+            state: SessionState,
+            budget: BudgetTracker,
+        ): Boolean {
+            val entry = candidate.entry
+            val passed =
+                (entry.probability >= 1.0 || kotlin.random.Random.nextDouble() < entry.probability) &&
+                    budget.charge(entry)
+            if (passed) {
+                val entryState = state.entries.getOrPut(candidate.key) { EntryState() }
+                entryState.lastTurn = state.turn
+                // sticky 数值语义（对齐酒馆）：仅在非粘性激活（关键词命中）时武装/刷新计时；
+                // 粘性期间的续命激活不刷新，N 轮后自然过期，过期后 cooldown 接力（lastTurn 已连续更新）
+                if (!candidate.sticky && entry.sticky > 0) {
+                    entryState.stickyUntil = state.turn + entry.sticky
+                }
+            }
+            return passed
         }
 
         /** 单条目评估：命中（含四态次键门控/sticky/delay/cooldown）则产出候选，否则 null */
@@ -146,7 +179,7 @@ object PromptBuilder {
                     entry.scanDepth, scan.globalScanDepth, scan.historyMessages, scan.userMessage, activatedContents,
                 )
             val primaryHits = matchingKeywords(parseKeywords(entry.keysJson), corpus, entry, scan.mctx)
-            val stickyMatched = entry.sticky && entryState.sticky
+            val stickyMatched = entry.sticky > 0 && entryState.stickyUntil >= state.turn
             val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, corpus, scan.mctx))
             if (!keyMatched || !timingGatePassed(entry, entryState, state.turn)) return null
             val secondaryHits =
@@ -686,6 +719,11 @@ object PromptBuilder {
             ChatSettingsResolver.worldInfoInHistory(
                 settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY),
             )
+        // 递归扫描开关：默认关（对齐酒馆 world_info_recursive）
+        val worldInfoRecursive =
+            ChatSettingsResolver.worldInfoRecursive(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE),
+            )
         val constantBudget = allocateConstantBudget(worldBookEntries, worldInfoBudgetTokens)
         val scanHistory = db.messageDao().getBySession(sessionId, ownerId).first().map { it.content }
         // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中扫描窗口关键词；
@@ -700,6 +738,7 @@ object PromptBuilder {
                     globalScanDepth = worldInfoScanDepth,
                     mctx = mctx,
                     budgetTokens = constantBudget.remainingTokens,
+                    recursive = worldInfoRecursive,
                 ),
             )
         val activatedEntryIds = activation.activated
@@ -1625,6 +1664,11 @@ object PromptBuilder {
         var remaining = budgetTokens
         var overflowed = false
         constants.sortedBy { it.order }.forEach { entry ->
+            // ignoreBudget（对齐酒馆）：恒放行且不占额度
+            if (entry.ignoreBudget) {
+                allowed += "${entry.bookId}:${entry.id}"
+                return@forEach
+            }
             if (overflowed) {
                 dropped += entry
                 return@forEach

@@ -155,4 +155,12 @@ class ChatSettingsResolverTest {
         assertTrue(ChatSettingsResolver.worldInfoInHistory("x"))
         assertFalse(ChatSettingsResolver.worldInfoInHistory("0"))
     }
+
+    @Test
+    fun `世界书递归扫描缺省为关_仅1为开`() {
+        assertFalse(ChatSettingsResolver.worldInfoRecursive(null))
+        assertFalse(ChatSettingsResolver.worldInfoRecursive("0"))
+        assertFalse(ChatSettingsResolver.worldInfoRecursive("x"))
+        assertTrue(ChatSettingsResolver.worldInfoRecursive("1"))
+    }
 }

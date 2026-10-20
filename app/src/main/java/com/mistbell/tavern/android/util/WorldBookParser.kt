@@ -158,6 +158,7 @@ object WorldBookParser {
                 caseSensitive = triggering.caseSensitive,
                 matchWholeWords = triggering.matchWholeWords,
                 scanDepth = triggering.scanDepth,
+                ignoreBudget = triggering.ignoreBudget,
             )
         } catch (_: Exception) {
             null

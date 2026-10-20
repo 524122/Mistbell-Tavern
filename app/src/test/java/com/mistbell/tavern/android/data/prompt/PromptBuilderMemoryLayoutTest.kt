@@ -116,7 +116,6 @@ class PromptBuilderMemoryLayoutTest {
         assertEquals(listOf("一", "二"), contentsOf(messages))
     }
 
-
     // ---- buildRecallContextForPrompt：重复注入去重与来源标注 ----
 
     private fun hit(

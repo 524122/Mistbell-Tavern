@@ -81,6 +81,11 @@ class WorldBookRepository(private val context: Context) {
                     caseSensitive = draft.caseSensitive,
                     matchWholeWords = draft.matchWholeWords,
                     scanDepth = draft.scanDepth,
+                    sticky = draft.sticky,
+                    cooldown = draft.cooldown,
+                    delay = draft.delay,
+                    groupName = draft.groupName,
+                    ignoreBudget = draft.ignoreBudget,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
             entity.toDomain()
@@ -135,7 +140,7 @@ class WorldBookRepository(private val context: Context) {
     }
 }
 
-/** 触发语义字段（v28）的 patch：次级词/四态逻辑/大小写/全字/扫描深度 */
+/** 触发语义字段（v28/v29）的 patch：次级词/四态逻辑/大小写/全字/扫描深度/粘性/冷却/延迟/分组/预算豁免 */
 private fun WorldBookEntryEntity.applyTriggeringPatch(patch: JsonObject): WorldBookEntryEntity =
     copy(
         secondaryKeysJson = patchStringList(patch["secondaryKeys"], secondaryKeysJson),
@@ -145,6 +150,11 @@ private fun WorldBookEntryEntity.applyTriggeringPatch(patch: JsonObject): WorldB
         caseSensitive = nullableBooleanPatch(patch["caseSensitive"], caseSensitive),
         matchWholeWords = nullableBooleanPatch(patch["matchWholeWords"], matchWholeWords),
         scanDepth = nullableIntPatch(patch["scanDepth"], scanDepth),
+        sticky = patch["sticky"]?.jsonPrimitive?.intOrNull ?: sticky,
+        cooldown = patch["cooldown"]?.jsonPrimitive?.intOrNull ?: cooldown,
+        delay = patch["delay"]?.jsonPrimitive?.intOrNull ?: delay,
+        groupName = patch["group"]?.jsonPrimitive?.contentOrNull ?: groupName,
+        ignoreBudget = patch["ignoreBudget"]?.jsonPrimitive?.booleanOrNull ?: ignoreBudget,
     )
 
 /** patch 中的字符串数组字段 → 实体 keysJson 存储格式；缺省保持原值 */
@@ -201,4 +211,10 @@ data class WorldBookEntryDraft(
     val caseSensitive: Boolean? = null,
     val matchWholeWords: Boolean? = null,
     val scanDepth: Int? = null,
+    // 粘性轮数（0=关闭）/冷却轮数/延迟轮数/分组名/预算豁免
+    val sticky: Int = 0,
+    val cooldown: Int = 0,
+    val delay: Int = 0,
+    val groupName: String = "",
+    val ignoreBudget: Boolean = false,
 )

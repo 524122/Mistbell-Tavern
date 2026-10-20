@@ -156,7 +156,8 @@ data class WorldBookEntry(
     // @D 插入角色：system/user/assistant（仅 depth≥1 生效）；导出键名为酒馆生态的 "role"
     @SerialName("role") val depthRole: String = "system",
     @SerialName("secondaryKeys") val secondaryKeys: List<String> = emptyList(),
-    val sticky: Boolean = false,
+    // 粘性轮数（对齐酒馆数值语义）：0=关闭；激活后保持 N 轮
+    val sticky: Int = 0,
     val cooldown: Int = 0,
     val delay: Int = 0,
     @SerialName("group") val groupName: String = "",
@@ -168,6 +169,8 @@ data class WorldBookEntry(
     val caseSensitive: Boolean? = null,
     val matchWholeWords: Boolean? = null,
     val scanDepth: Int? = null,
+    // 预算豁免（对齐酒馆 ignoreBudget）：true 时不占 WI token 预算
+    val ignoreBudget: Boolean = false,
 )
 
 @Serializable

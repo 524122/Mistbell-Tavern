@@ -26,7 +26,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         CustomPromptEntity::class,
         VectorSyncOutboxEntity::class,
     ],
-    version = 28,
+    version = 29,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -670,6 +670,21 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v28→v29：世界书 ignoreBudget（预算豁免，对齐酒馆 ignore_budget）。
+        // sticky 布尔→数值仅实体类型变化（SQLite 同为 INTEGER 亲和），无需 DDL
+        internal val MIGRATION_28_29_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN ignore_budget INTEGER NOT NULL DEFAULT 0",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_28_29 =
+            object : Migration(28, 29) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_28_29_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -710,6 +725,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_25_26,
                         MIGRATION_26_27,
                         MIGRATION_27_28,
+                        MIGRATION_28_29,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

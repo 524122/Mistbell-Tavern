@@ -67,6 +67,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             .map { ChatSettingsResolver.worldInfoInHistory(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), true)
 
+    // 递归扫描开关：缺省 false（对齐酒馆 world_info_recursive 默认关）
+    val worldInfoRecursiveSetting: StateFlow<Boolean> =
+        db.settingsDao()
+            .observeValue(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE)
+            .map { ChatSettingsResolver.worldInfoRecursive(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), false)
+
     private fun observeTextSetting(key: String): StateFlow<String> =
         db.settingsDao()
             .observeValue(key)
