@@ -3,7 +3,7 @@ package com.mistbell.tavern.android.data.prompt
 import com.mistbell.tavern.android.data.api.model.MAX_MEMORY_CONTENT_CHARS
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.api.model.truncateMemoryContent
-import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.data.repository.RecallRanker
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -105,9 +105,20 @@ class MemoryTokenBudgetTest {
     @Test
     fun `向量召回行按长度上限截断`() {
         val long = "很长的历史消息".repeat(200)
-        val result = VectorStore.SearchResult(id = "v1", score = 0.9f, content = long, metadata = emptyMap())
+        val hit =
+            RecallRanker.RankedRecall(
+                candidate =
+                    RecallRanker.RecallCandidate(
+                        messageId = "v1",
+                        content = long,
+                        vectorScore = 0.9f,
+                    ),
+                fusedScore = 0f,
+                fromVector = true,
+                fromLexical = false,
+            )
 
-        val text = PromptBuilder.buildVectorMemoryContextForPrompt(listOf(result), emptyList())
+        val text = PromptBuilder.buildRecallContextForPrompt(listOf(hit), emptyList())
 
         assertTrue("召回行必须被截断", text.length < long.length)
         assertTrue(text.contains("…"))

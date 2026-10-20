@@ -13,6 +13,7 @@ import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.LexicalMemoryService
 import com.mistbell.tavern.android.data.repository.MemoryScope
+import com.mistbell.tavern.android.data.repository.RecallRanker
 import com.mistbell.tavern.android.data.repository.RecallWindow
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
@@ -182,6 +183,9 @@ object PromptBuilder {
     // 记忆重复注入判定的最小长度：短于该值的正文不做"内容包含"比对，避免误伤不同事实
     private const val MIN_DUPLICATE_LENGTH = 8
     private const val MEMORY_CANDIDATE_LIMIT = 100
+
+    // 混合召回：向量路候选取 topK 的倍数（融合时词法路还会补一批，名次重排后截断回 topK）
+    private const val HYBRID_VECTOR_CANDIDATE_MULTIPLIER = 3
 
     /**
      * 记忆链就绪闸门（可注入，object 无构造注入点，测试可整体替换）：
@@ -997,7 +1001,7 @@ object PromptBuilder {
         )
     }
 
-    /** 语义召回块：有真实 embedding 服务（API 或本地 ONNX，F3）→ 向量检索；否则词法回退（F3-FTS） */
+    /** 语义召回块：有真实 embedding 服务（API 或本地 ONNX，F3）→ 向量+词法混合召回；否则词法回退（F3-FTS） */
     @Suppress("TooGenericExceptionCaught") // 检索失败不应阻塞对话
     private suspend fun recallBlock(
         db: AppDatabase,
@@ -1008,7 +1012,7 @@ object PromptBuilder {
         try {
             val vectorMemoryService = vectorMemoryServiceProvider()
             if (vectorMemoryService.available) {
-                vectorRecallBlock(db, query, window, injectedContents, vectorMemoryService)
+                hybridRecallBlock(db, query, window, injectedContents, vectorMemoryService)
             } else {
                 lexicalRecallBlock(query, window)
             }
@@ -1017,7 +1021,15 @@ object PromptBuilder {
             null
         }
 
-    private suspend fun vectorRecallBlock(
+    /**
+     * 混合召回块：向量路与词法路**同时**检索，由 [RecallRanker] 融合排序。
+     *
+     * 向量路擅长语义相近但措辞不同的命中，词法路擅长专有名词/稀有词的精确命中；
+     * 旧实现两路二选一，任一路的盲区都没有兜底。词法服务与无 embedding 回退路径
+     * 共用同一个 [LexicalMemoryService]（自带当前会话近期窗口排除，不重复召回上下文里
+     * 已有的内容），窗口口径与向量路完全一致（见 [RecallWindow]）。
+     */
+    private suspend fun hybridRecallBlock(
         db: AppDatabase,
         query: MemoryRecallQuery,
         window: RecallWindow,
@@ -1036,18 +1048,57 @@ object PromptBuilder {
                 // 作用域整体交给 RecallWindow：本方法不再自己解释档位（角色是否收窄、
                 // 会话是否收窄都在窗口里），三通道口径才不会各自漂移
                 window = window,
-                topK = topK * 2,
+                topK = topK * HYBRID_VECTOR_CANDIDATE_MULTIPLIER,
             )
-        val vectorResults = outcome.results.filter { it.score >= threshold }.take(topK)
+        val lexicalItems =
+            LexicalMemoryService(TavernApplication.instance)
+                .searchRelevantHistory(window = window, query = query.userMessage)
 
-        // sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——结果必为空，
-        // 无需像旧版本那样提示"召回范围比设定更宽"（跨会话退化路径已整体移除）
-        if (vectorResults.isEmpty()) return null
+        // 阈值不再在这里预先过滤：RecallRanker 需要看到低于阈值的向量候选——
+        // 其中有词法 corroborate 的会被保留（混合召回的核心收益），其余才丢弃
+        val ranked =
+            RecallRanker.fuse(
+                vectorHits = outcome.results.map { it.toRecallCandidate() },
+                lexicalHits = lexicalItems.map { it.toRecallCandidate() },
+                topK = topK,
+                similarityThreshold = threshold,
+                nowEpochMs = System.currentTimeMillis(),
+            )
+
+        // sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——此时词法路同样
+        // 拒绝召回（同一窗口口径），ranked 必为空，无需额外提示
+        if (ranked.isEmpty()) return null
         // 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
-        // 内容已被本提示词覆盖的向量行直接丢弃，同一事实不再烧两次 token
-        val context = buildVectorMemoryContextForPrompt(vectorResults, injectedContents)
+        // 内容已被本提示词覆盖的召回行直接丢弃，同一事实不再烧两次 token
+        val context = buildRecallContextForPrompt(ranked, injectedContents)
         return context.takeIf { it.isNotBlank() }?.let { ChatMessage(role = "system", content = it) }
     }
+
+    /** 向量检索结果 → 融合候选：list 顺序即名次（store 按分数降序返回） */
+    private fun VectorStore.SearchResult.toRecallCandidate() =
+        RecallRanker.RecallCandidate(
+            messageId = metadata["message_id"] as? String ?: id,
+            content = content,
+            vectorScore = score,
+            createdAtEpochMs = (metadata["created_at"] as? String)?.toLongOrNull(),
+            isSummary = metadata["content_type"] == VectorStore.SUMMARY_CONTENT_TYPE,
+        )
+
+    /** 词法检索结果 → 融合候选：list 顺序即名次（DAO 按最新优先返回），无分数语义 */
+    private fun MessageEntity.toRecallCandidate() =
+        RecallRanker.RecallCandidate(
+            messageId = id,
+            content = content,
+            createdAtEpochMs = parseIsoEpochMs(createdAt),
+        )
+
+    /** createdAt 存的是 ISO-8601 字符串；解析失败返回 null（时间因子取中性值，不参与衰减） */
+    private fun parseIsoEpochMs(iso: String): Long? =
+        try {
+            Instant.parse(iso).toEpochMilli()
+        } catch (_: Exception) {
+            null
+        }
 
     private suspend fun lexicalRecallBlock(
         query: MemoryRecallQuery,
@@ -1261,29 +1312,35 @@ object PromptBuilder {
     private val profileMemoryTypes: Set<String> = MemoryType.PROFILE_TYPES
 
     /**
-     * 构建向量记忆上下文（用于 Prompt 注入）。
+     * 构建混合召回上下文（用于 Prompt 注入）。
+     *
+     * 相似度阈值已在 [RecallRanker.fuse] 里统一应用，这里**不再设分数下限**——旧实现此处
+     * 硬编码 `score > 0.5`，把用户可配阈值（默认 0.35）实际钳到 0.5 才生效。
+     *
+     * 行尾标注诚实区分来源：向量命中带 `(similarity: N%)`；纯词法命中没有分数语义，
+     * 标 `(keyword match)` 而不是伪造一个相似度数字。
      *
      * @param alreadyInjected 本提示词中已注入的结构化记忆正文——向量库里那些「重要度≥7 记忆的 summary 副本」
      *                        内容即为其正文，若再注入就是同一事实烧两遍 token，故按内容覆盖关系丢弃
      *
      * internal 仅为单元测试开放：重复注入的过滤规则需要回归测试
      */
-    internal fun buildVectorMemoryContextForPrompt(
-        results: List<VectorStore.SearchResult>,
+    internal fun buildRecallContextForPrompt(
+        ranked: List<RecallRanker.RankedRecall>,
         alreadyInjected: List<String>,
     ): String {
         val relevantResults =
-            results
-                .filter { it.score > 0.5 }
-                .filterNot { result -> isDuplicateOfInjected(result.content, alreadyInjected) }
+            ranked.filterNot { result -> isDuplicateOfInjected(result.candidate.content, alreadyInjected) }
         if (relevantResults.isEmpty()) return ""
 
         return buildString {
             appendLine("## Relevant Past Conversations")
             relevantResults.forEachIndexed { index, result ->
-                val similarityPercent = (result.score * 100).toInt()
+                val annotation =
+                    result.candidate.vectorScore?.let { "similarity: ${(it * 100).toInt()}%" }
+                        ?: "keyword match"
                 // 召回行是整条历史消息，逐条截断——条数有上限（topK）、长度没有
-                appendLine("${index + 1}. ${result.content.truncateMemoryContent()} (similarity: $similarityPercent%)")
+                appendLine("${index + 1}. ${result.candidate.content.truncateMemoryContent()} ($annotation)")
             }
         }
     }

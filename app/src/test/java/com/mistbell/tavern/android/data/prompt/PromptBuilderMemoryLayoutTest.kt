@@ -2,14 +2,15 @@ package com.mistbell.tavern.android.data.prompt
 
 import com.mistbell.tavern.android.data.api.ChatMessage
 import com.mistbell.tavern.android.data.api.SseParser
-import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.data.repository.RecallRanker
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** 提示词重排相关纯逻辑：@D 深度只数历史消息、向量召回去重、流式 usage 解析 */
+/** 提示词重排相关纯逻辑：@D 深度只数历史消息、混合召回去重与来源标注、流式 usage 解析 */
 class PromptBuilderMemoryLayoutTest {
     // ---- atDepthIndex：@D 落点对尾部 system 块免疫 ----
 
@@ -71,31 +72,41 @@ class PromptBuilderMemoryLayoutTest {
         assertEquals(0, PromptBuilder.atDepthIndex(emptyList(), depth = 1, hasFinalUserMessage = true))
     }
 
-    // ---- buildVectorMemoryContextForPrompt：重复注入去重 ----
+    // ---- buildRecallContextForPrompt：重复注入去重与来源标注 ----
 
-    private fun result(
+    private fun hit(
         content: String,
-        score: Float = 0.9f,
-    ) = VectorStore.SearchResult(id = "vec_1", score = score, content = content, metadata = emptyMap())
+        score: Float? = 0.9f,
+    ) = RecallRanker.RankedRecall(
+        candidate =
+            RecallRanker.RecallCandidate(
+                messageId = "m_${content.hashCode()}",
+                content = content,
+                vectorScore = score,
+            ),
+        fusedScore = 0f,
+        fromVector = score != null,
+        fromLexical = score == null,
+    )
 
     @Test
-    fun `内容已被结构化记忆覆盖的向量行被丢弃`() {
+    fun `内容已被结构化记忆覆盖的召回行被丢弃`() {
         val injected = listOf("蒋珞要求 user 放学后带芋泥口味的千层")
         // summary 副本形态："标题: 正文 [类型]"——正文被包含即为重复
         val out =
-            PromptBuilder.buildVectorMemoryContextForPrompt(
-                results = listOf(result("蒋珞要千层: 蒋珞要求 user 放学后带芋泥口味的千层 [preference]")),
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("蒋珞要千层: 蒋珞要求 user 放学后带芋泥口味的千层 [preference]")),
                 alreadyInjected = injected,
             )
         assertEquals("", out)
     }
 
     @Test
-    fun `未覆盖的向量行保留并带标题`() {
+    fun `未覆盖的召回行保留并带标题`() {
         val injected = listOf("蒋珞要求 user 放学后带芋泥口味的千层")
         val out =
-            PromptBuilder.buildVectorMemoryContextForPrompt(
-                results = listOf(result("昨晚课堂上张老师点名提问了三次")),
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("昨晚课堂上张老师点名提问了三次")),
                 alreadyInjected = injected,
             )
         assertTrue(out.contains("## Relevant Past Conversations"))
@@ -103,33 +114,55 @@ class PromptBuilderMemoryLayoutTest {
     }
 
     @Test
-    fun `低分结果与重复结果全部过滤时返回空串`() {
+    fun `重复结果全部过滤时返回空串`() {
         val injected = listOf("user 的名字是墨轩")
-        val duplicateResult = result("user 的名字是墨轩 [identity]", score = 0.9f)
-        val lowScoreResult = result("无关的历史片段", score = 0.3f)
         val out =
-            PromptBuilder.buildVectorMemoryContextForPrompt(
-                results = listOf(duplicateResult, lowScoreResult),
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("user 的名字是墨轩 [identity]")),
                 alreadyInjected = injected,
             )
         assertEquals("", out)
     }
 
     @Test
+    fun `低分候选不再被硬编码分数下限误删`() {
+        // 阈值在 RecallRanker 统一应用；旧格式化器硬编码 score > 0.5，
+        // 把用户可配阈值（默认 0.35）实际钳到 0.5 才生效
+        val out =
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("阈值分段内的历史片段", score = 0.4f)),
+                alreadyInjected = emptyList(),
+            )
+        assertTrue(out.contains("阈值分段内的历史片段"))
+        assertTrue(out.contains("similarity: 40%"))
+    }
+
+    @Test
+    fun `纯词法命中标注关键词来源而不伪造相似度`() {
+        val out =
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("含有专有名词的历史片段", score = null)),
+                alreadyInjected = emptyList(),
+            )
+        assertTrue(out.contains("(keyword match)"))
+        assertFalse(out.contains("similarity"))
+    }
+
+    @Test
     fun `无注入记忆时不做去重_结果原样保留`() {
         val out =
-            PromptBuilder.buildVectorMemoryContextForPrompt(
-                results = listOf(result("任意历史片段")),
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("任意历史片段")),
                 alreadyInjected = emptyList(),
             )
         assertTrue(out.contains("1. 任意历史片段"))
     }
 
     @Test
-    fun `记忆正文比向量行长时_双向包含判定仍视为重复`() {
+    fun `记忆正文比召回行长时_双向包含判定仍视为重复`() {
         val out =
-            PromptBuilder.buildVectorMemoryContextForPrompt(
-                results = listOf(result("user 讨厌被叫主人")),
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("user 讨厌被叫主人")),
                 alreadyInjected = listOf("user 讨厌被叫主人，尤其是带嘲讽的语气"),
             )
         assertEquals("", out)
@@ -138,8 +171,8 @@ class PromptBuilderMemoryLayoutTest {
     @Test
     fun `过短文本不参与包含判定_不被误删`() {
         val out =
-            PromptBuilder.buildVectorMemoryContextForPrompt(
-                results = listOf(result("片段")),
+            PromptBuilder.buildRecallContextForPrompt(
+                ranked = listOf(hit("片段")),
                 alreadyInjected = listOf("这是一条足够长的记忆正文片段内容"),
             )
         // 短文本不参与判定（长度 < 8），因此这条应保留
