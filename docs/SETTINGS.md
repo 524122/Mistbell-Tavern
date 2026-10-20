@@ -35,7 +35,7 @@
 |---|---|
 | 摘要记忆：自动触发阈值（每 N 轮）、摘要模板 | 我们 `summary_json` 空置列 + MODES 滚动摘要设计；ST Summarize 共识配置 |
 | 向量记忆：embedding 源选择（API/本地 ONNX）、召回数 top-k、相似度阈值 | F3 ONNX 落地的配套设置面（ST Vector Storage 同款精简） |
-| 世界书：扫描深度（近 N 轮才触发）、token 预算 | ST World Info 移动端共识配置（正则触发/递归不做） |
+| 世界书：扫描深度（近 N 轮才触发）、token 预算 | ST World Info 移动端共识配置 | ✅ 已落地：设置页「世界书」区块（扫描深度默认 2、预算默认 25%、0=关闭、@D 默认插进历史与酒馆一致/可切尾部省电模式，对齐酒馆 world_info_depth/world_info_budget）；条目级 scanDepth/selectiveLogic/caseSensitive/matchWholeWords 见世界书编辑器 |
 
 ### S3 随 MODES 模式工作
 | 设置 | 依据 |

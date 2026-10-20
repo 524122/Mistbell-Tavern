@@ -127,4 +127,32 @@ class ChatSettingsResolverTest {
         assertEquals(0.05f, ChatSettingsResolver.memorySimilarityThreshold("0"), 0.001f)
         assertEquals(0.95f, ChatSettingsResolver.memorySimilarityThreshold("2"), 0.001f)
     }
+
+    // ---- 世界书全局设置（对齐酒馆 world_info_depth=2 / world_info_budget=25） ----
+
+    @Test
+    fun `世界书扫描深度非法缺省回退二且越界钳制`() {
+        assertEquals(2, ChatSettingsResolver.worldInfoScanDepth(null))
+        assertEquals(2, ChatSettingsResolver.worldInfoScanDepth("abc"))
+        assertEquals(6, ChatSettingsResolver.worldInfoScanDepth("6"))
+        assertEquals(1, ChatSettingsResolver.worldInfoScanDepth("0"))
+        assertEquals(50, ChatSettingsResolver.worldInfoScanDepth("999"))
+    }
+
+    @Test
+    fun `世界书预算百分比非法缺省回退二十五且越界钳制_零为关闭`() {
+        assertEquals(25, ChatSettingsResolver.worldInfoBudgetPercent(null))
+        assertEquals(25, ChatSettingsResolver.worldInfoBudgetPercent("x"))
+        assertEquals(10, ChatSettingsResolver.worldInfoBudgetPercent("10"))
+        assertEquals(0, ChatSettingsResolver.worldInfoBudgetPercent("0"))
+        assertEquals(50, ChatSettingsResolver.worldInfoBudgetPercent("99"))
+    }
+
+    @Test
+    fun `世界书深度插入开关缺省为开_仅0为关`() {
+        assertTrue(ChatSettingsResolver.worldInfoInHistory(null))
+        assertTrue(ChatSettingsResolver.worldInfoInHistory("1"))
+        assertTrue(ChatSettingsResolver.worldInfoInHistory("x"))
+        assertFalse(ChatSettingsResolver.worldInfoInHistory("0"))
+    }
 }

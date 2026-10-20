@@ -26,7 +26,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         CustomPromptEntity::class,
         VectorSyncOutboxEntity::class,
     ],
-    version = 27,
+    version = 28,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -651,6 +651,25 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v27→v28：世界书触发语义对齐酒馆——selective/四态 selectiveLogic/caseSensitive/
+        // matchWholeWords/scanDepth。nullable 列保留酒馆 null=跟随全局 语义；应用内 null 按关处理
+        internal val MIGRATION_27_28_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN selective INTEGER NOT NULL DEFAULT 1",
+                "ALTER TABLE world_book_entries ADD COLUMN selective_logic INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE world_book_entries ADD COLUMN case_sensitive INTEGER DEFAULT NULL",
+                "ALTER TABLE world_book_entries ADD COLUMN match_whole_words INTEGER DEFAULT NULL",
+                "ALTER TABLE world_book_entries ADD COLUMN scan_depth INTEGER DEFAULT NULL",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_27_28 =
+            object : Migration(27, 28) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_27_28_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -690,6 +709,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_24_25,
                         MIGRATION_25_26,
                         MIGRATION_26_27,
+                        MIGRATION_27_28,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

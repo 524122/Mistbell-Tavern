@@ -157,6 +157,41 @@ class CharacterExporterTest {
     }
 
     @Test
+    fun `导出再导入触发字段保真`() {
+        // selective/selectiveLogic 顶层同名；caseSensitive/matchWholeWords/scanDepth 走 extensions snake_case
+        val entries =
+            listOf(
+                bookEntry("e0").copy(
+                    secondaryKeysJson = """["夜"]""",
+                    selective = false,
+                    selectiveLogic = 3,
+                    caseSensitive = true,
+                    matchWholeWords = false,
+                    scanDepth = 7,
+                ),
+                bookEntry("e1"),
+            )
+        val exported = CharacterExporter.buildV2Json(Character(name = "A"), "书", entries)
+        val result = CardParser.parse(exported) ?: return assertTrue(false)
+        val byContent = result.worldBookEntries.associateBy { it.content }
+
+        val full = byContent["ce0"]!!
+        assertEquals(false, full.selective)
+        assertEquals(3, full.selectiveLogic)
+        assertEquals(true, full.caseSensitive)
+        assertEquals(false, full.matchWholeWords)
+        assertEquals(7, full.scanDepth)
+
+        // 缺省条目：导出非默认才写 → 回读为酒馆默认（selective=true、逻辑 AND_ANY、其余 null）
+        val defaults = byContent["ce1"]!!
+        assertEquals(true, defaults.selective)
+        assertEquals(0, defaults.selectiveLogic)
+        assertNull(defaults.caseSensitive)
+        assertNull(defaults.matchWholeWords)
+        assertNull(defaults.scanDepth)
+    }
+
+    @Test
     fun `导出的书可被酒馆换算路径读取`() {
         // 模拟酒馆 convertCharacterBook 的读取点：keys/enabled/insertion_order/extensions.position
         val entries =

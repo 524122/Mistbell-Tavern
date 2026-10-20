@@ -160,6 +160,14 @@ data class WorldBookEntry(
     val cooldown: Int = 0,
     val delay: Int = 0,
     @SerialName("group") val groupName: String = "",
+    // 次键门控开关（对齐酒馆 selective，默认 true）
+    val selective: Boolean = true,
+    // 次关键词四态逻辑（对齐酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
+    val selectiveLogic: Int = 0,
+    // 大小写敏感 / 全字匹配 / 扫描深度（对齐酒馆，null=关/跟随全局）
+    val caseSensitive: Boolean? = null,
+    val matchWholeWords: Boolean? = null,
+    val scanDepth: Int? = null,
 )
 
 @Serializable

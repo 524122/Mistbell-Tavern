@@ -55,52 +55,35 @@ class WorldBookRepository(private val context: Context) {
 
     suspend fun createEntry(
         bookId: String,
-        comment: String,
-        keys: List<String>,
-        content: String,
-        constant: Boolean = false,
-        disable: Boolean = false,
-        insertPosition: String = "before_prompt",
-        depth: Int = 0,
-        probability: Double = 1.0,
-        depthRole: String = "system",
+        draft: WorldBookEntryDraft,
     ): WorldBookEntry? {
         return withContext(Dispatchers.IO) {
             val id = UUID.randomUUID().toString()
-            val keysJson =
-                Json.encodeToString(
-                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                    keys,
-                )
+            val stringListSerializer =
+                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>())
             val entity =
                 WorldBookEntryEntity(
                     id = id,
                     bookId = bookId,
-                    comment = comment,
-                    keysJson = keysJson,
-                    content = content,
-                    constant = constant,
-                    disable = disable,
-                    insertPosition = insertPosition,
-                    depth = depth,
-                    probability = probability,
-                    depthRole = depthRole,
+                    comment = draft.comment,
+                    keysJson = Json.encodeToString(stringListSerializer, draft.keys),
+                    content = draft.content,
+                    constant = draft.constant,
+                    disable = draft.disable,
+                    insertPosition = draft.insertPosition,
+                    depth = draft.depth,
+                    probability = draft.probability,
+                    depthRole = draft.depthRole,
                     order = 100,
+                    secondaryKeysJson = Json.encodeToString(stringListSerializer, draft.secondaryKeys),
+                    selective = draft.selective,
+                    selectiveLogic = draft.selectiveLogic,
+                    caseSensitive = draft.caseSensitive,
+                    matchWholeWords = draft.matchWholeWords,
+                    scanDepth = draft.scanDepth,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
-            WorldBookEntry(
-                id = id,
-                comment = comment,
-                key = keys,
-                content = content,
-                constant = constant,
-                disable = disable,
-                insertPosition = insertPosition,
-                depth = depth,
-                probability = probability,
-                depthRole = depthRole,
-                order = 100,
-            )
+            entity.toDomain()
         }
     }
 
@@ -136,13 +119,7 @@ class WorldBookRepository(private val context: Context) {
      * 只覆盖 patch 中实际提供的字段；insertPosition/depth 自 v19 起已落库，随 patch 更新。
      */
     private fun WorldBookEntryEntity.applyPatch(patch: JsonObject): WorldBookEntryEntity {
-        val keysJson =
-            (patch["key"] as? JsonArray)?.let { arr ->
-                Json.encodeToString(
-                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                    arr.map { it.jsonPrimitive.content },
-                )
-            } ?: this.keysJson
+        val keysJson = patchStringList(patch["key"], keysJson)
         return copy(
             comment = patch["comment"]?.jsonPrimitive?.content ?: comment,
             content = patch["content"]?.jsonPrimitive?.content ?: content,
@@ -154,6 +131,74 @@ class WorldBookRepository(private val context: Context) {
             probability = patch["probability"]?.jsonPrimitive?.doubleOrNull ?: probability,
             depthRole = patch["depthRole"]?.jsonPrimitive?.content ?: depthRole,
             keysJson = keysJson,
-        )
+        ).applyTriggeringPatch(patch)
     }
 }
+
+/** 触发语义字段（v28）的 patch：次级词/四态逻辑/大小写/全字/扫描深度 */
+private fun WorldBookEntryEntity.applyTriggeringPatch(patch: JsonObject): WorldBookEntryEntity =
+    copy(
+        secondaryKeysJson = patchStringList(patch["secondaryKeys"], secondaryKeysJson),
+        selective = patch["selective"]?.jsonPrimitive?.booleanOrNull ?: selective,
+        selectiveLogic = patch["selectiveLogic"]?.jsonPrimitive?.intOrNull ?: selectiveLogic,
+        // 可空字段三态：patch 缺省=保持；JsonNull=清空（跟随全局）；布尔=显式值
+        caseSensitive = nullableBooleanPatch(patch["caseSensitive"], caseSensitive),
+        matchWholeWords = nullableBooleanPatch(patch["matchWholeWords"], matchWholeWords),
+        scanDepth = nullableIntPatch(patch["scanDepth"], scanDepth),
+    )
+
+/** patch 中的字符串数组字段 → 实体 keysJson 存储格式；缺省保持原值 */
+private fun patchStringList(
+    element: JsonElement?,
+    currentJson: String,
+): String =
+    (element as? JsonArray)?.let { arr ->
+        Json.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+            arr.map { it.jsonPrimitive.content },
+        )
+    } ?: currentJson
+
+/** 可空布尔的三态 patch：缺省=保持；JsonNull=清空；布尔=显式值 */
+private fun nullableBooleanPatch(
+    element: JsonElement?,
+    current: Boolean?,
+): Boolean? =
+    when (element) {
+        null -> current
+        is JsonNull -> null
+        else -> element.jsonPrimitive.booleanOrNull ?: current
+    }
+
+/** 可空整数的三态 patch：缺省=保持；JsonNull=清空；整数=显式值 */
+private fun nullableIntPatch(
+    element: JsonElement?,
+    current: Int?,
+): Int? =
+    when (element) {
+        null -> current
+        is JsonNull -> null
+        else -> element.jsonPrimitive.intOrNull ?: current
+    }
+
+/**
+ * 新建世界书条目的字段草稿（createEntry 的参数对象，防参数表随字段膨胀）。
+ * 默认值与实体/酒馆条目模板一致。
+ */
+data class WorldBookEntryDraft(
+    val comment: String,
+    val keys: List<String>,
+    val content: String,
+    val constant: Boolean = false,
+    val disable: Boolean = false,
+    val insertPosition: String = "before_prompt",
+    val depth: Int = 0,
+    val probability: Double = 1.0,
+    val depthRole: String = "system",
+    val secondaryKeys: List<String> = emptyList(),
+    val selective: Boolean = true,
+    val selectiveLogic: Int = 0,
+    val caseSensitive: Boolean? = null,
+    val matchWholeWords: Boolean? = null,
+    val scanDepth: Int? = null,
+)

@@ -159,6 +159,36 @@ class WorldBookParserTest {
     }
 
     @Test
+    fun `触发字段按酒馆键名解析_缺省取酒馆默认值`() {
+        // 酒馆键名拓扑（originalWIDataKeyMap）：selective/selectiveLogic 顶层同名，
+        // caseSensitive/matchWholeWords/scanDepth 在 extensions 的 snake_case 键
+        val json =
+            """
+            {
+              "entries": {
+                "1": { "content": "全配", "selective": false, "selectiveLogic": 3,
+                       "extensions": { "case_sensitive": true, "match_whole_words": false, "scan_depth": 4 } },
+                "2": { "content": "缺省" }
+              }
+            }
+            """.trimIndent()
+        val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
+        val byId = entries.associateBy { it.id }
+        val full = byId["1"]!!
+        assertEquals(false, full.selective)
+        assertEquals(3, full.selectiveLogic)
+        assertEquals(true, full.caseSensitive)
+        assertEquals(false, full.matchWholeWords)
+        assertEquals(4, full.scanDepth)
+        val defaults = byId["2"]!!
+        assertEquals(true, defaults.selective)
+        assertEquals(0, defaults.selectiveLogic)
+        assertNull(defaults.caseSensitive)
+        assertNull(defaults.matchWholeWords)
+        assertNull(defaults.scanDepth)
+    }
+
+    @Test
     fun `酒馆独立世界书位置概率映射`() {
         // 按实测酒馆独立世界书结构（Eldoria.json / 美奈.json）构造：
         // Eldoria 锚点条目带 UI 残留 depth=4；美奈 atDepth 条目 position=4、depth=0

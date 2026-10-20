@@ -63,6 +63,36 @@ object ChatSettingsResolver {
     // 召回范围已永久固定为当前会话，该设置项不再产生任何作用；保留本函数签名仅为兼容既有调用方
     fun memoryScope(raw: String?): MemoryScope = MemoryScope.fromRaw(raw)
 
+    // ---- 世界书全局设置（纯全局行为项，对齐酒馆 World Info 全局默认值） ----
+
+    const val KEY_WORLD_INFO_SCAN_DEPTH = "world_info_scan_depth"
+    const val KEY_WORLD_INFO_BUDGET_PERCENT = "world_info_budget_percent"
+    const val KEY_WORLD_INFO_IN_HISTORY = "world_info_in_history"
+
+    const val WORLD_INFO_SCAN_DEPTH_MIN = 1
+    const val WORLD_INFO_SCAN_DEPTH_MAX = 50
+    // 对齐酒馆 world_info_depth = 2（v0.9.6 起；此前固定扫最近 6 条）
+    const val DEFAULT_WORLD_INFO_SCAN_DEPTH = 2
+
+    const val WORLD_INFO_BUDGET_PERCENT_MIN = 0
+    const val WORLD_INFO_BUDGET_PERCENT_MAX = 50
+    // 对齐酒馆 world_info_budget = 25（占上下文 %）；0 = 关闭预算（不裁剪）
+    const val DEFAULT_WORLD_INFO_BUDGET_PERCENT = 25
+
+    // settings KV 原始值 → 世界书扫描深度：非法/缺省回退 2，钳制 1..50
+    fun worldInfoScanDepth(raw: String?): Int =
+        raw?.toIntOrNull()?.coerceIn(WORLD_INFO_SCAN_DEPTH_MIN, WORLD_INFO_SCAN_DEPTH_MAX)
+            ?: DEFAULT_WORLD_INFO_SCAN_DEPTH
+
+    // settings KV 原始值 → 世界书 token 预算百分比：非法/缺省回退 25，钳制 0..50（0=关闭）
+    fun worldInfoBudgetPercent(raw: String?): Int =
+        raw?.toIntOrNull()?.coerceIn(WORLD_INFO_BUDGET_PERCENT_MIN, WORLD_INFO_BUDGET_PERCENT_MAX)
+            ?: DEFAULT_WORLD_INFO_BUDGET_PERCENT
+
+    // settings KV 原始值 → @D 是否插进历史内部：缺省 true（酒馆一致）；
+    // "0"=false 时后移到历史之后（省 token：前缀缓存命中更长）
+    fun worldInfoInHistory(raw: String?): Boolean = raw != "0"
+
     // ---- 提示词模板（全局行为项，无会话覆盖） ----
     //
     // 键名一律引用本组常量，禁止在别处手写字符串字面量（照会话模式常量那条纪律：

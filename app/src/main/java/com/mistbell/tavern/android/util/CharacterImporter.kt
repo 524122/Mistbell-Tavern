@@ -274,8 +274,9 @@ object CardParser {
                         ?: entry["order"]?.jsonPrimitive?.intOrNull
                         ?: 0
 
-                // 位置/概率/@D 角色按酒馆实测语义解析（extensions.* 优先，见 StInterop）
+                // 位置/概率/@D 角色 + 触发语义按酒馆实测语义解析（extensions.* 优先，见 StInterop）
                 val placement = StInterop.resolvePlacement(entry, warnings)
+                val triggering = StInterop.resolveTriggering(entry, warnings)
 
                 // keys 单字符串包成数组
                 val keys =
@@ -314,10 +315,15 @@ object CardParser {
                             kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                             secondaryKeys,
                         ),
-                    sticky = StInterop.parseSticky(entry["sticky"] as? JsonPrimitive),
+                    sticky = triggering.sticky,
                     cooldown = entry["cooldown"]?.jsonPrimitive?.intOrNull ?: 0,
                     delay = entry["delay"]?.jsonPrimitive?.intOrNull ?: 0,
                     groupName = entry["group"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    selective = triggering.selective,
+                    selectiveLogic = triggering.selectiveLogic,
+                    caseSensitive = triggering.caseSensitive,
+                    matchWholeWords = triggering.matchWholeWords,
+                    scanDepth = triggering.scanDepth,
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.api.model.WorldBookEntry
 import com.mistbell.tavern.android.data.prompt.WorldBookPlacement
+import com.mistbell.tavern.android.data.repository.WorldBookEntryDraft
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,6 +21,15 @@ data class WorldBookEntryForm(
     val depth: Int = 0,
     val probability: Double = 1.0,
     val depthRole: String = "system",
+    // 次关键词（逗号分隔文本）；与 selectiveLogic 联动（酒馆四态）
+    val secondaryKeys: String = "",
+    // 次关键词逻辑（酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
+    val selectiveLogic: Int = 0,
+    // 大小写敏感 / 全字匹配（酒馆条目级开关；缺省关）
+    val caseSensitive: Boolean = false,
+    val matchWholeWords: Boolean = false,
+    // 扫描深度文本：空=跟随全局（酒馆 scanDepth null 语义）
+    val scanDepth: String = "",
 )
 
 /** 插入位置显示名：存储值 → UI 文案（6 锚点与酒馆对齐） */
@@ -212,6 +222,11 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                 depth = entry.depth,
                 probability = entry.probability,
                 depthRole = entry.depthRole,
+                secondaryKeys = entry.secondaryKeys.joinToString(", "),
+                selectiveLogic = entry.selectiveLogic,
+                caseSensitive = entry.caseSensitive ?: false,
+                matchWholeWords = entry.matchWholeWords ?: false,
+                scanDepth = entry.scanDepth?.toString() ?: "",
             )
         _showEntryForm.value = true
     }
@@ -230,33 +245,35 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         val form = _entryForm.value
         val bookId = _selectedBookId.value ?: return
         val keyList = form.keys.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val secondaryKeyList = form.secondaryKeys.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        // 空串 = 跟随全局（patch 写 JsonNull 清空）；非法输入保持原值（不写入 patch）
+        val scanDepthValue = form.scanDepth.trim().toIntOrNull()
+        val scanDepthCleared = form.scanDepth.isBlank()
 
         viewModelScope.launch {
             if (_editingEntryId.value != null) {
-                val patch =
-                    kotlinx.serialization.json.buildJsonObject {
-                        put("comment", kotlinx.serialization.json.JsonPrimitive(form.comment))
-                        put("content", kotlinx.serialization.json.JsonPrimitive(form.content))
-                        put("constant", kotlinx.serialization.json.JsonPrimitive(form.constant))
-                        put("disable", kotlinx.serialization.json.JsonPrimitive(form.disable))
-                        put("insertPosition", kotlinx.serialization.json.JsonPrimitive(form.insertPosition))
-                        put("depth", kotlinx.serialization.json.JsonPrimitive(form.depth))
-                        put("probability", kotlinx.serialization.json.JsonPrimitive(form.probability))
-                        put("depthRole", kotlinx.serialization.json.JsonPrimitive(form.depthRole))
-                    }
+                val patch = buildEntryPatch(form, secondaryKeyList, scanDepthValue, scanDepthCleared)
                 repo.updateEntry(_editingEntryId.value!!, patch)
             } else {
                 repo.createEntry(
                     bookId = bookId,
-                    comment = form.comment,
-                    keys = keyList,
-                    content = form.content,
-                    constant = form.constant,
-                    disable = form.disable,
-                    insertPosition = form.insertPosition,
-                    depth = form.depth,
-                    probability = form.probability,
-                    depthRole = form.depthRole,
+                    draft =
+                        WorldBookEntryDraft(
+                            comment = form.comment,
+                            keys = keyList,
+                            content = form.content,
+                            constant = form.constant,
+                            disable = form.disable,
+                            insertPosition = form.insertPosition,
+                            depth = form.depth,
+                            probability = form.probability,
+                            depthRole = form.depthRole,
+                            secondaryKeys = secondaryKeyList,
+                            selectiveLogic = form.selectiveLogic,
+                            caseSensitive = form.caseSensitive,
+                            matchWholeWords = form.matchWholeWords,
+                            scanDepth = scanDepthValue.takeIf { !scanDepthCleared },
+                        ),
                 )
             }
             _showEntryForm.value = false
@@ -276,5 +293,34 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
 
     fun clearMessage() {
         _message.value = null
+    }
+
+    /** 表单 → 编辑 patch（只含表单覆盖的字段；scanDepth 空=JsonNull 清空=跟随全局） */
+    @Suppress("LongParameterList") // 四个参数即表单语义平铺
+    private fun buildEntryPatch(
+        form: WorldBookEntryForm,
+        secondaryKeyList: List<String>,
+        scanDepthValue: Int?,
+        scanDepthCleared: Boolean,
+    ) = kotlinx.serialization.json.buildJsonObject {
+        put("comment", kotlinx.serialization.json.JsonPrimitive(form.comment))
+        put("content", kotlinx.serialization.json.JsonPrimitive(form.content))
+        put("constant", kotlinx.serialization.json.JsonPrimitive(form.constant))
+        put("disable", kotlinx.serialization.json.JsonPrimitive(form.disable))
+        put("insertPosition", kotlinx.serialization.json.JsonPrimitive(form.insertPosition))
+        put("depth", kotlinx.serialization.json.JsonPrimitive(form.depth))
+        put("probability", kotlinx.serialization.json.JsonPrimitive(form.probability))
+        put("depthRole", kotlinx.serialization.json.JsonPrimitive(form.depthRole))
+        put(
+            "secondaryKeys",
+            kotlinx.serialization.json.JsonArray(secondaryKeyList.map { kotlinx.serialization.json.JsonPrimitive(it) }),
+        )
+        put("selectiveLogic", kotlinx.serialization.json.JsonPrimitive(form.selectiveLogic))
+        put("caseSensitive", kotlinx.serialization.json.JsonPrimitive(form.caseSensitive))
+        put("matchWholeWords", kotlinx.serialization.json.JsonPrimitive(form.matchWholeWords))
+        when {
+            scanDepthCleared -> put("scanDepth", kotlinx.serialization.json.JsonNull)
+            scanDepthValue != null -> put("scanDepth", kotlinx.serialization.json.JsonPrimitive(scanDepthValue))
+        }
     }
 }

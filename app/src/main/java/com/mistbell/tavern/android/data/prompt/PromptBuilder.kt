@@ -25,8 +25,14 @@ import java.time.Instant
 
 object PromptBuilder {
     /** World Info 的会话内运行状态：sticky/cooldown/delay 只影响激活决策，不改变 Room 主数据。 */
-    private object WorldInfoRuntime {
+    internal object WorldInfoRuntime {
         private const val MAX_RECURSION_DEPTH = 3
+
+        // 次关键词四态逻辑（对齐酒馆 world_info_logic）
+        const val LOGIC_AND_ANY = 0
+        const val LOGIC_NOT_ALL = 1
+        const val LOGIC_NOT_ANY = 2
+        const val LOGIC_AND_ALL = 3
 
         private data class EntryState(var lastTurn: Int = -1, var sticky: Boolean = false)
 
@@ -41,26 +47,50 @@ object PromptBuilder {
             val sticky: Boolean,
         )
 
+        /** 一次激活判定的输入（收拢为参数对象，避免 activate 参数表膨胀） */
+        data class ScanInput(
+            val historyMessages: List<String>,
+            val userMessage: String,
+            val globalScanDepth: Int,
+            val mctx: MacroContext,
+            /** constant 条目消耗后的剩余预算额度（Int.MAX_VALUE = 不限） */
+            val budgetTokens: Int = Int.MAX_VALUE,
+        )
+
+        /** 激活结果：通过判定（含预算）的条目 + 因预算被裁的条目（诊断展示用） */
+        data class ActivationResult(
+            val activated: Set<String>,
+            val droppedByBudget: List<WorldBookEntryEntity>,
+        )
+
         private val sessions = mutableMapOf<String, SessionState>()
 
         /**
          * Activates World Info for one prompt.  Matching is recursive: content activated in
          * an earlier pass becomes scan material for the next pass, bounded to three passes.
-         * Secondary keys are an AND gate (every non-empty secondary key must match).  Entries
-         * sharing a non-empty group compete by score and only the highest scoring entry wins.
+         * Secondary keys follow SillyTavern's four selectiveLogic modes (gated by `selective`).
+         * Entries sharing a non-empty group compete by score and only the highest scoring entry wins.
+         *
+         * 扫描窗口对齐酒馆：每条目 `scanDepth ?: globalScanDepth`（从最新消息往上数 N 条，
+         * 当前用户消息占第 1 条）；关键词先过宏渲染再匹配（对齐 substituteParams）。
+         * 预算按 sticky 优先、order 降序消费（酒馆处理序），溢出即停且不再递归。
          */
         @Synchronized
         fun activate(
             sessionId: String,
             entries: List<WorldBookEntryEntity>,
-            scanText: String,
-        ): Set<String> {
+            scan: ScanInput,
+        ): ActivationResult {
             val state = sessions.getOrPut(sessionId) { SessionState() }
             state.turn += 1
             val activated = linkedSetOf<String>()
+            val dropped = mutableListOf<WorldBookEntryEntity>()
             val selectedGroups = mutableSetOf<String>()
-            var corpus = scanText
+            val activatedContents = mutableListOf<String>()
+            var budgetRemaining = scan.budgetTokens
+            var budgetOverflowed = false
             repeat(MAX_RECURSION_DEPTH) {
+                if (budgetOverflowed) return@repeat // 预算溢出：与酒馆一致，不再递归
                 val candidates =
                     entries
                         .asSequence()
@@ -69,54 +99,26 @@ object PromptBuilder {
                             val key = "${entry.bookId}:${entry.id}"
                             key !in activated && (entry.groupName.isBlank() || entry.groupName !in selectedGroups)
                         }.mapNotNull { entry ->
-                            val key = "${entry.bookId}:${entry.id}"
-                            val entryState = state.entries.getOrPut(key) { EntryState() }
-                            val primaryHits = matchingKeywords(entry.keysJson, corpus)
-                            val secondaryKeys = parseKeywords(entry.secondaryKeysJson)
-                            val secondaryHits = matchingKeywords(secondaryKeys, corpus)
-                            val primaryMatched = primaryHits > 0
-                            val secondaryMatched = secondaryKeys.isEmpty() || secondaryHits == secondaryKeys.size
-                            val stickyMatched = entry.sticky && entryState.sticky
-                            // delay 表示需要等待的轮数；0 代表当前轮即可激活。
-                            val delayed = state.turn > entry.delay.coerceAtLeast(0)
-                            val cooledDown =
-                                entry.cooldown <= 0 ||
-                                    entryState.lastTurn < 0 ||
-                                    state.turn - entryState.lastTurn > entry.cooldown
-                            if ((!stickyMatched && !(primaryMatched && secondaryMatched)) || !delayed || !cooledDown) {
-                                null
-                            } else {
-                                Candidate(
-                                    entry = entry,
-                                    key = key,
-                                    score = primaryHits * 2 + secondaryHits + if (stickyMatched) 1 else 0,
-                                    primaryHits = primaryHits,
-                                    secondaryHits = secondaryHits,
-                                    sticky = stickyMatched,
-                                )
-                            }
+                            evaluateCandidate(entry, state, scan, activatedContents)
                         }.toList()
                 if (candidates.isEmpty()) return@repeat
-                val winners =
-                    candidates
-                        .groupBy { it.entry.groupName }
-                        .values
-                        .flatMap { group ->
-                            if (group.first().entry.groupName.isBlank()) {
-                                group
-                            } else {
-                                listOf(
-                                    group.maxWithOrNull(
-                                        compareBy<Candidate> { it.score }.thenByDescending { it.primaryHits }.thenBy { it.entry.order },
-                                    )!!,
-                                )
-                            }
-                        }.sortedWith(compareBy<Candidate> { it.entry.order }.thenBy { it.key })
+                val winners = selectWinners(candidates)
                 if (winners.isEmpty()) return@repeat
                 val newlyActivated = mutableListOf<String>()
                 winners.forEach { candidate ->
                     val entry = candidate.entry
-                    if (entry.probability < 1.0 && kotlin.random.Random.nextDouble() >= entry.probability) return@forEach
+                    if (entry.probability < 1.0 && kotlin.random.Random.nextDouble() >= entry.probability) {
+                        return@forEach
+                    }
+                    if (budgetRemaining != Int.MAX_VALUE) {
+                        val cost = estimateTokens(entry.content)
+                        if (budgetOverflowed || cost > budgetRemaining) {
+                            budgetOverflowed = true
+                            dropped += entry
+                            return@forEach
+                        }
+                        budgetRemaining -= cost
+                    }
                     activated += candidate.key
                     newlyActivated += candidate.key
                     entry.groupName.takeIf { it.isNotBlank() }?.let(selectedGroups::add)
@@ -125,41 +127,182 @@ object PromptBuilder {
                     entryState.sticky = entry.sticky
                 }
                 if (newlyActivated.isEmpty()) return@repeat
-                corpus += "\n" + entries.filter { "${it.bookId}:${it.id}" in newlyActivated }.joinToString("\n") { it.content }
+                activatedContents += entries.filter { "${it.bookId}:${it.id}" in newlyActivated }.map { it.content }
             }
-            return activated
+            return ActivationResult(activated, dropped)
         }
 
-        private fun parseKeywords(keysJson: String): List<String> =
-            runCatching { if (keysJson.isBlank()) emptyList() else Json.decodeFromString<List<String>>(keysJson) }.getOrDefault(emptyList())
+        /** 单条目评估：命中（含四态次键门控/sticky/delay/cooldown）则产出候选，否则 null */
+        private fun evaluateCandidate(
+            entry: WorldBookEntryEntity,
+            state: SessionState,
+            scan: ScanInput,
+            activatedContents: List<String>,
+        ): Candidate? {
+            val key = "${entry.bookId}:${entry.id}"
+            val entryState = state.entries.getOrPut(key) { EntryState() }
+            val corpus =
+                scanWindow(
+                    entry.scanDepth, scan.globalScanDepth, scan.historyMessages, scan.userMessage, activatedContents,
+                )
+            val primaryHits = matchingKeywords(parseKeywords(entry.keysJson), corpus, entry, scan.mctx)
+            val stickyMatched = entry.sticky && entryState.sticky
+            val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, corpus, scan.mctx))
+            if (!keyMatched || !timingGatePassed(entry, entryState, state.turn)) return null
+            val secondaryHits =
+                if (entry.selective) {
+                    matchingKeywords(parseKeywords(entry.secondaryKeysJson), corpus, entry, scan.mctx)
+                } else {
+                    0
+                }
+            return Candidate(
+                entry = entry,
+                key = key,
+                score = primaryHits * 2 + secondaryHits + if (stickyMatched) 1 else 0,
+                primaryHits = primaryHits,
+                secondaryHits = secondaryHits,
+                sticky = stickyMatched,
+            )
+        }
 
-        private fun matchingKeywords(
-            keysJson: String,
-            text: String,
-        ): Int = matchingKeywords(parseKeywords(keysJson), text)
+        /** 次键四态门控（对齐酒馆）：selective=false 或次键为空 → 不启用门控 */
+        private fun secondaryGatePassed(
+            entry: WorldBookEntryEntity,
+            corpus: String,
+            mctx: MacroContext,
+        ): Boolean {
+            val secondaryKeys = parseKeywords(entry.secondaryKeysJson)
+            if (!entry.selective || secondaryKeys.isEmpty()) return true
+            val hits = matchingKeywords(secondaryKeys, corpus, entry, mctx)
+            return when (entry.selectiveLogic) {
+                LOGIC_NOT_ALL -> hits < secondaryKeys.size
+                LOGIC_NOT_ANY -> hits == 0
+                LOGIC_AND_ALL -> hits == secondaryKeys.size
+                else -> hits > 0 // AND_ANY（缺省）
+            }
+        }
+
+        /** delay（等待轮数）与 cooldown（冷却轮数）门控；delay=0 当前轮即可激活 */
+        private fun timingGatePassed(
+            entry: WorldBookEntryEntity,
+            entryState: EntryState,
+            turn: Int,
+        ): Boolean {
+            val delayed = turn > entry.delay.coerceAtLeast(0)
+            val cooledDown =
+                entry.cooldown <= 0 || entryState.lastTurn < 0 || turn - entryState.lastTurn > entry.cooldown
+            return delayed && cooledDown
+        }
+
+        /** 分组竞争后产出胜者：同组取最高分；预算消费序对齐酒馆（sticky 在前、order 降序） */
+        private fun selectWinners(candidates: List<Candidate>): List<Candidate> =
+            candidates
+                .groupBy { it.entry.groupName }
+                .values
+                .flatMap { group ->
+                    if (group.first().entry.groupName.isBlank()) {
+                        group
+                    } else {
+                        listOf(
+                            group.maxWithOrNull(
+                                compareBy<Candidate> { it.score }
+                                    .thenByDescending { it.primaryHits }
+                                    .thenBy { it.entry.order },
+                            )!!,
+                        )
+                    }
+                }
+                .sortedWith(compareByDescending<Candidate> { it.sticky }.thenByDescending { it.entry.order })
+
+        /**
+         * 单条目扫描窗口（对齐酒馆 buffer.get）：最近 (depth-1) 条历史 + 当前用户消息 +
+         * 递归缓冲（本轮已激活条目的内容）。depth ≤ 0 返回空（该条目永不通过扫描激活）。
+         */
+        internal fun scanWindow(
+            entryScanDepth: Int?,
+            globalScanDepth: Int,
+            historyMessages: List<String>,
+            userMessage: String,
+            activatedContents: List<String>,
+        ): String {
+            val depth = (entryScanDepth ?: globalScanDepth).coerceAtMost(MAX_SCAN_WINDOW)
+            if (depth <= 0) return ""
+            return buildString {
+                historyMessages.takeLast(depth - 1).forEach { appendLine(it) }
+                appendLine(userMessage)
+                if (activatedContents.isNotEmpty()) {
+                    activatedContents.forEach { appendLine(it) }
+                }
+            }
+        }
+
+        /** 酒馆 MAX_SCAN_DEPTH=1000；应用内扫描窗口上限（防御异常大值拖慢匹配） */
+        private const val MAX_SCAN_WINDOW = 1000
+
+        private fun parseKeywords(keysJson: String): List<String> =
+            runCatching {
+                if (keysJson.isBlank()) emptyList() else Json.decodeFromString<List<String>>(keysJson)
+            }.getOrDefault(emptyList())
 
         private fun matchingKeywords(
             keys: List<String>,
             text: String,
-        ): Int =
-            keys.count { key ->
-                val normalized = key.trim()
-                if (normalized.isBlank()) {
-                    false
-                } else if (normalized.startsWith("/") && normalized.endsWith("/")) {
-                    runCatching {
-                        Regex(
-                            normalized.substring(1, normalized.length - 1),
-                            RegexOption.IGNORE_CASE,
-                        ).containsMatchIn(text)
-                    }.getOrDefault(false)
-                } else if (normalized.contains("*")) {
-                    val pattern = normalized.split("*").joinToString(".*") { Regex.escape(it) }
-                    runCatching { Regex("(?is).*" + pattern + ".*").matches(text) }.getOrDefault(false)
-                } else {
-                    text.contains(normalized, ignoreCase = true)
+            entry: WorldBookEntryEntity,
+            mctx: MacroContext,
+        ): Int = keys.count { matchesKey(MacroEngine.render(it, mctx), text, entry) }
+
+        /**
+         * 单关键词匹配（对齐酒馆 matchKeys）：
+         * ① `/pattern/flags` 正则——flags 原样映射（无默认忽略大小写），且不受大小写/全字开关影响；
+         * ② `*` 通配（应用内扩展）——大小写随条目 caseSensitive；
+         * ③ matchWholeWords 且单词 key——非词边界 `(?:^|\W)key(?:$|\W)`；多词 key 退化为普通包含；
+         * ④ 普通包含。大小写敏感缺省（null）为关。
+         */
+        internal fun matchesKey(
+            rawKey: String,
+            text: String,
+            entry: WorldBookEntryEntity,
+        ): Boolean {
+            val key = rawKey.trim()
+            if (key.isBlank()) return false
+            val caseSensitive = entry.caseSensitive ?: false
+            val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
+            val regex = parseRegexKey(key)
+            return when {
+                regex != null -> runCatching { regex.containsMatchIn(text) }.getOrDefault(false)
+                key.contains("*") -> {
+                    val pattern = key.split("*").joinToString(".*") { Regex.escape(it) }
+                    runCatching { Regex("(?s).*$pattern.*", options).matches(text) }.getOrDefault(false)
                 }
+                entry.matchWholeWords == true && !key.contains(Regex("\\s")) ->
+                    runCatching {
+                        Regex("(?:^|\\W)" + Regex.escape(key) + "(?:$|\\W)", options).containsMatchIn(text)
+                    }.getOrDefault(false)
+                else -> text.contains(key, ignoreCase = !caseSensitive)
             }
+        }
+
+        /**
+         * `/pattern/flags` 解析（对齐酒馆 parseRegexFromString）：pattern 内含未转义 `/` 不视为正则；
+         * flags 仅映射 i/m/s（g/u/y 对匹配语义无影响或 Kotlin 无对应项）。
+         */
+        private fun parseRegexKey(key: String): Regex? {
+            val match = Regex("^/([\\w\\W]+?)/([gimsuy]*)$").find(key)
+            val rawPattern = match?.groups?.get(1)?.value
+            val flags = match?.groups?.get(2)?.value
+            // pattern 内含未转义的 `/` 说明不是正则字面量（与酒馆同判定）
+            if (rawPattern == null || flags == null || Regex("(^|[^\\\\])/").containsMatchIn(rawPattern)) {
+                return null
+            }
+            val pattern = rawPattern.replace("\\/", "/")
+            val options =
+                buildSet {
+                    if ('i' in flags) add(RegexOption.IGNORE_CASE)
+                    if ('m' in flags) add(RegexOption.MULTILINE)
+                    if ('s' in flags) add(RegexOption.DOT_MATCHES_ALL)
+                }
+            return runCatching { Regex(pattern, options) }.getOrNull()
+        }
     }
     // ---- 群聊模式常量（classic 模式不进入任何 group 分支，提示词一个字符都不变——硬约束）----
 
@@ -526,23 +669,57 @@ object PromptBuilder {
             worldBookIds
                 .flatMap { db.worldBookDao().getEntriesList(it) }
                 .distinctBy { it.bookId to it.id }
-        val worldInfoScanText =
-            buildString {
-                appendLine(userMessage)
-                db.messageDao().getBySession(sessionId, ownerId).first()
-                    .takeLast(6)
-                    .forEach { appendLine(it.content) }
-            }
-        // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中当前用户消息任一关键词；
+        // 世界书全局设置：扫描深度（默认 2，对齐酒馆 world_info_depth）与 token 预算
+        // （默认 25% 上下文，对齐酒馆 world_info_budget；0=关闭）。预算先于激活判定完成
+        // constant 条目分配，剩余额度传入 activate——溢出即停递归（酒馆同款）
+        val worldInfoScanDepth =
+            ChatSettingsResolver.worldInfoScanDepth(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_SCAN_DEPTH),
+            )
+        val worldInfoBudgetTokens =
+            ChatSettingsResolver
+                .worldInfoBudgetPercent(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT),
+                ).let { if (it <= 0) Int.MAX_VALUE else contextTokenLimit * it / 100 }
+        // @D 落点模式：默认插进历史内部（酒馆一致）；=0 时后移到历史之后（省 token：前缀缓存命中更长）
+        val worldInfoInHistory =
+            ChatSettingsResolver.worldInfoInHistory(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY),
+            )
+        val constantBudget = allocateConstantBudget(worldBookEntries, worldInfoBudgetTokens)
+        val scanHistory = db.messageDao().getBySession(sessionId, ownerId).first().map { it.content }
+        // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中扫描窗口关键词；
         // probability=1（缺省）跳过掷骰快速路径，constant 常驻条目不参与本判定（恒注入）
-        val activatedEntryIds =
-            WorldInfoRuntime.activate(sessionId, worldBookEntries, worldInfoScanText)
+        val activation =
+            WorldInfoRuntime.activate(
+                sessionId,
+                worldBookEntries,
+                WorldInfoRuntime.ScanInput(
+                    historyMessages = scanHistory,
+                    userMessage = userMessage,
+                    globalScanDepth = worldInfoScanDepth,
+                    mctx = mctx,
+                    budgetTokens = constantBudget.remainingTokens,
+                ),
+            )
+        val activatedEntryIds = activation.activated
+        // WI 预算裁剪清单（「查看提示词」展示）：constant 溢出 + 激活溢出
+        val wiBudgetDrops =
+            (constantBudget.dropped + activation.droppedByBudget).map {
+                "世界书条目「${it.comment.ifBlank { it.id }}」因 WI token 预算被裁剪"
+            }
         val wbPlan = WorldBookPlacement.plan(worldBookEntries)
         // 缓存优化：只注入 constant 条目到历史之前，activated 条目稍后注入到历史之后
-        worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
+        worldInfoBlock(
+            wbPlan.afterPrompt, activatedEntryIds, mctx,
+            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+        )?.let {
             messages.addSegment("system", it, "世界书·角色定义后")
         }
-        worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
+        worldInfoBlock(
+            wbPlan.beforePrompt, activatedEntryIds, mctx,
+            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+        )?.let {
             // add(0)：beforePrompt 条目压到整条提示词最前（角色定义之前）
             messages.add(0, Segment(ChatMessage(role = "system", content = it), "世界书·角色定义前"))
         }
@@ -556,13 +733,19 @@ object PromptBuilder {
         // 群聊取主角色示例；示例内容同样过宏渲染
         // 缓存优化：只注入 constant 条目到历史之前
         val mesExample = character?.mesExample?.trim().orEmpty()
-        worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
+        worldInfoBlock(
+            wbPlan.emBefore, activatedEntryIds, mctx,
+            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+        )?.let {
             messages.addSegment("system", it, "世界书·示例消息前")
         }
         if (mesExample.isNotEmpty()) {
             messages.addSegment("system", "Example dialogue:\n${MacroEngine.render(mesExample, mctx)}", "示例对话")
         }
-        worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
+        worldInfoBlock(
+            wbPlan.emAfter, activatedEntryIds, mctx,
+            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+        )?.let {
             messages.addSegment("system", it, "世界书·示例消息后")
         }
 
@@ -649,35 +832,47 @@ object PromptBuilder {
         // AN 锚点（作者注释前/后）：紧贴【附加指令】块上沿/下沿；会话无附加指令时
         // 两块依次落在历史之后，位置语义保持稳定
         // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
-        worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
+        worldInfoBlock(
+            wbPlan.anBefore, activatedEntryIds, mctx,
+            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+        )?.let {
             messages.addSegment("system", it, "世界书·作者注释前")
         }
-        worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx, selection = WiSelection.CONSTANT)?.let {
+        worldInfoBlock(
+            wbPlan.anAfter, activatedEntryIds, mctx,
+            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+        )?.let {
             messages.addSegment("system", it, "世界书·作者注释后")
         }
 
-        // 缓存优化：@D 深度插入整体后移到历史之后（不插进历史内部，保住「角色卡 + 历史」前缀缓存）。
-        // 语义对齐酒馆：byDepth 已按深度降序、同深度 assistant→user→system 排列，迭代即得
-        // 「大 D 在前、D=1 最贴近生成点」的最终呈现序（酒馆 depth 越小越靠底）。
-        // 渲染用 ALL：constant 条目恒注入 ∪ 非常驻按激活——此前 @D 只渲染激活条目，
-        // constant 的 @D 条目在历史前/后两遍都轮不到，整条丢失。
-        val depthBlocks = mutableListOf<Segment>()
+        // @D 深度块构建（渲染用 ALL：constant 恒注入 ∪ 非常驻按激活）。
+        // 落点两模式：worldInfoInHistory=true（默认）插进历史内部（酒馆一致，见 insertWiDepthBlocks）；
+        // false 时后移到历史之后统一注入（省 token：保住「角色卡 + 历史」前缀缓存）
+        val depthBlocks = mutableListOf<WiDepthBlock>()
         wbPlan.byDepth.forEach { (key, group) ->
             val (depth, role) = key
-            worldInfoBlock(group, activatedEntryIds, mctx, selection = WiSelection.ALL)?.let { block ->
+            worldInfoBlock(
+                group, activatedEntryIds, mctx,
+                selection = WiSelection.ALL, allowedKeys = constantBudget.allowed,
+            )?.let { block ->
                 depthBlocks.add(
-                    Segment(
-                        message = ChatMessage(role = role, content = block),
-                        source = "世界书·插入深度 @D$depth",
-                        activationReason = if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
-                        insertionPosition = "@D$depth/$role",
+                    WiDepthBlock(
+                        depth = depth,
+                        role = role,
+                        segment =
+                            Segment(
+                                message = ChatMessage(role = role, content = block),
+                                source = "世界书·插入深度 @D$depth",
+                                activationReason = if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
+                                insertionPosition = "@D$depth/$role",
+                            ),
                     ),
                 )
             }
         }
 
-        // 长期记忆块：排在历史之后、激活锚点块与 @D 块之前、最终用户消息之前——
-        // 让「角色卡 + 历史」保持逐字节稳定的前缀（前缀缓存命中率），同时记忆贴着生成点注入。
+        // 长期记忆块：排在历史之后、激活锚点块之前、最终用户消息之前——
+        // 逐轮易变的内容集中尾部；@D 块默认插进历史内部（worldInfoInHistory），省电模式才落尾部
         // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
         // 召回片段必然与之重复（纯浪费 token 且拉低缓存命中率），此判定无信息损失
         messages.addAll(
@@ -686,9 +881,9 @@ object PromptBuilder {
                 .map { Segment(it, "会话记忆") },
         )
 
-        // 缓存优化：在长期记忆之后统一注入所有激活条目（非 constant）。
-        // 顺序：按原语义锚点排列 beforePrompt → afterPrompt → emBefore → emAfter → anBefore → anAfter → @D深度块，
-        // 保持语义逻辑但整体后移到历史之后，不破坏前缀稳定性。
+        // 在长期记忆之后统一注入所有激活条目（非 constant）。
+        // 顺序：按原语义锚点排列 beforePrompt → afterPrompt → emBefore → emAfter → anBefore → anAfter；
+        // @D 深度块随后按 worldInfoInHistory 分流：默认插进历史内部（酒馆一致），否则追加在此尾部
         // beforePrompt 的激活条目此前在历史前/后两遍都不渲染（第一遍仅 constant），整条丢失——此处补回
         worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·角色定义前（激活）")
@@ -708,9 +903,11 @@ object PromptBuilder {
         worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·作者注释后（激活）")
         }
-        // @D 深度块：byDepth 已按深度降序排列，追加后即「大 D 在前、D=1 最贴近最终用户消息」，
-        // 与酒馆「depth 越小越靠底」一致
-        messages.addAll(depthBlocks)
+        // @D 深度块尾部注入（仅省 token 模式）：byDepth 已按深度降序排列，
+        // 追加后即「大 D 在前、D=1 最贴近最终用户消息」，与酒馆「depth 越小越靠底」一致
+        if (!worldInfoInHistory) {
+            messages.addAll(depthBlocks.map { it.segment })
+        }
 
         // 最后的当前用户消息参与宏渲染；continueGroupChat 场景（groupNudge 非 null）无新用户消息，
         // 改为注入系统级推动语（classic 路径 groupNudge 恒为 null，零改动）
@@ -728,6 +925,12 @@ object PromptBuilder {
                     renderedUserMessage
                 }
             messages.addSegment("user", finalUserMessage, "当前消息")
+        }
+
+        // @D 深度插入（默认模式）：在完整列表（含最终用户消息/群聊推动语）上按酒馆语义
+        // 插进历史内部——前缀缓存断点 = 最浅 depth 处，断点之上逐字节稳定
+        if (worldInfoInHistory) {
+            insertWiDepthBlocks(messages, depthBlocks)
         }
 
         // 组成诊断（只记条数与估算 token，不记内容）：用于核对上下文窗口是否装得下、
@@ -760,10 +963,11 @@ object PromptBuilder {
             segments = tracedSegments,
             totalEstimatedTokens = estimatedTotal,
             truncationReasons =
-                if (historyTruncated) {
-                    listOf("历史消息因上下文预算被裁剪：保留最近连续窗口")
-                } else {
-                    emptyList()
+                buildList {
+                    if (historyTruncated) {
+                        add("历史消息因上下文预算被裁剪：保留最近连续窗口")
+                    }
+                    addAll(wiBudgetDrops)
                 },
             protocolConversionResults =
                 listOf(
@@ -854,30 +1058,62 @@ object PromptBuilder {
     }
 
     /**
-     * @D 插入下标：从尾部回溯，使插入点之后恰好剩 `depth` 条**历史消息**（user/assistant）。
+     * 酒馆原版 @D 深度插入（script.js doChatInject 的等价物）：在**完整**消息列表
+     * （含最终用户消息/群聊推动语）上，按深度升序、同深度 role 序 system→user→assistant 逐组插入。
      *
-     * 只数历史消息，不数夹在尾部的 system 块（记忆块 / 作者注释 / 世界书段）——
-     * 这些块的增减不应改变 @D 的实际落点：此前记忆块在历史之前，如今移到历史之后，
-     * 若仍按数组条数计数，@D 会无谓地提前（记忆块数）条。
+     * 深度计数对象 = user/assistant 消息（真实历史 + 最终用户消息）+ 已插入的 @D 块
+     * （对齐酒馆 totalInsertedMessages 补偿）；夹在尾部或中间的 system 块（记忆/作者注释/
+     * 世界书锚点）不占位。depth 超出可计数总数时钳到最旧一条可计数消息之前。
+     * 最终呈现序：大 D 在前、D=1 最贴近生成点；同深度 assistant→user→system 自上而下。
      *
-     * @param hasFinalUserMessage 后续还会追加一条当前用户消息，它计入「倒数第 1 条」，
-     *                            故现有历史只需留 depth-1 条；群聊推动（无新用户消息）则留 depth 条
-     *
-     * internal 仅为单元测试开放：@D 落点对尾部系统块的免疫性需要回归测试
+     * internal 仅为单元测试开放：落点算法对尾部系统块免疫性/插入补偿需要回归测试。
      */
-    internal fun atDepthIndex(
-        messages: List<ChatMessage>,
-        depth: Int,
-        hasFinalUserMessage: Boolean,
-    ): Int {
-        var chatRemaining = if (hasFinalUserMessage) depth - 1 else depth
-        var index = messages.size
-        while (index > 0 && chatRemaining > 0) {
-            index--
-            if (messages[index].role == "user" || messages[index].role == "assistant") chatRemaining--
+    internal fun insertWiDepthBlocks(
+        messages: MutableList<Segment>,
+        blocks: List<WiDepthBlock>,
+    ) {
+        if (blocks.isEmpty()) return
+        val inserted = mutableSetOf<Segment>()
+        // 计数对象：真实聊天消息（user/assistant）或已插入的 @D 块（任意 role）
+        fun countable(index: Int): Boolean {
+            val role = messages[index].message.role
+            return role == "user" || role == "assistant" || messages[index] in inserted
         }
-        return index
+        blocks
+            .sortedWith(compareBy<WiDepthBlock> { it.depth }.thenBy { depthInsertRoleRank(it.role) })
+            .forEach { block ->
+                val target = block.depth + inserted.size
+                var index = messages.size
+                var remaining = target
+                var oldestCountable = messages.size
+                while (index > 0 && remaining > 0) {
+                    index--
+                    if (countable(index)) {
+                        remaining--
+                        oldestCountable = index
+                    }
+                }
+                // remaining > 0 = 深度超出可计数总数：钳到最旧可计数消息之前（酒馆 min(idx, len) 等价）
+                val insertAt = if (remaining == 0) index else oldestCountable
+                messages.add(insertAt, block.segment)
+                inserted += block.segment
+            }
     }
+
+    /** @D 深度块（待插入历史内部的一条消息及其深度/角色） */
+    internal data class WiDepthBlock(
+        val depth: Int,
+        val role: String,
+        val segment: Segment,
+    )
+
+    /** 同深度插入顺序（酒馆 roles 循环序 system→user→assistant；最终呈现因逐次后插而反转） */
+    private fun depthInsertRoleRank(role: String): Int =
+        when (role) {
+            WorldBookPlacement.DEPTH_ROLE_SYSTEM -> 0
+            WorldBookPlacement.DEPTH_ROLE_USER -> 1
+            else -> 2
+        }
 
     /**
      * 长期记忆上下文 → 待注入的 system 消息列表（顺序：结构化召回 → 向量/词法召回）。
@@ -1173,7 +1409,7 @@ object PromptBuilder {
      * 返回实际注入的集合，而不是把入参原样带出去：访问计数与向量去重都只该认真正进了提示词的
      * 那些记忆，被预算裁掉的不算"被访问"，也不算"内容已被覆盖"。
      *
-     * internal 仅为单元测试开放（与 [atDepthIndex] / [selectHistoryWithinBudget] 同一先例）。
+     * internal 仅为单元测试开放（与 [insertWiDepthBlocks] / [selectHistoryWithinBudget] 同一先例）。
      */
     internal fun formatStructuredMemoryContext(
         memories: List<StructuredMemory>,
@@ -1363,6 +1599,48 @@ object PromptBuilder {
     /** 世界书渲染过滤：CONSTANT=仅常驻（历史前注入）；ACTIVATED=仅非常驻且已激活（历史后注入）；ALL=常驻 ∪ 已激活（@D 用） */
     private enum class WiSelection { CONSTANT, ACTIVATED, ALL }
 
+    /** constant 条目的预算分配结果（[allowed] 之外的 constant 因预算被裁，不再注入） */
+    internal data class WiConstantBudget(
+        val allowed: Set<String>,
+        val dropped: List<WorldBookEntryEntity>,
+        val remainingTokens: Int,
+    )
+
+    /**
+     * WI token 预算的第一刀：constant 常驻条目按 order 升序先装（优先级最高），
+     * 装不下即溢出——溢出后**停止**（不再装更小的，与酒馆溢出即停一致），
+     * 剩余额度留给激活条目。估算口径与历史预算同为 [estimateTokens]，不加第二套估算器。
+     * internal 仅为单元测试开放。
+     */
+    internal fun allocateConstantBudget(
+        entries: List<WorldBookEntryEntity>,
+        budgetTokens: Int,
+    ): WiConstantBudget {
+        val constants = entries.filter { it.constant && !it.disable }
+        if (budgetTokens == Int.MAX_VALUE) {
+            return WiConstantBudget(constants.map { "${it.bookId}:${it.id}" }.toSet(), emptyList(), Int.MAX_VALUE)
+        }
+        val allowed = mutableSetOf<String>()
+        val dropped = mutableListOf<WorldBookEntryEntity>()
+        var remaining = budgetTokens
+        var overflowed = false
+        constants.sortedBy { it.order }.forEach { entry ->
+            if (overflowed) {
+                dropped += entry
+                return@forEach
+            }
+            val cost = estimateTokens(entry.content)
+            if (cost > remaining) {
+                overflowed = true
+                dropped += entry
+            } else {
+                remaining -= cost
+                allowed += "${entry.bookId}:${entry.id}"
+            }
+        }
+        return WiConstantBudget(allowed, dropped, remaining)
+    }
+
     /**
      * 组内条目渲染为一条 system 消息文本（World Info 常驻段 + Activated World Info 激活段）；
      * 组内无有效内容（空组或非常驻条目均未激活）返回 null，不产生空消息
@@ -1370,18 +1648,25 @@ object PromptBuilder {
      * @param selection CONSTANT=仅渲染 constant 条目（用于历史前注入，保持前缀稳定）；
      *                  ACTIVATED=仅渲染激活条目（用于历史后注入，易变部分）；
      *                  ALL=constant 恒注入 ∪ 非常驻按激活（@D 深度块用，酒馆 constant 恒激活语义）
+     * @param allowedKeys constant 条目的预算白名单（[allocateConstantBudget] 产出）；null=不过滤
      */
     private fun worldInfoBlock(
         group: List<WorldBookEntryEntity>,
         activatedIds: Set<String>,
         mctx: MacroContext,
         selection: WiSelection = WiSelection.ACTIVATED,
+        allowedKeys: Set<String>? = null,
     ): String? {
+        fun allowed(entry: WorldBookEntryEntity): Boolean =
+            allowedKeys == null || "${entry.bookId}:${entry.id}" in allowedKeys
         val entries =
             when (selection) {
-                WiSelection.CONSTANT -> group.filter { it.constant }
+                WiSelection.CONSTANT -> group.filter { it.constant && allowed(it) }
                 WiSelection.ACTIVATED -> group.filter { !it.constant && "${it.bookId}:${it.id}" in activatedIds }
-                WiSelection.ALL -> group.filter { it.constant || "${it.bookId}:${it.id}" in activatedIds }
+                WiSelection.ALL ->
+                    group.filter {
+                        (it.constant && allowed(it)) || (!it.constant && "${it.bookId}:${it.id}" in activatedIds)
+                    }
             }
         val title = if (selection == WiSelection.ACTIVATED) "Activated World Info:" else "World Info:"
         return renderWorldInfoSection(title, entries, mctx)

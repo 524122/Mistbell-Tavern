@@ -355,25 +355,7 @@ private fun EntryEditSheet(
                 fontWeight = FontWeight.SemiBold,
             )
 
-            FormTextField(
-                value = entryForm.comment,
-                onValueChange = { viewModel.updateEntryForm { copy(comment = it) } },
-                label = "名称",
-                placeholder = "条目名称",
-            )
-            FormTextField(
-                value = entryForm.keys,
-                onValueChange = { viewModel.updateEntryForm { copy(keys = it) } },
-                label = "关键词（逗号分隔）",
-                placeholder = "关键词1, 关键词2",
-            )
-            FormTextArea(
-                value = entryForm.content,
-                onValueChange = { viewModel.updateEntryForm { copy(content = it) } },
-                label = "内容",
-                placeholder = "世界书条目内容...",
-                minLines = 4,
-            )
+            EntryContentFields(entryForm, viewModel)
 
             // Insert position（6 锚点与酒馆对齐）
             // 插入位置：酒馆式 9 选项（6 锚点 + [系统/用户/AI] 插入深度 @D）
@@ -402,7 +384,57 @@ private fun EntryEditSheet(
     }
 }
 
-/** 启用/常量开关行 */
+/** 内容字段块：名称/关键词/触发语义（次关键词+四态逻辑）/内容 */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun EntryContentFields(
+    entryForm: WorldBookEntryForm,
+    viewModel: WorldBookEditorViewModel,
+) {
+    FormTextField(
+        value = entryForm.comment,
+        onValueChange = { viewModel.updateEntryForm { copy(comment = it) } },
+        label = "名称",
+        placeholder = "条目名称",
+    )
+    FormTextField(
+        value = entryForm.keys,
+        onValueChange = { viewModel.updateEntryForm { copy(keys = it) } },
+        label = "关键词（逗号分隔）",
+        placeholder = "关键词1, 关键词2",
+    )
+    EntryTriggeringFields(entryForm, viewModel)
+    FormTextArea(
+        value = entryForm.content,
+        onValueChange = { viewModel.updateEntryForm { copy(content = it) } },
+        label = "内容",
+        placeholder = "世界书条目内容...",
+        minLines = 4,
+    )
+}
+
+/** 触发语义字段：次关键词（逗号分隔）+ 四态逻辑下拉（仅在填了次关键词时显示） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun EntryTriggeringFields(
+    entryForm: WorldBookEntryForm,
+    viewModel: WorldBookEditorViewModel,
+) {
+    FormTextField(
+        value = entryForm.secondaryKeys,
+        onValueChange = { viewModel.updateEntryForm { copy(secondaryKeys = it) } },
+        label = "次关键词（逗号分隔，可留空）",
+        placeholder = "与关键词按下方逻辑联动",
+    )
+    if (entryForm.secondaryKeys.isNotBlank()) {
+        WorldBookLogicField(
+            selectiveLogic = entryForm.selectiveLogic,
+            onSelect = { logic -> viewModel.updateEntryForm { copy(selectiveLogic = logic) } },
+        )
+    }
+}
+
+/** 启用/常量/大小写敏感/全字匹配开关行 */
 @Composable
 private fun EntryFormToggles(
     entryForm: WorldBookEntryForm,
@@ -420,9 +452,27 @@ private fun EntryFormToggles(
             Text("常量", style = MaterialTheme.typography.bodyMedium)
         }
     }
+    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = entryForm.caseSensitive,
+                onCheckedChange = { viewModel.updateEntryForm { copy(caseSensitive = it) } },
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("大小写敏感", style = MaterialTheme.typography.bodyMedium)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = entryForm.matchWholeWords,
+                onCheckedChange = { viewModel.updateEntryForm { copy(matchWholeWords = it) } },
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("全字匹配", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
 }
 
-/** 深度（仅 @D 档显示，1-10）与触发概率（0-1）两个数字字段 */
+/** 深度（仅 @D 档显示，1-10）与触发概率（0-1）、扫描深度（空=跟随全局）三个数字字段 */
 @Composable
 private fun EntryNumericFields(
     entryForm: WorldBookEntryForm,
@@ -455,5 +505,17 @@ private fun EntryNumericFields(
         },
         label = "触发概率 (0-1)",
         placeholder = "1",
+    )
+
+    // 扫描深度（酒馆 scanDepth）：空=跟随全局设置（默认 2）
+    FormTextField(
+        value = entryForm.scanDepth,
+        onValueChange = { text ->
+            viewModel.updateEntryForm {
+                if (text.isBlank() || text.toIntOrNull() != null) copy(scanDepth = text) else this
+            }
+        },
+        label = "扫描深度（留空跟随全局）",
+        placeholder = "例如 4",
     )
 }

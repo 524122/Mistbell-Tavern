@@ -41,6 +41,20 @@ class MigrationSchemaAlignmentTest {
         assertFalse(sql.any { it.contains("DELETE FROM", ignoreCase = true) })
     }
 
+    @Test
+    fun `v27 to v28 adds world book triggering columns with tavern defaults`() {
+        assertEquals(
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN selective INTEGER NOT NULL DEFAULT 1",
+                "ALTER TABLE world_book_entries ADD COLUMN selective_logic INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE world_book_entries ADD COLUMN case_sensitive INTEGER DEFAULT NULL",
+                "ALTER TABLE world_book_entries ADD COLUMN match_whole_words INTEGER DEFAULT NULL",
+                "ALTER TABLE world_book_entries ADD COLUMN scan_depth INTEGER DEFAULT NULL",
+            ),
+            AppDatabase.MIGRATION_27_28_SQL,
+        )
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

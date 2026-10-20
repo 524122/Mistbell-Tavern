@@ -10,67 +10,112 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** 提示词重排相关纯逻辑：@D 深度只数历史消息、混合召回去重与来源标注、流式 usage 解析 */
+/** 提示词重排相关纯逻辑：@D 历史内插入（酒馆 doChatInject 语义）、混合召回去重与来源标注、流式 usage 解析 */
 class PromptBuilderMemoryLayoutTest {
-    // ---- atDepthIndex：@D 落点对尾部 system 块免疫 ----
+    // ---- insertWiDepthBlocks：酒馆原版深度插入（计数=历史消息+已插入@D块，system 块不占位）----
 
-    private fun chat(vararg contents: String) = contents.map { ChatMessage(role = "assistant", content = it) }
+    private fun segment(
+        role: String,
+        content: String,
+    ) = PromptBuilder.Segment(ChatMessage(role = role, content = content), content)
+
+    private fun chatSeg(vararg contents: String) = contents.map { segment("assistant", it) }
+
+    private fun wi(
+        depth: Int,
+        role: String = "system",
+        tag: String = "d$depth$role",
+    ) = PromptBuilder.WiDepthBlock(depth, role, segment(role, "@D$tag"))
+
+    private fun contentsOf(messages: List<PromptBuilder.Segment>) = messages.map { it.message.content }
 
     @Test
-    fun `深度为 1 且将追加用户消息时_落在数组末尾`() {
-        val messages = chat("一", "二", "三")
-        assertEquals(3, PromptBuilder.atDepthIndex(messages, depth = 1, hasFinalUserMessage = true))
+    fun `深度1落在最终用户消息之前`() {
+        val messages = (chatSeg("一", "二", "三") + segment("user", "当前")).toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(1)))
+        assertEquals(listOf("一", "二", "三", "@Dd1system", "当前"), contentsOf(messages))
     }
 
     @Test
-    fun `深度为 3 时_插入点之后留 2 条历史加最终用户消息`() {
-        val messages = chat("一", "二", "三", "四", "五")
-        // 期望：[.., 三, @D, 四, 五] + 用户消息 → 倒数 3 条 = 四、五、用户
-        assertEquals(3, PromptBuilder.atDepthIndex(messages, depth = 3, hasFinalUserMessage = true))
+    fun `深度3之后恰好剩3条可计数消息`() {
+        val messages = (chatSeg("一", "二", "三", "四", "五") + segment("user", "当前")).toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(3)))
+        assertEquals(listOf("一", "二", "三", "@Dd3system", "四", "五", "当前"), contentsOf(messages))
     }
 
     @Test
-    fun `尾部夹着 system 块时_深度仍按历史消息计数`() {
+    fun `尾部system块不占深度位`() {
         val messages =
-            chat("一", "二", "三", "四", "五") +
-                listOf(
-                    ChatMessage(role = "system", content = "作者注释"),
-                    ChatMessage(role = "system", content = "长期记忆"),
-                )
-        // system 块不占倒数位：深度 2 → 插入点之后应留 1 条历史（五）+ 最终用户消息 = 2 条
-        // 若按数组条数计数则会误落到 5 之前（system 块被算进倒数位）
-        assertEquals(4, PromptBuilder.atDepthIndex(messages, depth = 2, hasFinalUserMessage = true))
+            (
+                chatSeg("一", "二", "三", "四", "五") +
+                    segment("system", "记忆块") +
+                    segment("system", "作者注释") +
+                    segment("user", "当前")
+            ).toMutableList()
+        // 深度 2 → 之后剩 2 条可计数（五、当前）：落在五之前，不被尾部 system 块顶歪
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(2)))
+        assertEquals(
+            listOf("一", "二", "三", "四", "@Dd2system", "五", "记忆块", "作者注释", "当前"),
+            contentsOf(messages),
+        )
     }
 
     @Test
-    fun `system 块位于历史中间时_同样只数历史`() {
+    fun `历史中间的system块同样不占位`() {
         val messages =
-            listOf(
-                ChatMessage(role = "assistant", content = "一"),
-                ChatMessage(role = "system", content = "世界书"),
-                ChatMessage(role = "assistant", content = "二"),
-                ChatMessage(role = "assistant", content = "三"),
-            )
-        // 深度 1 → 紧贴最终用户消息之前，即数组末尾（system 块不占倒数位）
-        assertEquals(4, PromptBuilder.atDepthIndex(messages, depth = 1, hasFinalUserMessage = true))
+            (chatSeg("一") + segment("system", "世界书锚点") + chatSeg("二", "三") + segment("user", "当前"))
+                .toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(1)))
+        assertEquals(listOf("一", "世界书锚点", "二", "三", "@Dd1system", "当前"), contentsOf(messages))
     }
 
     @Test
-    fun `无新用户消息场景_深度 1 留最后一条历史在插入点之后`() {
-        val messages = chat("一", "二", "三")
-        assertEquals(2, PromptBuilder.atDepthIndex(messages, depth = 1, hasFinalUserMessage = false))
+    fun `群聊推动场景无最终用户消息_深度按历史计数`() {
+        val messages = (chatSeg("一", "二", "三") + segment("system", "群聊推动")).toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(1)))
+        assertEquals(listOf("一", "二", "@Dd1system", "三", "群聊推动"), contentsOf(messages))
     }
 
     @Test
-    fun `深度超过历史条数时_钳到 0`() {
-        val messages = chat("一")
-        assertEquals(0, PromptBuilder.atDepthIndex(messages, depth = 9, hasFinalUserMessage = true))
+    fun `深度超过可计数总数时钳到最旧历史之前`() {
+        val messages =
+            (listOf(segment("system", "角色卡")) + chatSeg("一") + segment("user", "当前")).toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(9)))
+        assertEquals(listOf("角色卡", "@Dd9system", "一", "当前"), contentsOf(messages))
     }
 
     @Test
-    fun `空列表返回 0`() {
-        assertEquals(0, PromptBuilder.atDepthIndex(emptyList(), depth = 1, hasFinalUserMessage = true))
+    fun `深度0追加到末尾`() {
+        val messages = (chatSeg("一") + segment("user", "当前")).toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(0)))
+        assertEquals(listOf("一", "当前", "@Dd0system"), contentsOf(messages))
     }
+
+    @Test
+    fun `多深度按酒馆补偿序_大深度更高`() {
+        // 酒馆 doChatInject 等价：D2 块落在 D1 块之上（各自深度含已插入块补偿）
+        val messages = chatSeg("一", "二", "三").toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, listOf(wi(1, tag = "A"), wi(2, tag = "B")))
+        assertEquals(listOf("一", "@DB", "二", "@DA", "三"), contentsOf(messages))
+    }
+
+    @Test
+    fun `同深度三角色最终呈现序为assistant到user到system`() {
+        val messages = (chatSeg("一", "二") + segment("user", "当前")).toMutableList()
+        PromptBuilder.insertWiDepthBlocks(
+            messages,
+            listOf(wi(1, "system", "S"), wi(1, "user", "U"), wi(1, "assistant", "A")),
+        )
+        assertEquals(listOf("一", "二", "@DA", "@DU", "@DS", "当前"), contentsOf(messages))
+    }
+
+    @Test
+    fun `空块列表不改变消息`() {
+        val messages = chatSeg("一", "二").toMutableList()
+        PromptBuilder.insertWiDepthBlocks(messages, emptyList())
+        assertEquals(listOf("一", "二"), contentsOf(messages))
+    }
+
 
     // ---- buildRecallContextForPrompt：重复注入去重与来源标注 ----
 

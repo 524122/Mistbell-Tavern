@@ -54,3 +54,44 @@ internal fun WorldBookPlacementField(
         }
     }
 }
+
+/** 次关键词逻辑 4 档（酒馆 world_info_logic）：（枚举值， 显示文案），顺序与酒馆一致 */
+@Suppress("MagicNumber") // 枚举值即语义本体（与迁移版本号同型）
+fun selectiveLogicOptions(): List<Pair<Int, String>> =
+    listOf(
+        0 to "AND ANY（任一次词命中）",
+        1 to "NOT ALL（任一次词未命中）",
+        2 to "NOT ANY（次词全部未命中）",
+        3 to "AND ALL（次词全部命中）",
+    )
+
+/** 次关键词逻辑下拉（仅当填了次关键词时有意义；值即酒馆 selectiveLogic 枚举） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名（同 WorldBookPlacementField）
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun WorldBookLogicField(
+    selectiveLogic: Int,
+    onSelect: (Int) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = selectiveLogicOptions()
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = options.firstOrNull { it.first == selectiveLogic }?.second ?: options.first().second,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("次关键词逻辑") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            shape = RoundedCornerShape(8.dp),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { (value, label) ->
+                DropdownMenuItem(text = { Text(label) }, onClick = {
+                    onSelect(value)
+                    expanded = false
+                })
+            }
+        }
+    }
+}

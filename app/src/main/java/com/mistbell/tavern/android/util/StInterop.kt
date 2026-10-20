@@ -131,11 +131,56 @@ internal object StInterop {
         }
 
     /**
-     * 酒馆 sticky 语义是数值（激活后保持 N 条消息）；应用内 sticky 为布尔开关（激活后持续生效）。
-     * 兼容两种写法：布尔直接取；数值 > 0 视为开——酒馆导出的 `sticky: 3` 等数值
-     * 此前按布尔解析会静默丢成 false，粘性直接失效。
+     * 触发相关字段解析（对齐酒馆 originalWIDataKeyMap：caseSensitive/matchWholeWords/scanDepth
+     * 在 extensions 下的 snake_case 键；selective/selectiveLogic 为顶层同名字段——两条路径都兼容）。
+     * 默认值对齐酒馆条目模板：selective=true、selectiveLogic=0(AND_ANY)、其余 null（跟随全局/关）。
+     * sticky 酒馆为数值（激活后保持 N 条消息），应用内为布尔开关（N>0 视为开）——
+     * 酒馆导出的 `sticky: 3` 此前按布尔解析会静默丢成 false。
      */
-    fun parseSticky(raw: JsonPrimitive?): Boolean = raw?.booleanOrNull ?: ((raw?.intOrNull ?: 0) > 0)
+    fun resolveTriggering(
+        entry: JsonObject,
+        warnings: MutableSet<String>,
+    ): ResolvedTriggering {
+        val ext = entry["extensions"] as? JsonObject
+
+        fun extOrTop(vararg keys: String): JsonPrimitive? =
+            keys.firstNotNullOfOrNull { key -> (ext?.get(key) ?: entry[key]) as? JsonPrimitive }
+
+        val selective = extOrTop("selective")?.booleanOrNull ?: true
+        val rawLogic = extOrTop("selectiveLogic", "selective_logic")?.intOrNull
+        val selectiveLogic =
+            when {
+                rawLogic == null -> LOGIC_AND_ANY
+                rawLogic in LOGIC_AND_ANY..LOGIC_AND_ALL -> rawLogic
+                else -> {
+                    warnings.add("未知次关键词逻辑 $rawLogic，已按 AND_ANY 处理")
+                    LOGIC_AND_ANY
+                }
+            }
+        val stickyRaw = extOrTop("sticky")?.let { it.booleanOrNull ?: ((it.intOrNull ?: 0) > 0) }
+        return ResolvedTriggering(
+            selective = selective,
+            selectiveLogic = selectiveLogic,
+            caseSensitive = extOrTop("case_sensitive", "caseSensitive")?.booleanOrNull,
+            matchWholeWords = extOrTop("match_whole_words", "matchWholeWords")?.booleanOrNull,
+            scanDepth = extOrTop("scan_depth", "scanDepth")?.intOrNull,
+            sticky = stickyRaw ?: false,
+        )
+    }
+
+    // 酒馆 world_info_logic 枚举
+    const val LOGIC_AND_ANY = 0
+    const val LOGIC_AND_ALL = 3
+
+    /** 触发字段解析结果（应用内字段） */
+    data class ResolvedTriggering(
+        val selective: Boolean,
+        val selectiveLogic: Int,
+        val caseSensitive: Boolean?,
+        val matchWholeWords: Boolean?,
+        val scanDepth: Int?,
+        val sticky: Boolean,
+    )
 
     /**
      * 从条目（含 extensions）解析应用内位置字段：

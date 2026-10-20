@@ -196,7 +196,7 @@ object CharacterExporter {
                         put("comment", e.comment)
                         put("content", e.content)
                         put("constant", e.constant)
-                        put("selective", false)
+                        put("selective", e.selective)
                         put("insertion_order", e.order)
                         put("enabled", !e.disable)
                         // 字符串锚点只有规范定义的两档；精确锚点在 extensions.position（0-6）
@@ -222,7 +222,12 @@ object CharacterExporter {
                             put("useProbability", true)
                             put("depth", if (e.depth > 0) e.depth else ST_DEFAULT_DEPTH)
                             put("role", StInterop.toStRole(e.depthRole))
-                            put("selectiveLogic", 0)
+                            put("selectiveLogic", e.selectiveLogic)
+                            // 酒馆 originalWIDataKeyMap：这三个字段住 extensions 的 snake_case 键；
+                            // null（跟随全局/关）时不写，保持导出文件干净
+                            e.caseSensitive?.let { put("case_sensitive", it) }
+                            e.matchWholeWords?.let { put("match_whole_words", it) }
+                            e.scanDepth?.let { put("scan_depth", it) }
                         }
                     }
                 }

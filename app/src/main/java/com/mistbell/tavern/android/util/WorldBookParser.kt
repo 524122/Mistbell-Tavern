@@ -22,7 +22,8 @@ import java.util.UUID
  * 条目字段映射规则（与 docs/FOUNDATION.md「关键互通格式要点」一致）：
  *   - enabled（布尔）存在时 disable = !enabled（生态主流字段；只读 disable 是旧 bug）
  *   - insertion_order 优先于 order
- *   - key / keysecondary 单字符串规整成数组（keysecondary 当前不映射，待后续支持次级关键词）
+ *   - key / keysecondary 单字符串规整成数组；selective/selectiveLogic/caseSensitive/
+ *     matchWholeWords/scanDepth 经 [StInterop.resolveTriggering] 按酒馆语义解析
  *   - 条目 id 用 uid（缺失则生成 UUID）
  *   - position 为酒馆数字枚举（0-7，4=atDepth 配 depth/role），概率为 0-100 百分数——
  *     映射规则与卡内嵌书共用 [StInterop.resolvePlacement]（酒馆实测语义）
@@ -95,13 +96,7 @@ object WorldBookParser {
         mapKey: String? = null,
     ): WorldBookEntryEntity? {
         return try {
-            // 条目 id 优先级：uid 字段 > id 字段 > uid-map 的键 > UUID
-            val entryId =
-                entry["uid"]?.let { (it as? JsonPrimitive)?.contentOrNull }
-                    ?.takeIf { it.isNotBlank() }
-                    ?: entry["id"]?.let { (it as? JsonPrimitive)?.contentOrNull }?.takeIf { it.isNotBlank() }
-                    ?: mapKey?.takeIf { it.isNotBlank() }
-                    ?: UUID.randomUUID().toString()
+            val entryId = resolveEntryId(entry, mapKey)
 
             val comment = entry["comment"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: ""
             val content = entry["content"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: ""
@@ -131,8 +126,10 @@ object WorldBookParser {
                     keys,
                 )
 
-            // 位置/概率/@D 角色按酒馆实测语义解析（与卡内嵌书同一映射；诊断提示此处不展示，丢弃）
+            // 位置/概率/@D 角色 + 触发语义（selective/四态逻辑/大小写/全字/扫描深度）
+            // 按酒馆实测语义解析（与卡内嵌书同一映射；诊断提示此处不展示，丢弃）
             val placement = StInterop.resolvePlacement(entry, mutableSetOf())
+            val triggering = StInterop.resolveTriggering(entry, mutableSetOf())
 
             WorldBookEntryEntity(
                 id = entryId,
@@ -152,15 +149,30 @@ object WorldBookParser {
                         kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                         secondaryKeys,
                     ),
-                sticky = StInterop.parseSticky(entry["sticky"] as? JsonPrimitive),
+                sticky = triggering.sticky,
                 cooldown = entry["cooldown"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
                 delay = entry["delay"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
                 groupName = entry["group"]?.let { (it as? JsonPrimitive)?.contentOrNull }.orEmpty(),
+                selective = triggering.selective,
+                selectiveLogic = triggering.selectiveLogic,
+                caseSensitive = triggering.caseSensitive,
+                matchWholeWords = triggering.matchWholeWords,
+                scanDepth = triggering.scanDepth,
             )
         } catch (_: Exception) {
             null
         }
     }
+
+    /** 条目 id 优先级：uid 字段 > id 字段 > uid-map 的键 > UUID */
+    private fun resolveEntryId(
+        entry: JsonObject,
+        mapKey: String?,
+    ): String =
+        entry["uid"]?.let { (it as? JsonPrimitive)?.contentOrNull }?.takeIf { it.isNotBlank() }
+            ?: entry["id"]?.let { (it as? JsonPrimitive)?.contentOrNull }?.takeIf { it.isNotBlank() }
+            ?: mapKey?.takeIf { it.isNotBlank() }
+            ?: UUID.randomUUID().toString()
 
     /** key 字段：数组直接取，单字符串包成数组，缺失/异常返回空列表 */
     private fun parseKeys(element: kotlinx.serialization.json.JsonElement?): List<String> {

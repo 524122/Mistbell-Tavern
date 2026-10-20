@@ -27,7 +27,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -45,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.ui.common.ModernDivider
 import com.mistbell.tavern.android.ui.common.ModernSettingsGroup
 import com.mistbell.tavern.android.ui.common.ModernSettingsItem
@@ -116,6 +119,8 @@ fun ModernSettingsScreen(
             )
 
             ConversationSettingsSection(viewModel)
+
+            WorldBookSettingsSection(viewModel)
 
             AppearanceSettingsSection(viewModel, onNavigateToThemeManager)
 
@@ -254,6 +259,103 @@ private fun ConversationSettingsSection(viewModel: SettingsViewModel) {
                 onValueChange = { value -> value?.let { viewModel.setDefaultContextTokens(it) } },
             )
         }
+    }
+}
+
+/**
+ * 世界书全局设置区域：扫描深度与 token 预算（对齐酒馆 World Info 全局项；
+ * 空值=跟随内置默认，默认值的唯一来源是 ChatSettingsResolver）
+ */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookSettingsSection(viewModel: SettingsViewModel) {
+    val scanDepth by viewModel.worldInfoScanDepthSetting.collectAsState()
+    val budgetPercent by viewModel.worldInfoBudgetPercentSetting.collectAsState()
+
+    ModernSettingsGroup(title = "📚 世界书") {
+        WorldBookNumberRow(
+            title = "扫描深度",
+            subtitle = "关键词匹配扫描最近 N 条消息（默认 2，对齐酒馆）",
+            value = scanDepth,
+            placeholder = "2",
+            onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_SCAN_DEPTH, it) },
+        )
+        ModernDivider()
+        WorldBookNumberRow(
+            title = "Token 预算 (%)",
+            subtitle = "世界书内容占上下文预算的百分比，0 = 不裁剪（默认 25，对齐酒馆）",
+            value = budgetPercent,
+            placeholder = "25",
+            onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT, it) },
+        )
+        ModernDivider()
+        // @D 落点开关：开=插进历史内部（酒馆一致）；关=尾部注入（省 token，前缀缓存更长）
+        val inHistory by viewModel.worldInfoInHistorySetting.collectAsState()
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "深度插入进历史", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    text = "开 = 与酒馆一致（@D 插进历史倒数第 N 条）；关 = 注入历史之后，省 token",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = inHistory,
+                onCheckedChange = {
+                    viewModel.saveTextSettingQuietly(
+                        ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY,
+                        if (it) "1" else "0",
+                    )
+                },
+            )
+        }
+    }
+}
+
+/** 数字设置行：仅接受整数或空（空=恢复默认）；合法即逐键静默保存 */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookNumberRow(
+    title: String,
+    subtitle: String,
+    value: String,
+    placeholder: String,
+    onSave: (String) -> Unit,
+) {
+    // 以存储值为准重置本地草稿：备份恢复/他处修改后输入框同步
+    var text by remember(value) { mutableStateOf(value) }
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OutlinedTextField(
+            value = text,
+            onValueChange = { input ->
+                if (input.isBlank() || input.toIntOrNull() != null) {
+                    text = input
+                    onSave(input)
+                }
+            },
+            placeholder = { Text(placeholder) },
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

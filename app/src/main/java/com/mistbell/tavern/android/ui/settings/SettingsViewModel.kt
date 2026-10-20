@@ -53,11 +53,35 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     val groupChatRulesSetting: StateFlow<String> = observeTextSetting(ChatSettingsResolver.KEY_GROUP_CHAT_RULES)
 
+    // 世界书全局设置（扫描深度 / token 预算；展示原始存储值，空=跟随内置默认，解析见 ChatSettingsResolver）
+    val worldInfoScanDepthSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_SCAN_DEPTH)
+
+    val worldInfoBudgetPercentSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT)
+
+    // @D 落点开关：缺省 true（插进历史内部，酒馆一致）；"0"=尾部注入（省 token）
+    val worldInfoInHistorySetting: StateFlow<Boolean> =
+        db.settingsDao()
+            .observeValue(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY)
+            .map { ChatSettingsResolver.worldInfoInHistory(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), true)
+
     private fun observeTextSetting(key: String): StateFlow<String> =
         db.settingsDao()
             .observeValue(key)
             .map { it.orEmpty() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), "")
+
+    /** 静默保存（不弹提示）：数字输入框逐键保存用；存空串 = 恢复"未设置"语义 */
+    fun saveTextSettingQuietly(
+        key: String,
+        value: String,
+    ) {
+        viewModelScope.launch {
+            db.settingsDao().upsert(com.mistbell.tavern.android.data.local.entity.SettingsEntity(key, value))
+        }
+    }
 
     /**
      * 保存提示词类设置（四个键共用）。明文存储，自动纳入备份（BackupManager 整表导出 settings）。
