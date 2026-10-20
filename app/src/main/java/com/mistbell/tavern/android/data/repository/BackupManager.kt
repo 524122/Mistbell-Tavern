@@ -15,6 +15,7 @@ import com.mistbell.tavern.android.data.local.entity.WorldBookEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.vector.InMemoryVectorStore
 import com.mistbell.tavern.android.data.vector.clearIndex
+import com.mistbell.tavern.android.data.vector.exportIndexJson
 import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -222,14 +223,17 @@ class BackupManager(
                     )
                     zip.putJsonEntry(THEME_PACKS, encodeList(tables.themePacks, ThemePackEntity.serializer()))
 
-                    // 主题包资产与向量索引文件（可选条目；缺失不报错）。
+                    // 主题包资产与向量索引（可选条目；缺失不报错）。
                     // 不再导出 Room 的 vector_memory 表：它只存元数据、不含向量，无法重建索引，
                     // 作为"第二份向量数据"只会与权威索引不一致（见 writeAuxiliaryFiles 说明）。
                     tables.themePacks.forEach { pack -> putThemeAssets(zip, context, pack) }
-                    File(context.filesDir, VECTOR_STORE_FILE).takeIf { it.exists() }?.let { f ->
-                        zip.putNextEntry(ZipEntry(VECTOR_STORE_FILE))
-                        f.inputStream().use { it.copyTo(zip) }
-                        zip.closeEntry()
+                    // 向量索引导出走 store API：存储引擎可能是 sqlite-vec（vector_index.db），
+                    // 磁盘上不再有 vector_store.json 可读；zip 条目名与线格式不变
+                    // （见 VectorIndexJson.kt），新旧引擎的备份可以互相恢复
+                    runCatching {
+                        TavernApplication.instance.container.vectorMemoryService.exportIndexJson()
+                    }.getOrNull()?.let { indexJson ->
+                        zip.putJsonEntry(VECTOR_STORE_FILE, indexJson)
                     }
                 }
             } ?: throw IllegalArgumentException("备份失败：无法写入所选位置")

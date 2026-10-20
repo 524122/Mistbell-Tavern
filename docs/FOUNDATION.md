@@ -42,7 +42,7 @@
 | 5 | 崩溃上报 | ACRA（acra-http 指向自建端点 或 acra-mail） | Apache-2.0 | 中 | 默认关闭 + 首启征同意 + 字段脱敏；Sentry 已转 BSL/FSL 非开源且云版违背隐私定位，排除 |
 | 6 | 角色卡/世界书互操作 | **自研薄解析层**（kotlinx DTO 数百行）+ **pngj** 读写 PNG tEXt chunk | MIT | 低-中 | 规范基准：malfoyslastname/character-card-spec-v2 + ST Docs worldinfo；无成熟 JVM 库，TS/Rust 生态库仅作对照 |
 | 7 | 本地语义向量 | **onnxruntime-android + 量化 MiniLM**（英文 all-MiniLM-L6-v2 int8 ≈23MB/384 维；中文 bge-small-zh-v1.5 ≈24MB，MIT） | MIT / Apache-2.0 | 中 | 需自移植 WordPiece 分词（或 onnxruntime-extensions Tokenizer op）；MediaPipe TextEmbedder 维护放缓、.task 生态封闭，不作长期地基 |
-| 8 | 向量持久化 | 近期：Room 存 blob + 暴力余弦（万级内毫秒级）<br>升级：**sqlite-vec**（MIT）+ requery/sqlite-android 自定义 SQLite 与 Room 共存 | MIT | 近期低 / 升级中 | ObjectBox 向量搜索：Java 绑定 Apache-2.0 但原生核许可需复审 + 引入第二数据库，暂不选 |
+| 8 | 向量持久化 | **已落地（2026-10-20）**：sqlite-vec v0.1.9（MIT）+ requery/sqlite-android 独立向量库（`vector_index.db`，按维度分 vec0 表），JSON 内存索引保留为探测失败时的回退 | MIT | 已实施 | ObjectBox 向量搜索：Java 绑定 Apache-2.0 但原生核许可需复审 + 引入第二数据库，暂不选 |
 | 9 | Markdown 渲染 | 暂保持手写解析器；升级时换 compose-richtext（halilozercan，基于 commonmark） | MIT | 中 | 现有正则解析够用；流式输出上线后渲染压力上升再换 |
 
 **被否决/降级记录**：openai-kotlin 4.x（MIT，流式好但引入 Ktor 双 HTTP 栈，自定义端点 API 未核实——仅当彻底重写客户端再议）；Ktor SSE（取消不断连的历史 issue）；heremaps/oksse（停更）；MediaPipe TextEmbedder（维护放缓）；llama.cpp embedding（内存/冷启动重，仅当引入本地生成引擎时一并考虑）；Sentry（许可证+隐私双否）。

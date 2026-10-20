@@ -5,6 +5,32 @@
 
 本文件记录实现进度、设计取舍与验证结果，供 Codex 从文件独立核查。对应设计文档：docs/SESSION_SCOPED_MEMORY.md；前序审查：docs/LONG_TERM_MEMORY_CODE_REVIEW.md；本轮可重复验收：docs/SESSION_MEMORY_RECOVERY_ACCEPTANCE.md；历史 Codex 审查：review-round-1..12.md（监督目录）。
 
+## 2026-10-20：混合召回、孤儿对账补全与 sqlite-vec 存储引擎
+
+### 实现
+
+- **混合召回（`RecallRanker`）**：有 embedding 时向量路与词法路同时检索，按 RRF（Reciprocal Rank Fusion，k=60）融合；仅向量命中且低于阈值仍丢弃，有词法印证的低分候选保留，纯词法命中保留并标注 `(keyword match)`（不伪造相似度）。时间衰减（半衰期 14 天、权重 0.15）与 summary ×1.1 仅作有界平局裁决；归一化内容去重替代完整 MMR。无 embedding 的词法回退路径不变。
+- **阈值修复**：召回格式化层硬编码的 `score > 0.5` 下限移除——用户可配阈值（默认 0.35）此前被实际钳到 0.5；阈值现在只在 RecallRanker 统一应用一次。
+- **消息级孤儿对账（`reconcileOrphanedSourcesWithDatabase`）**：每次启动在会话级对账后追加存在性核查（消息/记忆两个命名空间，500 条分块 IN 查询，源表为空则跳过该命名空间），孤儿向量按 `deleteByFilters` 集合匹配删除。收口的是"删除落盘被强杀打断而复活"的残留（召回时 Validator 兜底之外的预算治理）。
+- **sqlite-vec 存储引擎（`SqliteVecStore`）**：vec0 虚拟表（按维度分表，元数据列可下推 KNN 过滤，`+content` 辅助列存载荷）+ requery sqlite-android（系统 SQLite 不能加载扩展），独立 `vector_index.db`，WAL + incremental auto-vacuum。增量持久化取代整文件 JSON 重写；向量离堆；`flush`/`reload` 退化为真值/no-op。字节预算淘汰复用纯函数 `VectorEviction`。装配期 `probe()` 探测扩展可用性，失败自动回退 `InMemoryVectorStore`（JSON 引擎保留）；旧 `vector_store.json` 在 sqlite 库为空时自动迁移（原文件改名 `.legacy` 兜底）。备份 zip 条目名与线格式不变（`VectorIndexJson.kt` 共享序列化），`SessionMemoryReset` 清零同时覆盖两种引擎的索引文件。
+- **打包**：jniLibs 内置 4 个 ABI 的 `vec0.so`（sha256 经 GitHub release 校验）；`packagingOptions.jniLibs.useLegacyPackaging = true`（sqlite3_load_extension 需要文件系统路径）。
+
+### 本轮实测结果
+
+| 项目 | 实际结果 |
+|---|---|
+| JVM 单测 | **619 项 / 0 失败 / 0 错误**（含新增 RecallRankerTest 12 项、VectorOrphanReconcileTest 8 项、VectorIndexJsonTest 5 项） |
+| Android 契约测试（Pixel_10 模拟器，x86_64） | `SqliteVecStoreContractTest` **9 项 / 0 失败**：扩展探测、KNN + 等值/IN 过滤、cosine→score 映射、身份收敛、删除闸门、purge、import/export 往返、重开持久化、未知过滤键 |
+| `assembleDebug` | 通过；模拟器安装启动无崩溃，logcat 确认 `Vector store: sqlite-vec`（探测成功、生产装配走新引擎） |
+
+### 已知边界
+
+- vec0 是精确暴力搜索（非 ANN），万级向量在 C 层毫秒级，对本应用规模足够；
+- 删除意图闸门仍为内存态（与 JSON 实现同一设计决策），进程结束由启动对账兜底；
+- vec0 TEXT 元数据列拒绝 NULL，缺键统一落为空串，读回时 `source_revision` 空串还原为"键缺失"（Validator 的 revision 语义依赖 null）；
+- KNN 查询中 `k` 与 `LIMIT` 互斥（vec0 约束），实现只用 `k`。
+
+
 ## 2026-10-19：持久化恢复与真实验收
 
 ### 实现

@@ -23,6 +23,8 @@ dependencyResolutionManagement {
         }
         google()
         mavenCentral()
+        // requery sqlite-android（sqlite-vec 扩展加载的载体）只在 JitPack 发布
+        maven { url "https://jitpack.io" }
     }
 }
 

@@ -15,8 +15,10 @@ import com.mistbell.tavern.android.data.vector.InMemoryVectorStore
 import com.mistbell.tavern.android.data.vector.LocalEmbeddingService
 import com.mistbell.tavern.android.data.vector.MockEmbeddingService
 import com.mistbell.tavern.android.data.vector.OpenAIEmbeddingService
+import com.mistbell.tavern.android.data.vector.SqliteVecStore
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.data.vector.isValidVectorIndex
 import com.mistbell.tavern.android.util.SecureStore
 import java.io.File
 
@@ -52,32 +54,61 @@ class AppContainer(private val appContext: Context) {
         }
 
     val vectorStore: VectorStore by lazy {
-        try {
-            // 生产索引不设 1000 条硬上限：向量是长期记忆的持久化派生索引，
-            // 静默淘汰会让早期记忆永久退出召回。受限容量场景仍可在构造时传正数。
-            //
-            // 但**不设条数上限不等于不限容量**：整文件重写的索引会无界增长，低存储设备上
-            // 先是写不进去、再是整份索引一起坏掉。所以改为按字节预算治理磁盘占用
-            // （见 InMemoryVectorStore.DEFAULT_INDEX_BUDGET_BYTES），超预算时按价值淘汰并在
-            // 设置页显示占用——淘汰是可观测的，不再是静默遗忘。
-            val baseStore =
-                InMemoryVectorStore(
-                    appContext,
-                    maxVectorsInMemory = 0,
-                    loadGate = sessionMemoryResetGate,
-                )
-            CachedVectorStore(baseStore, cacheSize = 50).also {
-                Log.d(TAG, "Vector store initialized with cache (lazy)")
+        // runBlocking 限定在装配边界：lazy 首触发出自协程（与 embeddingService 同一先例）。
+        // 探测/迁移是一次性启动工作，放在装配里而不是塞进首个读写请求
+        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+            CachedVectorStore(assembleVectorStore(), cacheSize = 50)
+        }
+    }
+
+    /**
+     * 向量存储装配：首选 sqlite-vec 引擎（增量持久化、离堆存储、C 层 KNN）；
+     * 探测失败（扩展加载不了/库打不开）→ 回退 JSON 内存索引（旧行为），召回链路不感知。
+     *
+     * 索引容量治理不变：按字节预算淘汰（见 VectorEviction），超预算按价值淘汰并在
+     * 设置页显示占用——淘汰是可观测的，不再是静默遗忘。
+     */
+    private suspend fun assembleVectorStore(): VectorStore {
+        val sqliteStore = SqliteVecStore(appContext, loadGate = sessionMemoryResetGate)
+        return try {
+            if (sqliteStore.probe()) {
+                migrateLegacyJsonIndexIfNeeded(sqliteStore)
+                Log.d(TAG, "Vector store: sqlite-vec")
+                sqliteStore
+            } else {
+                fallbackJsonStore()
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize vector store: ${e.message}", e)
-            val baseStore =
-                InMemoryVectorStore(
-                    appContext,
-                    maxVectorsInMemory = 0,
-                    loadGate = sessionMemoryResetGate,
-                )
-            CachedVectorStore(baseStore, cacheSize = 50)
+            Log.e(TAG, "sqlite-vec 初始化失败，回退 JSON 索引：${e.message}", e)
+            fallbackJsonStore()
+        }
+    }
+
+    private fun fallbackJsonStore(): VectorStore {
+        Log.w(TAG, "Vector store: JSON 内存索引（回退）")
+        return InMemoryVectorStore(appContext, maxVectorsInMemory = 0, loadGate = sessionMemoryResetGate)
+    }
+
+    /**
+     * 一次性迁移：旧 JSON 索引（vector_store.json）存在且 sqlite 库为空 → 按同一线格式导入，
+     * 成功后旧文件改名 `.legacy` 留作兜底（不删——导入有问题时用户还能手动恢复）。
+     * sqlite 库已有数据时旧文件直接忽略（迁移此前已成功）。
+     */
+    private suspend fun migrateLegacyJsonIndexIfNeeded(store: SqliteVecStore) {
+        val legacyFile = File(appContext.filesDir, InMemoryVectorStore.FILE_NAME)
+        if (!legacyFile.exists() || store.count() > 0) return
+        val content = legacyFile.readText()
+        if (!isValidVectorIndex(content)) {
+            Log.w(TAG, "旧 JSON 索引无法解析，跳过迁移（文件保留）")
+            return
+        }
+        if (store.importIndex(content)) {
+            val legacyBackup = File(appContext.filesDir, "${InMemoryVectorStore.FILE_NAME}.legacy")
+            if (legacyFile.renameTo(legacyBackup)) {
+                Log.i(TAG, "旧 JSON 索引已迁移到 sqlite-vec，原文件改名为 ${legacyBackup.name}")
+            }
         }
     }
 

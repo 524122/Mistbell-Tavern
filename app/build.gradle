@@ -75,6 +75,11 @@ android {
             excludes += ['/META-INF/INDEX.LIST']
             excludes += ['/META-INF/DEPENDENCIES']
         }
+        jniLibs {
+            // sqlite3_load_extension 需要文件系统路径：.so 必须从 APK 解压到设备
+            //（AGP 不允许在 manifest 里直接设 extractNativeLibs，等效开关在这里）
+            useLegacyPackaging = true
+        }
     }
 
     compileOptions {
@@ -164,6 +169,10 @@ dependencies {
 
     // F3 本地语义向量：onnxruntime-android（MIT）+ assets 内置量化 BGE 中文模型
     implementation "com.microsoft.onnxruntime:onnxruntime-android:1.17.3"
+
+    // 向量索引存储（sqlite-vec）：系统 SQLite 不支持加载扩展，用 requery 的自带 SQLite 打开
+    // 独立向量库并加载 jniLibs 里的 vec0.so（android:extractNativeLibs="true" 提供文件系统路径）
+    implementation "com.github.requery:sqlite-android:3.49.0"
 
     // 单元测试（本地 JVM）
     testImplementation "junit:junit:4.13.2"

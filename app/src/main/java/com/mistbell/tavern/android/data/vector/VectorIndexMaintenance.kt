@@ -195,6 +195,23 @@ private const val STRUCTURED_MEMORY_PREFIX = "structured_memory_"
 private const val SOURCE_CHECK_CHUNK_SIZE = 500
 
 /**
+ * 备份导出：把当前索引序列化为 `vector_store.json` 线格式（与存储引擎无关——
+ * sqlite-vec 与 JSON 内存索引产出同一格式，备份 zip 条目对两种引擎可互相恢复）。
+ *
+ * 失败返回 null（调用方跳过该条目，与"索引文件不存在"的旧语义一致）；
+ * 索引为空时导出 `{"vectors":[]}`——恢复侧据此跳过昂贵的全量重建。
+ */
+suspend fun VectorMemoryService.exportIndexJson(): String? =
+    try {
+        encodeVectorIndex(indexStore().entriesSnapshot())
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.e(TAG, "索引导出失败（备份将不含索引条目）：${e.message}", e)
+        null
+    }
+
+/**
  * 获取向量存储统计信息（条数 + 落盘字节 + 预算）。
  *
  * 磁盘容量治理必须**可观测**：设置页据此显示占用，索引是否接近上限不再是一个看不见的状态。

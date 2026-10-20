@@ -5,6 +5,7 @@ import android.util.Log
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.data.vector.InMemoryVectorStore
+import com.mistbell.tavern.android.data.vector.SqliteVecStore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -110,6 +111,10 @@ object SessionMemoryReset {
             runCatching {
                 db.structuredMemoryDao().deleteAll()
                 deleteWithTemp(File(context.filesDir, InMemoryVectorStore.FILE_NAME))
+                // sqlite-vec 引擎的索引库（含 WAL/SHM 伴生文件）——与 JSON 索引同一份"旧记忆"
+                deleteWithTemp(File(context.filesDir, SqliteVecStore.FILE_NAME))
+                deleteWithTemp(File(context.filesDir, "${SqliteVecStore.FILE_NAME}-wal"))
+                deleteWithTemp(File(context.filesDir, "${SqliteVecStore.FILE_NAME}-shm"))
                 deleteWithTemp(File(context.filesDir, PendingExtractionStore.FILE_NAME))
             }.onFailure {
                 Log.w(TAG, "会话内记忆升级清零失败，下次启动重试：${it.message}", it)

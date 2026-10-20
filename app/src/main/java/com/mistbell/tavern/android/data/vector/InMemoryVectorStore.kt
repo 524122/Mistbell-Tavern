@@ -10,9 +10,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
@@ -118,12 +115,8 @@ class InMemoryVectorStore(
         )
     private var deletionGeneration = 0L
 
-    // prettyPrint 会让 512 维向量每个分量独占一行（约 40 字节/分量，单条 7.7 KB）。
-    // 索引是机器读的，没有人会去看它，紧凑输出省下约 1/3 体积。
-    private val json =
-        Json {
-            ignoreUnknownKeys = true
-        }
+    // 落盘/备份的线格式契约收敛到 VectorIndexJson.kt（与 sqlite-vec 实现、备份导出共用一份），
+    // 本类只保留与"内存态 + 整文件重写"相关的编排逻辑。
 
     /** 合并窗口的执行器：写盘永远在 IO 线程，绝不占用调用方线程（发送链路、主线程） */
     private val writeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -200,21 +193,12 @@ class InMemoryVectorStore(
         internal const val MESSAGE_KEY = "message_id"
 
         /**
-         * 备份恢复前的索引校验：能解析成 [VectorStoreData] 才接受。
+         * 备份恢复前的索引校验：能解析才接受（线格式契约见 VectorIndexJson.kt）。
          *
          * 索引文件是向量召回的唯一权威（Room 的 vector_memory 只存元数据、不含向量，
          * 无法重建索引），写进一个坏文件会让召回整体失效且不可逆，故先验后写。
-         * 校验用的解析器（与实例 [json] 同配置）在伴生对象里只建一次。
          */
-        private val validatorJson = Json { ignoreUnknownKeys = true }
-
-        fun isValidIndex(content: String): Boolean =
-            try {
-                validatorJson.decodeFromString<VectorStoreData>(content)
-                true
-            } catch (_: Exception) {
-                false
-            }
+        fun isValidIndex(content: String): Boolean = isValidVectorIndex(content)
     }
 
     private var isLoaded = false
@@ -790,19 +774,7 @@ class InMemoryVectorStore(
         }
     }
 
-    private fun encode(snapshot: Snapshot): String =
-        json.encodeToString(
-            VectorStoreData(
-                vectors =
-                    snapshot.entries.map { entry ->
-                        SerializableVectorEntry(
-                            id = entry.id,
-                            vector = entry.vector.toList(),
-                            metadata = entry.metadata.mapValues { (_, v) -> v.toString() },
-                        )
-                    },
-            ),
-        )
+    private fun encode(snapshot: Snapshot): String = encodeVectorIndex(snapshot.entries)
 
     /**
      * 锁内拍下的"这次要落盘的内容"。
@@ -867,7 +839,7 @@ class InMemoryVectorStore(
 
             try {
                 val content = storageFile.readText()
-                val data = json.decodeFromString<VectorStoreData>(content)
+                val entries = decodeVectorIndex(content) ?: throw IllegalArgumentException("索引内容无法解析")
 
                 // 旧格式收敛：历史实现每次写入生成随机 vectorId 且旧项不删，磁盘上同一
                 // (owner, session, message_id) 可能堆多条旧副本——全部会被召回。加载时按
@@ -875,7 +847,7 @@ class InMemoryVectorStore(
                 // 由下次写入自愈；保留最后一条最接近"最新一次写入"的语义）。
                 val keptByIdentity = mutableMapOf<Triple<*, *, *>, String>()
 
-                data.vectors.forEach { entry ->
+                entries.forEach { entry ->
                     // 已被删除的消息不再复活：内存里的删除意图比磁盘旧内容新
                     val messageId = entry.metadata[MESSAGE_KEY]
                     if (messageId != null && messageId in deletedMessageIds) return@forEach
@@ -884,12 +856,7 @@ class InMemoryVectorStore(
                         keptByIdentity.remove(identity)?.let { staleId -> vectors.remove(staleId) }
                         keptByIdentity[identity] = entry.id
                     }
-                    vectors[entry.id] =
-                        VectorStore.VectorEntry(
-                            id = entry.id,
-                            vector = entry.vector.toFloatArray(),
-                            metadata = entry.metadata,
-                        )
+                    vectors[entry.id] = entry
                 }
 
                 Log.d(TAG, "Loaded ${vectors.size} vectors from disk")
@@ -897,18 +864,6 @@ class InMemoryVectorStore(
                 Log.e(TAG, "Failed to load vectors from disk: ${e.message}", e)
             }
         }
-
-    @Serializable
-    private data class VectorStoreData(
-        val vectors: List<SerializableVectorEntry>,
-    )
-
-    @Serializable
-    private data class SerializableVectorEntry(
-        val id: String,
-        val vector: List<Float>,
-        val metadata: Map<String, String>,
-    )
 }
 
 /** 该条目对应的源消息 id（登记/解除删除意图用）；摘要副本同样带 `message_id`。 */
