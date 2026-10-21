@@ -44,6 +44,17 @@ class CachedVectorStore(
      */
     private val cacheGeneration = AtomicLong(0)
 
+    /**
+     * 最近一次 search 是否命中缓存（null = 尚未检索过）。
+     *
+     * 召回可观测性（PromptBuilder 的 RecallDiagnostics）由此读缓存命中情况——
+     * 缓存内部的 hit/miss 日志是 per-query 的噪声，这里是给诊断面板的单点出口。
+     * @Volatile 足够：诊断只读最后一次结果，不需要与检索同锁。
+     */
+    @Volatile
+    var lastSearchCacheHit: Boolean? = null
+        private set
+
     companion object {
         private const val TAG = "CachedVectorStore"
     }
@@ -95,12 +106,14 @@ class CachedVectorStore(
         // 尝试从缓存获取
         cacheMutex.withLock {
             searchCache.get(cacheKey)?.let { cached ->
+                lastSearchCacheHit = true
                 Log.d(TAG, "Cache hit for search (hash=${cacheKey.vectorHash})")
                 return cached
             }
         }
 
         // 缓存未命中，执行实际搜索（锁外 await 慢操作，不持锁跨 delegate）
+        lastSearchCacheHit = false
         Log.d(TAG, "Cache miss for search (hash=${cacheKey.vectorHash})")
         val results = delegate.search(queryVector, topK, filters)
 

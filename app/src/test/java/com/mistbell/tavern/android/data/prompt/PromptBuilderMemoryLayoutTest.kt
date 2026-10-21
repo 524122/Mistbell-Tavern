@@ -137,35 +137,38 @@ class PromptBuilderMemoryLayoutTest {
     fun `内容已被结构化记忆覆盖的召回行被丢弃`() {
         val injected = listOf("蒋珞要求 user 放学后带芋泥口味的千层")
         // summary 副本形态："标题: 正文 [类型]"——正文被包含即为重复
-        val out =
+        val render =
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("蒋珞要千层: 蒋珞要求 user 放学后带芋泥口味的千层 [preference]")),
                 alreadyInjected = injected,
             )
-        assertEquals("", out)
+        assertEquals("", render.text)
+        assertEquals(0, render.injectedCount)
     }
 
     @Test
     fun `未覆盖的召回行保留并带标题`() {
         val injected = listOf("蒋珞要求 user 放学后带芋泥口味的千层")
-        val out =
+        val render =
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("昨晚课堂上张老师点名提问了三次")),
                 alreadyInjected = injected,
             )
-        assertTrue(out.contains("## Relevant Past Conversations"))
-        assertTrue(out.contains("昨晚课堂上张老师点名提问了三次"))
+        assertTrue(render.text.contains("## Relevant Past Conversations"))
+        assertTrue(render.text.contains("昨晚课堂上张老师点名提问了三次"))
+        assertEquals(1, render.injectedCount)
     }
 
     @Test
     fun `重复结果全部过滤时返回空串`() {
         val injected = listOf("user 的名字是墨轩")
-        val out =
+        val render =
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("user 的名字是墨轩 [identity]")),
                 alreadyInjected = injected,
             )
-        assertEquals("", out)
+        assertEquals("", render.text)
+        assertEquals(0, render.injectedCount)
     }
 
     @Test
@@ -176,7 +179,7 @@ class PromptBuilderMemoryLayoutTest {
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("阈值分段内的历史片段", score = 0.4f)),
                 alreadyInjected = emptyList(),
-            )
+            ).text
         assertTrue(out.contains("阈值分段内的历史片段"))
         assertTrue(out.contains("similarity: 40%"))
     }
@@ -187,7 +190,7 @@ class PromptBuilderMemoryLayoutTest {
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("含有专有名词的历史片段", score = null)),
                 alreadyInjected = emptyList(),
-            )
+            ).text
         assertTrue(out.contains("(keyword match)"))
         assertFalse(out.contains("similarity"))
     }
@@ -198,7 +201,7 @@ class PromptBuilderMemoryLayoutTest {
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("任意历史片段")),
                 alreadyInjected = emptyList(),
-            )
+            ).text
         assertTrue(out.contains("1. 任意历史片段"))
     }
 
@@ -208,7 +211,7 @@ class PromptBuilderMemoryLayoutTest {
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("user 讨厌被叫主人")),
                 alreadyInjected = listOf("user 讨厌被叫主人，尤其是带嘲讽的语气"),
-            )
+            ).text
         assertEquals("", out)
     }
 
@@ -218,7 +221,7 @@ class PromptBuilderMemoryLayoutTest {
             PromptBuilder.buildRecallContextForPrompt(
                 ranked = listOf(hit("片段")),
                 alreadyInjected = listOf("这是一条足够长的记忆正文片段内容"),
-            )
+            ).text
         // 短文本不参与判定（长度 < 8），因此这条应保留
         assertTrue(out.contains("片段"))
     }

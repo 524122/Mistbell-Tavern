@@ -260,6 +260,7 @@ class VectorMemoryService(
 
         return try {
             // 1. 查询向量化
+            val startedAt = System.nanoTime()
             val queryEmbedding = embeddingService.embed(query)
 
             // 2. 构建过滤器：owner + 指纹 + 会话集合（sessionValues 必非空，见上面早退）
@@ -273,6 +274,7 @@ class VectorMemoryService(
             // 3. 向量检索（含 CachedVectorStore 命中）后仍按 Room 当前源版本收口
             val indexedResults = vectorStore.search(queryEmbedding, topK, filters)
             val results = recallValidator?.invoke(indexedResults) ?: indexedResults
+            val latencyMs = (System.nanoTime() - startedAt) / 1_000_000
 
             Log.d(
                 TAG,
@@ -280,7 +282,13 @@ class VectorMemoryService(
                     "(scoped=true, sessions=${sessionValues.size})",
             )
 
-            SearchOutcome(results = results, sessionScoped = true)
+            SearchOutcome(
+                results = results,
+                sessionScoped = true,
+                storeCandidates = indexedResults.size,
+                cacheHit = (vectorStore as? CachedVectorStore)?.lastSearchCacheHit,
+                latencyMs = latencyMs,
+            )
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -322,9 +330,15 @@ class VectorMemoryService(
      *
      * @param sessionScoped 本次是否按会话收窄。false 只表示**窗口缺会话边界、本次已拒绝召回**
      *   （结果必为空）——跨会话/owner 级的退化路径已整体移除，绝不静默放宽召回范围。
+     * @param storeCandidates 存储层返回的候选条数（Validator 校验前；观测用，见 RecallDiagnostics）
+     * @param cacheHit 底层是 CachedVectorStore 时本次是否命中缓存；否则 null
+     * @param latencyMs 本次检索耗时（含查询向量化）
      */
     data class SearchOutcome(
         val results: List<VectorStore.SearchResult>,
         val sessionScoped: Boolean,
+        val storeCandidates: Int = 0,
+        val cacheHit: Boolean? = null,
+        val latencyMs: Long = 0,
     )
 }

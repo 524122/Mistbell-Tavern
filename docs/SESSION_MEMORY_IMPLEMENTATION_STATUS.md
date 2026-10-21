@@ -5,6 +5,21 @@
 
 本文件记录实现进度、设计取舍与验证结果，供 Codex 从文件独立核查。对应设计文档：docs/SESSION_SCOPED_MEMORY.md；前序审查：docs/LONG_TERM_MEMORY_CODE_REVIEW.md；本轮可重复验收：docs/SESSION_MEMORY_RECOVERY_ACCEPTANCE.md；历史 Codex 审查：review-round-1..12.md（监督目录）。
 
+## 2026-10-21：召回可观测性（RecallDiagnostics）
+
+### 实现
+
+- **诊断值对象（`RecallDiagnostics`）**：一轮长期记忆召回的来源/条数/耗时/缓存命中，沿调用链以返回值传递（不引入单例可变状态），挂在 `PromptTrace` 上——真实发送与「查看提示词」预览看到同一次召回的实情，不改变实际发出的消息。
+- **逐层出口**：`CachedVectorStore.lastSearchCacheHit`（缓存命中单点出口）；`VectorMemoryService.SearchOutcome` 增加 storeCandidates/cacheHit/latencyMs（默认值向后兼容）；`PromptBuilder` 装配时记录结构化条数与预算、两路候选数、融合数、去重后注入行数、两路耗时，召回块未注入时给出六种原因之一（闸门未过/缺会话边界/历史未裁剪/无命中/被结构化块覆盖/检索异常）。
+- **呈现**：预览参数栏新增「记忆召回」行（`summaryLine()` 一行摘要）；复制提示词全文附带该行；注入点来源标签拆分为「会话记忆·结构化」「会话记忆·召回」；`PromptDiag` log 同步追加。
+- 至此 `SESSION_SCOPED_MEMORY.md` 13.3 全部事项落地。
+
+### 本轮实测结果
+
+| 项目 | 实际结果 |
+|---|---|
+| JVM 单测 | **625 项 / 0 失败 / 0 错误**（新增 RecallDiagnosticsTest 6 项；既有召回渲染测试适配 RecallRender 返回类型并补注入条数断言） |
+
 ## 2026-10-20：混合召回、孤儿对账补全与 sqlite-vec 存储引擎
 
 ### 实现

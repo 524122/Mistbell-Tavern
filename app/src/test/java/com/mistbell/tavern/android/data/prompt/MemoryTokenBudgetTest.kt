@@ -118,7 +118,7 @@ class MemoryTokenBudgetTest {
                 fromLexical = false,
             )
 
-        val text = PromptBuilder.buildRecallContextForPrompt(listOf(hit), emptyList())
+        val text = PromptBuilder.buildRecallContextForPrompt(listOf(hit), emptyList()).text
 
         assertTrue("召回行必须被截断", text.length < long.length)
         assertTrue(text.contains("…"))

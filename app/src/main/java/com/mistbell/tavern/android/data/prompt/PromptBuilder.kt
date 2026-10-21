@@ -441,6 +441,8 @@ object PromptBuilder {
         val totalEstimatedTokens: Int,
         val truncationReasons: List<String> = emptyList(),
         val protocolConversionResults: List<String> = emptyList(),
+        /** 本轮长期记忆召回的诊断（来源/条数/耗时/缓存命中；与本次装配同源） */
+        val recallDiagnostics: RecallDiagnostics? = null,
     ) {
         /** 单段估算 token（预览页展示用；与 PromptDiag 同一估算口径） */
         fun tokensOf(segment: Segment): Int = estimateTokensOf(segment.message.content)
@@ -914,11 +916,11 @@ object PromptBuilder {
         // 逐轮易变的内容集中尾部；@D 块默认插进历史内部（worldInfoInHistory），省电模式才落尾部
         // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
         // 召回片段必然与之重复（纯浪费 token 且拉低缓存命中率），此判定无信息损失
-        messages.addAll(
-            memoryContext
-                .messagesFor(historyTruncated = historyTruncated)
-                .map { Segment(it, "会话记忆") },
-        )
+        // （与 MemoryContext.messagesFor 同一顺序：先结构化、后召回；标签分开便于预览区分来源）
+        memoryContext.structuredBlock?.let { messages.add(Segment(it, "会话记忆·结构化")) }
+        if (historyTruncated) {
+            memoryContext.recallBlock?.let { messages.add(Segment(it, "会话记忆·召回")) }
+        }
 
         // 在长期记忆之后统一注入所有激活条目（非 constant）。
         // 顺序：按原语义锚点排列 beforePrompt → afterPrompt → emBefore → emAfter → anBefore → anAfter；
@@ -976,12 +978,23 @@ object PromptBuilder {
         // 历史是否被裁剪、以及估算值与 API 实发 token 的偏差——排查"实发超配置/缓存命中率低"的直接依据
         val estimatedTotal = messages.sumOf { estimateTokens(it.message.content) }
         val insertedMemory = memoryContext.messagesFor(historyTruncated = historyTruncated)
+        // 召回诊断的最终形态：召回块装配成功但历史未裁剪时，注入点会丢弃它——
+        // 这是唯一一个装配点之后才确定的 droppedReason，在这里补上（诊断与预览/日志同源）
+        val recallDiagnostics =
+            memoryContext.diagnostics.let { diag ->
+                if (diag.droppedReason == null && memoryContext.recallBlock != null && !historyTruncated) {
+                    diag.copy(droppedReason = RecallDiagnostics.DROP_HISTORY_INTACT)
+                } else {
+                    diag
+                }
+            }
         android.util.Log.d(
             "PromptDiag",
             "contextLimit=$contextTokenLimit 消息=${messages.size}条 估算=${estimatedTotal}tok " +
                 "历史=${history.size}/${recentMessages.size}条(${history.sumOf { estimateTokens(it.content) }}tok) " +
                 "记忆=${insertedMemory.size}块(${insertedMemory.sumOf { estimateTokens(it.content) }}tok) " +
-                "历史被裁剪=$historyTruncated 召回块丢弃=${memoryContext.recallBlock != null && !historyTruncated}",
+                "历史被裁剪=$historyTruncated 召回块丢弃=${memoryContext.recallBlock != null && !historyTruncated} " +
+                "召回诊断=${recallDiagnostics.summaryLine()}",
         )
 
         // Trace is also consumed by the preview UI.  Every segment gets a stable
@@ -1008,6 +1021,7 @@ object PromptBuilder {
                     }
                     addAll(wiBudgetDrops)
                 },
+            recallDiagnostics = recallDiagnostics,
             protocolConversionResults =
                 listOf(
                     "OpenAI/custom: ChatMessage role/content -> messages[].role/content",
@@ -1172,6 +1186,8 @@ object PromptBuilder {
     internal data class MemoryContext(
         val structuredBlock: ChatMessage? = null,
         val recallBlock: ChatMessage? = null,
+        /** 本轮召回的诊断（只读投影；装配决策不受影响，见 RecallDiagnostics） */
+        val diagnostics: RecallDiagnostics = RecallDiagnostics(),
     ) {
         /**
          * 组装用。
@@ -1201,7 +1217,11 @@ object PromptBuilder {
     ): MemoryContext {
         // 闸门失败 = 记忆链未就绪：整条记忆上下文降级为空（结构化 + 召回一起不注入），
         // 对话可以继续，只是这一轮没有长期记忆——不召回优于召错
-        if (!awaitGateForRecall()) return MemoryContext()
+        if (!awaitGateForRecall()) {
+            return MemoryContext(
+                diagnostics = RecallDiagnostics(droppedReason = RecallDiagnostics.DROP_GATE_CLOSED),
+            )
+        }
 
         // 召回范围：结构化 / 向量 / 词法三条通道共用同一窗口（见 [RecallWindow]）。
         // 长期记忆已永久固定为「owner + 当前会话」：档位设置（MemoryScope）归一化为 SESSION，
@@ -1215,9 +1235,15 @@ object PromptBuilder {
                 scope = MemoryScope.SESSION,
             )
         val (structuredBlock, injectedContents) = structuredMemoryBlock(db, query, window, contextTokenLimit)
+        val recall = recallBlock(db, query, window, injectedContents)
         return MemoryContext(
             structuredBlock = structuredBlock,
-            recallBlock = recallBlock(db, query, window, injectedContents),
+            recallBlock = recall.block,
+            diagnostics =
+                recall.diagnostics.copy(
+                    structuredCount = injectedContents.size,
+                    structuredBudgetTokens = memoryBlockBudget(contextTokenLimit),
+                ),
         )
     }
 
@@ -1276,6 +1302,12 @@ object PromptBuilder {
         )
     }
 
+    /** 一次召回块装配的产物：注入块 + 诊断（诊断与块同源，见 RecallDiagnostics） */
+    private data class RecallOutcome(
+        val block: ChatMessage?,
+        val diagnostics: RecallDiagnostics,
+    )
+
     /** 语义召回块：有真实 embedding 服务（API 或本地 ONNX，F3）→ 向量+词法混合召回；否则词法回退（F3-FTS） */
     @Suppress("TooGenericExceptionCaught") // 检索失败不应阻塞对话
     private suspend fun recallBlock(
@@ -1283,7 +1315,7 @@ object PromptBuilder {
         query: MemoryRecallQuery,
         window: RecallWindow,
         injectedContents: List<String>,
-    ): ChatMessage? =
+    ): RecallOutcome =
         try {
             val vectorMemoryService = vectorMemoryServiceProvider()
             if (vectorMemoryService.available) {
@@ -1293,7 +1325,14 @@ object PromptBuilder {
             }
         } catch (e: Exception) {
             android.util.Log.e("PromptBuilder", "Memory search failed: ${e.message}", e)
-            null
+            RecallOutcome(
+                block = null,
+                diagnostics =
+                    RecallDiagnostics(
+                        vectorAvailable = vectorMemoryServiceProvider().available,
+                        droppedReason = RecallDiagnostics.DROP_RECALL_FAILED,
+                    ),
+            )
         }
 
     /**
@@ -1310,7 +1349,7 @@ object PromptBuilder {
         window: RecallWindow,
         injectedContents: List<String>,
         vectorMemoryService: VectorMemoryService,
-    ): ChatMessage? {
+    ): RecallOutcome {
         // S2 召回设置：top-k 与相似度阈值全局可配（读取时解析，存储为纯数值）
         val topK = ChatSettingsResolver.memoryRecallTopK(db.settingsDao().getValue("memory_recall_top_k"))
         val threshold =
@@ -1325,9 +1364,11 @@ object PromptBuilder {
                 window = window,
                 topK = topK * HYBRID_VECTOR_CANDIDATE_MULTIPLIER,
             )
+        val lexicalStartedAt = System.nanoTime()
         val lexicalItems =
             LexicalMemoryService(TavernApplication.instance)
                 .searchRelevantHistory(window = window, query = query.userMessage)
+        val lexicalLatencyMs = (System.nanoTime() - lexicalStartedAt) / 1_000_000
 
         // 阈值不再在这里预先过滤：RecallRanker 需要看到低于阈值的向量候选——
         // 其中有词法 corroborate 的会被保留（混合召回的核心收益），其余才丢弃
@@ -1340,13 +1381,41 @@ object PromptBuilder {
                 nowEpochMs = System.currentTimeMillis(),
             )
 
+        val diagnostics =
+            RecallDiagnostics(
+                vectorAvailable = true,
+                vectorCandidates = outcome.results.size,
+                lexicalCandidates = lexicalItems.size,
+                fusedCount = ranked.size,
+                vectorCacheHit = outcome.cacheHit,
+                vectorLatencyMs = outcome.latencyMs,
+                lexicalLatencyMs = lexicalLatencyMs,
+            )
+
         // sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——此时词法路同样
         // 拒绝召回（同一窗口口径），ranked 必为空，无需额外提示
-        if (ranked.isEmpty()) return null
+        if (ranked.isEmpty()) {
+            val reason =
+                if (!outcome.sessionScoped) {
+                    RecallDiagnostics.DROP_NO_SESSION
+                } else {
+                    RecallDiagnostics.DROP_NO_HITS
+                }
+            return RecallOutcome(null, diagnostics.copy(droppedReason = reason))
+        }
         // 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
         // 内容已被本提示词覆盖的召回行直接丢弃，同一事实不再烧两次 token
-        val context = buildRecallContextForPrompt(ranked, injectedContents)
-        return context.takeIf { it.isNotBlank() }?.let { ChatMessage(role = "system", content = it) }
+        val render = buildRecallContextForPrompt(ranked, injectedContents)
+        if (render.text.isBlank()) {
+            return RecallOutcome(
+                null,
+                diagnostics.copy(droppedReason = RecallDiagnostics.DROP_ALL_DUPLICATED),
+            )
+        }
+        return RecallOutcome(
+            block = ChatMessage(role = "system", content = render.text),
+            diagnostics = diagnostics.copy(injectedRecallLines = render.injectedCount),
+        )
     }
 
     /** 向量检索结果 → 融合候选：list 顺序即名次（store 按分数降序返回） */
@@ -1378,17 +1447,35 @@ object PromptBuilder {
     private suspend fun lexicalRecallBlock(
         query: MemoryRecallQuery,
         window: RecallWindow,
-    ): ChatMessage? {
+    ): RecallOutcome {
         // 无 embedding API：诚实的关键词词法召回（OMate 式历史全文检索思路）
         val lexical = LexicalMemoryService(TavernApplication.instance)
+        val startedAt = System.nanoTime()
         val items =
             lexical.searchRelevantHistory(
                 window = window,
                 query = query.userMessage,
             )
-        return lexical.formatHistory(items).takeIf { it.isNotBlank() }?.let {
-            ChatMessage(role = "system", content = it)
+        val lexicalLatencyMs = (System.nanoTime() - startedAt) / 1_000_000
+        val diagnostics =
+            RecallDiagnostics(
+                vectorAvailable = false,
+                lexicalOnly = true,
+                lexicalCandidates = items.size,
+                fusedCount = items.size,
+                lexicalLatencyMs = lexicalLatencyMs,
+            )
+        val text = lexical.formatHistory(items)
+        if (text.isBlank()) {
+            return RecallOutcome(
+                null,
+                diagnostics.copy(droppedReason = RecallDiagnostics.DROP_NO_HITS),
+            )
         }
+        return RecallOutcome(
+            block = ChatMessage(role = "system", content = text),
+            diagnostics = diagnostics.copy(injectedRecallLines = items.size),
+        )
     }
 
     private fun selectRelevantMemories(
@@ -1603,22 +1690,30 @@ object PromptBuilder {
     internal fun buildRecallContextForPrompt(
         ranked: List<RecallRanker.RankedRecall>,
         alreadyInjected: List<String>,
-    ): String {
+    ): RecallRender {
         val relevantResults =
             ranked.filterNot { result -> isDuplicateOfInjected(result.candidate.content, alreadyInjected) }
-        if (relevantResults.isEmpty()) return ""
+        if (relevantResults.isEmpty()) return RecallRender("", 0)
 
-        return buildString {
-            appendLine("## Relevant Past Conversations")
-            relevantResults.forEachIndexed { index, result ->
-                val annotation =
-                    result.candidate.vectorScore?.let { "similarity: ${(it * 100).toInt()}%" }
-                        ?: "keyword match"
-                // 召回行是整条历史消息，逐条截断——条数有上限（topK）、长度没有
-                appendLine("${index + 1}. ${result.candidate.content.truncateMemoryContent()} ($annotation)")
+        val text =
+            buildString {
+                appendLine("## Relevant Past Conversations")
+                relevantResults.forEachIndexed { index, result ->
+                    val annotation =
+                        result.candidate.vectorScore?.let { "similarity: ${(it * 100).toInt()}%" }
+                            ?: "keyword match"
+                    // 召回行是整条历史消息，逐条截断——条数有上限（topK）、长度没有
+                    appendLine("${index + 1}. ${result.candidate.content.truncateMemoryContent()} ($annotation)")
+                }
             }
-        }
+        return RecallRender(text, relevantResults.size)
     }
+
+    /** 召回块渲染产物：注入文本 + 实际注入行数（诊断面板的"去重后条数"来源） */
+    internal data class RecallRender(
+        val text: String,
+        val injectedCount: Int,
+    )
 
     /**
      * 向量召回行是否已被注入的记忆正文覆盖（双向包含，短文本不参与判定以免误伤）。

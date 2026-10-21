@@ -269,10 +269,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             add("request 已应用" to merge.applied.joinToString("；").ifBlank { "无" })
             add("request 被忽略" to merge.ignored.joinToString("；").ifBlank { "无" })
             add("受保护字段（${config.type}）" to protectedFields.toSortedSet().joinToString())
-            // 与本次预览装配的提示词同源：消息条数 + 估算输入 token
+            // 与本次预览装配的提示词同源：消息条数 + 估算输入 token + 召回诊断
             _promptTrace.value?.let { trace ->
                 add("消息数量" to "${trace.segments.size} 条")
                 add("估算输入 token" to "约 ${trace.totalEstimatedTokens}")
+                trace.recallDiagnostics?.let { add("记忆召回" to it.summaryLine()) }
             }
         }
     }
@@ -309,6 +310,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     appendLine(segment.message.content)
                 }
                 appendLine()
+                trace.recallDiagnostics?.let { appendLine("记忆召回：${it.summaryLine()}") }
                 appendLine("合计约 ${trace.totalEstimatedTokens} tokens（${trace.segments.size} 条消息）")
             }
         copyMessage(text)

@@ -525,9 +525,9 @@ operation: add / replace / delete
 
 已完成（见 7.6）：持久化 outbox、启动时 Room 与向量索引对账、分批且可取消的索引恢复。
 2026-10-20 追加完成：消息级孤儿向量的启动对账（`reconcileOrphanedSourcesWithDatabase`）、
-sqlite-vec 存储引擎落地（`SqliteVecStore`，含旧 JSON 索引自动迁移与回退）。后续仅保留：
-
-1. 在提示词预览中显示召回来源、条数、耗时和是否命中缓存。
+sqlite-vec 存储引擎落地（`SqliteVecStore`，含旧 JSON 索引自动迁移与回退）。
+2026-10-21 追加完成：召回可观测性（`RecallDiagnostics`，提示词预览显示召回来源/条数构成/耗时/缓存命中与丢弃原因）。
+至此 13.3 各批事项全部落地，无保留项。
 
 ### 13.4 优化后的职责边界
 
