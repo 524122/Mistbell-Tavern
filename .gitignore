@@ -1,5 +1,7 @@
 # 鏋勫缓浜х墿
 .gradle/
+.gradle-user-home/
+.android-user-home/
 build/
 app/build/
 captures/
@@ -34,6 +36,6 @@ keystore.properties
 RELEASE_NOTES_*.md
 RELEASE_DESCRIPTION_*.md
 
-# 调研草稿（_research_*）不入库
+# 鏈湴浜х墿鍓湰锛坃research_*锛変笉鍏ュ簱
 _research_*/
 /app/debug/
