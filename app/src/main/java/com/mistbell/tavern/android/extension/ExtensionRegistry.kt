@@ -20,6 +20,26 @@ object ExtensionRegistry {
     val promptInterceptors: List<PromptInterceptor>
         get() = extensions.filterIsInstance<PromptInterceptor>()
 
+    /** 已注册的回复后处理器视图（按 loadingOrder 升序） */
+    val replyPostProcessors: List<ReplyPostProcessor>
+        get() = extensions.filterIsInstance<ReplyPostProcessor>()
+
+    /** 已注册的宏提供器视图（按 loadingOrder 升序） */
+    val macroProviders: List<MacroProvider>
+        get() = extensions.filterIsInstance<MacroProvider>()
+
+    /** 已注册的斜杠命令视图（按 loadingOrder 升序） */
+    val slashCommands: List<SlashCommandHandler>
+        get() = extensions.filterIsInstance<SlashCommandHandler>()
+
+    /** 按命令名或别名查找斜杠命令（大小写不敏感） */
+    fun findSlashCommand(nameOrAlias: String): SlashCommandHandler? {
+        val key = nameOrAlias.lowercase()
+        return slashCommands.firstOrNull {
+            it.name.lowercase() == key || it.aliases.any { alias -> alias.lowercase() == key }
+        }
+    }
+
     /**
      * 注册扩展：同 id 重复注册直接忽略（幂等，启动重入安全）；
      * 插入后保持 loadingOrder 升序，并回调 [TavernExtension.activate]。

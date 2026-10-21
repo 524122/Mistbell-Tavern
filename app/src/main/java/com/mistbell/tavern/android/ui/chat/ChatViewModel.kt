@@ -15,8 +15,11 @@ import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
+import com.mistbell.tavern.android.extension.SlashCommandContext
 import com.mistbell.tavern.android.extension.TavernEvent
 import com.mistbell.tavern.android.extension.TavernEventBus
+import com.mistbell.tavern.android.extension.slash.SlashCommandDispatcher
+import com.mistbell.tavern.android.extension.slash.SlashCommandParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -592,6 +595,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val char = _currentCharacter.value ?: return
         if (content.isBlank()) return
 
+        // 斜杠命令（对标酒馆 STscript 输入）：不进聊天链路，分发到注册表执行，
+        // 结果走 toast 展示，不落库为消息
+        if (SlashCommandParser.isSlashCommand(content)) {
+            viewModelScope.launch {
+                _toast.value =
+                    SlashCommandDispatcher.dispatch(
+                        content,
+                        SlashCommandContext(ownerId, char.id, _activeSessionId.value),
+                    )
+            }
+        } else {
+            sendChatMessage(content, char.id)
+        }
+    }
+
+    private fun sendChatMessage(
+        content: String,
+        characterId: String,
+    ) {
         // 群聊模式：组装 GroupChatContext（参与者 id→名字 + @提及 解析出的 targetSpeakerId）；
         // 经典模式传 null（提示词路径零变化）。落库的用户消息内容保留原文——这里不改 content，
         // 仅把提及目标作为 groupContext 传入，剥前缀与回复归属由仓库层处理
@@ -609,7 +631,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         launchGeneration("发送失败") {
             repo.sendMessage(
                 ownerId = ownerId,
-                characterId = char.id,
+                characterId = characterId,
                 sessionId = _activeSessionId.value,
                 message = content,
                 onPartial = ::emitStreamingTextThrottled,

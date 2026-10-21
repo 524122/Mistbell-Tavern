@@ -10,6 +10,8 @@ import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.local.entity.*
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.extension.ExtensionRegistry
+import com.mistbell.tavern.android.extension.ReplyHookContext
 import com.mistbell.tavern.android.extension.TavernEvent
 import com.mistbell.tavern.android.extension.TavernEventBus
 import com.mistbell.tavern.android.service.MemoryExtractionService
@@ -959,6 +961,30 @@ class ChatRepository(private val context: Context) {
     }
 
     /**
+     * 执行已注册的回复后处理器链（[ExtensionRegistry.replyPostProcessors]，按 loadingOrder 升序）。
+     *
+     * 链式语义：上一个处理器的输出是下一个的输入；单处理器抛异常只记日志并沿用上一个输出，
+     * 协程取消原样上抛；无注册处理器时零开销、内容逐字节不变。
+     */
+    @Suppress("TooGenericExceptionCaught") // 处理器边界必须兜住任意扩展异常
+    private suspend fun runReplyPostProcessors(
+        content: String,
+        context: ReplyHookContext,
+    ): String {
+        var result = content
+        for (processor in ExtensionRegistry.replyPostProcessors) {
+            try {
+                result = processor.process(result, context)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ChatRepository", "回复后处理器执行失败（已跳过）：${e.message}", e)
+            }
+        }
+        return result
+    }
+
+    /**
      * 回复归属解析公共函数（成功/取消路径共用，避免复制粘贴）：
      * 1) F2.1 回复清洗——提取全部 <think>…</think> 块为思考内容，正文不含 think；
      * 2) 群聊归属解析——对清洗后的回复 parseGroupSpeaker：
@@ -1138,8 +1164,16 @@ class ChatRepository(private val context: Context) {
         mode: ReplyTailMode,
     ): Message {
         // 回复清洗 + 群聊归属解析（与取消路径共用 resolveReplyAttribution）
-        val (storedContent, replyThinking, storedCharacterId) =
+        val (rawStoredContent, replyThinking, storedCharacterId) =
             resolveReplyAttribution(fullReply, speakerNames, scope.characterId)
+
+        // 扩展钩子：回复后处理链（对标酒馆 regex 扩展的输出替换），落库前逐链处理；
+        // 只处理正文、不动思考块。单处理器异常只记日志跳过——扩展故障绝不能弄丢回复
+        val storedContent =
+            runReplyPostProcessors(
+                rawStoredContent,
+                ReplyHookContext(scope.ownerId, scope.characterId, scope.sessionId),
+            )
 
         val assistantMsg =
             Message(

@@ -12,6 +12,7 @@
 ## [Unreleased]
 
 ### Added
+- 扩展机制第 1 层钩子全部接线：回复后处理链（ReplyPostProcessor，落库前逐链处理回复正文，对标酒馆 regex 扩展输出替换）；MacroEngine 开放自定义宏提供器注册（内置宏优先，未知宏按注册序查询提供器，全部未命中维持原样保留语义）；斜杠命令框架（`/name args` 解析、注册表分发、失败转提示，输入框 `/` 开头拦截、结果 toast 展示、不落库），内置 `/help`（列出全部命令）与 `/note`（别名 `/an`，设置/清除会话附加指令）。
 - 扩展机制最小核心：新增 `extension` 包——ExtensionRegistry 扩展注册表（loadingOrder 升序、按 id 幂等）、TavernEventBus 事件总线（MessageSent/MessageReceived/GenerationStarted/GenerationEnded/ChatChanged，对标酒馆 event_types）、PromptInterceptor 生成前钩子（提示词装配末尾统一执行，对标酒馆 generate_interceptor + setExtensionPrompt，真实请求与「查看提示词」预览同源）；首个内置扩展 CustomPromptExtension 接通 custom_prompts 装配链路（SYSTEM_START/SYSTEM_END/USER_PREFIX/USER_SUFFIX/ASSISTANT_PREFIX 五种落点，内容过宏渲染、预览标注来源）；预留回复后处理/宏提供器/斜杠命令钩子接口；ChatRepository/ChatViewModel 发射聊天生命周期事件。
 - 世界书条目支持角色过滤字段（characterFilterNames/Tags/Exclude，对齐酒馆 extensions snake_case 键）的导入导出与编辑器编辑；timed effects（sticky/cooldown/delay 的轮次状态）持久化到 sessions.wi_state_json（对齐酒馆 chat_metadata.timedWorldInfo，重启存续）；数据库升级到 v32。
 - 提示词预览（聊天页「查看提示词」）新增记忆召回诊断行：结构化条数、召回条数构成（向量候选 ∩ 词法候选 → 融合条数）、两路耗时、向量缓存命中与否，召回块未注入时显示具体原因（历史未裁剪/无命中/被结构化块覆盖等）；复制提示词全文同样附带该行；预览中结构化块与召回块的来源标签分开为「会话记忆·结构化」「会话记忆·召回」。

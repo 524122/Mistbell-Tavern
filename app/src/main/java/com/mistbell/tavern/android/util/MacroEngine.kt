@@ -33,6 +33,28 @@ object MacroEngine {
     private val SIMPLE = Regex("""\{\{([^{}]+)\}\}""")
     private val ROLL_SPEC = Regex("""(\d*)d(\d+)""")
 
+    /**
+     * 自定义宏提供器（对标酒馆 macros.register）：内置宏表未命中时按注册序逐个查询，
+     * 返回非 null 即采用；全部未命中维持「未知宏原样保留」语义。
+     *
+     * 用函数类型而非 extension 包的 MacroProvider 接口：util 层不反向依赖 extension 包，
+     * 桥接（ExtensionRegistry.macroProviders → 此处）由 AppContainer 在启动时注入。
+     */
+    private val providers = java.util.concurrent.CopyOnWriteArrayList<(String, MacroContext) -> String?>()
+
+    fun registerMacroProvider(provider: (String, MacroContext) -> String?) {
+        providers.addIfAbsent(provider)
+    }
+
+    fun unregisterMacroProvider(provider: (String, MacroContext) -> String?) {
+        providers.remove(provider)
+    }
+
+    /** 测试用：清空提供器，避免用例间串染。 */
+    internal fun resetMacroProvidersForTesting() {
+        providers.clear()
+    }
+
     /** 渲染：text 为空原样返回；永不抛异常。 */
     fun render(
         text: String?,
@@ -92,7 +114,7 @@ object MacroEngine {
                 if (options.any { it.isBlank() }) null else options[random.nextInt(options.size)]
             }
             lower.startsWith("roll::") -> roll(token.substringAfter("roll::").trim(), random)
-            else -> null
+            else -> providers.firstNotNullOfOrNull { it(token, ctx) }
         }
     }
 

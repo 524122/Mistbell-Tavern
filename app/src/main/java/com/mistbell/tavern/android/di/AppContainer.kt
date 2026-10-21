@@ -21,6 +21,8 @@ import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.data.vector.isValidVectorIndex
 import com.mistbell.tavern.android.extension.ExtensionRegistry
 import com.mistbell.tavern.android.extension.builtin.CustomPromptExtension
+import com.mistbell.tavern.android.extension.builtin.HelpCommand
+import com.mistbell.tavern.android.extension.builtin.NoteCommand
 import com.mistbell.tavern.android.util.SecureStore
 import java.io.File
 
@@ -219,6 +221,12 @@ class AppContainer(private val appContext: Context) {
      */
     fun registerBuiltinExtensions() {
         ExtensionRegistry.register(CustomPromptExtension())
+        ExtensionRegistry.register(HelpCommand())
+        ExtensionRegistry.register(NoteCommand())
+        // 宏桥：MacroEngine（util 层）不反向依赖 extension 包，注册表查询经此 lambda 注入
+        com.mistbell.tavern.android.util.MacroEngine.registerMacroProvider { name, ctx ->
+            ExtensionRegistry.macroProviders.firstNotNullOfOrNull { it.resolve(name, ctx) }
+        }
     }
 
     private fun getEmbeddingApiKey(): String {
