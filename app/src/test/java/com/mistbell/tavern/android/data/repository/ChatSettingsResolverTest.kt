@@ -195,4 +195,29 @@ class ChatSettingsResolverTest {
         assertFalse(ChatSettingsResolver.worldInfoUseGroupScoring("0"))
         assertTrue(ChatSettingsResolver.worldInfoUseGroupScoring("1"))
     }
+
+    @Test
+    fun `全局书列表非法缺省回退内置main`() {
+        assertEquals(listOf("main"), ChatSettingsResolver.worldInfoGlobalBookIds(null))
+        assertEquals(listOf("main"), ChatSettingsResolver.worldInfoGlobalBookIds("x"))
+        assertEquals(listOf("main"), ChatSettingsResolver.worldInfoGlobalBookIds("[]"))
+        assertEquals(listOf("a", "b"), ChatSettingsResolver.worldInfoGlobalBookIds("""["a","b"]"""))
+        assertEquals(listOf("main"), ChatSettingsResolver.worldInfoGlobalBookIds("""[""]"""))
+    }
+
+    @Test
+    fun `persona绑定书空白为不绑定`() {
+        assertEquals("", ChatSettingsResolver.worldInfoPersonaBookId(null))
+        assertEquals("", ChatSettingsResolver.worldInfoPersonaBookId("  "))
+        assertEquals("book1", ChatSettingsResolver.worldInfoPersonaBookId(" book1 "))
+    }
+
+    @Test
+    fun `插入策略非法缺省回退角色优先`() {
+        assertEquals(1, ChatSettingsResolver.worldInfoCharacterStrategy(null))
+        assertEquals(1, ChatSettingsResolver.worldInfoCharacterStrategy("x"))
+        assertEquals(0, ChatSettingsResolver.worldInfoCharacterStrategy("0"))
+        assertEquals(2, ChatSettingsResolver.worldInfoCharacterStrategy("2"))
+        assertEquals(2, ChatSettingsResolver.worldInfoCharacterStrategy("9"))
+    }
 }

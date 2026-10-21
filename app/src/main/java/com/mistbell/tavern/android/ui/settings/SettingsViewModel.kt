@@ -99,6 +99,56 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             .map { ChatSettingsResolver.worldInfoUseGroupScoring(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), false)
 
+    // ---- 多来源合并：全部书 + 全局多选 + persona 绑定 + 插入策略 ----
+
+    /** 全部世界书（多选全局书与 persona 绑定的候选列表） */
+    val allWorldBooks: StateFlow<List<com.mistbell.tavern.android.data.local.entity.WorldBookEntity>> =
+        db.worldBookDao()
+            .getAll()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), emptyList())
+
+    // 全局多选（JSON 数组存储）；解析后的生效列表见 resolver（空=内置 "main"）
+    val worldInfoGlobalBookIdsSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_GLOBAL_BOOK_IDS)
+
+    // persona 绑定书 id（空白=不绑定）
+    val worldInfoPersonaBookIdSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_PERSONA_BOOK_ID)
+
+    // 插入策略（0=evenly 1=character_first 2=global_first；缺省 1）
+    val worldInfoCharacterStrategySetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_CHARACTER_STRATEGY)
+
+    /** 切换某书是否入选全局集（读-改-写 JSON 数组；不存在的书自然忽略） */
+    fun toggleGlobalWorldBook(
+        bookId: String,
+        enabled: Boolean,
+    ) {
+        viewModelScope.launch {
+            val current =
+                db.settingsDao().getValue(ChatSettingsResolver.KEY_WORLD_INFO_GLOBAL_BOOK_IDS)
+                    ?.let {
+                        try {
+                            kotlinx.serialization.json.Json.decodeFromString<List<String>>(it)
+                        } catch (_: Exception) {
+                            emptyList()
+                        }
+                    }.orEmpty()
+            val next =
+                if (enabled) {
+                    (current + bookId).distinct()
+                } else {
+                    current - bookId
+                }
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
+                    ChatSettingsResolver.KEY_WORLD_INFO_GLOBAL_BOOK_IDS,
+                    kotlinx.serialization.json.Json.encodeToString(next),
+                ),
+            )
+        }
+    }
+
     private fun observeTextSetting(key: String): StateFlow<String> =
         db.settingsDao()
             .observeValue(key)

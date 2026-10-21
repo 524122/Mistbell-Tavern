@@ -24,7 +24,10 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -35,6 +38,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.menuAnchor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,6 +73,7 @@ fun ModernSettingsScreen(
     onBack: (() -> Unit)? = null,
     onNavigateToThemeManager: () -> Unit,
     onNavigateToPromptManagement: () -> Unit,
+    onNavigateToRulePacks: () -> Unit = {},
     onNavigateToModelParams: () -> Unit = {},
     onNavigateToVersionChangelog: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
@@ -166,7 +171,7 @@ fun ModernSettingsScreen(
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PromptSettingsSection(onNavigateToPromptManagement)
+                    PromptSettingsSection(onNavigateToPromptManagement, onNavigateToRulePacks)
 
                     ModelParamsEntrySection(onNavigateToModelParams)
 
@@ -366,6 +371,145 @@ private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
             )
         },
     )
+    ModernDivider()
+    WorldBookSourcesRows(viewModel)
+}
+
+/** 多来源合并（对齐酒馆四源 + 插入策略）：全局书多选、persona 绑定、排序策略 */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookSourcesRows(viewModel: SettingsViewModel) {
+    val books by viewModel.allWorldBooks.collectAsState()
+    val globalsRaw by viewModel.worldInfoGlobalBookIdsSetting.collectAsState()
+    val globals =
+        remember(globalsRaw) {
+            try {
+                kotlinx.serialization.json.Json.decodeFromString<List<String>>(globalsRaw).toSet()
+            } catch (_: Exception) {
+                emptySet()
+            }
+        }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column {
+            Text("全局世界书（可多选）", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                "酒馆 global lore；全不选时使用内置 main 兜底",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        books.forEach { book ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(book.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = book.id in globals,
+                    onCheckedChange = { viewModel.toggleGlobalWorldBook(book.id, it) },
+                )
+            }
+        }
+    }
+    ModernDivider()
+    WorldBookBookPickerRow(
+        title = "Persona 世界书",
+        subtitle = "酒馆 persona lore：与「用户人设」绑定的书（不选=不启用）",
+        books = books,
+        selectedId = viewModel.worldInfoPersonaBookIdSetting.collectAsState().value,
+        onSelect = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_PERSONA_BOOK_ID, it) },
+    )
+    ModernDivider()
+    WorldBookStrategyRow(viewModel)
+}
+
+/** 单选书下拉行（"不选"+全部书） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookBookPickerRow(
+    title: String,
+    subtitle: String,
+    books: List<com.mistbell.tavern.android.data.local.entity.WorldBookEntity>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf("" to "不选") + books.map { it.id to it.name }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            OutlinedTextField(
+                value = options.firstOrNull { it.first == selectedId }?.second ?: "不选",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                shape = RoundedCornerShape(8.dp),
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { (id, name) ->
+                    DropdownMenuItem(text = { Text(name) }, onClick = {
+                        onSelect(id)
+                        expanded = false
+                    })
+                }
+            }
+        }
+    }
+}
+
+/** 插入策略三档（酒馆 world_info_insertion_strategy） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookStrategyRow(viewModel: SettingsViewModel) {
+    val strategyRaw by viewModel.worldInfoCharacterStrategySetting.collectAsState()
+    val strategy = ChatSettingsResolver.worldInfoCharacterStrategy(strategyRaw)
+    val options =
+        listOf(
+            ChatSettingsResolver.STRATEGY_CHARACTER_FIRST to "角色书优先（默认）",
+            ChatSettingsResolver.STRATEGY_EVENLY to "混排（evenly）",
+            ChatSettingsResolver.STRATEGY_GLOBAL_FIRST to "全局书优先",
+        )
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column {
+            Text("插入策略", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                "多来源条目同位置时的排序（对齐酒馆 world_info_character_strategy）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { (value, label) ->
+                FilterChip(
+                    selected = strategy == value,
+                    onClick = {
+                        viewModel.saveTextSettingQuietly(
+                            ChatSettingsResolver.KEY_WORLD_INFO_CHARACTER_STRATEGY,
+                            value.toString(),
+                        )
+                    },
+                    label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                )
+            }
+        }
+    }
 }
 
 /** 开关设置行：标题 + 说明 + 开关（1/0 存储由调用方转换） */
@@ -441,7 +585,10 @@ private fun WorldBookNumberRow(
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
-private fun PromptSettingsSection(onNavigateToPromptManagement: () -> Unit) {
+private fun PromptSettingsSection(
+    onNavigateToPromptManagement: () -> Unit,
+    onNavigateToRulePacks: () -> Unit = {},
+) {
     val promptViewModel: CustomPromptViewModel = viewModel()
     val enabledPromptsCount by promptViewModel.enabledPromptsCount.collectAsState()
 
@@ -451,6 +598,12 @@ private fun PromptSettingsSection(onNavigateToPromptManagement: () -> Unit) {
             subtitle = "管理破甲、文风等提示词 • 当前启用: $enabledPromptsCount 个",
             icon = Icons.Default.Edit,
             onClick = onNavigateToPromptManagement,
+        )
+        ModernSettingsItem(
+            title = "规则包",
+            subtitle = "导入/分享规则包：提示词块、输出正则、自定义宏",
+            icon = Icons.Default.Edit,
+            onClick = onNavigateToRulePacks,
         )
     }
 

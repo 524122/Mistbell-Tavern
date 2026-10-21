@@ -290,4 +290,74 @@ class PromptBuilderMemoryLayoutTest {
         assertNull(chunk!!.usage)
         assertEquals("你好", SseParser.contentOf(chunk))
     }
+
+    // ---- orderLoreEntries：多来源合并排序（对齐酒馆 getSortedEntries）----
+
+    private fun loreEntry(
+        id: String,
+        order: Int,
+    ) = com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity(
+        id = id,
+        bookId = "book",
+        comment = id,
+        keysJson = "[]",
+        content = "c$id",
+        constant = false,
+        disable = false,
+        order = order,
+        insertPosition = "before_prompt",
+        depth = 0,
+        probability = 1.0,
+        depthRole = "system",
+    )
+
+    private fun orderIds(
+        pairs: List<Pair<com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity, PromptBuilder.LoreSource>>,
+        strategy: Int,
+    ) = PromptBuilder.orderLoreEntries(pairs, strategy).map { it.id }
+
+    @Test
+    fun `角色优先时chat到persona到角色到全局`() {
+        val pairs =
+            listOf(
+                loreEntry("g2", 20) to PromptBuilder.LoreSource.GLOBAL,
+                loreEntry("c2", 20) to PromptBuilder.LoreSource.CHARACTER,
+                loreEntry("p1", 30) to PromptBuilder.LoreSource.PERSONA,
+                loreEntry("g1", 10) to PromptBuilder.LoreSource.GLOBAL,
+                loreEntry("c1", 10) to PromptBuilder.LoreSource.CHARACTER,
+                loreEntry("chat", 99) to PromptBuilder.LoreSource.CHAT,
+            )
+        assertEquals(
+            listOf("chat", "p1", "c1", "c2", "g1", "g2"),
+            orderIds(pairs, com.mistbell.tavern.android.data.repository.ChatSettingsResolver.STRATEGY_CHARACTER_FIRST),
+        )
+    }
+
+    @Test
+    fun `全局优先时全局先于角色`() {
+        val pairs =
+            listOf(
+                loreEntry("c1", 10) to PromptBuilder.LoreSource.CHARACTER,
+                loreEntry("g1", 10) to PromptBuilder.LoreSource.GLOBAL,
+            )
+        assertEquals(
+            listOf("g1", "c1"),
+            orderIds(pairs, com.mistbell.tavern.android.data.repository.ChatSettingsResolver.STRATEGY_GLOBAL_FIRST),
+        )
+    }
+
+    @Test
+    fun `evenly时角色与全局按order混排`() {
+        val pairs =
+            listOf(
+                loreEntry("g2", 30) to PromptBuilder.LoreSource.GLOBAL,
+                loreEntry("c2", 20) to PromptBuilder.LoreSource.CHARACTER,
+                loreEntry("g1", 10) to PromptBuilder.LoreSource.GLOBAL,
+                loreEntry("c1", 5) to PromptBuilder.LoreSource.CHARACTER,
+            )
+        assertEquals(
+            listOf("c1", "g1", "c2", "g2"),
+            orderIds(pairs, com.mistbell.tavern.android.data.repository.ChatSettingsResolver.STRATEGY_EVENLY),
+        )
+    }
 }

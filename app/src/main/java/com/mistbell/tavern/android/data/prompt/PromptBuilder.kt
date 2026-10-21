@@ -826,17 +826,35 @@ object PromptBuilder {
 
         // 世界书（v19 起 insertPosition/depth 真正参与装配）。解析须在 LTM 之前完成：
         // afterPrompt 条目要落在"角色定义/群聊规范之后、LTM 之前"的位置
-        // 会话级世界书优先；其次回退到角色卡默认；最后回退到全局 "main"
-        val worldBookIds =
-            listOfNotNull(
-                session?.worldBookId?.takeIf { it.isNotBlank() },
-                character?.worldBookId?.takeIf { it.isNotBlank() },
-                "main",
-            ).distinct()
+        // 多来源合并（v34，对齐酒馆四源 + 插入策略）：会话书≈chat lore、persona 绑定书、
+        // 角色书≈character lore、全局多选≈global lore；排序策略见 orderLoreEntries
+        val worldInfoGlobalBookIds =
+            ChatSettingsResolver.worldInfoGlobalBookIds(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_GLOBAL_BOOK_IDS),
+            )
+        val worldInfoPersonaBookId =
+            ChatSettingsResolver.worldInfoPersonaBookId(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_PERSONA_BOOK_ID),
+            )
+        val worldInfoCharacterStrategy =
+            ChatSettingsResolver.worldInfoCharacterStrategy(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_CHARACTER_STRATEGY),
+            )
+        val worldBookSources =
+            buildList {
+                session?.worldBookId?.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.CHAT) }
+                worldInfoPersonaBookId.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.PERSONA) }
+                character?.worldBookId?.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.CHARACTER) }
+                worldInfoGlobalBookIds.forEach { add(it to LoreSource.GLOBAL) }
+            }.distinctBy { it.first }
         val worldBookEntries =
-            worldBookIds
-                .flatMap { db.worldBookDao().getEntriesList(it) }
-                .distinctBy { it.bookId to it.id }
+            orderLoreEntries(
+                worldBookSources
+                    .flatMap { (bookId, source) ->
+                        db.worldBookDao().getEntriesList(bookId).map { it to source }
+                    }.distinctBy { it.first.bookId to it.first.id },
+                worldInfoCharacterStrategy,
+            )
         // 世界书全局设置：扫描深度（默认 2，对齐酒馆 world_info_depth）与 token 预算
         // （默认 25% 上下文，对齐酒馆 world_info_budget；0=关闭）。预算先于激活判定完成
         // constant 条目分配，剩余额度传入 activate——溢出即停递归（酒馆同款）
@@ -1416,6 +1434,46 @@ object PromptBuilder {
         val role: String,
         val segment: Segment,
     )
+
+    /** 世界书来源（多来源合并排序用；对齐酒馆 chat/persona/character/global 四源） */
+    internal enum class LoreSource { CHAT, PERSONA, CHARACTER, GLOBAL }
+
+    /**
+     * 多来源合并的条目排序（对齐酒馆 getSortedEntries）：chat → persona 固定在前；
+     * character/global 按策略——evenly 混排、character_first 先角色书、global_first 先全局书。
+     * 同来源/同级按 order 升序稳定排列（渲染序即注入序）。internal 仅为单元测试开放。
+     */
+    internal fun orderLoreEntries(
+        entries: List<Pair<WorldBookEntryEntity, LoreSource>>,
+        strategy: Int,
+    ): List<WorldBookEntryEntity> {
+        fun rank(source: LoreSource): Int =
+            when (strategy) {
+                ChatSettingsResolver.STRATEGY_GLOBAL_FIRST ->
+                    when (source) {
+                        LoreSource.CHAT -> 0
+                        LoreSource.PERSONA -> 1
+                        LoreSource.GLOBAL -> 2
+                        LoreSource.CHARACTER -> 3
+                    }
+                ChatSettingsResolver.STRATEGY_EVENLY ->
+                    when (source) {
+                        LoreSource.CHAT -> 0
+                        LoreSource.PERSONA -> 1
+                        else -> 2 // character/global 混排
+                    }
+                else -> // character_first（酒馆默认）
+                    when (source) {
+                        LoreSource.CHAT -> 0
+                        LoreSource.PERSONA -> 1
+                        LoreSource.CHARACTER -> 2
+                        LoreSource.GLOBAL -> 3
+                    }
+            }
+        return entries
+            .sortedWith(compareBy<Pair<WorldBookEntryEntity, LoreSource>> { rank(it.second) }.thenBy { it.first.order })
+            .map { it.first }
+    }
 
     /**
      * 作者注释深度块（对齐酒馆 AN 的 IN_CHAT 深度插入）：AN 顶锚点内容 + 附加指令 + AN 底锚点

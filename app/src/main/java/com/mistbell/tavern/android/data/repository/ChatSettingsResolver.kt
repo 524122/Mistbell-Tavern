@@ -171,4 +171,39 @@ object ChatSettingsResolver {
         template: String,
         userName: String,
     ): String = template.replace(GROUP_CHAT_USER_PLACEHOLDER, userName)
+
+    // ---- 世界书多来源合并（对齐酒馆 global/character/chat/persona 四源 + 插入策略） ----
+
+    const val KEY_WORLD_INFO_GLOBAL_BOOK_IDS = "world_info_global_book_ids"
+    const val KEY_WORLD_INFO_PERSONA_BOOK_ID = "world_info_persona_book_id"
+    const val KEY_WORLD_INFO_CHARACTER_STRATEGY = "world_info_character_strategy"
+
+    /** 酒馆 world_info_insertion_strategy：evenly=0 character_first=1 global_first=2（缺省 1） */
+    const val STRATEGY_EVENLY = 0
+    const val STRATEGY_CHARACTER_FIRST = 1
+    const val STRATEGY_GLOBAL_FIRST = 2
+
+    /** 未配置全局书时的内置兜底（兼容旧行为） */
+    const val FALLBACK_GLOBAL_BOOK_ID = "main"
+
+    // settings KV 原始值（JSON 数组）→ 全局世界书 id 列表：非法/空数组回退内置 "main"
+    fun worldInfoGlobalBookIds(raw: String?): List<String> {
+        val parsed =
+            raw?.takeIf { it.isNotBlank() }?.let {
+                try {
+                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(it)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        return parsed?.map { it.trim() }?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
+            ?: listOf(FALLBACK_GLOBAL_BOOK_ID)
+    }
+
+    // settings KV 原始值 → persona 绑定书 id：空白=不绑定
+    fun worldInfoPersonaBookId(raw: String?): String = raw.orEmpty().trim()
+
+    // settings KV 原始值 → 插入策略枚举：非法/缺省回退 character_first（酒馆默认）
+    fun worldInfoCharacterStrategy(raw: String?): Int =
+        raw?.toIntOrNull()?.coerceIn(STRATEGY_EVENLY, STRATEGY_GLOBAL_FIRST) ?: STRATEGY_CHARACTER_FIRST
 }
