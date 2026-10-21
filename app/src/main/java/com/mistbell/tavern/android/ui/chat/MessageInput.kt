@@ -33,12 +33,29 @@ fun MessageInput(
     isGenerating: Boolean = false,
     onStop: (() -> Unit)? = null,
     participants: List<Character> = emptyList(),
+    // 快捷回复 insert 动作的填入请求：一次性（非 null 到达即写入并回调消费）
+    insertRequest: String? = null,
+    onInsertConsumed: () -> Unit = {},
 ) {
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var isFocused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val isEnabled = textFieldValue.text.isNotBlank() && enabled
     val showStop = isGenerating && onStop != null
+
+    // 快捷回复 insert：填入内容（追加到现有文本之后），光标移到末尾
+    LaunchedEffect(insertRequest) {
+        insertRequest?.let { insert ->
+            val merged =
+                if (textFieldValue.text.isBlank()) {
+                    insert
+                } else {
+                    textFieldValue.text + insert
+                }
+            textFieldValue = TextFieldValue(text = merged, selection = TextRange(merged.length))
+            onInsertConsumed()
+        }
+    }
 
     // @ 提及检测
     val mentionQuery =

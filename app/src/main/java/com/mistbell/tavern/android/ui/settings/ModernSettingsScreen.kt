@@ -72,6 +72,7 @@ fun ModernSettingsScreen(
     onNavigateToThemeManager: () -> Unit,
     onNavigateToPromptManagement: () -> Unit,
     onNavigateToRulePacks: () -> Unit = {},
+    onNavigateToQuickReplies: () -> Unit = {},
     onNavigateToModelParams: () -> Unit = {},
     onNavigateToVersionChangelog: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
@@ -169,7 +170,7 @@ fun ModernSettingsScreen(
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PromptSettingsSection(onNavigateToPromptManagement, onNavigateToRulePacks)
+                    PromptSettingsSection(onNavigateToPromptManagement, onNavigateToRulePacks, onNavigateToQuickReplies)
 
                     ModelParamsEntrySection(onNavigateToModelParams)
 
@@ -587,6 +588,7 @@ private fun WorldBookNumberRow(
 private fun PromptSettingsSection(
     onNavigateToPromptManagement: () -> Unit,
     onNavigateToRulePacks: () -> Unit = {},
+    onNavigateToQuickReplies: () -> Unit = {},
 ) {
     val promptViewModel: CustomPromptViewModel = viewModel()
     val enabledPromptsCount by promptViewModel.enabledPromptsCount.collectAsState()
@@ -603,6 +605,12 @@ private fun PromptSettingsSection(
             subtitle = "导入/分享规则包：提示词块、输出正则、自定义宏",
             icon = Icons.Default.Edit,
             onClick = onNavigateToRulePacks,
+        )
+        ModernSettingsItem(
+            title = "快捷回复",
+            subtitle = "输入区上方的可点击按钮：发送、填入、执行命令",
+            icon = Icons.Default.Edit,
+            onClick = onNavigateToQuickReplies,
         )
     }
 

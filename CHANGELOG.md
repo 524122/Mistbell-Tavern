@@ -12,6 +12,7 @@
 ## [Unreleased]
 
 ### Added
+- 快捷回复（Quick Reply）：聊天输入区上方横向按钮栏，三种动作——send（直接发送，斜杠拦截自然生效）、insert（填入输入框可编辑）、command（斜杠命令分发）；数据双源：用户全局自定义（设置 → 高级设置 → 提示词管理 → 快捷回复 增删改）与规则包 quickreplies.json 节（随包启停即时生效，按钮带 ⌁包名 下标区分来源）；数据库升级到 v35（quick_replies 表）。
 - 规则包（声明式扩展包，第 2 层）：zip 打包提示词块/输出正则/自定义宏，设置 → 高级设置 → 提示词管理 → 规则包导入、启停、删除、分享；经扩展钩子在生成前注入提示词（复用自定义提示词五种落点）、回复落库前链式正则替换正文、宏查表解析（支持一层嵌套内置宏，自引用有防递归守卫）；数据库升级到 v34（rule_packs 表）；示例包见 samples/rulepack-demo/。包内容缓存全进程唯一并预热，挂起钩子确定性等待首次加载（修复冷启动首包丢失竞态）。
 - 扩展机制第 1 层钩子全部接线：回复后处理链（ReplyPostProcessor，落库前逐链处理回复正文，对标酒馆 regex 扩展输出替换）；MacroEngine 开放自定义宏提供器注册（内置宏优先，未知宏按注册序查询提供器，全部未命中维持原样保留语义）；斜杠命令框架（`/name args` 解析、注册表分发、失败转提示，输入框 `/` 开头拦截、结果 toast 展示、不落库），内置 `/help`（列出全部命令）与 `/note`（别名 `/an`，设置/清除会话附加指令）。
 - 扩展机制最小核心：新增 `extension` 包——ExtensionRegistry 扩展注册表（loadingOrder 升序、按 id 幂等）、TavernEventBus 事件总线（MessageSent/MessageReceived/GenerationStarted/GenerationEnded/ChatChanged，对标酒馆 event_types）、PromptInterceptor 生成前钩子（提示词装配末尾统一执行，对标酒馆 generate_interceptor + setExtensionPrompt，真实请求与「查看提示词」预览同源）；首个内置扩展 CustomPromptExtension 接通 custom_prompts 装配链路（SYSTEM_START/SYSTEM_END/USER_PREFIX/USER_SUFFIX/ASSISTANT_PREFIX 五种落点，内容过宏渲染、预览标注来源）；预留回复后处理/宏提供器/斜杠命令钩子接口；ChatRepository/ChatViewModel 发射聊天生命周期事件。

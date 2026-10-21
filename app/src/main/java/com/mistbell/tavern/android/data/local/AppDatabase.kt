@@ -26,8 +26,9 @@ import com.mistbell.tavern.android.data.local.entity.*
         CustomPromptEntity::class,
         VectorSyncOutboxEntity::class,
         RulePackEntity::class,
+        QuickReplyEntity::class,
     ],
-    version = 34,
+    version = 35,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -58,6 +59,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun customPromptDao(): CustomPromptDao
 
     abstract fun rulePackDao(): RulePackDao
+
+    abstract fun quickReplyDao(): QuickReplyDao
 
     companion object {
         @Volatile
@@ -779,6 +782,25 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        internal val MIGRATION_34_35_SQL: List<String> =
+            listOf(
+                "CREATE TABLE IF NOT EXISTS `quick_replies` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`label` TEXT NOT NULL, " +
+                    "`action` TEXT NOT NULL, " +
+                    "`payload` TEXT NOT NULL, " +
+                    "`order_index` INTEGER NOT NULL DEFAULT 0, " +
+                    "`created_at` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`id`))",
+            )
+
+        internal val MIGRATION_34_35 =
+            object : Migration(34, 35) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_34_35_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -825,6 +847,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_31_32,
                         MIGRATION_32_33,
                         MIGRATION_33_34,
+                        MIGRATION_34_35,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

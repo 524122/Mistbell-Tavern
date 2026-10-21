@@ -115,4 +115,51 @@ class RulePackParserTest {
         assertEquals(1, bundle.content.macros.size)
         assertTrue(bundle.warnings.isNotEmpty())
     }
+
+    @Test
+    fun `quickreplies 节解析成功`() {
+        val bytes =
+            zipOf(
+                mapOf(
+                    "manifest.json" to validManifest,
+                    "quickreplies.json" to
+                        """[{"label":"问候","action":"send","payload":"你好"},""" +
+                        """{"label":"填入","action":"insert","payload":"（礼貌地）"}]""",
+                ),
+            )
+        val bundle = RulePackParser.parseZip(bytes)
+        assertEquals(2, bundle.content.quickReplies.size)
+        assertEquals("send", bundle.content.quickReplies.first().action)
+    }
+
+    @Test
+    fun `快捷回复非法 action 跳过并告警`() {
+        val bytes =
+            zipOf(
+                mapOf(
+                    "manifest.json" to validManifest,
+                    "quickreplies.json" to
+                        """[{"label":"好","action":"send","payload":"x"},""" +
+                        """{"label":"坏","action":"explode","payload":"x"}]""",
+                ),
+            )
+        val bundle = RulePackParser.parseZip(bytes)
+        assertEquals(1, bundle.content.quickReplies.size)
+        assertEquals("好", bundle.content.quickReplies.first().label)
+        assertTrue(bundle.warnings.any { it.contains("坏") })
+    }
+
+    @Test
+    fun `快捷回复空标签跳过并告警`() {
+        val bytes =
+            zipOf(
+                mapOf(
+                    "manifest.json" to validManifest,
+                    "quickreplies.json" to """[{"label":"","action":"send","payload":"x"}]""",
+                ),
+            )
+        val bundle = RulePackParser.parseZip(bytes)
+        assertTrue(bundle.content.quickReplies.isEmpty())
+        assertTrue(bundle.warnings.isNotEmpty())
+    }
 }

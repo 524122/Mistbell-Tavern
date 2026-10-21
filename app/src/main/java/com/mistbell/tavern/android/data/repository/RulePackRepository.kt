@@ -10,6 +10,7 @@ import com.mistbell.tavern.android.data.rulepack.RulePackMacro
 import com.mistbell.tavern.android.data.rulepack.RulePackManifest
 import com.mistbell.tavern.android.data.rulepack.RulePackParser
 import com.mistbell.tavern.android.data.rulepack.RulePackPrompt
+import com.mistbell.tavern.android.data.rulepack.RulePackQuickReply
 import com.mistbell.tavern.android.data.rulepack.RulePackRegexRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -124,6 +125,10 @@ class RulePackRepository(private val context: Context) {
                 if (content.macros.isNotEmpty()) {
                     val text = encodeList(RulePackMacro.serializer(), content.macros)
                     writeZipEntry(zip, RulePackParser.MACROS_FILE, text)
+                }
+                if (content.quickReplies.isNotEmpty()) {
+                    val text = encodeList(RulePackQuickReply.serializer(), content.quickReplies)
+                    writeZipEntry(zip, RulePackParser.QUICK_REPLIES_FILE, text)
                 }
             }
             outFile

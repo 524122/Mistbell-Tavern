@@ -181,6 +181,8 @@ fun ChatScreen(
     val hasMoreOlder by viewModel.hasMoreOlder.collectAsStateWithLifecycle()
     val isLoadingOlder by viewModel.isLoadingOlder.collectAsStateWithLifecycle()
     val sessionId by viewModel.activeSessionId.collectAsStateWithLifecycle()
+    val quickReplies by viewModel.quickReplies.collectAsStateWithLifecycle()
+    val pendingInsertText by viewModel.pendingInsertText.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
     // 群聊模式：按消息归属渲染说话方 + "让TA继续"入口均以此开关
@@ -729,6 +731,11 @@ fun ChatScreen(
                                     }
                                 }
 
+                                QuickReplyBar(
+                                    quickReplies = quickReplies,
+                                    enabled = !isTyping,
+                                    onClick = { viewModel.executeQuickReply(it) },
+                                )
                                 MessageInput(
                                     onSend = { viewModel.sendMessage(it) },
                                     enabled = !isTyping,
@@ -737,6 +744,8 @@ fun ChatScreen(
                                     onStop = { viewModel.stopGeneration() },
                                     // 传递参与者列表以支持 @ 提及
                                     participants = if (groupMode) participantCharacters else emptyList(),
+                                    insertRequest = pendingInsertText,
+                                    onInsertConsumed = { viewModel.consumePendingInsert() },
                                 )
                             }
                         }

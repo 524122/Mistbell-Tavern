@@ -1,0 +1,20 @@
+[
+  {
+    "label": "问候老板娘",
+    "action": "send",
+    "payload": "你好，给我来一杯雾铃镇最好的酒。",
+    "enabled": true
+  },
+  {
+    "label": "插入敬语",
+    "action": "insert",
+    "payload": "（礼貌地）",
+    "enabled": true
+  },
+  {
+    "label": "查看命令",
+    "action": "command",
+    "payload": "/help",
+    "enabled": true
+  }
+]

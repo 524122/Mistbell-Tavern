@@ -114,6 +114,18 @@ class MigrationSchemaAlignmentTest {
         assertTrue(ddl.contains("PRIMARY KEY(`id`)"))
     }
 
+    @Test
+    fun `v34 to v35 creates quick_replies table`() {
+        val sql = AppDatabase.MIGRATION_34_35_SQL
+        assertEquals(1, sql.size)
+        val ddl = sql.single()
+        assertTrue(ddl.contains("CREATE TABLE IF NOT EXISTS `quick_replies`"))
+        assertTrue(ddl.contains("`label` TEXT NOT NULL"))
+        assertTrue(ddl.contains("`action` TEXT NOT NULL"))
+        assertTrue(ddl.contains("`payload` TEXT NOT NULL"))
+        assertTrue(ddl.contains("PRIMARY KEY(`id`)"))
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

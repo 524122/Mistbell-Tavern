@@ -11,6 +11,7 @@ import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
+import com.mistbell.tavern.android.data.repository.QuickReplyRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
@@ -112,6 +113,48 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast
+
+    // ---- 快捷回复（Quick Reply）：全局自定义 + 启用规则包聚合 ----
+
+    private val quickReplyRepo = QuickReplyRepository()
+
+    val quickReplies: StateFlow<List<QuickReplyRepository.ActiveQuickReply>> =
+        quickReplyRepo.observeActive()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** insert 动作的输入框填入请求：一次性（UI 消费后置 null） */
+    private val _pendingInsertText = MutableStateFlow<String?>(null)
+    val pendingInsertText: StateFlow<String?> = _pendingInsertText
+
+    fun consumePendingInsert() {
+        _pendingInsertText.value = null
+    }
+
+    /**
+     * 执行快捷回复：send 走正常发送链路（斜杠拦截自然生效）；insert 填入输入框；
+     * command 分发斜杠命令（payload 非 / 开头按非法配置提示，不执行）。
+     */
+    fun executeQuickReply(qr: QuickReplyRepository.ActiveQuickReply) {
+        val char = _currentCharacter.value ?: return
+        when (qr.action) {
+            "send" -> sendMessage(qr.payload)
+            "insert" -> _pendingInsertText.value = qr.payload
+            "command" -> {
+                if (!SlashCommandParser.isSlashCommand(qr.payload)) {
+                    _toast.value = "快捷回复「${qr.label}」的 command 载荷须以 / 开头"
+                    return
+                }
+                viewModelScope.launch {
+                    _toast.value =
+                        SlashCommandDispatcher.dispatch(
+                            qr.payload,
+                            SlashCommandContext(ownerId, char.id, _activeSessionId.value),
+                        )
+                }
+            }
+            else -> _toast.value = "快捷回复「${qr.label}」动作非法：${qr.action}"
+        }
+    }
 
     // Navigation events
     private val _navigationEvent = MutableStateFlow<String?>(null)

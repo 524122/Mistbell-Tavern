@@ -49,6 +49,7 @@ object Routes {
     const val ABOUT = "about"
     const val PROMPT_MANAGEMENT = "prompt_management"
     const val RULE_PACKS = "rule_packs"
+    const val QUICK_REPLIES = "quick_replies"
     const val MODEL_PARAMS = "model_params"
 
     fun chat(
@@ -227,6 +228,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     },
                     onNavigateToRulePacks = {
                         navController.navigate(Routes.RULE_PACKS)
+                    },
+                    onNavigateToQuickReplies = {
+                        navController.navigate(Routes.QUICK_REPLIES)
                     },
                     onNavigateToModelParams = {
                         navController.navigate(Routes.MODEL_PARAMS)
@@ -430,6 +434,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     onNavigateToRulePacks = {
                         navController.navigate(Routes.RULE_PACKS)
                     },
+                    onNavigateToQuickReplies = {
+                        navController.navigate(Routes.QUICK_REPLIES)
+                    },
                     onNavigateToModelParams = {
                         navController.navigate(Routes.MODEL_PARAMS)
                     },
@@ -553,6 +560,19 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) {
                 com.mistbell.tavern.android.ui.rulepack.RulePackManagerScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // 快捷回复管理
+            composable(
+                route = Routes.QUICK_REPLIES,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.quickreply.QuickReplyManagerScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

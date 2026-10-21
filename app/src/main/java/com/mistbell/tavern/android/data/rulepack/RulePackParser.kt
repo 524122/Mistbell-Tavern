@@ -16,6 +16,9 @@ object RulePackParser {
     const val PROMPTS_FILE = "prompts.json"
     const val REGEX_FILE = "regex.json"
     const val MACROS_FILE = "macros.json"
+    const val QUICK_REPLIES_FILE = "quickreplies.json"
+
+    val VALID_QR_ACTIONS = setOf("send", "insert", "command")
 
     private val ID_PATTERN = Regex("^[A-Za-z0-9_-]{1,64}$")
 
@@ -57,12 +60,37 @@ object RulePackParser {
                         if (!ok) warnings.add("存在名称为空的宏条目，已跳过")
                     }
                 }
+        val quickReplies =
+            parseList<RulePackQuickReply>(files[QUICK_REPLIES_FILE], QUICK_REPLIES_FILE, warnings)
+                .filter { qr -> validQuickReply(qr, warnings) }
 
         return Bundle(
             manifest = manifest,
-            content = RulePackContent(prompts = prompts, regex = regex, macros = macros),
+            content =
+                RulePackContent(
+                    prompts = prompts,
+                    regex = regex,
+                    macros = macros,
+                    quickReplies = quickReplies,
+                ),
             warnings = warnings,
         )
+    }
+
+    /** 快捷回复条目校验：label 空白或 action 非法（send/insert/command 之外）跳过并告警 */
+    private fun validQuickReply(
+        qr: RulePackQuickReply,
+        warnings: MutableList<String>,
+    ): Boolean {
+        val reason =
+            when {
+                qr.label.isBlank() -> "存在标签为空的快捷回复条目，已跳过"
+                qr.action.lowercase() !in VALID_QR_ACTIONS ->
+                    "快捷回复「${qr.label}」的 action 非法（${qr.action}），已跳过（合法值：send/insert/command）"
+                else -> null
+            }
+        reason?.let { warnings.add(it) }
+        return reason == null
     }
 
     /** 坏正则在导入期编译一次：编译不过的条目跳过并告警，避免运行时逐条炸 */

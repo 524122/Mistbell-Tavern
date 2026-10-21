@@ -1405,7 +1405,7 @@ object PromptBuilder {
                         protocolConversionResult =
                             segment.protocolConversionResult
                                 ?: "ChatMessage(role=${segment.message.role}, content) kept; " +
-                                    "provider adapter maps this role/content",
+                                "provider adapter maps this role/content",
                     )
                 }
 
@@ -1430,7 +1430,6 @@ object PromptBuilder {
             )
         }
     }
-
 
     /**
      * 执行已注册的生成前拦截器（[ExtensionRegistry.promptInterceptors]，按 loadingOrder 升序）。
@@ -1461,9 +1460,7 @@ object PromptBuilder {
     }
 
     /** 角色卡 data_json → CharacterData；空白/损坏静默返回 null（装配绝不让坏卡中断） */
-    internal fun parseCharacterData(
-        dataJson: String,
-    ): com.mistbell.tavern.android.data.api.model.CharacterData? {
+    internal fun parseCharacterData(dataJson: String): com.mistbell.tavern.android.data.api.model.CharacterData? {
         if (dataJson.isBlank()) return null
         return try {
             Json.decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(dataJson)

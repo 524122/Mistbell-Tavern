@@ -47,10 +47,20 @@ data class RulePackMacro(
     val enabled: Boolean = true,
 )
 
-/** 三个可选内容文件的合并体（RulePackEntity.contentJson 的序列化形态） */
+/** 快捷回复：label 按钮文案；action = send（直接发送）/ insert（填入输入框）/ command（斜杠命令） */
+@Serializable
+data class RulePackQuickReply(
+    val label: String,
+    val action: String,
+    val payload: String,
+    val enabled: Boolean = true,
+)
+
+/** 四个可选内容文件的合并体（RulePackEntity.contentJson 的序列化形态） */
 @Serializable
 data class RulePackContent(
     val prompts: List<RulePackPrompt> = emptyList(),
     val regex: List<RulePackRegexRule> = emptyList(),
     val macros: List<RulePackMacro> = emptyList(),
+    val quickReplies: List<RulePackQuickReply> = emptyList(),
 )
