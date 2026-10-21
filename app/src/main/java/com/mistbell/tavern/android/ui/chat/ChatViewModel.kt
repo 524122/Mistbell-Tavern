@@ -223,14 +223,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _promptTrace.value =
                     PromptBuilder.buildPromptTrace(
                         db = db,
-                        ownerId = ownerId,
-                        characterId = characterId,
-                        sessionId = sessionId,
-                        userMessage = lastUserMessage?.content ?: "",
-                        // 已落库的最后一条用户消息需排除，否则预览里会重复出现
-                        currentMessageId = lastUserMessage?.id,
-                        groupContext = groupContext,
-                        contextTokenLimitOverride = requestConfig.contextTokenLimit,
+                        request =
+                            PromptBuilder.PromptRequest(
+                                ownerId = ownerId,
+                                characterId = characterId,
+                                sessionId = sessionId,
+                                userMessage = lastUserMessage?.content ?: "",
+                                // 已落库的最后一条用户消息需排除，否则预览里会重复出现
+                                currentMessageId = lastUserMessage?.id,
+                                groupContext = groupContext,
+                                contextTokenLimitOverride = requestConfig.contextTokenLimit,
+                            ),
                     )
                 _promptRequestParams.value = describeRequestParams()
             } catch (e: Exception) {

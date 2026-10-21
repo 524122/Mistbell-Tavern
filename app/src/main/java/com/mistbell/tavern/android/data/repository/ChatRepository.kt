@@ -211,13 +211,15 @@ class ChatRepository(private val context: Context) {
                     val promptMessages =
                         PromptBuilder.buildPrompt(
                             db,
-                            ownerId,
-                            characterId,
-                            sessionId,
-                            message,
-                            currentMessageId = msgId,
-                            groupContext = effectiveGroupContext,
-                            contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                            PromptBuilder.PromptRequest(
+                                ownerId = ownerId,
+                                characterId = characterId,
+                                sessionId = sessionId,
+                                userMessage = message,
+                                currentMessageId = msgId,
+                                groupContext = effectiveGroupContext,
+                                contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                            ),
                         )
                     TavernEventBus.emit(TavernEvent.GenerationStarted(sessionId))
                     generationActive = true
@@ -321,14 +323,16 @@ class ChatRepository(private val context: Context) {
                 val promptMessages =
                     PromptBuilder.buildPrompt(
                         db,
-                        ownerId,
-                        characterId,
-                        sessionId,
-                        // 无新用户消息；推动语作为 system 注入（groupNudge 非 null 时 PromptBuilder 不追加用户消息）
-                        userMessage = "",
-                        groupContext = groupContext,
-                        groupNudge = GROUP_CONTINUE_NUDGE,
-                        contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                        PromptBuilder.PromptRequest(
+                            ownerId = ownerId,
+                            characterId = characterId,
+                            sessionId = sessionId,
+                            // 无新用户消息；推动语作为 system 注入（groupNudge 非 null 时 PromptBuilder 不追加用户消息）
+                            userMessage = "",
+                            groupContext = groupContext,
+                            groupNudge = GROUP_CONTINUE_NUDGE,
+                            contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                        ),
                     )
                 collectReply(llmConfig, promptMessages, sb, onPartial)
                 // 公共尾部：归属解析/落库/计数回写与 sendMessage 完全一致；本轮无用户消息参与记忆提取
@@ -462,14 +466,16 @@ class ChatRepository(private val context: Context) {
             val prompt =
                 PromptBuilder.buildPrompt(
                     db,
-                    ownerId,
-                    characterId,
-                    sessionId,
-                    lastUserMsg.content,
-                    currentMessageId = lastUserMsg.id,
-                    excludeFromMessageId = messageId,
-                    groupContext = groupContext,
-                    contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                    PromptBuilder.PromptRequest(
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        sessionId = sessionId,
+                        userMessage = lastUserMsg.content,
+                        currentMessageId = lastUserMsg.id,
+                        excludeFromMessageId = messageId,
+                        groupContext = groupContext,
+                        contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                    ),
                 )
             val sb = StringBuilder()
             val replacedMessageIds =
@@ -525,12 +531,14 @@ class ChatRepository(private val context: Context) {
             val prompt =
                 PromptBuilder.buildPrompt(
                     db,
-                    ownerId,
-                    characterId,
-                    sessionId,
-                    userMessage = "请自然地继续上一条助手回复，不要重复已经说过的内容。",
-                    groupContext = loadGroupContext(ownerId, characterId, sessionId),
-                    contextTokenLimitOverride = config.contextTokenLimit,
+                    PromptBuilder.PromptRequest(
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        sessionId = sessionId,
+                        userMessage = "请自然地继续上一条助手回复，不要重复已经说过的内容。",
+                        groupContext = loadGroupContext(ownerId, characterId, sessionId),
+                        contextTokenLimitOverride = config.contextTokenLimit,
+                    ),
                 )
             val sb = StringBuilder()
             try {
@@ -611,14 +619,16 @@ class ChatRepository(private val context: Context) {
             val prompt =
                 PromptBuilder.buildPrompt(
                     db,
-                    ownerId,
-                    characterId,
-                    sessionId,
-                    lastUser.content,
-                    currentMessageId = lastUser.id,
-                    excludeFromMessageId = messageId,
-                    groupContext = loadGroupContext(ownerId, characterId, sessionId),
-                    contextTokenLimitOverride = config.contextTokenLimit,
+                    PromptBuilder.PromptRequest(
+                        ownerId = ownerId,
+                        characterId = characterId,
+                        sessionId = sessionId,
+                        userMessage = lastUser.content,
+                        currentMessageId = lastUser.id,
+                        excludeFromMessageId = messageId,
+                        groupContext = loadGroupContext(ownerId, characterId, sessionId),
+                        contextTokenLimitOverride = config.contextTokenLimit,
+                    ),
                 )
             val sb = StringBuilder()
             try {

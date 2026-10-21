@@ -26,6 +26,9 @@
 - 修复相似度阈值设置失效：召回格式化层硬编码的 `score > 0.5` 下限把用户可配阈值（默认 0.35）实际钳到 0.5 才生效，0.35~0.5 分段的有效召回被静默丢弃。
 - 启动对账补齐消息级孤儿向量清理：删除落盘被强杀打断而复活的向量此前只在召回时兜底过滤、会持续占用索引预算，现每次启动按 Room 存在性收敛（源表为空则保守跳过）。
 
+### Changed
+- PromptBuilder 核心装配拆分重构：`buildPromptTrace` 单体函数（442 行/圈复杂度 88）拆为「装配上下文 + 17 个阶段函数」，入参打包为 `PromptRequest`；**输出逐字节不变**（预览与真实请求同一装配路径的契约不变），detekt 的 LongMethod/CyclomaticComplexMethod/LongParameterList 三项告警消除，重复的角色卡 data_json 解析收敛为 `parseCharacterData` helper。
+
 ## [0.9.5-beta] - 2026-10-20
 
 ### Added

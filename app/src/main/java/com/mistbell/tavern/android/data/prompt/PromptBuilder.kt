@@ -7,7 +7,10 @@ import com.mistbell.tavern.android.data.api.model.MemoryType
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.api.model.truncateMemoryContent
 import com.mistbell.tavern.android.data.local.AppDatabase
+import com.mistbell.tavern.android.data.local.dao.SettingsDao
+import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
+import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
@@ -668,102 +671,173 @@ object PromptBuilder {
     private const val ASCII_CHARS_PER_TOKEN = 4.0
     private const val CJK_CHARS_PER_TOKEN = 1.5
 
-    suspend fun buildPrompt(
-        db: AppDatabase,
-        ownerId: String,
-        characterId: String,
-        sessionId: String,
-        userMessage: String,
-        currentMessageId: String? = null,
+    /** WI 预算百分比除数（world_info_budget_percent 是 0-100 百分数） */
+    private const val PERCENT_BASE = 100
+
+    /**
+     * 一次提示词装配的全部入参（打包治长参数表；调用方只构造本对象）。
+     */
+    data class PromptRequest(
+        val ownerId: String,
+        val characterId: String,
+        val sessionId: String,
+        val userMessage: String,
+        // 装配历史时过滤掉这条（刚落库的当前用户消息），避免同一条在 prompt 中重复出现
+        val currentMessageId: String? = null,
         // 重新生成场景：截断该消息及其之后的全部历史（按查询返回的时间序），
         // 保证正要被替换的旧 assistant 回复不进入上下文
-        excludeFromMessageId: String? = null,
+        val excludeFromMessageId: String? = null,
         // 群聊上下文（默认 null = classic 模式，行为与改动前完全一致）
-        groupContext: GroupChatContext? = null,
+        val groupContext: GroupChatContext? = null,
         // continueGroupChat 场景的系统级推动语（由 ChatRepository 传入，本类不做特判）；
         // 非 null 时不再追加最终用户消息，改为注入这条 system 消息
-        groupNudge: String? = null,
+        val groupNudge: String? = null,
         // API 配置文档提供的本地 prompt 输入预算；会话显式覆盖仍优先
-        contextTokenLimitOverride: Int? = null,
-    ): List<ChatMessage> {
-        val trace =
-            buildPromptTrace(
-                db,
-                ownerId,
-                characterId,
-                sessionId,
-                userMessage,
-                currentMessageId,
-                excludeFromMessageId,
-                groupContext,
-                groupNudge,
-                contextTokenLimitOverride,
-            )
-        return trace.segments.map { it.message }
-    }
+        val contextTokenLimitOverride: Int? = null,
+    )
+
+    suspend fun buildPrompt(
+        db: AppDatabase,
+        request: PromptRequest,
+    ): List<ChatMessage> = buildPromptTrace(db, request).segments.map { it.message }
 
     /**
      * 装配并返回带来源标注的提示词（聊天页「查看提示词」入口）。
      *
      * 与 [buildPrompt] **共用同一条装配路径**：本函数是唯一实现，buildPrompt 只是取其
      * `segments.map { it.message }`，所以预览内容与真实请求逐字节一致。
+     *
+     * 实现形态：阶段化装配——[AssemblyCtx] 持有一次装配的全部共享状态，阶段函数按序执行。
+     * **阶段顺序即语义**：拆分只做剪切提取，不重排任何段的产生时机，输出与拆分前逐字节一致。
      */
     suspend fun buildPromptTrace(
         db: AppDatabase,
-        ownerId: String,
-        characterId: String,
-        sessionId: String,
-        userMessage: String,
-        currentMessageId: String? = null,
-        excludeFromMessageId: String? = null,
-        groupContext: GroupChatContext? = null,
-        groupNudge: String? = null,
-        contextTokenLimitOverride: Int? = null,
+        request: PromptRequest,
     ): PromptTrace {
+        val ctx = AssemblyCtx(db, request)
+        ctx.loadCore()
+        ctx.appendCharacterCard()
+        ctx.appendPersona()
+        ctx.appendGroupRules()
+        ctx.resolveWorldInfoSettings()
+        ctx.loadWorldBookEntries()
+        ctx.runWorldInfoActivation()
+        ctx.appendFrontMatter()
+        ctx.buildMemory()
+        ctx.appendHistory()
+        ctx.appendPostHistoryBlocks()
+        ctx.buildDepthBlocks()
+        ctx.appendMemoryBlocks()
+        ctx.appendActivatedWorldInfo()
+        ctx.appendFinalMessage()
+        ctx.insertDepthBlocksIfNeeded()
+        ctx.runInterceptors()
+        return ctx.buildTrace()
+    }
+
+    /**
+     * 一次装配的共享状态与阶段函数集合。
+     *
+     * 中间产物（WI 计划/预算/激活结果/记忆/历史窗口等）一律经本类属性在阶段间传递；
+     * 嵌套在 object 内：阶段函数直接使用外层全部既有 helper（worldInfoBlock 等），零搬迁。
+     */
+    @Suppress("TooManyFunctions") // 阶段化装配：按职责拆小函数优于挤进单体函数
+    private class AssemblyCtx(
+        val db: AppDatabase,
+        val request: PromptRequest,
+    ) {
         val messages = mutableListOf<Segment>()
 
-        val session = db.sessionDao().get(sessionId, ownerId, characterId)
-        // 三态覆盖语义（SETTINGS.md 分层原则）：会话显式值 > 全局当前默认 > 内置兜底，
-        // 统一经 ChatSettingsResolver 解析——不再在此硬编码 4096 兜底
-        val settingsDao = db.settingsDao()
-        val contextTokenLimit =
-            ChatSettingsResolver.contextTokenLimit(
-                session,
-                contextTokenLimitOverride
-                    ?: ChatSettingsResolver.globalDefaultContextTokens(settingsDao.getValue("default_context_tokens")),
-            )
-        // 全局默认记忆开关已删除：会话显式值优先，未设置即为关
-        val longTermMemoryEnabled =
-            ChatSettingsResolver.longTermMemoryEnabled(session, false)
-        val participantCharacterIds = session?.participantCharacterIds() ?: listOf(characterId)
-        val participantById =
-            db.characterDao()
-                .getByIds(participantCharacterIds.distinct())
-                .associateBy { it.id }
-        val participantCharacters =
-            participantCharacterIds
-                .mapNotNull { participantById[it] }
-                .ifEmpty { participantById[characterId]?.let { listOf(it) } ?: emptyList() }
-        val character = participantCharacters.firstOrNull() ?: participantById[characterId]
-        // F2.1 宏引擎上下文（契约 B）：用户名与人设统一取全局设置（键常量收敛在 ChatSettingsResolver，
-        // 禁止手写字面量）；用户名缺省 "User"，人设缺省空串（不注入该段）
-        val userName = ChatSettingsResolver.userName(settingsDao.getValue(ChatSettingsResolver.KEY_USER_NAME))
-        val userPersona = ChatSettingsResolver.userPersona(settingsDao.getValue(ChatSettingsResolver.KEY_USER_PERSONA))
-        val mainPrompt = ChatSettingsResolver.mainPrompt(settingsDao.getValue(ChatSettingsResolver.KEY_MAIN_PROMPT))
-        val mctx =
-            MacroContext(
-                char = character?.name ?: "",
-                user = userName,
-                description = character?.description ?: "",
-                personality = character?.personality ?: "",
-                scenario = character?.scenario ?: "",
-                persona = userPersona,
-            )
-        if (character != null) {
+        // ---- loadCore 产物 ----
+        var session: SessionEntity? = null
+        var contextTokenLimit = 0
+        var longTermMemoryEnabled = false
+        var participantCharacters: List<CharacterEntity> = emptyList()
+        var character: CharacterEntity? = null
+        var userName = ""
+        var userPersona = ""
+        var mainPrompt = ""
+        lateinit var settingsDao: SettingsDao
+        lateinit var mctx: MacroContext
+
+        // ---- 世界书设置/条目/激活产物 ----
+        var worldInfoGlobalBookIds: List<String> = emptyList()
+        var worldInfoPersonaBookId = ""
+        var worldInfoCharacterStrategy = 0
+        var worldInfoScanDepth = 2
+        var worldInfoBudgetTokens = Int.MAX_VALUE
+        var worldInfoInHistory = true
+        var worldInfoRecursive = false
+        var worldInfoMinActivations = 0
+        var worldInfoMinActivationsDepthMax = 0
+        var worldInfoIncludeNames = true
+        var worldInfoUseGroupScoring = false
+        var worldBookEntries: List<WorldBookEntryEntity> = emptyList()
+        lateinit var constantBudget: WiConstantBudget
+        var activatedEntryIds: Set<String> = emptySet()
+        var wiBudgetDrops: List<String> = emptyList()
+        lateinit var wbPlan: WorldBookPlacement.Plan
+
+        // ---- 记忆/历史/尾部产物 ----
+        var memoryContext = MemoryContext()
+        var history: List<MessageEntity> = emptyList()
+        var recentMessages: List<MessageEntity> = emptyList()
+        var historyTruncated = false
+        val depthBlocks = mutableListOf<WiDepthBlock>()
+        var authorNote = ""
+        var authorNoteDepth = 0
+        var authorNoteInHistory = false
+
+        /** 会话/参与者/全局设置/宏上下文：一切装配决策的数据基础 */
+        suspend fun loadCore() {
+            session = db.sessionDao().get(request.sessionId, request.ownerId, request.characterId)
+            // 三态覆盖语义（SETTINGS.md 分层原则）：会话显式值 > 全局当前默认 > 内置兜底，
+            // 统一经 ChatSettingsResolver 解析——不再在此硬编码 4096 兜底
+            settingsDao = db.settingsDao()
+            contextTokenLimit =
+                ChatSettingsResolver.contextTokenLimit(
+                    session,
+                    request.contextTokenLimitOverride
+                        ?: ChatSettingsResolver.globalDefaultContextTokens(
+                            settingsDao.getValue("default_context_tokens"),
+                        ),
+                )
+            // 全局默认记忆开关已删除：会话显式值优先，未设置即为关
+            longTermMemoryEnabled =
+                ChatSettingsResolver.longTermMemoryEnabled(session, false)
+            val participantCharacterIds = session?.participantCharacterIds() ?: listOf(request.characterId)
+            val participantById =
+                db.characterDao()
+                    .getByIds(participantCharacterIds.distinct())
+                    .associateBy { it.id }
+            participantCharacters =
+                participantCharacterIds
+                    .mapNotNull { participantById[it] }
+                    .ifEmpty { participantById[request.characterId]?.let { listOf(it) } ?: emptyList() }
+            character = participantCharacters.firstOrNull() ?: participantById[request.characterId]
+            // F2.1 宏引擎上下文（契约 B）：用户名与人设统一取全局设置（键常量收敛在 ChatSettingsResolver，
+            // 禁止手写字面量）；用户名缺省 "User"，人设缺省空串（不注入该段）
+            userName = ChatSettingsResolver.userName(settingsDao.getValue(ChatSettingsResolver.KEY_USER_NAME))
+            userPersona = ChatSettingsResolver.userPersona(settingsDao.getValue(ChatSettingsResolver.KEY_USER_PERSONA))
+            mainPrompt = ChatSettingsResolver.mainPrompt(settingsDao.getValue(ChatSettingsResolver.KEY_MAIN_PROMPT))
+            mctx =
+                MacroContext(
+                    char = character?.name ?: "",
+                    user = userName,
+                    description = character?.description ?: "",
+                    personality = character?.personality ?: "",
+                    scenario = character?.scenario ?: "",
+                    persona = userPersona,
+                )
+        }
+
+        /** 角色卡 system 文本（含多角色参与者块与卡内 systemPrompt） */
+        fun appendCharacterCard() {
+            val char = character ?: return
             val systemParts = mutableListOf<String>()
             if (participantCharacters.size > 1) {
                 systemParts.add(
-                    "This is a multi-character chat. Primary speaker: ${character.name}. " +
+                    "This is a multi-character chat. Primary speaker: ${char.name}. " +
                         "Other selected characters may participate when appropriate: " +
                         participantCharacters.drop(1).joinToString(", ") { it.name } + ".",
                 )
@@ -773,20 +847,23 @@ object PromptBuilder {
                 val characterParts = mutableListOf<String>()
                 characterParts.add("$roleLabel: ${participant.name}")
                 // 参与组装的角色文本先过宏引擎渲染（{{char}}/{{user}} 等）
-                if (participant.description.isNotBlank()) characterParts.add(MacroEngine.render(participant.description, mctx))
+                if (participant.description.isNotBlank()) {
+                    characterParts.add(MacroEngine.render(participant.description, mctx))
+                }
                 if (participant.personality.isNotBlank()) {
                     characterParts.add(
                         "Personality: ${MacroEngine.render(participant.personality, mctx)}",
                     )
                 }
-                if (participant.scenario.isNotBlank()) characterParts.add("Scenario: ${MacroEngine.render(participant.scenario, mctx)}")
+                if (participant.scenario.isNotBlank()) {
+                    characterParts.add("Scenario: ${MacroEngine.render(participant.scenario, mctx)}")
+                }
                 if (participant.dataJson.isNotBlank()) {
                     try {
-                        val charData =
-                            kotlinx.serialization.json.Json.decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(
-                                participant.dataJson,
-                            )
-                        if (charData.systemPrompt.isNotBlank()) characterParts.add(1, MacroEngine.render(charData.systemPrompt, mctx))
+                        val charData = parseCharacterData(participant.dataJson)
+                        if (charData != null && charData.systemPrompt.isNotBlank()) {
+                            characterParts.add(1, MacroEngine.render(charData.systemPrompt, mctx))
+                        }
                     } catch (_: Exception) {
                     }
                 }
@@ -797,19 +874,26 @@ object PromptBuilder {
             }
         }
 
-        // 用户人设（`{{persona}}` 宏内容）：紧跟角色卡之后，让模型先知己方（AI）再知彼方（用户）。
-        // 全局稳定内容 → 落在历史之前，随前缀缓存命中
-        personaSegment(userPersona, mctx)?.let { messages.add(it) }
+        /** 用户人设段（`{{persona}}` 宏内容） */
+        fun appendPersona() {
+            // 紧跟角色卡之后，让模型先知己方（AI）再知彼方（用户）。
+            // 全局稳定内容 → 落在历史之前，随前缀缓存命中
+            personaSegment(userPersona, mctx)?.let { messages.add(it) }
+        }
 
-        // 群聊模式：紧跟角色 system 文本追加行为规范块 + 目标角色推动（classic 模式 groupContext 为 null，不进入）
-        // 规范模板可配置（settings：group_chat_rules_prompt），留空回落内置默认；{user} 占位符按用户名替换
-        if (groupContext != null) {
+        /** 群聊规范块（classic 模式 groupContext 为 null，不进入） */
+        suspend fun appendGroupRules() {
+            // 紧跟角色 system 文本追加行为规范块 + 目标角色推动；
+            // 规范模板可配置（settings：group_chat_rules_prompt），留空回落内置默认；{user} 占位符按用户名替换
+            val groupContext = request.groupContext ?: return
             // 顺序敏感：先宏渲染，再替换 {user} 占位符——{user} 是 {{user}} 的子串，
             // 反过来的话自定义模板里的 {{user}} 会被啃坏（详见 applyUserNamePlaceholder 注释）
             val rules =
                 ChatSettingsResolver.applyUserNamePlaceholder(
                     MacroEngine.render(
-                        ChatSettingsResolver.groupChatRules(settingsDao.getValue(ChatSettingsResolver.KEY_GROUP_CHAT_RULES)),
+                        ChatSettingsResolver.groupChatRules(
+                            settingsDao.getValue(ChatSettingsResolver.KEY_GROUP_CHAT_RULES),
+                        ),
                         mctx,
                     ),
                     mctx.user,
@@ -824,403 +908,442 @@ object PromptBuilder {
             messages.addSegment("system", groupSystem, SOURCE_GROUP_RULES)
         }
 
-        // 世界书（v19 起 insertPosition/depth 真正参与装配）。解析须在 LTM 之前完成：
-        // afterPrompt 条目要落在"角色定义/群聊规范之后、LTM 之前"的位置
-        // 多来源合并（v34，对齐酒馆四源 + 插入策略）：会话书≈chat lore、persona 绑定书、
-        // 角色书≈character lore、全局多选≈global lore；排序策略见 orderLoreEntries
-        val worldInfoGlobalBookIds =
-            ChatSettingsResolver.worldInfoGlobalBookIds(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_GLOBAL_BOOK_IDS),
-            )
-        val worldInfoPersonaBookId =
-            ChatSettingsResolver.worldInfoPersonaBookId(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_PERSONA_BOOK_ID),
-            )
-        val worldInfoCharacterStrategy =
-            ChatSettingsResolver.worldInfoCharacterStrategy(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_CHARACTER_STRATEGY),
-            )
-        val worldBookSources =
-            buildList {
-                session?.worldBookId?.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.CHAT) }
-                worldInfoPersonaBookId.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.PERSONA) }
-                character?.worldBookId?.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.CHARACTER) }
-                worldInfoGlobalBookIds.forEach { add(it to LoreSource.GLOBAL) }
-            }.distinctBy { it.first }
-        val worldBookEntries =
-            orderLoreEntries(
-                worldBookSources
-                    .flatMap { (bookId, source) ->
-                        db.worldBookDao().getEntriesList(bookId).map { it to source }
-                    }.distinctBy { it.first.bookId to it.first.id },
-                worldInfoCharacterStrategy,
-            )
-        // 世界书全局设置：扫描深度（默认 2，对齐酒馆 world_info_depth）与 token 预算
-        // （默认 25% 上下文，对齐酒馆 world_info_budget；0=关闭）。预算先于激活判定完成
-        // constant 条目分配，剩余额度传入 activate——溢出即停递归（酒馆同款）
-        val worldInfoScanDepth =
-            ChatSettingsResolver.worldInfoScanDepth(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_SCAN_DEPTH),
-            )
-        val worldInfoBudgetTokens =
-            ChatSettingsResolver
-                .worldInfoBudgetPercent(
-                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT),
-                ).let { if (it <= 0) Int.MAX_VALUE else contextTokenLimit * it / 100 }
-                // 绝对上限（酒馆 world_info_budget_cap）：>0 时在百分比结果上取 min
-                .let { tokens ->
-                    val cap =
-                        ChatSettingsResolver.worldInfoBudgetCap(
-                            settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_CAP),
-                        )
-                    if (cap > 0 && tokens > cap) cap else tokens
+        /** 世界书全局设置：四源开关/扫描深度/预算/落点模式/递归/分组按分等 */
+        suspend fun resolveWorldInfoSettings() {
+            worldInfoGlobalBookIds =
+                ChatSettingsResolver.worldInfoGlobalBookIds(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_GLOBAL_BOOK_IDS),
+                )
+            worldInfoPersonaBookId =
+                ChatSettingsResolver.worldInfoPersonaBookId(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_PERSONA_BOOK_ID),
+                )
+            worldInfoCharacterStrategy =
+                ChatSettingsResolver.worldInfoCharacterStrategy(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_CHARACTER_STRATEGY),
+                )
+            // 扫描深度（默认 2，对齐酒馆 world_info_depth）与 token 预算（默认 25% 上下文，
+            // 对齐酒馆 world_info_budget；0=关闭）。预算先于激活判定完成 constant 条目分配，
+            // 剩余额度传入 activate——溢出即停递归（酒馆同款）
+            worldInfoScanDepth =
+                ChatSettingsResolver.worldInfoScanDepth(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_SCAN_DEPTH),
+                )
+            worldInfoBudgetTokens =
+                ChatSettingsResolver
+                    .worldInfoBudgetPercent(
+                        settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT),
+                    ).let { if (it <= 0) Int.MAX_VALUE else contextTokenLimit * it / PERCENT_BASE }
+                    // 绝对上限（酒馆 world_info_budget_cap）：>0 时在百分比结果上取 min
+                    .let { tokens ->
+                        val cap =
+                            ChatSettingsResolver.worldInfoBudgetCap(
+                                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_CAP),
+                            )
+                        if (cap > 0 && tokens > cap) cap else tokens
+                    }
+            // @D 落点模式：默认插进历史内部（酒馆一致）；=0 时后移到历史之后（省 token：前缀缓存命中更长）
+            worldInfoInHistory =
+                ChatSettingsResolver.worldInfoInHistory(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY),
+                )
+            // 递归扫描开关：默认关（对齐酒馆 world_info_recursive）
+            worldInfoRecursive =
+                ChatSettingsResolver.worldInfoRecursive(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE),
+                )
+            worldInfoMinActivations =
+                ChatSettingsResolver.worldInfoMinActivations(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS),
+                )
+            worldInfoMinActivationsDepthMax =
+                ChatSettingsResolver.worldInfoMinActivationsDepthMax(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX),
+                )
+            // 扫描文本带「名字: 」前缀（酒馆 world_info_include_names 默认开）：
+            // assistant 按 character_id 查说话方名，user 用 {{user}} 值——名字本身也可被关键词命中
+            worldInfoIncludeNames =
+                ChatSettingsResolver.worldInfoIncludeNames(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_INCLUDE_NAMES),
+                )
+            worldInfoUseGroupScoring =
+                ChatSettingsResolver.worldInfoUseGroupScoring(
+                    settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_USE_GROUP_SCORING),
+                )
+        }
+
+        /** 世界书条目：四源合并（v34，对齐酒馆四源 + 插入策略）+ constant 预算分配 */
+        suspend fun loadWorldBookEntries() {
+            // 世界书（v19 起 insertPosition/depth 真正参与装配）。解析须在 LTM 之前完成：
+            // afterPrompt 条目要落在"角色定义/群聊规范之后、LTM 之前"的位置。
+            // 多来源合并：会话书≈chat lore、persona 绑定书、角色书≈character lore、
+            // 全局多选≈global lore；排序策略见 orderLoreEntries
+            val worldBookSources =
+                buildList {
+                    session?.worldBookId?.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.CHAT) }
+                    worldInfoPersonaBookId.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.PERSONA) }
+                    character?.worldBookId?.takeIf { it.isNotBlank() }?.let { add(it to LoreSource.CHARACTER) }
+                    worldInfoGlobalBookIds.forEach { add(it to LoreSource.GLOBAL) }
+                }.distinctBy { it.first }
+            worldBookEntries =
+                orderLoreEntries(
+                    worldBookSources
+                        .flatMap { (bookId, source) ->
+                            db.worldBookDao().getEntriesList(bookId).map { it to source }
+                        }.distinctBy { it.first.bookId to it.first.id },
+                    worldInfoCharacterStrategy,
+                )
+            constantBudget = allocateConstantBudget(worldBookEntries, worldInfoBudgetTokens)
+        }
+
+        /** 关键词激活判定 + timed effects 持久化 + 预算裁剪清单 + 位置规划 */
+        suspend fun runWorldInfoActivation() {
+            val scanHistory =
+                db.messageDao().getBySession(request.sessionId, request.ownerId).first().map { msg ->
+                    if (!worldInfoIncludeNames) {
+                        msg.content
+                    } else {
+                        val speaker =
+                            if (msg.role == "assistant") {
+                                request.groupContext?.speakerNames?.get(msg.characterId)
+                                    ?: character?.name.orEmpty()
+                            } else {
+                                mctx.user
+                            }
+                        if (speaker.isBlank()) msg.content else "$speaker: ${msg.content}"
+                    }
                 }
-        // @D 落点模式：默认插进历史内部（酒馆一致）；=0 时后移到历史之后（省 token：前缀缓存命中更长）
-        val worldInfoInHistory =
-            ChatSettingsResolver.worldInfoInHistory(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY),
-            )
-        // 递归扫描开关：默认关（对齐酒馆 world_info_recursive）
-        val worldInfoRecursive =
-            ChatSettingsResolver.worldInfoRecursive(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE),
-            )
-        val worldInfoMinActivations =
-            ChatSettingsResolver.worldInfoMinActivations(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS),
-            )
-        val worldInfoMinActivationsDepthMax =
-            ChatSettingsResolver.worldInfoMinActivationsDepthMax(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX),
-            )
-        // 扫描文本带「名字: 」前缀（酒馆 world_info_include_names 默认开）：
-        // assistant 按 character_id 查说话方名，user 用 {{user}} 值——名字本身也可被关键词命中
-        val worldInfoIncludeNames =
-            ChatSettingsResolver.worldInfoIncludeNames(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_INCLUDE_NAMES),
-            )
-        val worldInfoUseGroupScoring =
-            ChatSettingsResolver.worldInfoUseGroupScoring(
-                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_USE_GROUP_SCORING),
-            )
-        val constantBudget = allocateConstantBudget(worldBookEntries, worldInfoBudgetTokens)
-        val scanHistory =
-            db.messageDao().getBySession(sessionId, ownerId).first().map { msg ->
-                if (!worldInfoIncludeNames) {
-                    msg.content
+            // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中扫描窗口关键词；
+            // probability=1（缺省）跳过掷骰快速路径，constant 常驻条目不参与本判定（恒注入）
+            val activation =
+                WorldInfoRuntime.activate(
+                    request.sessionId,
+                    worldBookEntries,
+                    WorldInfoRuntime.ScanInput(
+                        historyMessages = scanHistory,
+                        userMessage = request.userMessage,
+                        globalScanDepth = worldInfoScanDepth,
+                        mctx = mctx,
+                        budgetTokens = constantBudget.remainingTokens,
+                        recursive = worldInfoRecursive,
+                        minActivations = worldInfoMinActivations,
+                        minActivationsDepthMax = worldInfoMinActivationsDepthMax,
+                        persistedStateJson = session?.wiStateJson,
+                        participantNames = participantCharacters.map { it.name }.toSet(),
+                        useGroupScoring = worldInfoUseGroupScoring,
+                        participantTags =
+                            participantCharacters
+                                .flatMap { participant ->
+                                    parseCharacterData(participant.dataJson)?.tags ?: emptyList()
+                                }.toSet(),
+                    ),
+                )
+            activatedEntryIds = activation.activated
+            // timed effects 持久化（对齐酒馆 timedWorldInfo）：状态变化才写库，避免每轮空写
+            if (activation.stateSnapshotJson != session?.wiStateJson.orEmpty()) {
+                db.sessionDao().updateWiState(
+                    request.sessionId,
+                    request.ownerId,
+                    request.characterId,
+                    activation.stateSnapshotJson,
+                )
+            }
+            // WI 预算裁剪清单（「查看提示词」展示）：constant 溢出 + 激活溢出
+            wiBudgetDrops =
+                (constantBudget.dropped + activation.droppedByBudget).map {
+                    "世界书条目「${it.comment.ifBlank { it.id }}」因 WI token 预算被裁剪"
+                }
+            wbPlan = WorldBookPlacement.plan(worldBookEntries)
+        }
+
+        /** 历史之前的全部内容：WI 常驻锚点块、全局主提示词、示例消息及 EM 锚点 */
+        fun appendFrontMatter() {
+            // 缓存优化：只注入 constant 条目到历史之前，activated 条目稍后注入到历史之后
+            worldInfoBlock(
+                wbPlan.afterPrompt,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.CONSTANT,
+                allowedKeys = constantBudget.allowed,
+            )?.let {
+                messages.addSegment("system", it, "世界书·角色定义后")
+            }
+            worldInfoBlock(
+                wbPlan.beforePrompt,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.CONSTANT,
+                allowedKeys = constantBudget.allowed,
+            )?.let {
+                // add(0)：beforePrompt 条目压到整条提示词最前（角色定义之前）
+                messages.add(0, Segment(ChatMessage(role = "system", content = it), "世界书·角色定义前"))
+            }
+
+            // 全局主提示词（settings：main_prompt）：所有会话共用的基础系统提示。
+            // 同样走 add(0) 且**在本处最后执行** → 落在 index 0，得到酒馆顺序
+            // [主提示词][世界书·角色定义前][角色卡]…。全局稳定内容 → 落在历史之前，随前缀缓存命中
+            mainPromptSegment(mainPrompt, mctx)?.let { messages.add(0, it) }
+
+            // 示例消息（mes_example）：角色定义后的示例对话块；EM 锚点（示例消息前/后）分列其两侧。
+            // 群聊取主角色示例；示例内容同样过宏渲染
+            // 缓存优化：只注入 constant 条目到历史之前
+            val mesExample = character?.mesExample?.trim().orEmpty()
+            worldInfoBlock(
+                wbPlan.emBefore,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.CONSTANT,
+                allowedKeys = constantBudget.allowed,
+            )?.let {
+                messages.addSegment("system", it, "世界书·示例消息前")
+            }
+            if (mesExample.isNotEmpty()) {
+                messages.addSegment("system", "Example dialogue:\n${MacroEngine.render(mesExample, mctx)}", "示例对话")
+            }
+            worldInfoBlock(
+                wbPlan.emAfter,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.CONSTANT,
+                allowedKeys = constantBudget.allowed,
+            )?.let {
+                messages.addSegment("system", it, "世界书·示例消息后")
+            }
+        }
+
+        /** 长期记忆：**先构建、暂不注入**（注入点在历史之后，见 appendMemoryBlocks） */
+        suspend fun buildMemory() {
+            // 注入点在历史之后、最终用户消息之前（见 @D 块之后）：召回集合由当前用户消息决定，
+            // 逐轮都变；若排在历史之前会打断「角色卡 + 历史」这段逐字节稳定的前缀，
+            // 使前缀缓存每轮全量未命中——这是"比酒馆更消耗"的结构性原因之一。
+            //
+            // 预算仍按**含记忆块**的口径计算（appendHistory 传 messages + memoryContext.allMessages()），
+            // 保证历史窗口与改动前完全一致，不会因记忆块后移而撑爆上下文
+            memoryContext =
+                if (longTermMemoryEnabled) {
+                    buildMemoryContext(
+                        db = db,
+                        query =
+                            MemoryRecallQuery(
+                                request.ownerId,
+                                request.characterId,
+                                request.sessionId,
+                                request.userMessage,
+                            ),
+                        contextTokenLimit = contextTokenLimit,
+                    )
                 } else {
-                    val speaker =
-                        if (msg.role == "assistant") {
-                            groupContext?.speakerNames?.get(msg.characterId)
-                                ?: character?.name.orEmpty()
-                        } else {
-                            mctx.user
-                        }
-                    if (speaker.isBlank()) msg.content else "$speaker: ${msg.content}"
+                    MemoryContext()
+                }
+        }
+
+        /** 历史窗口：会话级全量读取 → 排除/过滤 → 预算窗口 → 群聊说话方前缀标注 */
+        suspend fun appendHistory() {
+            // 历史源会话级读取（跨代理契约 2）：会话是消息的完整归属单元，character_id 仅作
+            // 说话方元数据（群聊），历史一律按 (session_id, owner_id) 全量取——群聊 NPC 消息
+            // 与主角色消息同窗进入上下文，说话方由 annotateGroupHistory 加前缀区分
+            var historySource: List<MessageEntity> =
+                db.messageDao().getBySession(request.sessionId, request.ownerId).first()
+            if (request.excludeFromMessageId != null) {
+                val idx = historySource.indexOfFirst { it.id == request.excludeFromMessageId }
+                if (idx >= 0) {
+                    historySource = historySource.subList(0, idx)
                 }
             }
-        // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中扫描窗口关键词；
-        // probability=1（缺省）跳过掷骰快速路径，constant 常驻条目不参与本判定（恒注入）
-        val activation =
-            WorldInfoRuntime.activate(
-                sessionId,
-                worldBookEntries,
-                WorldInfoRuntime.ScanInput(
-                    historyMessages = scanHistory,
-                    userMessage = userMessage,
-                    globalScanDepth = worldInfoScanDepth,
-                    mctx = mctx,
-                    budgetTokens = constantBudget.remainingTokens,
-                    recursive = worldInfoRecursive,
-                    minActivations = worldInfoMinActivations,
-                    minActivationsDepthMax = worldInfoMinActivationsDepthMax,
-                    persistedStateJson = session?.wiStateJson,
-                    participantNames = participantCharacters.map { it.name }.toSet(),
-                    useGroupScoring = worldInfoUseGroupScoring,
-                    participantTags =
-                        participantCharacters
-                            .flatMap { participant ->
-                                try {
-                                    kotlinx.serialization.json.Json
-                                        .decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(
-                                            participant.dataJson,
-                                        ).tags
-                                } catch (_: Exception) {
-                                    emptyList()
-                                }
-                            }.toSet(),
-                ),
-            )
-        val activatedEntryIds = activation.activated
-        // timed effects 持久化（对齐酒馆 timedWorldInfo）：状态变化才写库，避免每轮空写
-        if (activation.stateSnapshotJson != session?.wiStateJson.orEmpty()) {
-            db.sessionDao().updateWiState(sessionId, ownerId, characterId, activation.stateSnapshotJson)
-        }
-        // WI 预算裁剪清单（「查看提示词」展示）：constant 溢出 + 激活溢出
-        val wiBudgetDrops =
-            (constantBudget.dropped + activation.droppedByBudget).map {
-                "世界书条目「${it.comment.ifBlank { it.id }}」因 WI token 预算被裁剪"
-            }
-        val wbPlan = WorldBookPlacement.plan(worldBookEntries)
-        // 缓存优化：只注入 constant 条目到历史之前，activated 条目稍后注入到历史之后
-        worldInfoBlock(
-            wbPlan.afterPrompt,
-            activatedEntryIds,
-            mctx,
-            selection = WiSelection.CONSTANT,
-            allowedKeys = constantBudget.allowed,
-        )?.let {
-            messages.addSegment("system", it, "世界书·角色定义后")
-        }
-        worldInfoBlock(
-            wbPlan.beforePrompt,
-            activatedEntryIds,
-            mctx,
-            selection = WiSelection.CONSTANT,
-            allowedKeys = constantBudget.allowed,
-        )?.let {
-            // add(0)：beforePrompt 条目压到整条提示词最前（角色定义之前）
-            messages.add(0, Segment(ChatMessage(role = "system", content = it), "世界书·角色定义前"))
-        }
-
-        // 全局主提示词（settings：main_prompt）：所有会话共用的基础系统提示。
-        // 同样走 add(0) 且**在本处最后执行** → 落在 index 0，得到酒馆顺序
-        // [主提示词][世界书·角色定义前][角色卡]…。全局稳定内容 → 落在历史之前，随前缀缓存命中
-        mainPromptSegment(mainPrompt, mctx)?.let { messages.add(0, it) }
-
-        // 示例消息（mes_example）：角色定义后的示例对话块；EM 锚点（示例消息前/后）分列其两侧。
-        // 群聊取主角色示例；示例内容同样过宏渲染
-        // 缓存优化：只注入 constant 条目到历史之前
-        val mesExample = character?.mesExample?.trim().orEmpty()
-        worldInfoBlock(
-            wbPlan.emBefore,
-            activatedEntryIds,
-            mctx,
-            selection = WiSelection.CONSTANT,
-            allowedKeys = constantBudget.allowed,
-        )?.let {
-            messages.addSegment("system", it, "世界书·示例消息前")
-        }
-        if (mesExample.isNotEmpty()) {
-            messages.addSegment("system", "Example dialogue:\n${MacroEngine.render(mesExample, mctx)}", "示例对话")
-        }
-        worldInfoBlock(
-            wbPlan.emAfter,
-            activatedEntryIds,
-            mctx,
-            selection = WiSelection.CONSTANT,
-            allowedKeys = constantBudget.allowed,
-        )?.let {
-            messages.addSegment("system", it, "世界书·示例消息后")
-        }
-
-        // 长期记忆（结构化召回 + 向量/词法召回）：**先构建、暂不注入**。
-        //
-        // 注入点在历史之后、最终用户消息之前（见 @D 块之后）：召回集合由当前用户消息决定，
-        // 逐轮都变；若排在历史之前会打断「角色卡 + 历史」这段逐字节稳定的前缀，
-        // 使前缀缓存每轮全量未命中——这是"比酒馆更消耗"的结构性原因之一。
-        //
-        // 预算仍按**含记忆块**的口径计算（下方传 messages + memoryContext.allMessages()），
-        // 保证历史窗口与改动前完全一致，不会因记忆块后移而撑爆上下文
-        val memoryContext =
-            if (longTermMemoryEnabled) {
-                buildMemoryContext(
-                    db = db,
-                    query = MemoryRecallQuery(ownerId, characterId, sessionId, userMessage),
+            recentMessages =
+                historySource
+                    // 过滤掉刚落库的当前用户消息，避免同一条消息在 prompt 中重复出现
+                    .filter { request.currentMessageId == null || it.id != request.currentMessageId }
+            history =
+                selectHistoryWithinBudget(
+                    recentMessages = recentMessages,
+                    // 含待注入记忆块的口径：记忆虽然后移到历史之后，但它同样占用上下文预算，
+                    // 历史窗口必须据此扣减（与改动前一致，历史选取结果不因本次重排变化）
+                    currentMessages = messages.map { it.message } + memoryContext.allMessages(),
+                    currentUserMessage = request.userMessage,
                     contextTokenLimit = contextTokenLimit,
                 )
+            historyTruncated = recentMessages.size > history.size
+            val groupContext = request.groupContext
+            if (groupContext != null) {
+                // 群聊模式：历史消息加说话方前缀（AI 消息按 character_id 查名字，用户消息用 {{user}} 值）
+                messages.addAll(
+                    annotateGroupHistory(
+                        history = history,
+                        speakerNames = groupContext.speakerNames,
+                        userName = mctx.user,
+                    ).map { Segment(it, "历史·群聊") },
+                )
             } else {
-                MemoryContext()
-            }
-
-        // 历史源会话级读取（跨代理契约 2）：会话是消息的完整归属单元，character_id 仅作
-        // 说话方元数据（群聊），历史一律按 (session_id, owner_id) 全量取——群聊 NPC 消息
-        // 与主角色消息同窗进入上下文，说话方由 annotateGroupHistory 加前缀区分
-        var historySource: List<MessageEntity> = db.messageDao().getBySession(sessionId, ownerId).first()
-        if (excludeFromMessageId != null) {
-            val idx = historySource.indexOfFirst { it.id == excludeFromMessageId }
-            if (idx >= 0) {
-                historySource = historySource.subList(0, idx)
-            }
-        }
-        val recentMessages =
-            historySource
-                // 过滤掉刚落库的当前用户消息，避免同一条消息在 prompt 中重复出现
-                .filter { currentMessageId == null || it.id != currentMessageId }
-        val history: List<MessageEntity> =
-            selectHistoryWithinBudget(
-                recentMessages = recentMessages,
-                // 含待注入记忆块的口径：记忆虽然后移到历史之后，但它同样占用上下文预算，
-                // 历史窗口必须据此扣减（与改动前一致，历史选取结果不因本次重排变化）
-                currentMessages = messages.map { it.message } + memoryContext.allMessages(),
-                currentUserMessage = userMessage,
-                contextTokenLimit = contextTokenLimit,
-            )
-        val historyTruncated = recentMessages.size > history.size
-        if (groupContext != null) {
-            // 群聊模式：历史消息加说话方前缀（AI 消息按 character_id 查名字，用户消息用 {{user}} 值）
-            messages.addAll(
-                annotateGroupHistory(
-                    history = history,
-                    speakerNames = groupContext.speakerNames,
-                    userName = mctx.user,
-                ).map { Segment(it, "历史·群聊") },
-            )
-        } else {
-            history.forEachIndexed { index, msg: MessageEntity ->
-                // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
-                // 思考型模型的历史推理不进上下文（展示层不动）
-                messages.add(
-                    Segment(
-                        ChatMessage(role = msg.role, content = stripThinkingBlocks(msg.content)),
-                        "历史第 ${index + 1}/${history.size} 条",
-                        truncationReason = if (historyTruncated) "上下文预算裁剪后保留的最近窗口" else null,
-                    ),
-                )
+                history.forEachIndexed { index, msg: MessageEntity ->
+                    // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
+                    // 思考型模型的历史推理不进上下文（展示层不动）
+                    messages.add(
+                        Segment(
+                            ChatMessage(role = msg.role, content = stripThinkingBlocks(msg.content)),
+                            "历史第 ${index + 1}/${history.size} 条",
+                            truncationReason = if (historyTruncated) "上下文预算裁剪后保留的最近窗口" else null,
+                        ),
+                    )
+                }
             }
         }
 
-        // 角色卡的历史后指令（post_history_instructions）：酒馆里它插在**历史之后**，
-        // 作为"最后一句指令"约束生成（走在附加指令之前——附加指令是会话级实时覆盖，仍居末位）。
-        // 该字段此前可编辑可存库但从不注入（死字段），本处接通。
-        // 取主角色（participantCharacters.first()）的那一份：这是一条全局收尾指令，群聊不做逐角色叠加。
-        // 代价说明：它落在历史之后属易变尾部，这部分 token 不命中前缀缓存（同 @D，语义优先）
-        val primaryDataJson = participantCharacters.firstOrNull()?.dataJson.orEmpty()
-        postHistorySegment(primaryDataJson, character?.name.orEmpty(), mctx)?.let { messages.add(it) }
+        /** 历史之后的第一批收尾块：post_history 指令 + 作者注释（尾部模式）与 AN 常驻锚点 */
+        fun appendPostHistoryBlocks() {
+            // 角色卡的历史后指令（post_history_instructions）：酒馆里它插在**历史之后**，
+            // 作为"最后一句指令"约束生成（走在附加指令之前——附加指令是会话级实时覆盖，仍居末位）。
+            // 该字段此前可编辑可存库但从不注入（死字段），本处接通。
+            // 取主角色（participantCharacters.first()）的那一份：这是一条全局收尾指令，群聊不做逐角色叠加。
+            // 代价说明：它落在历史之后属易变尾部，这部分 token 不命中前缀缓存（同 @D，语义优先）
+            val primaryDataJson = participantCharacters.firstOrNull()?.dataJson.orEmpty()
+            postHistorySegment(primaryDataJson, character?.name.orEmpty(), mctx)?.let { messages.add(it) }
 
-        // 会话附加指令（author_note）+ AN 锚点：depth>0 时合并为一条深度块插进历史（对齐酒馆
-        // AN 的 IN_CHAT 深度插入：AN 顶/底条目并入 AN 文本）；depth=0（默认）保持尾部注入现状
-        val authorNote = session?.authorNote?.trim().orEmpty()
-        val authorNoteDepth = session?.authorNoteDepth ?: 0
-        val authorNoteInHistory = authorNoteDepth > 0
-        if (!authorNoteInHistory) {
-            if (authorNote.isNotEmpty()) {
-                messages.addSegment("system", "【附加指令】\n${MacroEngine.render(authorNote, mctx)}", "附加指令")
-            }
+            // 会话附加指令（author_note）+ AN 锚点：depth>0 时合并为一条深度块插进历史（对齐酒馆
+            // AN 的 IN_CHAT 深度插入：AN 顶/底条目并入 AN 文本）；depth=0（默认）保持尾部注入现状
+            authorNote = session?.authorNote?.trim().orEmpty()
+            authorNoteDepth = session?.authorNoteDepth ?: 0
+            authorNoteInHistory = authorNoteDepth > 0
+            if (!authorNoteInHistory) {
+                if (authorNote.isNotEmpty()) {
+                    messages.addSegment("system", "【附加指令】\n${MacroEngine.render(authorNote, mctx)}", "附加指令")
+                }
 
-            // AN 锚点（作者注释前/后）：紧贴【附加指令】块上沿/下沿；会话无附加指令时
-            // 两块依次落在历史之后，位置语义保持稳定
-            // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
-            worldInfoBlock(
-                wbPlan.anBefore,
-                activatedEntryIds,
-                mctx,
-                selection = WiSelection.CONSTANT,
-                allowedKeys = constantBudget.allowed,
-            )?.let {
-                messages.addSegment("system", it, "世界书·作者注释前")
-            }
-            worldInfoBlock(
-                wbPlan.anAfter,
-                activatedEntryIds,
-                mctx,
-                selection = WiSelection.CONSTANT,
-                allowedKeys = constantBudget.allowed,
-            )?.let {
-                messages.addSegment("system", it, "世界书·作者注释后")
-            }
-        }
-
-        // @D 深度块构建（渲染用 ALL：constant 恒注入 ∪ 非常驻按激活）。
-        // 落点两模式：worldInfoInHistory=true（默认）插进历史内部（酒馆一致，见 insertWiDepthBlocks）；
-        // false 时后移到历史之后统一注入（省 token：保住「角色卡 + 历史」前缀缓存）
-        val depthBlocks = mutableListOf<WiDepthBlock>()
-        wbPlan.byDepth.forEach { (key, group) ->
-            val (depth, role) = key
-            worldInfoBlock(
-                group,
-                activatedEntryIds,
-                mctx,
-                selection = WiSelection.ALL,
-                allowedKeys = constantBudget.allowed,
-            )?.let { block ->
-                depthBlocks.add(
-                    WiDepthBlock(
-                        depth = depth,
-                        role = role,
-                        segment =
-                            Segment(
-                                message = ChatMessage(role = role, content = block),
-                                source = "世界书·插入深度 @D$depth",
-                                activationReason = if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
-                                insertionPosition = "@D$depth/$role",
-                            ),
-                    ),
-                )
+                // AN 锚点（作者注释前/后）：紧贴【附加指令】块上沿/下沿；会话无附加指令时
+                // 两块依次落在历史之后，位置语义保持稳定
+                // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
+                worldInfoBlock(
+                    wbPlan.anBefore,
+                    activatedEntryIds,
+                    mctx,
+                    selection = WiSelection.CONSTANT,
+                    allowedKeys = constantBudget.allowed,
+                )?.let {
+                    messages.addSegment("system", it, "世界书·作者注释前")
+                }
+                worldInfoBlock(
+                    wbPlan.anAfter,
+                    activatedEntryIds,
+                    mctx,
+                    selection = WiSelection.CONSTANT,
+                    allowedKeys = constantBudget.allowed,
+                )?.let {
+                    messages.addSegment("system", it, "世界书·作者注释后")
+                }
             }
         }
 
-        // 作者注释深度化（v33，对齐酒馆 AN 的 IN_CHAT 深度插入）：depth>0 时 AN 顶/底锚点
-        // 并入 AN 文本合成一条深度块，与 @D 块同算法插进历史
-        if (authorNoteInHistory) {
-            authorNoteDepthBlock(
-                authorNote = authorNote,
-                depth = authorNoteDepth,
-                role =
-                    when (session?.authorNoteRole) {
-                        1 -> WorldBookPlacement.DEPTH_ROLE_USER
-                        2 -> WorldBookPlacement.DEPTH_ROLE_ASSISTANT
-                        else -> WorldBookPlacement.DEPTH_ROLE_SYSTEM
-                    },
-                anBefore = wbPlan.anBefore,
-                anAfter = wbPlan.anAfter,
-                activatedIds = activatedEntryIds,
-                allowedKeys = constantBudget.allowed,
-                mctx = mctx,
-            )?.let { depthBlocks.add(it) }
-        }
-        // 长期记忆块：排在历史之后、激活锚点块之前、最终用户消息之前——
-        // 逐轮易变的内容集中尾部；@D 块默认插进历史内部（worldInfoInHistory），省电模式才落尾部
-        // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
-        // 召回片段必然与之重复（纯浪费 token 且拉低缓存命中率），此判定无信息损失
-        // （与 MemoryContext.messagesFor 同一顺序：先结构化、后召回；标签分开便于预览区分来源）
-        memoryContext.structuredBlock?.let { messages.add(Segment(it, "会话记忆·结构化")) }
-        if (historyTruncated) {
-            memoryContext.recallBlock?.let { messages.add(Segment(it, "会话记忆·召回")) }
-        }
-
-        // 在长期记忆之后统一注入所有激活条目（非 constant）。
-        // 顺序：按原语义锚点排列 beforePrompt → afterPrompt → emBefore → emAfter → anBefore → anAfter；
-        // @D 深度块随后按 worldInfoInHistory 分流：默认插进历史内部（酒馆一致），否则追加在此尾部
-        // beforePrompt 的激活条目此前在历史前/后两遍都不渲染（第一遍仅 constant），整条丢失——此处补回
-        worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx)?.let {
-            messages.addSegment("system", it, "世界书·角色定义前（激活）")
-        }
-        worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx)?.let {
-            messages.addSegment("system", it, "世界书·角色定义后（激活）")
-        }
-        worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx)?.let {
-            messages.addSegment("system", it, "世界书·示例消息前（激活）")
-        }
-        worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx)?.let {
-            messages.addSegment("system", it, "世界书·示例消息后（激活）")
-        }
-        // AN 深度化时（authorNoteInHistory）AN 锚点已并入深度块，此处跳过防双注
-        if (!authorNoteInHistory) {
-            worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx)?.let {
-                messages.addSegment("system", it, "世界书·作者注释前（激活）")
+        /** @D 深度块构建（渲染用 ALL：constant 恒注入 ∪ 非常驻按激活）+ AN 深度化并入 */
+        fun buildDepthBlocks() {
+            // 落点两模式：worldInfoInHistory=true（默认）插进历史内部（酒馆一致，见 insertWiDepthBlocks）；
+            // false 时后移到历史之后统一注入（省 token：保住「角色卡 + 历史」前缀缓存）
+            wbPlan.byDepth.forEach { (key, group) ->
+                val (depth, role) = key
+                worldInfoBlock(
+                    group,
+                    activatedEntryIds,
+                    mctx,
+                    selection = WiSelection.ALL,
+                    allowedKeys = constantBudget.allowed,
+                )?.let { block ->
+                    depthBlocks.add(
+                        WiDepthBlock(
+                            depth = depth,
+                            role = role,
+                            segment =
+                                Segment(
+                                    message = ChatMessage(role = role, content = block),
+                                    source = "世界书·插入深度 @D$depth",
+                                    activationReason =
+                                        if (group.any { it.constant }) "constant 常驻" else "关键词/次关键词命中且通过概率",
+                                    insertionPosition = "@D$depth/$role",
+                                ),
+                        ),
+                    )
+                }
             }
-            worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx)?.let {
-                messages.addSegment("system", it, "世界书·作者注释后（激活）")
+
+            // 作者注释深度化（v33，对齐酒馆 AN 的 IN_CHAT 深度插入）：depth>0 时 AN 顶/底锚点
+            // 并入 AN 文本合成一条深度块，与 @D 块同算法插进历史
+            if (authorNoteInHistory) {
+                authorNoteDepthBlock(
+                    authorNote = authorNote,
+                    depth = authorNoteDepth,
+                    role =
+                        when (session?.authorNoteRole) {
+                            1 -> WorldBookPlacement.DEPTH_ROLE_USER
+                            2 -> WorldBookPlacement.DEPTH_ROLE_ASSISTANT
+                            else -> WorldBookPlacement.DEPTH_ROLE_SYSTEM
+                        },
+                    anBefore = wbPlan.anBefore,
+                    anAfter = wbPlan.anAfter,
+                    activatedIds = activatedEntryIds,
+                    allowedKeys = constantBudget.allowed,
+                    mctx = mctx,
+                )?.let { depthBlocks.add(it) }
             }
         }
-        // @D 深度块尾部注入（仅省 token 模式）：byDepth 已按深度降序排列，
-        // 追加后即「大 D 在前、D=1 最贴近最终用户消息」，与酒馆「depth 越小越靠底」一致
-        if (!worldInfoInHistory) {
-            messages.addAll(depthBlocks.map { it.segment })
+
+        /** 长期记忆块注入（历史之后、激活锚点之前、最终用户消息之前） */
+        fun appendMemoryBlocks() {
+            // 逐轮易变的内容集中尾部；@D 块默认插进历史内部（worldInfoInHistory），省电模式才落尾部
+            // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
+            // 召回片段必然与之重复（纯浪费 token 且拉低缓存命中率），此判定无信息损失
+            // （与 MemoryContext.messagesFor 同一顺序：先结构化、后召回；标签分开便于预览区分来源）
+            memoryContext.structuredBlock?.let { messages.add(Segment(it, "会话记忆·结构化")) }
+            if (historyTruncated) {
+                memoryContext.recallBlock?.let { messages.add(Segment(it, "会话记忆·召回")) }
+            }
         }
 
-        // 最后的当前用户消息参与宏渲染；continueGroupChat 场景（groupNudge 非 null）无新用户消息，
-        // 改为注入系统级推动语（classic 路径 groupNudge 恒为 null，零改动）
-        if (groupNudge != null) {
-            messages.addSegment("system", groupNudge, "群聊推动语")
-        } else {
-            val renderedUserMessage = MacroEngine.render(userMessage, mctx)
+        /** 在长期记忆之后统一注入所有激活条目（非 constant），含省 token 模式的 @D 尾注 */
+        fun appendActivatedWorldInfo() {
+            // 顺序：按原语义锚点排列 beforePrompt → afterPrompt → emBefore → emAfter → anBefore → anAfter；
+            // @D 深度块随后按 worldInfoInHistory 分流：默认插进历史内部（酒馆一致），否则追加在此尾部
+            // beforePrompt 的激活条目此前在历史前/后两遍都不渲染（第一遍仅 constant），整条丢失——此处补回
+            worldInfoBlock(wbPlan.beforePrompt, activatedEntryIds, mctx)?.let {
+                messages.addSegment("system", it, "世界书·角色定义前（激活）")
+            }
+            worldInfoBlock(wbPlan.afterPrompt, activatedEntryIds, mctx)?.let {
+                messages.addSegment("system", it, "世界书·角色定义后（激活）")
+            }
+            worldInfoBlock(wbPlan.emBefore, activatedEntryIds, mctx)?.let {
+                messages.addSegment("system", it, "世界书·示例消息前（激活）")
+            }
+            worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx)?.let {
+                messages.addSegment("system", it, "世界书·示例消息后（激活）")
+            }
+            // AN 深度化时（authorNoteInHistory）AN 锚点已并入深度块，此处跳过防双注
+            if (!authorNoteInHistory) {
+                worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx)?.let {
+                    messages.addSegment("system", it, "世界书·作者注释前（激活）")
+                }
+                worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx)?.let {
+                    messages.addSegment("system", it, "世界书·作者注释后（激活）")
+                }
+            }
+            // @D 深度块尾部注入（仅省 token 模式）：byDepth 已按深度降序排列，
+            // 追加后即「大 D 在前、D=1 最贴近最终用户消息」，与酒馆「depth 越小越靠底」一致
+            if (!worldInfoInHistory) {
+                messages.addAll(depthBlocks.map { it.segment })
+            }
+        }
+
+        /** 最终用户消息（宏渲染；群聊对齐历史行前缀格式）或群聊推动语 */
+        fun appendFinalMessage() {
+            // continueGroupChat 场景（groupNudge 非 null）无新用户消息，
+            // 改为注入系统级推动语（classic 路径 groupNudge 恒为 null，零改动）
+            val groupNudge = request.groupNudge
+            if (groupNudge != null) {
+                messages.addSegment("system", groupNudge, "群聊推动语")
+                return
+            }
+            val renderedUserMessage = MacroEngine.render(request.userMessage, mctx)
             // 群聊模式：当前用户消息与历史行格式对齐，加 "{user}: " 前缀（历史每行已带
             // 『名字:』前缀标注发言者，当前消息同样标注可显著提高模型按格式发言的命中率）；
             // classic 模式保持原样零改动
             val finalUserMessage =
-                if (groupContext != null) {
+                if (request.groupContext != null) {
                     groupCurrentUserMessage(userName = mctx.user, renderedUserMessage = renderedUserMessage)
                 } else {
                     renderedUserMessage
@@ -1228,77 +1351,86 @@ object PromptBuilder {
             messages.addSegment("user", finalUserMessage, "当前消息")
         }
 
-        // @D 深度插入（默认模式）：在完整列表（含最终用户消息/群聊推动语）上按酒馆语义
-        // 插进历史内部——前缀缓存断点 = 最浅 depth 处，断点之上逐字节稳定
-        if (worldInfoInHistory) {
-            insertWiDepthBlocks(messages, depthBlocks)
+        /** @D 深度插入（默认模式）：在完整列表上按酒馆语义插进历史内部 */
+        fun insertDepthBlocksIfNeeded() {
+            // 前缀缓存断点 = 最浅 depth 处，断点之上逐字节稳定
+            if (worldInfoInHistory) {
+                insertWiDepthBlocks(messages, depthBlocks)
+            }
         }
 
-        // 扩展钩子（对标酒馆 generate_interceptor + setExtensionPrompt）：装配完成后、发送前
-        // 统一执行生成前拦截器，可增删改 Segment。拦截器的改动同时进入真实请求与
-        // 「查看提示词」预览（同一装配路径）；无注册拦截器时零开销、输出与改动前一致
-        runPromptInterceptors(
-            messages,
-            PromptHookContext(ownerId, characterId, sessionId, mctx) { db },
-        )
+        /** 扩展钩子（对标酒馆 generate_interceptor + setExtensionPrompt） */
+        suspend fun runInterceptors() {
+            // 装配完成后、发送前统一执行生成前拦截器，可增删改 Segment。拦截器的改动同时进入
+            // 真实请求与「查看提示词」预览（同一装配路径）；无注册拦截器时零开销、输出与改动前一致
+            runPromptInterceptors(
+                messages,
+                PromptHookContext(request.ownerId, request.characterId, request.sessionId, mctx) { db },
+            )
+        }
 
-        // 组成诊断（只记条数与估算 token，不记内容）：用于核对上下文窗口是否装得下、
-        // 历史是否被裁剪、以及估算值与 API 实发 token 的偏差——排查"实发超配置/缓存命中率低"的直接依据
-        val estimatedTotal = messages.sumOf { estimateTokens(it.message.content) }
-        val insertedMemory = memoryContext.messagesFor(historyTruncated = historyTruncated)
-        // 召回诊断的最终形态：召回块装配成功但历史未裁剪时，注入点会丢弃它——
-        // 这是唯一一个装配点之后才确定的 droppedReason，在这里补上（诊断与预览/日志同源）
-        val recallDiagnostics =
-            memoryContext.diagnostics.let { diag ->
-                if (diag.droppedReason == null && memoryContext.recallBlock != null && !historyTruncated) {
-                    diag.copy(droppedReason = RecallDiagnostics.DROP_HISTORY_INTACT)
-                } else {
-                    diag
-                }
-            }
-        android.util.Log.d(
-            "PromptDiag",
-            "contextLimit=$contextTokenLimit 消息=${messages.size}条 估算=${estimatedTotal}tok " +
-                "历史=${history.size}/${recentMessages.size}条(${history.sumOf { estimateTokens(it.content) }}tok) " +
-                "记忆=${insertedMemory.size}块(${insertedMemory.sumOf { estimateTokens(it.content) }}tok) " +
-                "历史被裁剪=$historyTruncated 召回块丢弃=${memoryContext.recallBlock != null && !historyTruncated} " +
-                "召回诊断=${recallDiagnostics.summaryLine()}",
-        )
-
-        // Trace is also consumed by the preview UI.  Every segment gets a stable
-        // insertion marker and an explicit conversion note, including ordinary
-        // history/current-message segments that do not have World Info metadata.
-        val tracedSegments =
-            messages.mapIndexed { index, segment ->
-                segment.copy(
-                    activationReason = segment.activationReason ?: "source=${segment.source}",
-                    insertionPosition = segment.insertionPosition ?: "prompt[$index]",
-                    protocolConversionResult =
-                        segment.protocolConversionResult
-                            ?: "ChatMessage(role=${segment.message.role}, content) kept; provider adapter maps this role/content",
-                )
-            }
-
-        return PromptTrace(
-            segments = tracedSegments,
-            totalEstimatedTokens = estimatedTotal,
-            truncationReasons =
-                buildList {
-                    if (historyTruncated) {
-                        add("历史消息因上下文预算被裁剪：保留最近连续窗口")
+        /** 诊断 + 段标注 + PromptTrace 组装 */
+        fun buildTrace(): PromptTrace {
+            // 组成诊断（只记条数与估算 token，不记内容）：用于核对上下文窗口是否装得下、
+            // 历史是否被裁剪、以及估算值与 API 实发 token 的偏差——排查"实发超配置/缓存命中率低"的直接依据
+            val estimatedTotal = messages.sumOf { estimateTokens(it.message.content) }
+            val insertedMemory = memoryContext.messagesFor(historyTruncated = historyTruncated)
+            // 召回诊断的最终形态：召回块装配成功但历史未裁剪时，注入点会丢弃它——
+            // 这是唯一一个装配点之后才确定的 droppedReason，在这里补上（诊断与预览/日志同源）
+            val recallDiagnostics =
+                memoryContext.diagnostics.let { diag ->
+                    if (diag.droppedReason == null && memoryContext.recallBlock != null && !historyTruncated) {
+                        diag.copy(droppedReason = RecallDiagnostics.DROP_HISTORY_INTACT)
+                    } else {
+                        diag
                     }
-                    addAll(wiBudgetDrops)
-                },
-            recallDiagnostics = recallDiagnostics,
-            protocolConversionResults =
-                listOf(
-                    "OpenAI/custom: ChatMessage role/content -> messages[].role/content",
-                    "Anthropic: system messages -> top-level system; user/assistant -> messages[].content",
-                    "Gemini: system -> systemInstruction; assistant -> model; others -> user",
-                    "Thinking remains on the unified message model and is mapped by provider response parsers",
-                ),
-        )
+                }
+            android.util.Log.d(
+                "PromptDiag",
+                "contextLimit=$contextTokenLimit 消息=${messages.size}条 估算=${estimatedTotal}tok " +
+                    "历史=${history.size}/${recentMessages.size}条(${history.sumOf { estimateTokens(it.content) }}tok) " +
+                    "记忆=${insertedMemory.size}块(${insertedMemory.sumOf { estimateTokens(it.content) }}tok) " +
+                    "历史被裁剪=$historyTruncated 召回块丢弃=${memoryContext.recallBlock != null && !historyTruncated} " +
+                    "召回诊断=${recallDiagnostics.summaryLine()}",
+            )
+
+            // Trace is also consumed by the preview UI.  Every segment gets a stable
+            // insertion marker and an explicit conversion note, including ordinary
+            // history/current-message segments that do not have World Info metadata.
+            val tracedSegments =
+                messages.mapIndexed { index, segment ->
+                    segment.copy(
+                        activationReason = segment.activationReason ?: "source=${segment.source}",
+                        insertionPosition = segment.insertionPosition ?: "prompt[$index]",
+                        protocolConversionResult =
+                            segment.protocolConversionResult
+                                ?: "ChatMessage(role=${segment.message.role}, content) kept; " +
+                                    "provider adapter maps this role/content",
+                    )
+                }
+
+            return PromptTrace(
+                segments = tracedSegments,
+                totalEstimatedTokens = estimatedTotal,
+                truncationReasons =
+                    buildList {
+                        if (historyTruncated) {
+                            add("历史消息因上下文预算被裁剪：保留最近连续窗口")
+                        }
+                        addAll(wiBudgetDrops)
+                    },
+                recallDiagnostics = recallDiagnostics,
+                protocolConversionResults =
+                    listOf(
+                        "OpenAI/custom: ChatMessage role/content -> messages[].role/content",
+                        "Anthropic: system messages -> top-level system; user/assistant -> messages[].content",
+                        "Gemini: system -> systemInstruction; assistant -> model; others -> user",
+                        "Thinking remains on the unified message model and is mapped by provider response parsers",
+                    ),
+            )
+        }
     }
+
 
     /**
      * 执行已注册的生成前拦截器（[ExtensionRegistry.promptInterceptors]，按 loadingOrder 升序）。
@@ -1325,6 +1457,18 @@ object PromptBuilder {
                     e,
                 )
             }
+        }
+    }
+
+    /** 角色卡 data_json → CharacterData；空白/损坏静默返回 null（装配绝不让坏卡中断） */
+    internal fun parseCharacterData(
+        dataJson: String,
+    ): com.mistbell.tavern.android.data.api.model.CharacterData? {
+        if (dataJson.isBlank()) return null
+        return try {
+            Json.decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(dataJson)
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -1768,23 +1912,23 @@ object PromptBuilder {
 
         // sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——此时词法路同样
         // 拒绝召回（同一窗口口径），ranked 必为空，无需额外提示
-        if (ranked.isEmpty()) {
-            val reason =
-                if (!outcome.sessionScoped) {
-                    RecallDiagnostics.DROP_NO_SESSION
-                } else {
-                    RecallDiagnostics.DROP_NO_HITS
-                }
-            return RecallOutcome(null, diagnostics.copy(droppedReason = reason))
-        }
+        //
         // 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
         // 内容已被本提示词覆盖的召回行直接丢弃，同一事实不再烧两次 token
-        val render = buildRecallContextForPrompt(ranked, injectedContents)
-        if (render.text.isBlank()) {
-            return RecallOutcome(
-                null,
-                diagnostics.copy(droppedReason = RecallDiagnostics.DROP_ALL_DUPLICATED),
-            )
+        val render =
+            if (ranked.isEmpty()) {
+                null
+            } else {
+                buildRecallContextForPrompt(ranked, injectedContents).takeIf { it.text.isNotBlank() }
+            }
+        if (render == null) {
+            val reason =
+                when {
+                    ranked.isEmpty() && !outcome.sessionScoped -> RecallDiagnostics.DROP_NO_SESSION
+                    ranked.isEmpty() -> RecallDiagnostics.DROP_NO_HITS
+                    else -> RecallDiagnostics.DROP_ALL_DUPLICATED
+                }
+            return RecallOutcome(null, diagnostics.copy(droppedReason = reason))
         }
         return RecallOutcome(
             block = ChatMessage(role = "system", content = render.text),
