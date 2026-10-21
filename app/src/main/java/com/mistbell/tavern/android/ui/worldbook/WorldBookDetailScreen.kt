@@ -374,6 +374,9 @@ private fun EntryEditSheet(
             // 粘性/冷却/延迟/分组/预算豁免（酒馆数值语义）
             EntryTimedFields(entryForm, viewModel)
 
+            // 递归控制与扫描面扩展（酒馆条目级高级项）
+            EntryAdvancedFields(entryForm, viewModel)
+
             // Toggles
             EntryFormToggles(entryForm, viewModel)
 
@@ -435,6 +438,71 @@ private fun EntryTriggeringFields(
             selectiveLogic = entryForm.selectiveLogic,
             onSelect = { logic -> viewModel.updateEntryForm { copy(selectiveLogic = logic) } },
         )
+    }
+}
+
+/** 高级触发控制：递归三开关（酒馆 exclude/prevent/delayUntilRecursion）+ 扫描面扩展（matchXxx） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun EntryAdvancedFields(
+    entryForm: WorldBookEntryForm,
+    viewModel: WorldBookEditorViewModel,
+) {
+    Text("高级触发控制", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Switch(
+                checked = entryForm.excludeRecursion,
+                onCheckedChange = { viewModel.updateEntryForm { copy(excludeRecursion = it) } },
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("内容不进递归", style = MaterialTheme.typography.bodySmall)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Switch(
+                checked = entryForm.preventRecursion,
+                onCheckedChange = { viewModel.updateEntryForm { copy(preventRecursion = it) } },
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("仅首轮激活", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    TimedNumberField("递归延迟层级（0=不限）", entryForm.delayUntilRecursion, Modifier.fillMaxWidth()) { text ->
+        viewModel.updateEntryForm {
+            if (text.isBlank() || text.toIntOrNull() != null) copy(delayUntilRecursion = text) else this
+        }
+    }
+    Text(
+        "扫描时并入（matchXxx）",
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MatchScopeSwitch("用户人设", entryForm.matchPersonaDescription, Modifier.weight(1f)) {
+            viewModel.updateEntryForm { copy(matchPersonaDescription = it) }
+        }
+        MatchScopeSwitch("角色描述", entryForm.matchCharacterDescription, Modifier.weight(1f)) {
+            viewModel.updateEntryForm { copy(matchCharacterDescription = it) }
+        }
+        MatchScopeSwitch("场景", entryForm.matchScenario, Modifier.weight(1f)) {
+            viewModel.updateEntryForm { copy(matchScenario = it) }
+        }
+    }
+}
+
+/** 扫描面开关小件 */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun MatchScopeSwitch(
+    label: String,
+    checked: Boolean,
+    modifier: Modifier = Modifier,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+        Switch(checked = checked, onCheckedChange = onChange)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall)
     }
 }
 

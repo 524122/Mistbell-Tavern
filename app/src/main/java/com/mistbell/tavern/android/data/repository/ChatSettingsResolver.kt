@@ -70,6 +70,9 @@ object ChatSettingsResolver {
     const val KEY_WORLD_INFO_BUDGET_CAP = "world_info_budget_cap"
     const val KEY_WORLD_INFO_IN_HISTORY = "world_info_in_history"
     const val KEY_WORLD_INFO_RECURSIVE = "world_info_recursive"
+    const val KEY_WORLD_INFO_MIN_ACTIVATIONS = "world_info_min_activations"
+    const val KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX = "world_info_min_activations_depth_max"
+    const val KEY_WORLD_INFO_INCLUDE_NAMES = "world_info_include_names"
 
     const val WORLD_INFO_SCAN_DEPTH_MIN = 1
     const val WORLD_INFO_SCAN_DEPTH_MAX = 50
@@ -105,6 +108,17 @@ object ChatSettingsResolver {
     // 0=不封顶（缺省）；>0 时在百分比预算之上取 min
     fun worldInfoBudgetCap(raw: String?): Int =
         raw?.toIntOrNull()?.coerceIn(0, WORLD_INFO_BUDGET_CAP_MAX) ?: 0
+
+    // settings KV 原始值 → 最小激活条目数（酒馆 world_info_min_activations）：
+    // 0=关闭（缺省）；>0 且未凑够时逐轮加深扫描（skew）
+    fun worldInfoMinActivations(raw: String?): Int = raw?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+
+    // settings KV 原始值 → 加深扫描的深度上限（酒馆 min_activations_depth_max）：0=不限（到聊天长度）
+    fun worldInfoMinActivationsDepthMax(raw: String?): Int = raw?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+
+    // settings KV 原始值 → 扫描文本是否带「名字: 」前缀（酒馆 world_info_include_names 默认开）：
+    // 缺省 true；"0"=关（只扫裸消息文本）
+    fun worldInfoIncludeNames(raw: String?): Boolean = raw != "0"
 
     // ---- 提示词模板（全局行为项，无会话覆盖） ----
     //

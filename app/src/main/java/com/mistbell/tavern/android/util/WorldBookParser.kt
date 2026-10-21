@@ -147,6 +147,12 @@ object WorldBookParser {
                 ignoreBudget = triggering.ignoreBudget,
                 groupWeight = triggering.groupWeight,
                 groupOverride = triggering.groupOverride,
+                excludeRecursion = triggering.excludeRecursion,
+                preventRecursion = triggering.preventRecursion,
+                delayUntilRecursion = triggering.delayUntilRecursion,
+                matchPersonaDescription = triggering.matchPersonaDescription,
+                matchCharacterDescription = triggering.matchCharacterDescription,
+                matchScenario = triggering.matchScenario,
             )
         } catch (_: Exception) {
             null

@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonPrimitive
  *   数字位置/概率/深度/角色在 extensions.position/.probability/.depth/.role；
  * - probability 为 0-100 百分数（配 useProbability 开关）；应用内统一为 0-1 小数。
  */
+@Suppress("TooManyFunctions") // 字段映射按职责拆小函数，优于挤进少数大函数
 internal object StInterop {
     /** 酒馆 world_info_position 枚举值（world-info.js） */
     const val ST_POS_BEFORE = 0
@@ -145,31 +146,46 @@ internal object StInterop {
         fun extOrTop(vararg keys: String): JsonPrimitive? =
             keys.firstNotNullOfOrNull { key -> (ext?.get(key) ?: entry[key]) as? JsonPrimitive }
 
-        val selective = extOrTop("selective")?.booleanOrNull ?: true
-        val rawLogic = extOrTop("selectiveLogic", "selective_logic")?.intOrNull
-        val selectiveLogic =
-            when {
-                rawLogic == null -> LOGIC_AND_ANY
-                rawLogic in LOGIC_AND_ANY..LOGIC_AND_ALL -> rawLogic
-                else -> {
-                    warnings.add("未知次关键词逻辑 $rawLogic，已按 AND_ANY 处理")
-                    LOGIC_AND_ANY
-                }
-            }
+        // 键名兼容器：extensions snake_case 与顶层 camelCase 都收（对齐 originalWIDataKeyMap）
+        fun flag(vararg keys: String): Boolean = extOrTop(*keys)?.booleanOrNull ?: false
+        fun intOr(
+            default: Int,
+            vararg keys: String,
+        ): Int = extOrTop(*keys)?.intOrNull ?: default
+
         // sticky 酒馆即数值（保持 N 条消息）；兼容旧布尔写法（true→1）
         val sticky =
             extOrTop("sticky")?.let { it.intOrNull ?: (if (it.booleanOrNull == true) 1 else 0) } ?: 0
         return ResolvedTriggering(
-            selective = selective,
-            selectiveLogic = selectiveLogic,
+            selective = extOrTop("selective")?.booleanOrNull ?: true,
+            selectiveLogic = parseSelectiveLogic(extOrTop("selectiveLogic", "selective_logic"), warnings),
             caseSensitive = extOrTop("case_sensitive", "caseSensitive")?.booleanOrNull,
             matchWholeWords = extOrTop("match_whole_words", "matchWholeWords")?.booleanOrNull,
             scanDepth = extOrTop("scan_depth", "scanDepth")?.intOrNull,
             sticky = sticky,
-            ignoreBudget = extOrTop("ignore_budget", "ignoreBudget")?.booleanOrNull ?: false,
-            groupWeight = extOrTop("group_weight", "groupWeight")?.intOrNull ?: DEFAULT_GROUP_WEIGHT,
-            groupOverride = extOrTop("group_override", "groupOverride")?.booleanOrNull ?: false,
+            ignoreBudget = flag("ignore_budget", "ignoreBudget"),
+            groupWeight = intOr(DEFAULT_GROUP_WEIGHT, "group_weight", "groupWeight"),
+            groupOverride = flag("group_override", "groupOverride"),
+            excludeRecursion = flag("exclude_recursion", "excludeRecursion"),
+            preventRecursion = flag("prevent_recursion", "preventRecursion"),
+            delayUntilRecursion = intOr(0, "delay_until_recursion", "delayUntilRecursion"),
+            matchPersonaDescription = flag("match_persona_description", "matchPersonaDescription"),
+            matchCharacterDescription = flag("match_character_description", "matchCharacterDescription"),
+            matchScenario = flag("match_scenario", "matchScenario"),
         )
+    }
+
+    /** selectiveLogic 合法性校验：未知值回退 AND_ANY 并记诊断 */
+    private fun parseSelectiveLogic(
+        raw: JsonPrimitive?,
+        warnings: MutableSet<String>,
+    ): Int {
+        val value = raw?.intOrNull
+        val valid = value != null && value in LOGIC_AND_ANY..LOGIC_AND_ALL
+        if (value != null && !valid) {
+            warnings.add("未知次关键词逻辑 $value，已按 AND_ANY 处理")
+        }
+        return if (valid) value!! else LOGIC_AND_ANY
     }
 
     // 酒馆 world_info_logic 枚举
@@ -194,6 +210,16 @@ internal object StInterop {
         val groupWeight: Int,
         /** 分组覆盖（酒馆 groupOverride） */
         val groupOverride: Boolean,
+        /** 内容不进递归缓冲（酒馆 excludeRecursion） */
+        val excludeRecursion: Boolean,
+        /** 仅首轮直接激活（酒馆 preventRecursion） */
+        val preventRecursion: Boolean,
+        /** 第 N 递归层级起才允许激活（酒馆 delayUntilRecursion，0=不限） */
+        val delayUntilRecursion: Int,
+        /** 扫描面扩展（酒馆 matchXxx）：把人设/角色描述/场景并入该条目扫描文本 */
+        val matchPersonaDescription: Boolean,
+        val matchCharacterDescription: Boolean,
+        val matchScenario: Boolean,
     )
 
     /**

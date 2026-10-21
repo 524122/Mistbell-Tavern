@@ -78,6 +78,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             .map { ChatSettingsResolver.worldInfoRecursive(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), false)
 
+    // min-activations 加深扫描（酒馆 skew）：空/0=关闭
+    val worldInfoMinActivationsSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS)
+
+    val worldInfoMinActivationsDepthMaxSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX)
+
+    // include_names：缺省 true（酒馆默认开）；扫描文本带「名字: 」前缀
+    val worldInfoIncludeNamesSetting: StateFlow<Boolean> =
+        db.settingsDao()
+            .observeValue(ChatSettingsResolver.KEY_WORLD_INFO_INCLUDE_NAMES)
+            .map { ChatSettingsResolver.worldInfoIncludeNames(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), true)
+
     private fun observeTextSetting(key: String): StateFlow<String> =
         db.settingsDao()
             .observeValue(key)

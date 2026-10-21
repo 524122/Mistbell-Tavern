@@ -33,6 +33,12 @@ class WorldInfoRuntimeTest {
         groupName: String = "",
         groupWeight: Int = 100,
         groupOverride: Boolean = false,
+        excludeRecursion: Boolean = false,
+        preventRecursion: Boolean = false,
+        delayUntilRecursion: Int = 0,
+        matchPersonaDescription: Boolean = false,
+        matchCharacterDescription: Boolean = false,
+        matchScenario: Boolean = false,
     ) = WorldBookEntryEntity(
         id = id,
         bookId = "book",
@@ -57,6 +63,12 @@ class WorldInfoRuntimeTest {
         groupName = groupName,
         groupWeight = groupWeight,
         groupOverride = groupOverride,
+        excludeRecursion = excludeRecursion,
+        preventRecursion = preventRecursion,
+        delayUntilRecursion = delayUntilRecursion,
+        matchPersonaDescription = matchPersonaDescription,
+        matchCharacterDescription = matchCharacterDescription,
+        matchScenario = matchScenario,
     )
 
     @Suppress("LongParameterList") // 测试辅助函数：参数即 ScanInput 平铺，不再二次封装
@@ -68,6 +80,8 @@ class WorldInfoRuntimeTest {
         globalScanDepth: Int = 2,
         budget: Int = Int.MAX_VALUE,
         recursive: Boolean = false,
+        minActivations: Int = 0,
+        minActivationsDepthMax: Int = 0,
     ) = PromptBuilder.WorldInfoRuntime.activate(
         session,
         entries,
@@ -78,6 +92,8 @@ class WorldInfoRuntimeTest {
             mctx,
             budget,
             recursive,
+            minActivations,
+            minActivationsDepthMax,
         ),
     )
 
@@ -363,5 +379,131 @@ class WorldInfoRuntimeTest {
         val result = PromptBuilder.allocateConstantBudget(listOf(normal, exempt), budgetTokens = 0)
         assertEquals(setOf("book:c1"), result.allowed)
         assertEquals(listOf("c2"), result.dropped.map { it.id })
+    }
+
+    // ---- 条目级递归控制（酒馆 excludeRecursion/preventRecursion/delayUntilRecursion）----
+
+    @Test
+    fun `preventRecursion条目不被递归轮激活`() {
+        // direct 首轮命中并产出含 "z" 的内容；guarded 的键只在递归缓冲里出现
+        val direct = entry("d", keys = listOf("k"), content = "含z")
+        val guarded = entry("g", keys = listOf("z"), preventRecursion = true)
+        val normal = entry("n", keys = listOf("z"))
+        val result = activate("s-prevent-rec", listOf(direct, guarded, normal), userMessage = "k", recursive = true)
+        assertEquals(setOf("book:d", "book:n"), result.activated)
+    }
+
+    @Test
+    fun `excludeRecursion条目的内容不进递归缓冲`() {
+        val excluded = entry("x", keys = listOf("k"), content = "含z", excludeRecursion = true)
+        val chained = entry("c", keys = listOf("z"))
+        val result = activate("s-exclude-rec", listOf(excluded, chained), userMessage = "k", recursive = true)
+        // x 激活了，但其内容未进递归缓冲 → c 无法被连锁激活
+        assertEquals(setOf("book:x"), result.activated)
+    }
+
+    @Test
+    fun `delayUntilRecursion按递归层级放行`() {
+        val direct = entry("d", keys = listOf("k"), content = "含z")
+        val delayed = entry("y", keys = listOf("z"), delayUntilRecursion = 1)
+        val on = activate("s-delay-rec-on", listOf(direct, delayed), userMessage = "k", recursive = true)
+        assertEquals(setOf("book:d", "book:y"), on.activated)
+        // 递归关闭：只有首轮（层级 0），delay=1 的条目永不放行
+        val off = activate("s-delay-rec-off", listOf(direct, delayed), userMessage = "k", recursive = false)
+        assertEquals(setOf("book:d"), off.activated)
+    }
+
+    // ---- 扫描面扩展（酒馆 matchXxx）----
+
+    @Test
+    fun `matchScenario开启后场景文本参与匹配`() {
+        val scoped = entry("s", keys = listOf("龙"), matchScenario = true)
+        val mctxWithScenario = mctx.copy(scenario = "古堡里有龙")
+        val result =
+            PromptBuilder.WorldInfoRuntime.activate(
+                "s-match-scenario",
+                listOf(scoped),
+                PromptBuilder.WorldInfoRuntime.ScanInput(
+                    emptyList(),
+                    "今天去哪",
+                    2,
+                    mctxWithScenario,
+                    Int.MAX_VALUE,
+                    false,
+                    0,
+                    0,
+                ),
+            )
+        assertEquals(setOf("book:s"), result.activated)
+        // 不开关：场景不进扫描文本，同样的键不命中
+        val plain = entry("p", keys = listOf("龙"))
+        val off =
+            PromptBuilder.WorldInfoRuntime.activate(
+                "s-match-scenario-off",
+                listOf(plain),
+                PromptBuilder.WorldInfoRuntime.ScanInput(
+                    emptyList(),
+                    "今天去哪",
+                    2,
+                    mctxWithScenario,
+                    Int.MAX_VALUE,
+                    false,
+                    0,
+                    0,
+                ),
+            )
+        assertTrue(off.activated.isEmpty())
+    }
+
+    // ---- min-activations 加深扫描（酒馆 skew）----
+
+    @Test
+    fun `激活数不足时逐轮加深扫描直至命中`() {
+        val e = entry("a", keys = listOf("旧钥匙"))
+        val history = listOf("提到旧钥匙的故事", "无关一", "无关二")
+        // 全局深度 1 只扫当前消息；minActivations=1 迫使逐轮加深直至覆盖最旧一条
+        val result =
+            activate(
+                "s-min-act",
+                listOf(e),
+                history,
+                "现在做什么",
+                globalScanDepth = 1,
+                minActivations = 1,
+            )
+        assertEquals(setOf("book:a"), result.activated)
+    }
+
+    @Test
+    fun `加深到聊天长度仍无命中则空手而归不死循环`() {
+        val e = entry("a", keys = listOf("不存在的关键词"))
+        val result =
+            activate(
+                "s-min-act-none",
+                listOf(e),
+                listOf("一", "二"),
+                "现在做什么",
+                globalScanDepth = 1,
+                minActivations = 1,
+            )
+        assertTrue(result.activated.isEmpty())
+    }
+
+    @Test
+    fun `加深上限优先于聊天长度`() {
+        val e = entry("a", keys = listOf("旧钥匙"))
+        val history = listOf("提到旧钥匙的故事", "无关一", "无关二")
+        // depthMax=2：加深到深度 2 即止，覆盖不到最旧一条
+        val result =
+            activate(
+                "s-min-act-cap",
+                listOf(e),
+                history,
+                "现在做什么",
+                globalScanDepth = 1,
+                minActivations = 1,
+                minActivationsDepthMax = 2,
+            )
+        assertTrue(result.activated.isEmpty())
     }
 }

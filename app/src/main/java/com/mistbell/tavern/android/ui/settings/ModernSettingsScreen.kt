@@ -316,7 +316,44 @@ private fun WorldBookSettingsSection(viewModel: SettingsViewModel) {
                 viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE, if (it) "1" else "0")
             },
         )
+        ModernDivider()
+        WorldBookAdvancedRows(viewModel)
     }
+}
+
+/** 世界书高级行：min-activations 加深扫描两项 + include_names 开关（拆出控制 section 长度） */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
+    WorldBookNumberRow(
+        title = "最小激活数",
+        subtitle = "激活条目不足 N 条时逐轮加深扫描（酒馆 min_activations，0=关闭）",
+        value = viewModel.worldInfoMinActivationsSetting.collectAsState().value,
+        placeholder = "0",
+        onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS, it) },
+    )
+    ModernDivider()
+    WorldBookNumberRow(
+        title = "加深扫描上限",
+        subtitle = "最小激活数模式的深度上限（0=不限，到聊天长度为止）",
+        value = viewModel.worldInfoMinActivationsDepthMaxSetting.collectAsState().value,
+        placeholder = "0",
+        onSave = {
+            viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX, it)
+        },
+    )
+    ModernDivider()
+    WorldBookSwitchRow(
+        title = "扫描带名字前缀",
+        subtitle = "开 = 扫描文本形如「名字: 内容」，名字也可命中关键词（酒馆默认开）",
+        checked = viewModel.worldInfoIncludeNamesSetting.collectAsState().value,
+        onToggle = {
+            viewModel.saveTextSettingQuietly(
+                ChatSettingsResolver.KEY_WORLD_INFO_INCLUDE_NAMES,
+                if (it) "1" else "0",
+            )
+        },
+    )
 }
 
 /** 开关设置行：标题 + 说明 + 开关（1/0 存储由调用方转换） */

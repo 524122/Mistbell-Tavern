@@ -89,6 +89,20 @@ data class WorldBookEntryEntity(
     @ColumnInfo(name = "group_weight", defaultValue = "100") val groupWeight: Int = 100,
     // 分组覆盖（v30，对齐酒馆 groupOverride）：同组竞争时覆盖条目直接按最高 order 胜出
     @ColumnInfo(name = "group_override", defaultValue = "0") val groupOverride: Boolean = false,
+    // 递归控制（v31，对齐酒馆）：excludeRecursion=内容不进递归缓冲；preventRecursion=只能首轮
+    // 直接激活（递归轮不命中）；delayUntilRecursion=第 N 递归层级起才允许激活（0=不限）
+    @ColumnInfo(name = "exclude_recursion", defaultValue = "0") val excludeRecursion: Boolean = false,
+    @ColumnInfo(name = "prevent_recursion", defaultValue = "0") val preventRecursion: Boolean = false,
+    @ColumnInfo(name = "delay_until_recursion", defaultValue = "0") val delayUntilRecursion: Int = 0,
+    // 扫描面扩展（v31，对齐酒馆 matchXxx）：触发时把人设/角色描述/场景并条目入扫描文本
+    @ColumnInfo(name = "match_persona_description", defaultValue = "0")
+    val matchPersonaDescription: Boolean = false,
+
+    @ColumnInfo(name = "match_character_description", defaultValue = "0")
+    val matchCharacterDescription: Boolean = false,
+
+    @ColumnInfo(name = "match_scenario", defaultValue = "0")
+    val matchScenario: Boolean = false,
     // 次键门控开关（v28，对齐酒馆 selective）：true 且次键非空时才启用 selectiveLogic 评估
     @ColumnInfo(name = "selective", defaultValue = "1") val selective: Boolean = true,
     // 次关键词四态逻辑（v28，对齐酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
@@ -147,6 +161,12 @@ data class WorldBookEntryEntity(
             ignoreBudget = ignoreBudget,
             groupWeight = groupWeight,
             groupOverride = groupOverride,
+            excludeRecursion = excludeRecursion,
+            preventRecursion = preventRecursion,
+            delayUntilRecursion = delayUntilRecursion,
+            matchPersonaDescription = matchPersonaDescription,
+            matchCharacterDescription = matchCharacterDescription,
+            matchScenario = matchScenario,
         )
     }
 
@@ -185,6 +205,12 @@ data class WorldBookEntryEntity(
                 ignoreBudget = e.ignoreBudget,
                 groupWeight = e.groupWeight,
                 groupOverride = e.groupOverride,
+                excludeRecursion = e.excludeRecursion,
+                preventRecursion = e.preventRecursion,
+                delayUntilRecursion = e.delayUntilRecursion,
+                matchPersonaDescription = e.matchPersonaDescription,
+                matchCharacterDescription = e.matchCharacterDescription,
+                matchScenario = e.matchScenario,
             )
         }
     }

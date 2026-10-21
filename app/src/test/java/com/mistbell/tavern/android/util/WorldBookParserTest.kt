@@ -168,7 +168,9 @@ class WorldBookParserTest {
               "entries": {
                 "1": { "content": "全配", "selective": false, "selectiveLogic": 3,
                        "extensions": { "case_sensitive": true, "match_whole_words": false, "scan_depth": 4,
-                                       "group_weight": 50, "group_override": true } },
+                                       "group_weight": 50, "group_override": true,
+                                       "exclude_recursion": true, "delay_until_recursion": 2,
+                                       "match_scenario": true } },
                 "2": { "content": "缺省" }
               }
             }
@@ -183,6 +185,11 @@ class WorldBookParserTest {
         assertEquals(4, full.scanDepth)
         assertEquals(50, full.groupWeight)
         assertEquals(true, full.groupOverride)
+        assertEquals(true, full.excludeRecursion)
+        assertEquals(false, full.preventRecursion)
+        assertEquals(2, full.delayUntilRecursion)
+        assertEquals(true, full.matchScenario)
+        assertEquals(false, full.matchPersonaDescription)
         val defaults = byId["2"]!!
         assertEquals(true, defaults.selective)
         assertEquals(0, defaults.selectiveLogic)
@@ -191,6 +198,10 @@ class WorldBookParserTest {
         assertNull(defaults.scanDepth)
         assertEquals(100, defaults.groupWeight)
         assertEquals(false, defaults.groupOverride)
+        assertEquals(false, defaults.excludeRecursion)
+        assertEquals(false, defaults.preventRecursion)
+        assertEquals(0, defaults.delayUntilRecursion)
+        assertEquals(false, defaults.matchScenario)
     }
 
     @Test

@@ -74,6 +74,17 @@ class MigrationSchemaAlignmentTest {
         )
     }
 
+    @Test
+    fun `v30 to v31 adds recursion control and match scope columns`() {
+        val sql = AppDatabase.MIGRATION_30_31_SQL
+        assertTrue("ALTER TABLE world_book_entries ADD COLUMN exclude_recursion INTEGER NOT NULL DEFAULT 0" in sql)
+        assertTrue("ALTER TABLE world_book_entries ADD COLUMN prevent_recursion INTEGER NOT NULL DEFAULT 0" in sql)
+        assertTrue("ALTER TABLE world_book_entries ADD COLUMN delay_until_recursion INTEGER NOT NULL DEFAULT 0" in sql)
+        assertTrue(sql.any { it.contains("match_persona_description INTEGER NOT NULL DEFAULT 0") })
+        assertTrue(sql.any { it.contains("match_character_description INTEGER NOT NULL DEFAULT 0") })
+        assertTrue("ALTER TABLE world_book_entries ADD COLUMN match_scenario INTEGER NOT NULL DEFAULT 0" in sql)
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

@@ -17,6 +17,8 @@ import com.mistbell.tavern.android.data.repository.RecallRanker
 import com.mistbell.tavern.android.data.repository.RecallWindow
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
+import com.mistbell.tavern.android.extension.ExtensionRegistry
+import com.mistbell.tavern.android.extension.PromptHookContext
 import com.mistbell.tavern.android.util.MacroContext
 import com.mistbell.tavern.android.util.MacroEngine
 import kotlinx.coroutines.flow.first
@@ -55,6 +57,10 @@ object PromptBuilder {
             val budgetTokens: Int = Int.MAX_VALUE,
             /** 递归扫描开关（对齐酒馆 world_info_recursive，默认关）：已激活内容是否参与后续轮匹配 */
             val recursive: Boolean = false,
+            /** 最小激活条目数（酒馆 world_info_min_activations）：>0 且未满足时逐轮加深扫描（skew++） */
+            val minActivations: Int = 0,
+            /** 加深扫描的深度上限（酒馆 min_activations_depth_max）：0=不限（到聊天长度为止） */
+            val minActivationsDepthMax: Int = 0,
         )
 
         /** 激活结果：通过判定（含预算）的条目 + 因预算被裁的条目（诊断展示用） */
@@ -107,26 +113,62 @@ object PromptBuilder {
         ): ActivationResult {
             val state = sessions.getOrPut(sessionId) { SessionState() }
             state.turn += 1
+            val run = ScanRun(state, BudgetTracker(scan.budgetTokens))
+            // 递归开关关闭时只扫一轮（酒馆默认 world_info_recursive=false）
+            val maxRounds = if (scan.recursive) MAX_RECURSION_DEPTH else 1
+            // min-activations 加深扫描（酒馆 skew）：轮次耗尽仍未凑够激活数时，全局深度逐轮 +1 续扫
+            val scanCeiling =
+                if (scan.minActivationsDepthMax > 0) scan.minActivationsDepthMax else scan.historyMessages.size + 1
+            var passIndex = 0
+            var skew = 0
+
+            fun minUnmet() = scan.minActivations > 0 && run.activated.size < scan.minActivations
+
+            fun canDeepen() = minUnmet() && scan.globalScanDepth + skew < scanCeiling
+
+            // 轮次推进：递归轮数内 / min-activations 未满足且可加深 时继续；空轮且无加深需求即停
+            do {
+                val deepen = passIndex >= maxRounds
+                if (deepen) skew++
+                val roundScan = if (skew > 0) scan.copy(globalScanDepth = scan.globalScanDepth + skew) else scan
+                val newCount = run.pass(entries, roundScan, passIndex)
+                passIndex++
+            } while (
+                !run.budget.overflowed && // 预算溢出：与酒馆一致，不再递归/加深
+                (passIndex < maxRounds || canDeepen()) &&
+                (newCount > 0 || canDeepen())
+            )
+            return ActivationResult(run.activated, run.budget.dropped)
+        }
+
+        /** 一轮扫描的可变状态与执行体（从 activate 拆出，控制圈复杂度） */
+        private class ScanRun(
+            val state: SessionState,
+            val budget: BudgetTracker,
+        ) {
             val activated = linkedSetOf<String>()
             val selectedGroups = mutableSetOf<String>()
             val activatedContents = mutableListOf<String>()
-            val budget = BudgetTracker(scan.budgetTokens)
-            // 递归开关关闭时只扫一轮（酒馆默认 world_info_recursive=false）
-            repeat(if (scan.recursive) MAX_RECURSION_DEPTH else 1) {
-                if (budget.overflowed) return@repeat // 预算溢出：与酒馆一致，不再递归
+
+            /** 执行一轮扫描，返回本轮新激活条数 */
+            fun pass(
+                entries: List<WorldBookEntryEntity>,
+                scan: ScanInput,
+                passIndex: Int,
+            ): Int {
                 val candidates =
                     entries
                         .asSequence()
                         .filter { !it.disable && !it.constant }
+                        // 递归层级门控（对齐酒馆）：delayUntilRecursion 层起才允许；preventRecursion 仅首轮
+                        .filter { passIndex >= it.delayUntilRecursion && (!it.preventRecursion || passIndex == 0) }
                         .filter { entry ->
                             val key = "${entry.bookId}:${entry.id}"
                             key !in activated && (entry.groupName.isBlank() || entry.groupName !in selectedGroups)
                         }.mapNotNull { entry ->
                             evaluateCandidate(entry, state, scan, activatedContents)
                         }.toList()
-                if (candidates.isEmpty()) return@repeat
-                val winners = selectWinners(candidates)
-                if (winners.isEmpty()) return@repeat
+                val winners = if (candidates.isEmpty()) emptyList() else selectWinners(candidates)
                 val newlyActivated = mutableListOf<String>()
                 winners.forEach { candidate ->
                     if (tryActivateWinner(candidate, state, budget)) {
@@ -135,10 +177,12 @@ object PromptBuilder {
                         candidate.entry.groupName.takeIf { it.isNotBlank() }?.let(selectedGroups::add)
                     }
                 }
-                if (newlyActivated.isEmpty()) return@repeat
-                activatedContents += entries.filter { "${it.bookId}:${it.id}" in newlyActivated }.map { it.content }
+                // excludeRecursion 条目的内容不进递归缓冲（对齐酒馆）
+                activatedContents +=
+                    entries.filter { "${it.bookId}:${it.id}" in newlyActivated && !it.excludeRecursion }
+                        .map { it.content }
+                return newlyActivated.size
             }
-            return ActivationResult(activated, budget.dropped)
         }
 
         /** 单个胜者：概率掷骰 + 预算记账 + 状态更新；返回 true=本轮新激活 */
@@ -172,10 +216,7 @@ object PromptBuilder {
         ): Candidate? {
             val key = "${entry.bookId}:${entry.id}"
             val entryState = state.entries.getOrPut(key) { EntryState() }
-            val corpus =
-                scanWindow(
-                    entry.scanDepth, scan.globalScanDepth, scan.historyMessages, scan.userMessage, activatedContents,
-                )
+            val corpus = scanWindow(entry, scan, activatedContents)
             val primaryHits = matchingKeywords(parseKeywords(entry.keysJson), corpus, entry, scan.mctx)
             val stickyMatched = entry.sticky > 0 && entryState.stickyUntil >= state.turn
             val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, corpus, scan.mctx))
@@ -250,20 +291,29 @@ object PromptBuilder {
 
         /**
          * 单条目扫描窗口（对齐酒馆 buffer.get）：最近 (depth-1) 条历史 + 当前用户消息 +
-         * 递归缓冲（本轮已激活条目的内容）。depth ≤ 0 返回空（该条目永不通过扫描激活）。
+         * 条目级 matchXxx 扩展（人设/角色描述/场景）+ 递归缓冲（本轮已激活条目的内容）。
+         * depth ≤ 0 返回空（该条目永不通过扫描激活）。
          */
         internal fun scanWindow(
-            entryScanDepth: Int?,
-            globalScanDepth: Int,
-            historyMessages: List<String>,
-            userMessage: String,
+            entry: WorldBookEntryEntity,
+            scan: ScanInput,
             activatedContents: List<String>,
         ): String {
-            val depth = (entryScanDepth ?: globalScanDepth).coerceAtMost(MAX_SCAN_WINDOW)
+            val depth = (entry.scanDepth ?: scan.globalScanDepth).coerceAtMost(MAX_SCAN_WINDOW)
             if (depth <= 0) return ""
             return buildString {
-                historyMessages.takeLast(depth - 1).forEach { appendLine(it) }
-                appendLine(userMessage)
+                scan.historyMessages.takeLast(depth - 1).forEach { appendLine(it) }
+                appendLine(scan.userMessage)
+                // 扫描面扩展（对齐酒馆 matchXxx）：并入该条目勾选的全局上下文块
+                if (entry.matchPersonaDescription && scan.mctx.persona.isNotBlank()) {
+                    appendLine(scan.mctx.persona)
+                }
+                if (entry.matchCharacterDescription && scan.mctx.description.isNotBlank()) {
+                    appendLine(scan.mctx.description)
+                }
+                if (entry.matchScenario && scan.mctx.scenario.isNotBlank()) {
+                    appendLine(scan.mctx.scenario)
+                }
                 if (activatedContents.isNotEmpty()) {
                     activatedContents.forEach { appendLine(it) }
                 }
@@ -735,8 +785,36 @@ object PromptBuilder {
             ChatSettingsResolver.worldInfoRecursive(
                 settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE),
             )
+        val worldInfoMinActivations =
+            ChatSettingsResolver.worldInfoMinActivations(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS),
+            )
+        val worldInfoMinActivationsDepthMax =
+            ChatSettingsResolver.worldInfoMinActivationsDepthMax(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX),
+            )
+        // 扫描文本带「名字: 」前缀（酒馆 world_info_include_names 默认开）：
+        // assistant 按 character_id 查说话方名，user 用 {{user}} 值——名字本身也可被关键词命中
+        val worldInfoIncludeNames =
+            ChatSettingsResolver.worldInfoIncludeNames(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_INCLUDE_NAMES),
+            )
         val constantBudget = allocateConstantBudget(worldBookEntries, worldInfoBudgetTokens)
-        val scanHistory = db.messageDao().getBySession(sessionId, ownerId).first().map { it.content }
+        val scanHistory =
+            db.messageDao().getBySession(sessionId, ownerId).first().map { msg ->
+                if (!worldInfoIncludeNames) {
+                    msg.content
+                } else {
+                    val speaker =
+                        if (msg.role == "assistant") {
+                            groupContext?.speakerNames?.get(msg.characterId)
+                                ?: character?.name.orEmpty()
+                        } else {
+                            mctx.user
+                        }
+                    if (speaker.isBlank()) msg.content else "$speaker: ${msg.content}"
+                }
+            }
         // 关键词激活判定（与位置规划正交）：非常驻、启用、概率掷骰通过、命中扫描窗口关键词；
         // probability=1（缺省）跳过掷骰快速路径，constant 常驻条目不参与本判定（恒注入）
         val activation =
@@ -750,6 +828,8 @@ object PromptBuilder {
                     mctx = mctx,
                     budgetTokens = constantBudget.remainingTokens,
                     recursive = worldInfoRecursive,
+                    minActivations = worldInfoMinActivations,
+                    minActivationsDepthMax = worldInfoMinActivationsDepthMax,
                 ),
             )
         val activatedEntryIds = activation.activated
@@ -982,6 +1062,11 @@ object PromptBuilder {
         if (worldInfoInHistory) {
             insertWiDepthBlocks(messages, depthBlocks)
         }
+
+        // 扩展钩子（对标酒馆 generate_interceptor + setExtensionPrompt）：装配完成后、发送前
+        // 统一执行生成前拦截器，可增删改 Segment。拦截器的改动同时进入真实请求与
+        // 「查看提示词」预览（同一装配路径）；无注册拦截器时零开销、输出与改动前一致
+        runPromptInterceptors(messages, ownerId, characterId, sessionId, db, mctx)
 
         // 组成诊断（只记条数与估算 token，不记内容）：用于核对上下文窗口是否装得下、
         // 历史是否被裁剪、以及估算值与 API 实发 token 的偏差——排查"实发超配置/缓存命中率低"的直接依据

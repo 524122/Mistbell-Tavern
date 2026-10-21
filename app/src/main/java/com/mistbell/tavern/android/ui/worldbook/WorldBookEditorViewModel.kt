@@ -40,6 +40,14 @@ data class WorldBookEntryForm(
     // 分组权重文本（默认 100，同组加权随机）与分组覆盖（同组按最高 order 直接胜出）
     val groupWeight: String = "100",
     val groupOverride: Boolean = false,
+    // 递归控制：内容不进递归缓冲 / 仅首轮直接激活 / 第 N 递归层级起才允许激活
+    val excludeRecursion: Boolean = false,
+    val preventRecursion: Boolean = false,
+    val delayUntilRecursion: String = "0",
+    // 扫描面扩展（酒馆 matchXxx）：触发时把对应全局块并入该条目扫描文本
+    val matchPersonaDescription: Boolean = false,
+    val matchCharacterDescription: Boolean = false,
+    val matchScenario: Boolean = false,
 )
 
 /** 插入位置显示名：存储值 → UI 文案（6 锚点与酒馆对齐） */
@@ -244,6 +252,12 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                 ignoreBudget = entry.ignoreBudget,
                 groupWeight = entry.groupWeight.toString(),
                 groupOverride = entry.groupOverride,
+                excludeRecursion = entry.excludeRecursion,
+                preventRecursion = entry.preventRecursion,
+                delayUntilRecursion = entry.delayUntilRecursion.toString(),
+                matchPersonaDescription = entry.matchPersonaDescription,
+                matchCharacterDescription = entry.matchCharacterDescription,
+                matchScenario = entry.matchScenario,
             )
         _showEntryForm.value = true
     }
@@ -303,6 +317,12 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                                 form.groupWeight.trim().toIntOrNull()?.coerceAtLeast(0)
                                     ?: StInterop.DEFAULT_GROUP_WEIGHT,
                             groupOverride = form.groupOverride,
+                            excludeRecursion = form.excludeRecursion,
+                            preventRecursion = form.preventRecursion,
+                            delayUntilRecursion = form.delayUntilRecursion.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0,
+                            matchPersonaDescription = form.matchPersonaDescription,
+                            matchCharacterDescription = form.matchCharacterDescription,
+                            matchScenario = form.matchScenario,
                         ),
                 )
             }
@@ -349,8 +369,10 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         put("caseSensitive", kotlinx.serialization.json.JsonPrimitive(form.caseSensitive))
         put("matchWholeWords", kotlinx.serialization.json.JsonPrimitive(form.matchWholeWords))
         // 粘性/冷却/延迟轮数：非法输入按 0（关闭）
-        fun putRounds(key: String, raw: String) =
-            put(key, kotlinx.serialization.json.JsonPrimitive(raw.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0))
+        fun putRounds(
+            key: String,
+            raw: String,
+        ) = put(key, kotlinx.serialization.json.JsonPrimitive(raw.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0))
         putRounds("sticky", form.sticky)
         putRounds("cooldown", form.cooldown)
         putRounds("delay", form.delay)
@@ -363,6 +385,12 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
             ),
         )
         put("groupOverride", kotlinx.serialization.json.JsonPrimitive(form.groupOverride))
+        put("excludeRecursion", kotlinx.serialization.json.JsonPrimitive(form.excludeRecursion))
+        put("preventRecursion", kotlinx.serialization.json.JsonPrimitive(form.preventRecursion))
+        putRounds("delayUntilRecursion", form.delayUntilRecursion)
+        put("matchPersonaDescription", kotlinx.serialization.json.JsonPrimitive(form.matchPersonaDescription))
+        put("matchCharacterDescription", kotlinx.serialization.json.JsonPrimitive(form.matchCharacterDescription))
+        put("matchScenario", kotlinx.serialization.json.JsonPrimitive(form.matchScenario))
         when {
             scanDepthCleared -> put("scanDepth", kotlinx.serialization.json.JsonNull)
             scanDepthValue != null -> put("scanDepth", kotlinx.serialization.json.JsonPrimitive(scanDepthValue))

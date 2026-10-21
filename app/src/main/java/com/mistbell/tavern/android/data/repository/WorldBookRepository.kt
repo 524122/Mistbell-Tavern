@@ -88,6 +88,12 @@ class WorldBookRepository(private val context: Context) {
                     ignoreBudget = draft.ignoreBudget,
                     groupWeight = draft.groupWeight,
                     groupOverride = draft.groupOverride,
+                    excludeRecursion = draft.excludeRecursion,
+                    preventRecursion = draft.preventRecursion,
+                    delayUntilRecursion = draft.delayUntilRecursion,
+                    matchPersonaDescription = draft.matchPersonaDescription,
+                    matchCharacterDescription = draft.matchCharacterDescription,
+                    matchScenario = draft.matchScenario,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
             entity.toDomain()
@@ -142,7 +148,7 @@ class WorldBookRepository(private val context: Context) {
     }
 }
 
-/** 触发语义字段（v28/v29）的 patch：次级词/四态逻辑/大小写/全字/扫描深度/粘性/冷却/延迟/分组/预算豁免 */
+/** 触发语义字段（v28-v31）的 patch：次级词/逻辑/大小写/全字/扫描深度/定时/分组/豁免/递归/扫描面 */
 private fun WorldBookEntryEntity.applyTriggeringPatch(patch: JsonObject): WorldBookEntryEntity =
     copy(
         secondaryKeysJson = patchStringList(patch["secondaryKeys"], secondaryKeysJson),
@@ -155,10 +161,23 @@ private fun WorldBookEntryEntity.applyTriggeringPatch(patch: JsonObject): WorldB
         sticky = patch["sticky"]?.jsonPrimitive?.intOrNull ?: sticky,
         cooldown = patch["cooldown"]?.jsonPrimitive?.intOrNull ?: cooldown,
         delay = patch["delay"]?.jsonPrimitive?.intOrNull ?: delay,
+    ).applyGroupAndScopePatch(patch)
+
+/** 分组与递归/扫描面字段的 patch（从 applyTriggeringPatch 拆出，控制圈复杂度） */
+private fun WorldBookEntryEntity.applyGroupAndScopePatch(patch: JsonObject): WorldBookEntryEntity =
+    copy(
         groupName = patch["group"]?.jsonPrimitive?.contentOrNull ?: groupName,
         ignoreBudget = patch["ignoreBudget"]?.jsonPrimitive?.booleanOrNull ?: ignoreBudget,
         groupWeight = patch["groupWeight"]?.jsonPrimitive?.intOrNull ?: groupWeight,
         groupOverride = patch["groupOverride"]?.jsonPrimitive?.booleanOrNull ?: groupOverride,
+        excludeRecursion = patch["excludeRecursion"]?.jsonPrimitive?.booleanOrNull ?: excludeRecursion,
+        preventRecursion = patch["preventRecursion"]?.jsonPrimitive?.booleanOrNull ?: preventRecursion,
+        delayUntilRecursion = patch["delayUntilRecursion"]?.jsonPrimitive?.intOrNull ?: delayUntilRecursion,
+        matchPersonaDescription =
+            patch["matchPersonaDescription"]?.jsonPrimitive?.booleanOrNull ?: matchPersonaDescription,
+        matchCharacterDescription =
+            patch["matchCharacterDescription"]?.jsonPrimitive?.booleanOrNull ?: matchCharacterDescription,
+        matchScenario = patch["matchScenario"]?.jsonPrimitive?.booleanOrNull ?: matchScenario,
     )
 
 /** patch 中的字符串数组字段 → 实体 keysJson 存储格式；缺省保持原值 */
@@ -223,4 +242,11 @@ data class WorldBookEntryDraft(
     val ignoreBudget: Boolean = false,
     val groupWeight: Int = 100,
     val groupOverride: Boolean = false,
+    // 递归控制与扫描面扩展（酒馆同名语义）
+    val excludeRecursion: Boolean = false,
+    val preventRecursion: Boolean = false,
+    val delayUntilRecursion: Int = 0,
+    val matchPersonaDescription: Boolean = false,
+    val matchCharacterDescription: Boolean = false,
+    val matchScenario: Boolean = false,
 )

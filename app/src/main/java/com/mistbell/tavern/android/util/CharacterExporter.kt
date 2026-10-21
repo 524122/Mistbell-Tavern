@@ -20,6 +20,7 @@ import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.prompt.WorldBookPlacement
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
@@ -212,30 +213,41 @@ object CharacterExporter {
                         put("cooldown", e.cooldown)
                         put("delay", e.delay)
                         put("group", e.groupName)
-                        putJsonObject("extensions") {
-                            put("position", StInterop.toStPosition(e.insertPosition, e.depth))
-                            put("exclude_recursion", false)
-                            put("prevent_recursion", false)
-                            put("display_index", index)
-                            // 应用 0-1 → 酒馆 0-100 百分数
-                            put("probability", (e.probability * 100).roundToInt())
-                            put("useProbability", true)
-                            put("depth", if (e.depth > 0) e.depth else ST_DEFAULT_DEPTH)
-                            put("role", StInterop.toStRole(e.depthRole))
-                            put("selectiveLogic", e.selectiveLogic)
-                            // 酒馆 originalWIDataKeyMap：这三个字段住 extensions 的 snake_case 键；
-                            // null（跟随全局/关）时不写，保持导出文件干净
-                            e.caseSensitive?.let { put("case_sensitive", it) }
-                            e.matchWholeWords?.let { put("match_whole_words", it) }
-                            e.scanDepth?.let { put("scan_depth", it) }
-                            if (e.ignoreBudget) put("ignore_budget", true)
-                            if (e.groupWeight != 100) put("group_weight", e.groupWeight)
-                            if (e.groupOverride) put("group_override", true)
-                        }
+                        putJsonObject("extensions") { putEntryExtensions(e, index) }
                     }
                 }
             }
         }
+
+    /**
+     * 条目 extensions 触发字段（酒馆 originalWIDataKeyMap 键名拓扑）：
+     * 位置/概率/深度/角色恒写；可空三件套与布尔真值项非默认才写，保持导出文件干净。
+     */
+    private fun JsonObjectBuilder.putEntryExtensions(
+        e: WorldBookEntryEntity,
+        displayIndex: Int,
+    ) {
+        put("position", StInterop.toStPosition(e.insertPosition, e.depth))
+        put("exclude_recursion", e.excludeRecursion)
+        put("prevent_recursion", e.preventRecursion)
+        put("display_index", displayIndex)
+        // 应用 0-1 → 酒馆 0-100 百分数
+        put("probability", (e.probability * 100).roundToInt())
+        put("useProbability", true)
+        put("depth", if (e.depth > 0) e.depth else ST_DEFAULT_DEPTH)
+        put("role", StInterop.toStRole(e.depthRole))
+        put("selectiveLogic", e.selectiveLogic)
+        e.caseSensitive?.let { put("case_sensitive", it) }
+        e.matchWholeWords?.let { put("match_whole_words", it) }
+        e.scanDepth?.let { put("scan_depth", it) }
+        if (e.ignoreBudget) put("ignore_budget", true)
+        if (e.groupWeight != StInterop.DEFAULT_GROUP_WEIGHT) put("group_weight", e.groupWeight)
+        if (e.groupOverride) put("group_override", true)
+        if (e.delayUntilRecursion > 0) put("delay_until_recursion", e.delayUntilRecursion)
+        if (e.matchPersonaDescription) put("match_persona_description", true)
+        if (e.matchCharacterDescription) put("match_character_description", true)
+        if (e.matchScenario) put("match_scenario", true)
+    }
 
     // 生态默认值：与酒馆导出对齐（scan_depth/token_budget/depth 为 ST 缺省）
     private const val ST_DEFAULT_SCAN_DEPTH = 4

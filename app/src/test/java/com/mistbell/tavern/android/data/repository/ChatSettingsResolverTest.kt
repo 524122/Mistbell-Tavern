@@ -172,4 +172,20 @@ class ChatSettingsResolverTest {
         assertEquals(500, ChatSettingsResolver.worldInfoBudgetCap("500"))
         assertEquals(1_000_000, ChatSettingsResolver.worldInfoBudgetCap("99999999"))
     }
+
+    @Test
+    fun `世界书最小激活数与加深上限缺省关闭`() {
+        assertEquals(0, ChatSettingsResolver.worldInfoMinActivations(null))
+        assertEquals(0, ChatSettingsResolver.worldInfoMinActivations("x"))
+        assertEquals(3, ChatSettingsResolver.worldInfoMinActivations("3"))
+        assertEquals(0, ChatSettingsResolver.worldInfoMinActivationsDepthMax(null))
+        assertEquals(9, ChatSettingsResolver.worldInfoMinActivationsDepthMax("9"))
+    }
+
+    @Test
+    fun `世界书扫描带名字前缀缺省为开_仅0为关`() {
+        assertTrue(ChatSettingsResolver.worldInfoIncludeNames(null))
+        assertTrue(ChatSettingsResolver.worldInfoIncludeNames("1"))
+        assertFalse(ChatSettingsResolver.worldInfoIncludeNames("0"))
+    }
 }

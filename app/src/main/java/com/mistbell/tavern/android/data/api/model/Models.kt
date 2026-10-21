@@ -175,6 +175,15 @@ data class WorldBookEntry(
     val groupWeight: Int = 100,
     // 分组覆盖（对齐酒馆 groupOverride）：同组竞争时直接按最高 order 胜出
     val groupOverride: Boolean = false,
+    // 递归控制（对齐酒馆）：excludeRecursion=内容不进递归缓冲；preventRecursion=仅首轮直接激活；
+    // delayUntilRecursion=第 N 递归层级起才允许激活（0=不限）
+    val excludeRecursion: Boolean = false,
+    val preventRecursion: Boolean = false,
+    val delayUntilRecursion: Int = 0,
+    // 扫描面扩展（对齐酒馆 matchXxx）：触发时把人设/角色描述/场景并入该条目的扫描文本
+    val matchPersonaDescription: Boolean = false,
+    val matchCharacterDescription: Boolean = false,
+    val matchScenario: Boolean = false,
 )
 
 @Serializable
