@@ -161,13 +161,14 @@ class WorldBookParserTest {
     @Test
     fun `触发字段按酒馆键名解析_缺省取酒馆默认值`() {
         // 酒馆键名拓扑（originalWIDataKeyMap）：selective/selectiveLogic 顶层同名，
-        // caseSensitive/matchWholeWords/scanDepth 在 extensions 的 snake_case 键
+        // caseSensitive/matchWholeWords/scanDepth/groupWeight/groupOverride 在 extensions 的 snake_case 键
         val json =
             """
             {
               "entries": {
                 "1": { "content": "全配", "selective": false, "selectiveLogic": 3,
-                       "extensions": { "case_sensitive": true, "match_whole_words": false, "scan_depth": 4 } },
+                       "extensions": { "case_sensitive": true, "match_whole_words": false, "scan_depth": 4,
+                                       "group_weight": 50, "group_override": true } },
                 "2": { "content": "缺省" }
               }
             }
@@ -180,12 +181,26 @@ class WorldBookParserTest {
         assertEquals(true, full.caseSensitive)
         assertEquals(false, full.matchWholeWords)
         assertEquals(4, full.scanDepth)
+        assertEquals(50, full.groupWeight)
+        assertEquals(true, full.groupOverride)
         val defaults = byId["2"]!!
         assertEquals(true, defaults.selective)
         assertEquals(0, defaults.selectiveLogic)
         assertNull(defaults.caseSensitive)
         assertNull(defaults.matchWholeWords)
         assertNull(defaults.scanDepth)
+        assertEquals(100, defaults.groupWeight)
+        assertEquals(false, defaults.groupOverride)
+    }
+
+    @Test
+    fun `深度上限对齐酒馆1000不再钳到10`() {
+        val json =
+            """
+            { "entries": { "1": { "content": "深", "position": 4, "depth": 500 } } }
+            """.trimIndent()
+        val (_, entries) = WorldBookParser.parse(json, "fallback") ?: return assertTrue(false)
+        assertEquals(500, entries.single().depth)
     }
 
     @Test

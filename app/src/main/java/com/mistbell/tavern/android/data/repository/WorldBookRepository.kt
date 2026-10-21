@@ -86,6 +86,8 @@ class WorldBookRepository(private val context: Context) {
                     delay = draft.delay,
                     groupName = draft.groupName,
                     ignoreBudget = draft.ignoreBudget,
+                    groupWeight = draft.groupWeight,
+                    groupOverride = draft.groupOverride,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
             entity.toDomain()
@@ -155,6 +157,8 @@ private fun WorldBookEntryEntity.applyTriggeringPatch(patch: JsonObject): WorldB
         delay = patch["delay"]?.jsonPrimitive?.intOrNull ?: delay,
         groupName = patch["group"]?.jsonPrimitive?.contentOrNull ?: groupName,
         ignoreBudget = patch["ignoreBudget"]?.jsonPrimitive?.booleanOrNull ?: ignoreBudget,
+        groupWeight = patch["groupWeight"]?.jsonPrimitive?.intOrNull ?: groupWeight,
+        groupOverride = patch["groupOverride"]?.jsonPrimitive?.booleanOrNull ?: groupOverride,
     )
 
 /** patch 中的字符串数组字段 → 实体 keysJson 存储格式；缺省保持原值 */
@@ -211,10 +215,12 @@ data class WorldBookEntryDraft(
     val caseSensitive: Boolean? = null,
     val matchWholeWords: Boolean? = null,
     val scanDepth: Int? = null,
-    // 粘性轮数（0=关闭）/冷却轮数/延迟轮数/分组名/预算豁免
+    // 粘性轮数（0=关闭）/冷却轮数/延迟轮数/分组名/预算豁免/分组权重（默认 100）/分组覆盖
     val sticky: Int = 0,
     val cooldown: Int = 0,
     val delay: Int = 0,
     val groupName: String = "",
     val ignoreBudget: Boolean = false,
+    val groupWeight: Int = 100,
+    val groupOverride: Boolean = false,
 )

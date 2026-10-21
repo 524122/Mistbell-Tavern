@@ -163,4 +163,13 @@ class ChatSettingsResolverTest {
         assertFalse(ChatSettingsResolver.worldInfoRecursive("x"))
         assertTrue(ChatSettingsResolver.worldInfoRecursive("1"))
     }
+
+    @Test
+    fun `世界书预算上限缺省不封顶`() {
+        assertEquals(0, ChatSettingsResolver.worldInfoBudgetCap(null))
+        assertEquals(0, ChatSettingsResolver.worldInfoBudgetCap("x"))
+        assertEquals(0, ChatSettingsResolver.worldInfoBudgetCap("-5"))
+        assertEquals(500, ChatSettingsResolver.worldInfoBudgetCap("500"))
+        assertEquals(1_000_000, ChatSettingsResolver.worldInfoBudgetCap("99999999"))
+    }
 }

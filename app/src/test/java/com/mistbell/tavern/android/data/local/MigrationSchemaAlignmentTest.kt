@@ -63,6 +63,17 @@ class MigrationSchemaAlignmentTest {
         )
     }
 
+    @Test
+    fun `v29 to v30 adds group competition columns with tavern defaults`() {
+        assertEquals(
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN group_weight INTEGER NOT NULL DEFAULT 100",
+                "ALTER TABLE world_book_entries ADD COLUMN group_override INTEGER NOT NULL DEFAULT 0",
+            ),
+            AppDatabase.MIGRATION_29_30_SQL,
+        )
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

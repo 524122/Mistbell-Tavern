@@ -60,6 +60,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val worldInfoBudgetPercentSetting: StateFlow<String> =
         observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT)
 
+    // WI 预算绝对上限（酒馆 world_info_budget_cap；空/0=不封顶）
+    val worldInfoBudgetCapSetting: StateFlow<String> =
+        observeTextSetting(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_CAP)
+
     // @D 落点开关：缺省 true（插进历史内部，酒馆一致）；"0"=尾部注入（省 token）
     val worldInfoInHistorySetting: StateFlow<Boolean> =
         db.settingsDao()

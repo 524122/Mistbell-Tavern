@@ -8,6 +8,7 @@ import com.mistbell.tavern.android.data.api.model.WorldBookEntry
 import com.mistbell.tavern.android.data.prompt.WorldBookPlacement
 import com.mistbell.tavern.android.data.repository.WorldBookEntryDraft
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
+import com.mistbell.tavern.android.util.StInterop
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -36,6 +37,9 @@ data class WorldBookEntryForm(
     val delay: String = "0",
     val groupName: String = "",
     val ignoreBudget: Boolean = false,
+    // 分组权重文本（默认 100，同组加权随机）与分组覆盖（同组按最高 order 直接胜出）
+    val groupWeight: String = "100",
+    val groupOverride: Boolean = false,
 )
 
 /** 插入位置显示名：存储值 → UI 文案（6 锚点与酒馆对齐） */
@@ -238,6 +242,8 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                 delay = entry.delay.toString(),
                 groupName = entry.groupName,
                 ignoreBudget = entry.ignoreBudget,
+                groupWeight = entry.groupWeight.toString(),
+                groupOverride = entry.groupOverride,
             )
         _showEntryForm.value = true
     }
@@ -293,6 +299,10 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                             delay = delayValue,
                             groupName = form.groupName.trim(),
                             ignoreBudget = form.ignoreBudget,
+                            groupWeight =
+                                form.groupWeight.trim().toIntOrNull()?.coerceAtLeast(0)
+                                    ?: StInterop.DEFAULT_GROUP_WEIGHT,
+                            groupOverride = form.groupOverride,
                         ),
                 )
             }
@@ -346,6 +356,13 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         putRounds("delay", form.delay)
         put("group", kotlinx.serialization.json.JsonPrimitive(form.groupName.trim()))
         put("ignoreBudget", kotlinx.serialization.json.JsonPrimitive(form.ignoreBudget))
+        put(
+            "groupWeight",
+            kotlinx.serialization.json.JsonPrimitive(
+                form.groupWeight.trim().toIntOrNull()?.coerceAtLeast(0) ?: StInterop.DEFAULT_GROUP_WEIGHT,
+            ),
+        )
+        put("groupOverride", kotlinx.serialization.json.JsonPrimitive(form.groupOverride))
         when {
             scanDepthCleared -> put("scanDepth", kotlinx.serialization.json.JsonNull)
             scanDepthValue != null -> put("scanDepth", kotlinx.serialization.json.JsonPrimitive(scanDepthValue))

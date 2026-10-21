@@ -85,6 +85,10 @@ data class WorldBookEntryEntity(
     @ColumnInfo(name = "group_name", defaultValue = "") val groupName: String = "",
     // 预算豁免（v29，对齐酒馆 ignoreBudget）：true 时不占 WI token 预算、溢出也不被裁
     @ColumnInfo(name = "ignore_budget", defaultValue = "0") val ignoreBudget: Boolean = false,
+    // 分组权重（v30，对齐酒馆 groupWeight，默认 100）：同组竞争时加权随机
+    @ColumnInfo(name = "group_weight", defaultValue = "100") val groupWeight: Int = 100,
+    // 分组覆盖（v30，对齐酒馆 groupOverride）：同组竞争时覆盖条目直接按最高 order 胜出
+    @ColumnInfo(name = "group_override", defaultValue = "0") val groupOverride: Boolean = false,
     // 次键门控开关（v28，对齐酒馆 selective）：true 且次键非空时才启用 selectiveLogic 评估
     @ColumnInfo(name = "selective", defaultValue = "1") val selective: Boolean = true,
     // 次关键词四态逻辑（v28，对齐酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
@@ -141,6 +145,8 @@ data class WorldBookEntryEntity(
             matchWholeWords = matchWholeWords,
             scanDepth = scanDepth,
             ignoreBudget = ignoreBudget,
+            groupWeight = groupWeight,
+            groupOverride = groupOverride,
         )
     }
 
@@ -177,6 +183,8 @@ data class WorldBookEntryEntity(
                 matchWholeWords = e.matchWholeWords,
                 scanDepth = e.scanDepth,
                 ignoreBudget = e.ignoreBudget,
+                groupWeight = e.groupWeight,
+                groupOverride = e.groupOverride,
             )
         }
     }

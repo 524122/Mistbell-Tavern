@@ -325,6 +325,8 @@ object CardParser {
                     matchWholeWords = triggering.matchWholeWords,
                     scanDepth = triggering.scanDepth,
                     ignoreBudget = triggering.ignoreBudget,
+                    groupWeight = triggering.groupWeight,
+                    groupOverride = triggering.groupOverride,
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）

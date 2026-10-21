@@ -42,9 +42,6 @@ object PromptBuilder {
         private data class Candidate(
             val entry: WorldBookEntryEntity,
             val key: String,
-            val score: Int,
-            val primaryHits: Int,
-            val secondaryHits: Int,
             val sticky: Boolean,
         )
 
@@ -95,7 +92,8 @@ object PromptBuilder {
          * Activates World Info for one prompt.  Matching is recursive: content activated in
          * an earlier pass becomes scan material for the next pass, bounded to three passes.
          * Secondary keys follow SillyTavern's four selectiveLogic modes (gated by `selective`).
-         * Entries sharing a non-empty group compete by score and only the highest scoring entry wins.
+         * Entries sharing a non-empty group compete SillyTavern-style: sticky winners stay,
+         * groupOverride wins by highest order, otherwise weighted random by groupWeight.
          *
          * 扫描窗口对齐酒馆：每条目 `scanDepth ?: globalScanDepth`（从最新消息往上数 N 条，
          * 当前用户消息占第 1 条）；关键词先过宏渲染再匹配（对齐 substituteParams）。
@@ -182,20 +180,7 @@ object PromptBuilder {
             val stickyMatched = entry.sticky > 0 && entryState.stickyUntil >= state.turn
             val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, corpus, scan.mctx))
             if (!keyMatched || !timingGatePassed(entry, entryState, state.turn)) return null
-            val secondaryHits =
-                if (entry.selective) {
-                    matchingKeywords(parseKeywords(entry.secondaryKeysJson), corpus, entry, scan.mctx)
-                } else {
-                    0
-                }
-            return Candidate(
-                entry = entry,
-                key = key,
-                score = primaryHits * 2 + secondaryHits + if (stickyMatched) 1 else 0,
-                primaryHits = primaryHits,
-                secondaryHits = secondaryHits,
-                sticky = stickyMatched,
-            )
+            return Candidate(entry = entry, key = key, sticky = stickyMatched)
         }
 
         /** 次键四态门控（对齐酒馆）：selective=false 或次键为空 → 不启用门控 */
@@ -227,25 +212,41 @@ object PromptBuilder {
             return delayed && cooledDown
         }
 
-        /** 分组竞争后产出胜者：同组取最高分；预算消费序对齐酒馆（sticky 在前、order 降序） */
+        /**
+         * 分组竞争（对齐酒馆）：同组 sticky 候选强制胜出（全部保留）→ groupOverride 取最高 order →
+         * groupWeight 加权随机（酒馆 roll=random×总权重 首个跨越者胜）。组外条目原样保留。
+         * 返回序按预算消费序：sticky 在前、order 降序（高 order 优先保住）。
+         */
         private fun selectWinners(candidates: List<Candidate>): List<Candidate> =
             candidates
                 .groupBy { it.entry.groupName }
                 .values
                 .flatMap { group ->
-                    if (group.first().entry.groupName.isBlank()) {
-                        group
-                    } else {
-                        listOf(
-                            group.maxWithOrNull(
-                                compareBy<Candidate> { it.score }
-                                    .thenByDescending { it.primaryHits }
-                                    .thenBy { it.entry.order },
-                            )!!,
-                        )
+                    if (group.first().entry.groupName.isBlank()) return@flatMap group
+                    val stickyWinners = group.filter { it.sticky }
+                    when {
+                        stickyWinners.isNotEmpty() -> stickyWinners
+                        else -> {
+                            val overrides = group.filter { it.entry.groupOverride }
+                            listOf(
+                                overrides.maxWithOrNull(compareBy<Candidate> { it.entry.order })
+                                    ?: weightedRandomPick(group),
+                            )
+                        }
                     }
                 }
                 .sortedWith(compareByDescending<Candidate> { it.sticky }.thenByDescending { it.entry.order })
+
+        /** 加权随机（对齐酒馆）：roll ∈ [0, 总权重)，按条目顺序首个累计权重越过 roll 者胜 */
+        private fun weightedRandomPick(group: List<Candidate>): Candidate {
+            val totalWeight = group.sumOf { it.entry.groupWeight.coerceAtLeast(0) }
+            if (totalWeight <= 0) return group.first()
+            var roll = kotlin.random.Random.nextDouble() * totalWeight
+            return group.firstOrNull { c ->
+                roll -= c.entry.groupWeight.coerceAtLeast(0)
+                roll < 0
+            } ?: group.last()
+        }
 
         /**
          * 单条目扫描窗口（对齐酒馆 buffer.get）：最近 (depth-1) 条历史 + 当前用户消息 +
@@ -716,6 +717,14 @@ object PromptBuilder {
                 .worldInfoBudgetPercent(
                     settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT),
                 ).let { if (it <= 0) Int.MAX_VALUE else contextTokenLimit * it / 100 }
+                // 绝对上限（酒馆 world_info_budget_cap）：>0 时在百分比结果上取 min
+                .let { tokens ->
+                    val cap =
+                        ChatSettingsResolver.worldInfoBudgetCap(
+                            settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_CAP),
+                        )
+                    if (cap > 0 && tokens > cap) cap else tokens
+                }
         // @D 落点模式：默认插进历史内部（酒馆一致）；=0 时后移到历史之后（省 token：前缀缓存命中更长）
         val worldInfoInHistory =
             ChatSettingsResolver.worldInfoInHistory(

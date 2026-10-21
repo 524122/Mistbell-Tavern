@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mistbell.tavern.android.util.StInterop
 import com.mistbell.tavern.android.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -464,6 +465,27 @@ private fun EntryTimedFields(
         label = "分组（同组只激活一条，可留空）",
         placeholder = "分组名",
     )
+    // 分组竞争细项（仅填了分组名时有意义）：权重加权随机 / 覆盖直接胜出
+    if (entryForm.groupName.isNotBlank()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TimedNumberField("分组权重", entryForm.groupWeight, Modifier.weight(1f)) { text ->
+                viewModel.updateEntryForm {
+                    if (text.isBlank() || text.toIntOrNull() != null) copy(groupWeight = text) else this
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
+            ) {
+                Switch(
+                    checked = entryForm.groupOverride,
+                    onCheckedChange = { viewModel.updateEntryForm { copy(groupOverride = it) } },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("覆盖同组", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Switch(
             checked = entryForm.ignoreBudget,
@@ -542,10 +564,12 @@ private fun EntryNumericFields(
             value = depthText,
             onValueChange = {
                 depthText = it
-                it.toIntOrNull()?.let { d -> viewModel.updateEntryForm { copy(depth = d.coerceIn(0, 10)) } }
+                it.toIntOrNull()?.let { d ->
+                    viewModel.updateEntryForm { copy(depth = d.coerceIn(0, StInterop.MAX_DEPTH)) }
+                }
             },
-            label = "插入深度 @D (1-10)",
-            placeholder = "历史倒数第D条之前",
+            label = "插入深度 @D (1-1000)",
+            placeholder = "倒数第N条之前（酒馆上限 1000）",
         )
     }
 

@@ -170,6 +170,8 @@ class CharacterExporterTest {
                     scanDepth = 7,
                     sticky = 2,
                     ignoreBudget = true,
+                    groupWeight = 50,
+                    groupOverride = true,
                 ),
                 bookEntry("e1"),
             )
@@ -185,6 +187,8 @@ class CharacterExporterTest {
         assertEquals(7, full.scanDepth)
         assertEquals(2, full.sticky)
         assertEquals(true, full.ignoreBudget)
+        assertEquals(50, full.groupWeight)
+        assertEquals(true, full.groupOverride)
 
         // 缺省条目：导出非默认才写 → 回读为酒馆默认（selective=true、逻辑 AND_ANY、sticky=0、其余 null/false）
         val defaults = byContent["ce1"]!!
@@ -195,6 +199,8 @@ class CharacterExporterTest {
         assertNull(defaults.scanDepth)
         assertEquals(0, defaults.sticky)
         assertEquals(false, defaults.ignoreBudget)
+        assertEquals(100, defaults.groupWeight)
+        assertEquals(false, defaults.groupOverride)
     }
 
     @Test

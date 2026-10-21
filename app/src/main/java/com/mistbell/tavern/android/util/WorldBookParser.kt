@@ -97,7 +97,6 @@ object WorldBookParser {
     ): WorldBookEntryEntity? {
         return try {
             val entryId = resolveEntryId(entry, mapKey)
-
             val comment = entry["comment"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: ""
             val content = entry["content"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: ""
             val constant = entry["constant"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false
@@ -114,20 +113,11 @@ object WorldBookParser {
             // insertion_order 优先于 order
             val order =
                 entry["insertion_order"]?.let { (it as? JsonPrimitive)?.intOrNull }
-                    ?: entry["order"]?.let { (it as? JsonPrimitive)?.intOrNull }
-                    ?: 0
-
-            // key / keysecondary 单字符串规整成数组
+                    ?: entry["order"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0
             val keys = parseKeys(entry["key"])
             val secondaryKeys = parseKeys(entry["keysecondary"] ?: entry["secondary_keys"])
-            val keysJson =
-                Json.encodeToString(
-                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                    keys,
-                )
-
-            // 位置/概率/@D 角色 + 触发语义（selective/四态逻辑/大小写/全字/扫描深度）
-            // 按酒馆实测语义解析（与卡内嵌书同一映射；诊断提示此处不展示，丢弃）
+            val keysJson = encodeStringList(keys)
+            // 位置/概率/@D 角色 + 触发语义按酒馆实测语义解析（诊断提示此处不展示，丢弃）
             val placement = StInterop.resolvePlacement(entry, mutableSetOf())
             val triggering = StInterop.resolveTriggering(entry, mutableSetOf())
 
@@ -144,11 +134,7 @@ object WorldBookParser {
                 depth = placement.depth,
                 probability = placement.probability,
                 depthRole = placement.depthRole,
-                secondaryKeysJson =
-                    Json.encodeToString(
-                        kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                        secondaryKeys,
-                    ),
+                secondaryKeysJson = encodeStringList(secondaryKeys),
                 sticky = triggering.sticky,
                 cooldown = entry["cooldown"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
                 delay = entry["delay"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0,
@@ -159,6 +145,8 @@ object WorldBookParser {
                 matchWholeWords = triggering.matchWholeWords,
                 scanDepth = triggering.scanDepth,
                 ignoreBudget = triggering.ignoreBudget,
+                groupWeight = triggering.groupWeight,
+                groupOverride = triggering.groupOverride,
             )
         } catch (_: Exception) {
             null
@@ -183,4 +171,11 @@ object WorldBookParser {
             else -> emptyList()
         }
     }
+
+    /** 字符串列表 → keysJson 存储格式 */
+    private fun encodeStringList(list: List<String>): String =
+        Json.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+            list,
+        )
 }

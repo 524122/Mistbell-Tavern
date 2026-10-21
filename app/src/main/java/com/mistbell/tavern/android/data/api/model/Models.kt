@@ -171,6 +171,10 @@ data class WorldBookEntry(
     val scanDepth: Int? = null,
     // 预算豁免（对齐酒馆 ignoreBudget）：true 时不占 WI token 预算
     val ignoreBudget: Boolean = false,
+    // 分组权重（对齐酒馆 groupWeight，默认 100）：同组竞争时加权随机
+    val groupWeight: Int = 100,
+    // 分组覆盖（对齐酒馆 groupOverride）：同组竞争时直接按最高 order 胜出
+    val groupOverride: Boolean = false,
 )
 
 @Serializable

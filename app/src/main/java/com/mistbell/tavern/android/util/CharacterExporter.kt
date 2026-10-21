@@ -229,6 +229,8 @@ object CharacterExporter {
                             e.matchWholeWords?.let { put("match_whole_words", it) }
                             e.scanDepth?.let { put("scan_depth", it) }
                             if (e.ignoreBudget) put("ignore_budget", true)
+                            if (e.groupWeight != 100) put("group_weight", e.groupWeight)
+                            if (e.groupOverride) put("group_override", true)
                         }
                     }
                 }

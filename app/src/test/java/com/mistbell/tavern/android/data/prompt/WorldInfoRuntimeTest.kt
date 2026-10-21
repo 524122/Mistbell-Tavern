@@ -30,6 +30,9 @@ class WorldInfoRuntimeTest {
         order: Int = 100,
         sticky: Int = 0,
         ignoreBudget: Boolean = false,
+        groupName: String = "",
+        groupWeight: Int = 100,
+        groupOverride: Boolean = false,
     ) = WorldBookEntryEntity(
         id = id,
         bookId = "book",
@@ -51,6 +54,9 @@ class WorldInfoRuntimeTest {
         scanDepth = scanDepth,
         sticky = sticky,
         ignoreBudget = ignoreBudget,
+        groupName = groupName,
+        groupWeight = groupWeight,
+        groupOverride = groupOverride,
     )
 
     @Suppress("LongParameterList") // 测试辅助函数：参数即 ScanInput 平铺，不再二次封装
@@ -253,6 +259,45 @@ class WorldInfoRuntimeTest {
         val e = entry("a", keys = listOf("k"), sticky = 0)
         assertEquals(setOf("book:a"), activate("s-sticky-0", listOf(e), userMessage = "k").activated)
         assertTrue(activate("s-sticky-0", listOf(e), userMessage = "无关").activated.isEmpty())
+    }
+
+    // ---- 分组竞争（对齐酒馆：sticky 强制胜 → groupOverride 最高 order → groupWeight 加权随机）----
+
+    @Test
+    fun `groupOverride条目按最高order胜出`() {
+        val loser = entry("lo", keys = listOf("k"), groupName = "g", order = 10)
+        val winner = entry("hi", keys = listOf("k"), groupName = "g", order = 90, groupOverride = true)
+        val result = activate("s-group-override", listOf(loser, winner), userMessage = "k")
+        assertEquals(setOf("book:hi"), result.activated)
+    }
+
+    @Test
+    fun `同组加权随机_权重0永不胜出`() {
+        val never = entry("never", keys = listOf("k"), groupName = "g", groupWeight = 0)
+        val always = entry("always", keys = listOf("k"), groupName = "g", groupWeight = 100)
+        repeat(10) { round ->
+            val result = activate("s-group-weight-$round", listOf(never, always), userMessage = "k")
+            assertEquals(setOf("book:always"), result.activated)
+        }
+    }
+
+    @Test
+    fun `同组sticky候选强制胜出`() {
+        val stickyEntry = entry("st", keys = listOf("k"), groupName = "g", order = 10, sticky = 2)
+        // 第一轮：关键词激活并武装粘性
+        activate("s-group-sticky", listOf(stickyEntry), userMessage = "k")
+        // 第二轮：粘性期内的 sticky 条目压过同组新命中条目（order 更高也没用）
+        val challenger = entry("ch", keys = listOf("x"), groupName = "g", order = 90)
+        val result = activate("s-group-sticky", listOf(stickyEntry, challenger), userMessage = "x")
+        assertEquals(setOf("book:st"), result.activated)
+    }
+
+    @Test
+    fun `组外条目不受分组竞争影响`() {
+        val a = entry("a", keys = listOf("k"))
+        val b = entry("b", keys = listOf("k"), groupName = "g", groupWeight = 100)
+        val result = activate("s-group-outside", listOf(a, b), userMessage = "k")
+        assertEquals(setOf("book:a", "book:b"), result.activated)
     }
 
     // ---- ignoreBudget（酒馆：豁免预算且不被溢出裁剪）----

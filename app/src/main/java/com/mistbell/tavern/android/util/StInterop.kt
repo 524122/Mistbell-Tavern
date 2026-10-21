@@ -36,8 +36,8 @@ internal object StInterop {
 
     const val ST_POS_EM_BOTTOM = 6
 
-    /** 生态导入的 @D 深度上限（与编辑页 0-10 一致） */
-    private const val MAX_DEPTH = 10
+    /** 生态导入的 @D 深度上限（对齐酒馆 MAX_SCAN_DEPTH=1000；编辑器与导入共用） */
+    const val MAX_DEPTH = 1000
 
     /** 酒馆 role（extension_prompt_roles）：0=系统 1=用户 2=角色 */
     fun mapDepthRole(
@@ -167,12 +167,17 @@ internal object StInterop {
             scanDepth = extOrTop("scan_depth", "scanDepth")?.intOrNull,
             sticky = sticky,
             ignoreBudget = extOrTop("ignore_budget", "ignoreBudget")?.booleanOrNull ?: false,
+            groupWeight = extOrTop("group_weight", "groupWeight")?.intOrNull ?: DEFAULT_GROUP_WEIGHT,
+            groupOverride = extOrTop("group_override", "groupOverride")?.booleanOrNull ?: false,
         )
     }
 
     // 酒馆 world_info_logic 枚举
     const val LOGIC_AND_ANY = 0
     const val LOGIC_AND_ALL = 3
+
+    /** 酒馆 DEFAULT_WEIGHT：分组权重缺省 100 */
+    const val DEFAULT_GROUP_WEIGHT = 100
 
     /** 触发字段解析结果（应用内字段） */
     data class ResolvedTriggering(
@@ -185,6 +190,10 @@ internal object StInterop {
         val sticky: Int,
         /** 预算豁免（酒馆 ignoreBudget） */
         val ignoreBudget: Boolean,
+        /** 分组权重（酒馆 groupWeight，默认 100） */
+        val groupWeight: Int,
+        /** 分组覆盖（酒馆 groupOverride） */
+        val groupOverride: Boolean,
     )
 
     /**

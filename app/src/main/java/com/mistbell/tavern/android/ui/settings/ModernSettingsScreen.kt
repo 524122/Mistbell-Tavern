@@ -289,6 +289,14 @@ private fun WorldBookSettingsSection(viewModel: SettingsViewModel) {
             onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT, it) },
         )
         ModernDivider()
+        WorldBookNumberRow(
+            title = "预算上限 (token)",
+            subtitle = "世界书 token 预算的绝对上限，0 = 只按百分比（对齐酒馆 budget_cap）",
+            value = viewModel.worldInfoBudgetCapSetting.collectAsState().value,
+            placeholder = "0",
+            onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_CAP, it) },
+        )
+        ModernDivider()
         // @D 落点开关：开=插进历史内部（酒馆一致）；关=尾部注入（省 token，前缀缓存更长）
         WorldBookSwitchRow(
             title = "深度插入进历史",

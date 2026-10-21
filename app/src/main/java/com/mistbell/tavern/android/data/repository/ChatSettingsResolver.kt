@@ -67,6 +67,7 @@ object ChatSettingsResolver {
 
     const val KEY_WORLD_INFO_SCAN_DEPTH = "world_info_scan_depth"
     const val KEY_WORLD_INFO_BUDGET_PERCENT = "world_info_budget_percent"
+    const val KEY_WORLD_INFO_BUDGET_CAP = "world_info_budget_cap"
     const val KEY_WORLD_INFO_IN_HISTORY = "world_info_in_history"
     const val KEY_WORLD_INFO_RECURSIVE = "world_info_recursive"
 
@@ -97,6 +98,13 @@ object ChatSettingsResolver {
     // settings KV 原始值 → 递归扫描：缺省 false（对齐酒馆 world_info_recursive 默认关）；
     // 开启后本轮已激活条目内容参与后续轮匹配（最多 3 轮）
     fun worldInfoRecursive(raw: String?): Boolean = raw == "1"
+
+    const val WORLD_INFO_BUDGET_CAP_MAX = 1_000_000
+
+    // settings KV 原始值 → WI 预算绝对上限 token 数（酒馆 world_info_budget_cap）：
+    // 0=不封顶（缺省）；>0 时在百分比预算之上取 min
+    fun worldInfoBudgetCap(raw: String?): Int =
+        raw?.toIntOrNull()?.coerceIn(0, WORLD_INFO_BUDGET_CAP_MAX) ?: 0
 
     // ---- 提示词模板（全局行为项，无会话覆盖） ----
     //
