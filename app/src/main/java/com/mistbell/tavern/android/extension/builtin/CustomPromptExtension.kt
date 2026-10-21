@@ -32,7 +32,7 @@ class CustomPromptExtension : TavernExtension, PromptInterceptor {
         segments: MutableList<PromptBuilder.Segment>,
         context: PromptHookContext,
     ) {
-        val prompts = context.db.customPromptDao().getEnabled()
+        val prompts = context.getDb().customPromptDao().getEnabled()
         if (prompts.isEmpty()) return
         applyCustomPrompts(segments, prompts, context.mctx)
     }
@@ -47,16 +47,17 @@ class CustomPromptExtension : TavernExtension, PromptInterceptor {
         const val POSITION_USER_SUFFIX = "USER_SUFFIX"
         const val POSITION_ASSISTANT_PREFIX = "ASSISTANT_PREFIX"
 
-        private const val SOURCE_PREFIX = "自定义提示词·"
-
         /**
          * 纯函数核心（JVM 单测直接覆盖，不经 Room）：
          * 调用方传入的列表预期已按 priority 排序（DAO 契约）；此处再按 isEnabled 过滤兜底。
+         *
+         * @param sourcePrefix 预览来源标签前缀；规则包复用本函数时传「规则包·」区分来源
          */
         fun applyCustomPrompts(
             segments: MutableList<PromptBuilder.Segment>,
             prompts: List<CustomPromptEntity>,
             mctx: MacroContext,
+            sourcePrefix: String = "自定义提示词·",
         ) {
             val enabled = prompts.filter { it.isEnabled }
             if (enabled.isEmpty()) return
@@ -69,7 +70,7 @@ class CustomPromptExtension : TavernExtension, PromptInterceptor {
                 if (content.isBlank()) return null
                 return PromptBuilder.Segment(
                     message = ChatMessage(role = role, content = content),
-                    source = "$SOURCE_PREFIX${prompt.name}",
+                    source = "$sourcePrefix${prompt.name}",
                 )
             }
 

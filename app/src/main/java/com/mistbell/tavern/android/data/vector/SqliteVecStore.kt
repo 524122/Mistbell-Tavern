@@ -57,8 +57,7 @@ class SqliteVecStore(
     private val deletedMessageIds: MutableSet<String> =
         Collections.newSetFromMap(
             object : LinkedHashMap<String, Boolean>(DELETED_IDS_INITIAL_CAPACITY, LRU_LOAD_FACTOR, true) {
-                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?): Boolean =
-                    size > DELETED_IDS_MAX_CAPACITY
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?): Boolean = size > DELETED_IDS_MAX_CAPACITY
             },
         )
 
@@ -392,7 +391,11 @@ class SqliteVecStore(
                         }
                     }
                     db.execSQL("DELETE FROM $table WHERE 1=1${where?.clause ?: ""}", (where?.args ?: emptyList()).toTypedArray())
-                    deleted += db.rawQuery("SELECT changes()", null).use { it.moveToFirst(); it.getInt(0) }
+                    deleted +=
+                        db.rawQuery("SELECT changes()", null).use {
+                            it.moveToFirst()
+                            it.getInt(0)
+                        }
                 }
                 if (deleted > 0) incrementalVacuumLocked(db)
                 deleted
@@ -413,7 +416,11 @@ class SqliteVecStore(
                 knownTables.forEach { dim ->
                     // 缺失该键的历史条目（空串）同样算"不相符"，与内存实现一致
                     db.execSQL("DELETE FROM ${tableName(dim)} WHERE $key = '' OR $key != ?", arrayOf(value))
-                    deleted += db.rawQuery("SELECT changes()", null).use { it.moveToFirst(); it.getInt(0) }
+                    deleted +=
+                        db.rawQuery("SELECT changes()", null).use {
+                            it.moveToFirst()
+                            it.getInt(0)
+                        }
                 }
                 if (deleted > 0) incrementalVacuumLocked(db)
                 deleted
@@ -448,7 +455,11 @@ class SqliteVecStore(
                         "DELETE FROM $table WHERE session_id != '' AND session_id NOT IN ($placeholders)",
                         args,
                     )
-                    val changed = db.rawQuery("SELECT changes()", null).use { it.moveToFirst(); it.getInt(0) }
+                    val changed =
+                        db.rawQuery("SELECT changes()", null).use {
+                            it.moveToFirst()
+                            it.getInt(0)
+                        }
                     deleted += changed
                 }
                 if (deleted > 0) {
@@ -463,8 +474,7 @@ class SqliteVecStore(
 
     // ---- 闸门 ----
 
-    override suspend fun canIndexMessage(messageId: String): Boolean =
-        mutex.withLock { messageId !in deletedMessageIds }
+    override suspend fun canIndexMessage(messageId: String): Boolean = mutex.withLock { messageId !in deletedMessageIds }
 
     override suspend fun markMessagesDeleted(messageIds: Collection<String>) {
         mutex.withLock {
@@ -571,10 +581,11 @@ class SqliteVecStore(
 
     override suspend fun importIndex(content: String): Boolean =
         withContext(Dispatchers.IO) {
-            val entries = decodeVectorIndex(content) ?: run {
-                Log.w(TAG, "索引内容无法解析，保留本地索引")
-                return@withContext false
-            }
+            val entries =
+                decodeVectorIndex(content) ?: run {
+                    Log.w(TAG, "索引内容无法解析，保留本地索引")
+                    return@withContext false
+                }
             mutex.withLock {
                 val db = openLocked()
                 db.beginTransaction()
@@ -667,7 +678,8 @@ class SqliteVecStore(
         val metadata = toMetadataMap(dimension, contentStartIndex = 2)
         return VectorStore.SearchResult(
             id = getString(0),
-            score = 1f - getFloat(1), // vec0 cosine distance → similarity
+            // vec0 cosine distance → similarity
+            score = 1f - getFloat(1),
             content = metadata["content"] as? String ?: "",
             metadata = metadata,
         )
@@ -717,8 +729,14 @@ class SqliteVecStore(
         /** 元数据过滤支持的列（未知键与内存实现同语义：无匹配） */
         private val FILTERABLE_COLUMNS =
             setOf(
-                "owner_id", "session_id", "message_id", "character_id",
-                "content_type", "created_at", "embedding_fingerprint", "source_revision",
+                "owner_id",
+                "session_id",
+                "message_id",
+                "character_id",
+                "content_type",
+                "created_at",
+                "embedding_fingerprint",
+                "source_revision",
             )
 
         private const val PURGE_IN_CHUNK = 500

@@ -77,7 +77,8 @@ class LocalWorldBookService {
                     comment = entry.comment,
                     content = entry.content,
                     keys = keys,
-                    position = "before", // 默认位置
+                    // 默认位置
+                    position = "before",
                     depth = null,
                     order = entry.order,
                     probability = entry.probability,

@@ -246,7 +246,13 @@ class ChatProtocolTest {
                     buildJsonObject {
                         put("system", "用户旁路注入")
                         put("temperature", 0.5)
-                        put("thinking", buildJsonObject { put("type", "enabled"); put("budget_tokens", 1024) })
+                        put(
+                            "thinking",
+                            buildJsonObject {
+                                put("type", "enabled")
+                                put("budget_tokens", 1024)
+                            },
+                        )
                     },
             )
         val body = bodyOf(AnthropicChatProtocol.buildRequest(config, messages, stream = false))
@@ -502,7 +508,11 @@ class ChatProtocolTest {
                 temperature = 0.6,
                 maxTokens = 2048,
                 request = buildJsonObject { put("max_tokens", 512) },
-                requestOverrides = buildJsonObject { put("temperature", 0.2); put("max_tokens", 1024) },
+                requestOverrides =
+                    buildJsonObject {
+                        put("temperature", 0.2)
+                        put("max_tokens", 1024)
+                    },
             )
         val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
         assertTrue(body.contains("\"temperature\":0.2"))
@@ -519,8 +529,16 @@ class ChatProtocolTest {
                 model = "m",
                 temperature = 0.8,
                 maxTokens = 4096,
-                request = buildJsonObject { put("max_tokens", 512); put("temperature", 0.2) },
-                requestOverrides = buildJsonObject { put("max_tokens", 1024); put("temperature", 0.8) },
+                request =
+                    buildJsonObject {
+                        put("max_tokens", 512)
+                        put("temperature", 0.2)
+                    },
+                requestOverrides =
+                    buildJsonObject {
+                        put("max_tokens", 1024)
+                        put("temperature", 0.8)
+                    },
             )
         val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
         assertTrue(body.contains("\"temperature\":0.8"))
@@ -548,8 +566,16 @@ class ChatProtocolTest {
                 baseUrl = "https://api.example.com/v1",
                 apiKey = "secret",
                 model = "m",
-                request = buildJsonObject { put("max_tokens", 512); put("temperature", 0.9) },
-                requestOverrides = buildJsonObject { put("max_tokens", 4096); put("temperature", 0.2) },
+                request =
+                    buildJsonObject {
+                        put("max_tokens", 512)
+                        put("temperature", 0.9)
+                    },
+                requestOverrides =
+                    buildJsonObject {
+                        put("max_tokens", 4096)
+                        put("temperature", 0.2)
+                    },
             )
         val body = bodyOf(OpenAiChatProtocol.buildRequest(config, messages, stream = false))
         assertTrue(body.contains("\"max_tokens\":4096"))

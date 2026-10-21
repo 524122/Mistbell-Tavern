@@ -163,7 +163,8 @@ object WorldBookParser {
         }
 
     /** 条目 id 优先级：uid 字段 > id 字段 > uid-map 的键 > UUID */
-    private fun resolveEntryId(        entry: JsonObject,
+    private fun resolveEntryId(
+        entry: JsonObject,
         mapKey: String?,
     ): String =
         entry["uid"]?.let { (it as? JsonPrimitive)?.contentOrNull }?.takeIf { it.isNotBlank() }

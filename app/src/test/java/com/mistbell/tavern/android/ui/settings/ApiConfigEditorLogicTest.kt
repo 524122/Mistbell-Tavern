@@ -247,10 +247,11 @@ class ApiConfigEditorLogicTest {
     fun `编辑器 JSON request 位于首字段且可解析`() {
         val document =
             document().copy(
-                request = ApiRequestTemplate.materialize(
-                    buildJsonObject { put("vendor_extension", "keep") },
-                    ApiType.OPENAI,
-                ),
+                request =
+                    ApiRequestTemplate.materialize(
+                        buildJsonObject { put("vendor_extension", "keep") },
+                        ApiType.OPENAI,
+                    ),
             )
         val formatted = ApiConfigEditorLogic.formatForEditor(document, hasApiKey = true)
 

@@ -67,7 +67,12 @@ open class OpenAIEmbeddingService(
                     lastException = e
                     if (attempt < MAX_RETRIES - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${ApiConfigJson.redactUrl(e.message.orEmpty())}")
+                        Log.w(
+                            TAG,
+                            "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${ApiConfigJson.redactUrl(
+                                e.message.orEmpty(),
+                            )}",
+                        )
                         delay(delayMs)
                     }
                 } catch (e: Exception) {
@@ -150,7 +155,12 @@ open class OpenAIEmbeddingService(
                     lastException = e
                     if (attempt < MAX_RETRIES - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                        Log.w(TAG, "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${ApiConfigJson.redactUrl(e.message.orEmpty())}")
+                        Log.w(
+                            TAG,
+                            "Network error, retry ${attempt + 1}/$MAX_RETRIES after ${delayMs}ms: ${ApiConfigJson.redactUrl(
+                                e.message.orEmpty(),
+                            )}",
+                        )
                         delay(delayMs)
                     }
                 } catch (e: Exception) {

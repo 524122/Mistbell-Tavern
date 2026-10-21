@@ -263,7 +263,10 @@ object LlmClient {
                     // 网络错误可重试
                     if (attempt < maxAttempts - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
-                        android.util.Log.w("LlmClient", "Network error, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${redactedMessage(e)}")
+                        android.util.Log.w(
+                            "LlmClient",
+                            "Network error, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${redactedMessage(e)}",
+                        )
                         delay(delayMs)
                     }
                 } catch (e: Exception) {
@@ -468,7 +471,11 @@ object LlmClient {
                                 } catch (_: Exception) {
                                     "No error details"
                                 }
-                            close(IllegalStateException("LLM API error: ${response.code} ${response.message} - ${ApiConfigJson.redactUrl(summary)}"))
+                            close(
+                                IllegalStateException(
+                                    "LLM API error: ${response.code} ${response.message} - ${ApiConfigJson.redactUrl(summary)}",
+                                ),
+                            )
                         } else {
                             close(IOException("LLM stream failed: ${ApiConfigJson.redactUrl(t?.message.orEmpty())}", t))
                         }

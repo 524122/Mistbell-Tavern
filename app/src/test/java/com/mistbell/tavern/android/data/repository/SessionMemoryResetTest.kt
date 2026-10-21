@@ -10,6 +10,7 @@ import com.mistbell.tavern.android.data.local.dao.CharacterDao
 import com.mistbell.tavern.android.data.local.dao.CustomPromptDao
 import com.mistbell.tavern.android.data.local.dao.MemoryDao
 import com.mistbell.tavern.android.data.local.dao.MessageDao
+import com.mistbell.tavern.android.data.local.dao.RulePackDao
 import com.mistbell.tavern.android.data.local.dao.SessionDao
 import com.mistbell.tavern.android.data.local.dao.SettingsDao
 import com.mistbell.tavern.android.data.local.dao.StructuredMemoryDao
@@ -241,6 +242,8 @@ class SessionMemoryResetTest {
             override fun apiConfigDao(): ApiConfigDao = throw UnsupportedOperationException()
 
             override fun customPromptDao(): CustomPromptDao = throw UnsupportedOperationException()
+
+            override fun rulePackDao(): RulePackDao = throw UnsupportedOperationException()
 
             override fun createInvalidationTracker(): InvalidationTracker = throw UnsupportedOperationException()
 

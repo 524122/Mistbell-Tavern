@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
@@ -32,13 +31,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.menuAnchor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -428,6 +426,7 @@ private fun WorldBookSourcesRows(viewModel: SettingsViewModel) {
 
 /** 单选书下拉行（"不选"+全部书） */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorldBookBookPickerRow(
     title: String,

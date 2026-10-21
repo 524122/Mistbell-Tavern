@@ -102,6 +102,18 @@ class MigrationSchemaAlignmentTest {
         assertTrue("ALTER TABLE sessions ADD COLUMN author_note_role INTEGER NOT NULL DEFAULT 0" in sql)
     }
 
+    @Test
+    fun `v33 to v34 creates rule_packs table`() {
+        val sql = AppDatabase.MIGRATION_33_34_SQL
+        assertEquals(1, sql.size)
+        val ddl = sql.single()
+        assertTrue(ddl.contains("CREATE TABLE IF NOT EXISTS `rule_packs`"))
+        assertTrue(ddl.contains("`content_json` TEXT NOT NULL"))
+        assertTrue(ddl.contains("`loading_order` INTEGER NOT NULL DEFAULT 100"))
+        assertTrue(ddl.contains("`enabled` INTEGER NOT NULL DEFAULT 1"))
+        assertTrue(ddl.contains("PRIMARY KEY(`id`)"))
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

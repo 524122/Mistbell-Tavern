@@ -1,0 +1,8 @@
+[
+  {
+    "name": "强调笨蛋",
+    "pattern": "笨蛋",
+    "replacement": "**笨蛋**",
+    "enabled": true
+  }
+]

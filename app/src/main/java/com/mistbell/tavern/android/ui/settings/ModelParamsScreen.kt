@@ -110,8 +110,7 @@ private fun ModelParamsEditor(
     val params = RequestSamplingParams.read(document.request, type)
     val showFrequencyPenalty = type == ApiType.OPENAI || type == ApiType.CUSTOM
 
-    fun saveSampling(next: RequestSamplingParams) =
-        onSave { d -> d.copy(request = RequestSamplingParams.write(d.request, type, next)) }
+    fun saveSampling(next: RequestSamplingParams) = onSave { d -> d.copy(request = RequestSamplingParams.write(d.request, type, next)) }
 
     Column(
         modifier =

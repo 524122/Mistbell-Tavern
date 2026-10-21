@@ -8,10 +8,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /** Runtime options persisted in an API configuration document. */
 @Serializable
@@ -153,7 +151,10 @@ object ApiConfigJson {
     }
 
     /** Pure Kotlin schema migration hook; future versions extend this chain without Room changes. */
-    fun migrateRoot(root: JsonObject, version: Int): JsonObject =
+    fun migrateRoot(
+        root: JsonObject,
+        version: Int,
+    ): JsonObject =
         when (version) {
             0 -> JsonObject(root + ("schemaVersion" to JsonPrimitive(CURRENT_SCHEMA_VERSION)))
             else -> root
@@ -255,13 +256,19 @@ object ApiConfigJson {
         )
 
     /** Remove a secret marker from exported JSON while preserving its presence. */
-    fun redacted(document: ApiConfigDocument, hasApiKey: Boolean): ApiConfigDocument =
+    fun redacted(
+        document: ApiConfigDocument,
+        hasApiKey: Boolean,
+    ): ApiConfigDocument =
         document.copy(
             apiKeyRef = if (hasApiKey) "[已配置]" else "",
             baseUrl = redactUrl(document.baseUrl),
         )
 
-    fun diff(before: ApiConfigDocument, after: ApiConfigDocument): ApiConfigJsonDiff {
+    fun diff(
+        before: ApiConfigDocument,
+        after: ApiConfigDocument,
+    ): ApiConfigJsonDiff {
         val old = Json.parseToJsonElement(format(before)).jsonObject
         val new = Json.parseToJsonElement(format(after)).jsonObject
         val added = mutableListOf<String>()
@@ -297,8 +304,7 @@ object ApiConfigJson {
     ): RequestMergeResult = mergeRequest(base, extension, protectedFieldsForType(type))
 
     /** 递归展开 request 扩展字段为叶子条目（预览用：thinking.type、reasoning_effort 等）。 */
-    fun flattenRequest(request: JsonObject): List<RequestFieldValue> =
-        request.flatMap { (key, value) -> flattenLeaves(value, key) }
+    fun flattenRequest(request: JsonObject): List<RequestFieldValue> = request.flatMap { (key, value) -> flattenLeaves(value, key) }
 
     private fun flattenLeaves(
         element: JsonElement,
@@ -450,7 +456,10 @@ object ApiConfigJson {
         }
     }
 
-    private fun joinPath(path: String, key: String): String = if (path.isBlank()) key else "$path.$key"
+    private fun joinPath(
+        path: String,
+        key: String,
+    ): String = if (path.isBlank()) key else "$path.$key"
 
     private fun findSensitiveFields(
         element: JsonElement,

@@ -964,14 +964,20 @@ object PromptBuilder {
         val wbPlan = WorldBookPlacement.plan(worldBookEntries)
         // 缓存优化：只注入 constant 条目到历史之前，activated 条目稍后注入到历史之后
         worldInfoBlock(
-            wbPlan.afterPrompt, activatedEntryIds, mctx,
-            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+            wbPlan.afterPrompt,
+            activatedEntryIds,
+            mctx,
+            selection = WiSelection.CONSTANT,
+            allowedKeys = constantBudget.allowed,
         )?.let {
             messages.addSegment("system", it, "世界书·角色定义后")
         }
         worldInfoBlock(
-            wbPlan.beforePrompt, activatedEntryIds, mctx,
-            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+            wbPlan.beforePrompt,
+            activatedEntryIds,
+            mctx,
+            selection = WiSelection.CONSTANT,
+            allowedKeys = constantBudget.allowed,
         )?.let {
             // add(0)：beforePrompt 条目压到整条提示词最前（角色定义之前）
             messages.add(0, Segment(ChatMessage(role = "system", content = it), "世界书·角色定义前"))
@@ -987,8 +993,11 @@ object PromptBuilder {
         // 缓存优化：只注入 constant 条目到历史之前
         val mesExample = character?.mesExample?.trim().orEmpty()
         worldInfoBlock(
-            wbPlan.emBefore, activatedEntryIds, mctx,
-            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+            wbPlan.emBefore,
+            activatedEntryIds,
+            mctx,
+            selection = WiSelection.CONSTANT,
+            allowedKeys = constantBudget.allowed,
         )?.let {
             messages.addSegment("system", it, "世界书·示例消息前")
         }
@@ -996,8 +1005,11 @@ object PromptBuilder {
             messages.addSegment("system", "Example dialogue:\n${MacroEngine.render(mesExample, mctx)}", "示例对话")
         }
         worldInfoBlock(
-            wbPlan.emAfter, activatedEntryIds, mctx,
-            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+            wbPlan.emAfter,
+            activatedEntryIds,
+            mctx,
+            selection = WiSelection.CONSTANT,
+            allowedKeys = constantBudget.allowed,
         )?.let {
             messages.addSegment("system", it, "世界书·示例消息后")
         }
@@ -1090,14 +1102,20 @@ object PromptBuilder {
             // 两块依次落在历史之后，位置语义保持稳定
             // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
             worldInfoBlock(
-                wbPlan.anBefore, activatedEntryIds, mctx,
-                selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+                wbPlan.anBefore,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.CONSTANT,
+                allowedKeys = constantBudget.allowed,
             )?.let {
                 messages.addSegment("system", it, "世界书·作者注释前")
             }
             worldInfoBlock(
-                wbPlan.anAfter, activatedEntryIds, mctx,
-                selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+                wbPlan.anAfter,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.CONSTANT,
+                allowedKeys = constantBudget.allowed,
             )?.let {
                 messages.addSegment("system", it, "世界书·作者注释后")
             }
@@ -1110,8 +1128,11 @@ object PromptBuilder {
         wbPlan.byDepth.forEach { (key, group) ->
             val (depth, role) = key
             worldInfoBlock(
-                group, activatedEntryIds, mctx,
-                selection = WiSelection.ALL, allowedKeys = constantBudget.allowed,
+                group,
+                activatedEntryIds,
+                mctx,
+                selection = WiSelection.ALL,
+                allowedKeys = constantBudget.allowed,
             )?.let { block ->
                 depthBlocks.add(
                     WiDepthBlock(
@@ -1218,7 +1239,7 @@ object PromptBuilder {
         // 「查看提示词」预览（同一装配路径）；无注册拦截器时零开销、输出与改动前一致
         runPromptInterceptors(
             messages,
-            PromptHookContext(ownerId, characterId, sessionId, mctx, db),
+            PromptHookContext(ownerId, characterId, sessionId, mctx) { db },
         )
 
         // 组成诊断（只记条数与估算 token，不记内容）：用于核对上下文窗口是否装得下、
@@ -1402,6 +1423,7 @@ object PromptBuilder {
     ) {
         if (blocks.isEmpty()) return
         val inserted = mutableSetOf<Segment>()
+
         // 计数对象：真实聊天消息（user/assistant）或已插入的 @D 块（任意 role）
         fun countable(index: Int): Boolean {
             val role = messages[index].message.role
@@ -2148,8 +2170,7 @@ object PromptBuilder {
         selection: WiSelection = WiSelection.ACTIVATED,
         allowedKeys: Set<String>? = null,
     ): String? {
-        fun allowed(entry: WorldBookEntryEntity): Boolean =
-            allowedKeys == null || "${entry.bookId}:${entry.id}" in allowedKeys
+        fun allowed(entry: WorldBookEntryEntity): Boolean = allowedKeys == null || "${entry.bookId}:${entry.id}" in allowedKeys
         val entries =
             when (selection) {
                 WiSelection.CONSTANT -> group.filter { it.constant && allowed(it) }

@@ -7,7 +7,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -160,7 +159,13 @@ class ApiRequestTemplateTest {
                 put("zero", 0)
                 put("empty_object", buildJsonObject { })
                 put("empty_array", buildJsonArray { })
-                put("nested", buildJsonObject { put("null_field", JsonNull); put("flag", false) })
+                put(
+                    "nested",
+                    buildJsonObject {
+                        put("null_field", JsonNull)
+                        put("flag", false)
+                    },
+                )
                 put(
                     "array",
                     buildJsonArray {

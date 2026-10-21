@@ -30,7 +30,8 @@ data class PromptHookContext(
     val characterId: String,
     val sessionId: String,
     val mctx: MacroContext,
-    val db: AppDatabase,
+    /** 惰性取库：不经 db 的拦截器（如规则包纯数据注入）在 JVM 单测中可安全构造本上下文 */
+    val getDb: () -> AppDatabase,
 )
 
 /**

@@ -1,0 +1,8 @@
+{
+  "id": "rulepack-demo",
+  "name": "示例规则包",
+  "author": "Mistbell",
+  "version": "1.0",
+  "description": "演示三种规则：提示词块、输出正则、自定义宏",
+  "loadingOrder": 100
+}

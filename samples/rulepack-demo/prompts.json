@@ -1,0 +1,9 @@
+[
+  {
+    "name": "礼貌约束",
+    "content": "【规则包示例】回复中始终保持礼貌，不说脏话。当前酒馆气氛：{{tavern_mood}}。",
+    "position": "SYSTEM_END",
+    "priority": 0,
+    "enabled": true
+  }
+]

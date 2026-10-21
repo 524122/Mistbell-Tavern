@@ -148,8 +148,7 @@ object RecallRanker {
             .take(topK)
     }
 
-    private fun normalizeContent(content: String): String =
-        content.lowercase().replace(Regex("\\s+"), " ").trim()
+    private fun normalizeContent(content: String): String = content.lowercase().replace(Regex("\\s+"), " ").trim()
 
     /** 时间戳未知时的中性时间因子：不吃满加成也不垫底 */
     private const val NEUTRAL_RECENCY = 0.5f

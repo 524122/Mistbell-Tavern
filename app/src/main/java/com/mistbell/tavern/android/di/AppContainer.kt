@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.di
 import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.data.local.AppDatabase
+import com.mistbell.tavern.android.data.repository.EnabledRulePacksCache
 import com.mistbell.tavern.android.data.repository.MemoryResetPendingException
 import com.mistbell.tavern.android.data.repository.PendingExtractionStore
 import com.mistbell.tavern.android.data.repository.SessionMemoryReset
@@ -23,6 +24,7 @@ import com.mistbell.tavern.android.extension.ExtensionRegistry
 import com.mistbell.tavern.android.extension.builtin.CustomPromptExtension
 import com.mistbell.tavern.android.extension.builtin.HelpCommand
 import com.mistbell.tavern.android.extension.builtin.NoteCommand
+import com.mistbell.tavern.android.extension.builtin.RulePackExtension
 import com.mistbell.tavern.android.util.SecureStore
 import java.io.File
 
@@ -214,6 +216,17 @@ class AppContainer(private val appContext: Context) {
     }
 
     /**
+     * 启用规则包缓存（全进程唯一）：钩子链路（含同步的 MacroProvider.resolve）读内存不查库。
+     * scope 随容器常驻——缓存语义就是"进程生命周期内持续收集"，不随调用方取消。
+     */
+    val rulePackCache: EnabledRulePacksCache by lazy {
+        EnabledRulePacksCache(
+            database,
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO),
+        )
+    }
+
+    /**
      * 注册内置扩展（幂等，ExtensionRegistry 按 id 去重）。
      *
      * 放 AppContainer 而非 TavernApplication：与"所有服务的唯一装配入口"职责一致；
@@ -223,6 +236,8 @@ class AppContainer(private val appContext: Context) {
         ExtensionRegistry.register(CustomPromptExtension())
         ExtensionRegistry.register(HelpCommand())
         ExtensionRegistry.register(NoteCommand())
+        // 触碰 rulePackCache 即预热缓存（注册期开始收集 Room Flow），与 awaitPacks 共同消除冷启动竞态
+        ExtensionRegistry.register(RulePackExtension(rulePackCache))
         // 宏桥：MacroEngine（util 层）不反向依赖 extension 包，注册表查询经此 lambda 注入
         com.mistbell.tavern.android.util.MacroEngine.registerMacroProvider { name, ctx ->
             ExtensionRegistry.macroProviders.firstNotNullOfOrNull { it.resolve(name, ctx) }

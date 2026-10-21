@@ -14,9 +14,7 @@ import com.mistbell.tavern.android.data.repository.VectorSyncSource
  * 与 [VectorMemoryService] 的读写热路径分开：这些是**低频维护**（备份合并、进程启动、换模型、
  * 设置页展示），而热路径只关心"写一条、删一条、查一次"。拆开之后两边的依赖也更清楚——
  * 维护动作需要 Room（对账）与索引统计，读写不需要。
- */
-
-/**
+ *
  * 清空当前索引；备份合并后需要从合并后的 Room 数据重建，避免旧索引与新正文错配。
  *
  * 同时登记"全部 message_id 已删除"：清空往往紧跟着会话/记忆的删除，此时在途的写入

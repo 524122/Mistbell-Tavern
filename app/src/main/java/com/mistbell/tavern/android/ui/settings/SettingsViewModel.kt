@@ -13,6 +13,7 @@ import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MAX
 import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MIN
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {

@@ -77,11 +77,13 @@ object ChatSettingsResolver {
 
     const val WORLD_INFO_SCAN_DEPTH_MIN = 1
     const val WORLD_INFO_SCAN_DEPTH_MAX = 50
+
     // 对齐酒馆 world_info_depth = 2（v0.9.6 起；此前固定扫最近 6 条）
     const val DEFAULT_WORLD_INFO_SCAN_DEPTH = 2
 
     const val WORLD_INFO_BUDGET_PERCENT_MIN = 0
     const val WORLD_INFO_BUDGET_PERCENT_MAX = 50
+
     // 对齐酒馆 world_info_budget = 25（占上下文 %）；0 = 关闭预算（不裁剪）
     const val DEFAULT_WORLD_INFO_BUDGET_PERCENT = 25
 
@@ -107,8 +109,7 @@ object ChatSettingsResolver {
 
     // settings KV 原始值 → WI 预算绝对上限 token 数（酒馆 world_info_budget_cap）：
     // 0=不封顶（缺省）；>0 时在百分比预算之上取 min
-    fun worldInfoBudgetCap(raw: String?): Int =
-        raw?.toIntOrNull()?.coerceIn(0, WORLD_INFO_BUDGET_CAP_MAX) ?: 0
+    fun worldInfoBudgetCap(raw: String?): Int = raw?.toIntOrNull()?.coerceIn(0, WORLD_INFO_BUDGET_CAP_MAX) ?: 0
 
     // settings KV 原始值 → 最小激活条目数（酒馆 world_info_min_activations）：
     // 0=关闭（缺省）；>0 且未凑够时逐轮加深扫描（skew）

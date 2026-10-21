@@ -1,10 +1,10 @@
 package com.mistbell.tavern.android.data.repository
 
-import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiType
 import com.mistbell.tavern.android.data.api.RequestSamplingParams
 import com.mistbell.tavern.android.data.api.normalizeApiType
+import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.util.SecureStore

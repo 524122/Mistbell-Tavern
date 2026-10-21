@@ -97,21 +97,16 @@ data class WorldBookEntryEntity(
     // 扫描面扩展（v31，对齐酒馆 matchXxx）：触发时把人设/角色描述/场景并条目入扫描文本
     @ColumnInfo(name = "match_persona_description", defaultValue = "0")
     val matchPersonaDescription: Boolean = false,
-
     @ColumnInfo(name = "match_character_description", defaultValue = "0")
     val matchCharacterDescription: Boolean = false,
-
     @ColumnInfo(name = "match_scenario", defaultValue = "0")
     val matchScenario: Boolean = false,
-
     // 角色过滤（v32，对齐酒馆 characterFilter）：名字/标签任一命中即"匹配"；
     // exclude=false 时仅匹配角色的会话生效（白名单），true 时匹配角色反而不生效（黑名单）
     @ColumnInfo(name = "character_filter_names", defaultValue = "'[]'")
     val characterFilterNamesJson: String = "[]",
-
     @ColumnInfo(name = "character_filter_tags", defaultValue = "'[]'")
     val characterFilterTagsJson: String = "[]",
-
     @ColumnInfo(name = "character_filter_exclude", defaultValue = "0")
     val characterFilterExclude: Boolean = false,
     // 分组按匹配分选拔（v33，对齐酒馆 useGroupScoring 三态）：null=跟随全局 world_info_use_group_scoring

@@ -385,6 +385,7 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         put("selectiveLogic", kotlinx.serialization.json.JsonPrimitive(form.selectiveLogic))
         put("caseSensitive", kotlinx.serialization.json.JsonPrimitive(form.caseSensitive))
         put("matchWholeWords", kotlinx.serialization.json.JsonPrimitive(form.matchWholeWords))
+
         // 粘性/冷却/延迟轮数：非法输入按 0（关闭）
         fun putRounds(
             key: String,

@@ -25,8 +25,9 @@ import com.mistbell.tavern.android.data.local.entity.*
         ApiConfigEntity::class,
         CustomPromptEntity::class,
         VectorSyncOutboxEntity::class,
+        RulePackEntity::class,
     ],
-    version = 33,
+    version = 34,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -55,6 +56,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun apiConfigDao(): ApiConfigDao
 
     abstract fun customPromptDao(): CustomPromptDao
+
+    abstract fun rulePackDao(): RulePackDao
 
     companion object {
         @Volatile
@@ -754,6 +757,28 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        internal val MIGRATION_33_34_SQL: List<String> =
+            listOf(
+                "CREATE TABLE IF NOT EXISTS `rule_packs` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`author` TEXT NOT NULL, " +
+                    "`version` TEXT NOT NULL, " +
+                    "`loading_order` INTEGER NOT NULL DEFAULT 100, " +
+                    "`enabled` INTEGER NOT NULL DEFAULT 1, " +
+                    "`content_json` TEXT NOT NULL, " +
+                    "`created_at` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`id`))",
+            )
+
+        @Suppress("MagicNumber") // 起止版本号即迁移语义本体，与 MIGRATION_16_17 等既往迁移同型
+        internal val MIGRATION_33_34 =
+            object : Migration(33, 34) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_33_34_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -799,6 +824,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_30_31,
                         MIGRATION_31_32,
                         MIGRATION_32_33,
+                        MIGRATION_33_34,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

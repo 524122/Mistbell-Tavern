@@ -78,7 +78,14 @@ class ApiConfigDocumentTest {
 
     @Test
     fun `敏感字段不会进入配置文档`() {
-        assertTrue(ApiConfigJson.parse("{\"schemaVersion\":1,\"id\":\"x\",\"name\":\"x\",\"type\":\"openai\",\"baseUrl\":\"u\",\"model\":\"m\",\"apiKey\":\"real\"}") is ApiConfigJsonResult.Invalid)
+        val longJson =
+            "{\"schemaVersion\":1,\"id\":\"x\",\"name\":\"x\",\"type\":\"openai\"," +
+                "\"baseUrl\":\"u\",\"model\":\"m\",\"apiKey\":\"real\"}"
+        assertTrue(
+            ApiConfigJson.parse(
+                longJson,
+            ) is ApiConfigJsonResult.Invalid,
+        )
     }
 
     @Test
@@ -113,7 +120,13 @@ class ApiConfigDocumentTest {
             buildJsonObject {
                 put("max_tokens", 1024)
                 put("maxOutputTokens", 2048)
-                put("thinking", buildJsonObject { put("budget_tokens", 2048); put("thinkingBudgetTokens", 4096) })
+                put(
+                    "thinking",
+                    buildJsonObject {
+                        put("budget_tokens", 2048)
+                        put("thinkingBudgetTokens", 4096)
+                    },
+                )
             }
         val document = document(request)
         val result = ApiConfigJson.parse(ApiConfigJson.format(document))
@@ -123,8 +136,19 @@ class ApiConfigDocumentTest {
 
     @Test
     fun `request 递归合并并保护 messages stream`() {
-        val base = buildJsonObject { put("messages", "generated"); put("stream", false); put("options", buildJsonObject { put("a", 1) }) }
-        val extension = buildJsonObject { put("messages", "user"); put("stream", true); put("options", buildJsonObject { put("b", 2) }); put("temperature", 0.7) }
+        val base =
+            buildJsonObject {
+                put("messages", "generated")
+                put("stream", false)
+                put("options", buildJsonObject { put("a", 1) })
+            }
+        val extension =
+            buildJsonObject {
+                put("messages", "user")
+                put("stream", true)
+                put("options", buildJsonObject { put("b", 2) })
+                put("temperature", 0.7)
+            }
         val merged = ApiConfigJson.mergeRequest(base, extension)
         assertEquals("generated", merged.json["messages"]?.toString()?.trim('"'))
         assertEquals("false", merged.json["stream"]?.toString())
@@ -184,7 +208,13 @@ class ApiConfigDocumentTest {
                                                 put("api_key", buildJsonObject { put("type", "string") })
                                             },
                                         )
-                                        put("required", buildJsonArray { add("model"); add("password") })
+                                        put(
+                                            "required",
+                                            buildJsonArray {
+                                                add("model")
+                                                add("password")
+                                            },
+                                        )
                                     },
                                 )
                             },
@@ -258,7 +288,15 @@ class ApiConfigDocumentTest {
         val merged =
             ApiConfigJson.mergeRequest(
                 buildJsonObject { put("stop", buildJsonArray { add("a") }) },
-                buildJsonObject { put("stop", buildJsonArray { add("b"); add("c") }) },
+                buildJsonObject {
+                    put(
+                        "stop",
+                        buildJsonArray {
+                            add("b")
+                            add("c")
+                        },
+                    )
+                },
             )
         assertEquals("[\"b\",\"c\"]", merged.json["stop"].toString())
     }
@@ -273,7 +311,10 @@ class ApiConfigDocumentTest {
     @Test
     fun `URL 预览隐藏 query credential`() {
         assertEquals("https://example.test/v1?key=•••", ApiConfigJson.redactUrl("https://example.test/v1?key=real"))
-        assertEquals("https://example.test/v1?key=•••", ApiConfigJson.redacted(document().copy(baseUrl = "https://example.test/v1?key=real"), true).baseUrl)
+        assertEquals(
+            "https://example.test/v1?key=•••",
+            ApiConfigJson.redacted(document().copy(baseUrl = "https://example.test/v1?key=real"), true).baseUrl,
+        )
         assertEquals("https://example.test/v1", ApiConfigJson.stripUrlCredentials("https://example.test/v1?key=real"))
     }
 
@@ -455,7 +496,13 @@ class ApiConfigDocumentTest {
             buildJsonObject {
                 put("temperature", 0.7)
                 put("reasoning_effort", "high")
-                put("thinking", buildJsonObject { put("type", "enabled"); put("budget_tokens", 2048) })
+                put(
+                    "thinking",
+                    buildJsonObject {
+                        put("type", "enabled")
+                        put("budget_tokens", 2048)
+                    },
+                )
                 put("response_format", buildJsonObject { put("type", "json_object") })
                 put("messages", "bad")
             }

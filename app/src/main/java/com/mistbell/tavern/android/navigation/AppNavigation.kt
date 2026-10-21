@@ -48,6 +48,7 @@ object Routes {
     const val THEME_MANAGER = "theme_manager"
     const val ABOUT = "about"
     const val PROMPT_MANAGEMENT = "prompt_management"
+    const val RULE_PACKS = "rule_packs"
     const val MODEL_PARAMS = "model_params"
 
     fun chat(
@@ -223,6 +224,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     },
                     onNavigateToPromptManagement = {
                         navController.navigate(Routes.promptManagement())
+                    },
+                    onNavigateToRulePacks = {
+                        navController.navigate(Routes.RULE_PACKS)
                     },
                     onNavigateToModelParams = {
                         navController.navigate(Routes.MODEL_PARAMS)
@@ -423,6 +427,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     onNavigateToPromptManagement = {
                         navController.navigate(Routes.promptManagement())
                     },
+                    onNavigateToRulePacks = {
+                        navController.navigate(Routes.RULE_PACKS)
+                    },
                     onNavigateToModelParams = {
                         navController.navigate(Routes.MODEL_PARAMS)
                     },
@@ -533,6 +540,19 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) {
                 ThemeManagerScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // 规则包管理
+            composable(
+                route = Routes.RULE_PACKS,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.rulepack.RulePackManagerScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

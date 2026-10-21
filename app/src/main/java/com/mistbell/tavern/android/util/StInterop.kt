@@ -150,6 +150,7 @@ internal object StInterop {
 
         // 键名兼容器：extensions snake_case 与顶层 camelCase 都收（对齐 originalWIDataKeyMap）
         fun flag(vararg keys: String): Boolean = extOrTop(*keys)?.booleanOrNull ?: false
+
         fun intOr(
             default: Int,
             vararg keys: String,

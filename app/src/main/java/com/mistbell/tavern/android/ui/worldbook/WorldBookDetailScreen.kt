@@ -19,8 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.mistbell.tavern.android.util.StInterop
 import com.mistbell.tavern.android.ui.components.*
+import com.mistbell.tavern.android.util.StInterop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -517,8 +517,10 @@ private fun EntryTimedFields(
     viewModel: WorldBookEditorViewModel,
 ) {
     // 轮数输入过滤：仅接受非负整数或空（空按 0 存）
-    fun timed(text: String, current: String): String =
-        if (text.isBlank() || text.toIntOrNull() != null) text else current
+    fun timed(
+        text: String,
+        current: String,
+    ): String = if (text.isBlank() || text.toIntOrNull() != null) text else current
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TimedNumberField("粘性轮数", entryForm.sticky, Modifier.weight(1f)) { text ->
             viewModel.updateEntryForm { copy(sticky = timed(text, sticky)) }

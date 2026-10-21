@@ -82,6 +82,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.mistbell.tavern.android.data.api.ApiConfigDocument
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiConfigJsonDiff
+import com.mistbell.tavern.android.data.api.ApiConfigJsonResult
 import com.mistbell.tavern.android.data.api.ApiRequestFieldState
 import com.mistbell.tavern.android.data.api.ApiRequestPreview
 import com.mistbell.tavern.android.data.api.ApiRequestPreviewField
@@ -492,7 +493,7 @@ fun ApiConfigEditorDialog(
     val initialDraft =
         remember(apiConfig?.id) {
             val base =
-                (apiConfig?.configJson?.let { ApiConfigJson.parse(it) } as? com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid)?.document?.copy(
+                (apiConfig?.configJson?.let { ApiConfigJson.parse(it) } as? ApiConfigJsonResult.Valid)?.document?.copy(
                     id = apiConfig.id,
                     name = apiConfig.name,
                     type = normalizeApiType(apiConfig.type),
@@ -523,7 +524,9 @@ fun ApiConfigEditorDialog(
             else -> null
         }
     var document by remember { mutableStateOf(initialDocument) }
-    var jsonValue by remember { mutableStateOf(TextFieldValue(ApiConfigEditorLogic.formatForEditor(initialDocument, apiConfig?.apiKey?.isNotBlank() == true))) }
+    var jsonValue by remember {
+        mutableStateOf(TextFieldValue(ApiConfigEditorLogic.formatForEditor(initialDocument, apiConfig?.apiKey?.isNotBlank() == true)))
+    }
     var jsonError by remember { mutableStateOf<String?>(null) }
     // 用户是否手动改过 JSON 文本：只有手改坏的草稿才阻止表单字段重新生成 JSON；
     // 表单自动草稿在填写过程中暂时不完整（model/name 为空）不属于受保护对象。
@@ -667,13 +670,13 @@ fun ApiConfigEditorDialog(
                     onDismiss = onDismiss,
                     onConfirm = {
                         when (val parsed = ApiConfigJson.parse(jsonValue.text)) {
-                            is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Invalid -> {
+                            is ApiConfigJsonResult.Invalid -> {
                                 jsonError = parsed.message
                                 // 切到请求参数页展示错误：JSON 输入框可能从未组合，
                                 // 直接 requestFocus 未 attach 的 FocusRequester 会崩溃
                                 selectedTab = 1
                             }
-                            is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid -> {
+                            is ApiConfigJsonResult.Valid -> {
                                 if (ApiConfigJson.sanitizeBaseUrl(apiUrl) == null) {
                                     apiUrlError = "API 地址包含无法安全清理的凭据或格式错误，请修正后再保存"
                                     selectedTab = 0
@@ -738,160 +741,171 @@ fun ApiConfigEditorDialog(
                                     subtitle = "连接信息与默认模型",
                                 )
 
-                // 配置名称
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it; editBase(document.copy(name = it)) },
-                    label = { Text("配置名称") },
-                    placeholder = { Text("例如：OpenAI API") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Label, null)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                )
-
-                // 接口类型（选中自动填充预设地址）
-                ApiTypeSelectorField(
-                    type = type,
-                    onTypeChange = { newType ->
-                        val normalized = normalizeApiType(newType)
-                        val previousType = type
-                        val switch = ApiConfigEditorLogic.requestForTypeSwitch(document.request, previousType, normalized)
-                        type = normalized
-                        previewExpandedGroups = setOf(defaultPreviewGroupKey(normalized))
-                        apiUrl = resolvePresetUrl(normalized, apiUrl)
-                        apiUrlError = null
-                        protocolNotice =
-                            if (switch.keptUserRequest) {
-                                "已切换协议；request 保留了你修改的字段，请核对参数名是否适用于新协议。"
-                            } else {
-                                null
-                            }
-                        editBase(document.copy(type = normalized, baseUrl = apiUrl, request = switch.request))
-                    },
-                )
-                protocolNotice?.let { notice ->
-                    Text(
-                        text = notice,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-
-                // API 地址
-                OutlinedTextField(
-                    value = apiUrl,
-                    onValueChange = {
-                        apiUrl = it
-                        apiUrlError = null
-                        editBase(document.copy(baseUrl = ApiConfigJson.stripUrlCredentials(it)))
-                    },
-                    label = { Text("API 地址") },
-                    placeholder = {
-                        Text(defaultBaseUrlForType(type).ifBlank { "https://your-gateway.example.com/v1" })
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Default.Link, null)
-                    },
-                    isError = apiUrlError != null,
-                    supportingText = {
-                        apiUrlError?.let { Text(it) }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                )
-
-                // API 密钥
-                ApiKeyField(
-                    apiKey = apiKey,
-                    onApiKeyChange = { newKey ->
-                        apiKey = newKey
-                        // Key 不在 JSON 内：重校验当前草稿，清掉“合法草稿上的陈旧 jsonError”；
-                        // 若草稿本身非法，则保留原文并继续展示真实错误。
-                        val edit =
-                            ApiConfigEditorLogic.afterApiKeyEdit(
-                                jsonValue.text,
-                                newKey.isNotBlank(),
-                                protectInvalidDraft = manualJsonEdited,
-                            )
-                        setJsonText(edit.text)
-                        jsonError = edit.error
-                        edit.parsed?.let { parsed ->
-                            document =
-                                parsed.copy(
-                                    id = apiConfig?.id ?: parsed.id,
-                                    baseUrl =
-                                        if (parsed.baseUrl == ApiConfigJson.redactUrl(document.baseUrl)) {
-                                            document.baseUrl
-                                        } else {
-                                            parsed.baseUrl
-                                        },
+                                // 配置名称
+                                OutlinedTextField(
+                                    value = name,
+                                    onValueChange = {
+                                        name = it
+                                        editBase(document.copy(name = it))
+                                    },
+                                    label = { Text("配置名称") },
+                                    placeholder = { Text("例如：OpenAI API") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Label, null)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
                                 )
-                        }
-                    },
-                )
 
-                // 模型输入与获取/连接工具
-                ApiModelField(
-                    model = model,
-                    onModelChange = { model = it; editBase(document.copy(model = it)) },
-                    fetchedModels = fetchedModels,
-                )
-                DialogApiToolsRow(
-                    apiUrl = apiUrl,
-                    apiKey = apiKey,
-                    model = model,
-                    type = type,
-                    viewModel = viewModel,
-                    fetchingModels = fetchingModels,
-                    fetchModelsError = fetchModelsError,
-                )
+                                // 接口类型（选中自动填充预设地址）
+                                ApiTypeSelectorField(
+                                    type = type,
+                                    onTypeChange = { newType ->
+                                        val normalized = normalizeApiType(newType)
+                                        val previousType = type
+                                        val switch = ApiConfigEditorLogic.requestForTypeSwitch(document.request, previousType, normalized)
+                                        type = normalized
+                                        previewExpandedGroups = setOf(defaultPreviewGroupKey(normalized))
+                                        apiUrl = resolvePresetUrl(normalized, apiUrl)
+                                        apiUrlError = null
+                                        protocolNotice =
+                                            if (switch.keptUserRequest) {
+                                                "已切换协议；request 保留了你修改的字段，请核对参数名是否适用于新协议。"
+                                            } else {
+                                                null
+                                            }
+                                        editBase(document.copy(type = normalized, baseUrl = apiUrl, request = switch.request))
+                                    },
+                                )
+                                protocolNotice?.let { notice ->
+                                    Text(
+                                        text = notice,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                }
 
-                CollapsibleSection(
-                    title = "响应与本地预算",
-                    subtitle = "SSE、上下文长度与默认配置",
-                    expanded = responseBudgetExpanded,
-                    onToggle = { responseBudgetExpanded = !responseBudgetExpanded },
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SettingsSwitchRow(
-                            title = "SSE 流式传输",
-                            subtitle = "逐步显示模型回复；关闭后等待整包返回",
-                            checked = streamingEnabled,
-                            onCheckedChange = { streamingEnabled = it; editBase(document.copy(streamingEnabled = it)) },
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("上下文长度：${formatContextLimit(contextTokenLimit)}", style = MaterialTheme.typography.bodyLarge)
-                            Slider(
-                                value = contextSliderValue(contextTokenLimit),
-                                onValueChange = { value ->
-                                    contextTokenLimit = contextLimitFromSlider(value)
-                                    context1M = contextTokenLimit >= ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT
-                                    editBase(document.copy(contextTokenLimit = contextTokenLimit))
-                                },
-                                valueRange = 0f..8f,
-                                steps = 7,
-                            )
-                            Text(
-                                "只影响本地 PromptBuilder 的历史裁剪和记忆预算",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = secondaryTextColor(),
-                            )
-                        }
-                        SettingsSwitchRow(
-                            title = "设为默认配置",
-                            subtitle = "作为新会话的默认 API",
-                            icon = Icons.Default.Star,
-                            checked = setAsDefault,
-                            onCheckedChange = { setAsDefault = it },
-                        )
-                    }
-                }
+                                // API 地址
+                                OutlinedTextField(
+                                    value = apiUrl,
+                                    onValueChange = {
+                                        apiUrl = it
+                                        apiUrlError = null
+                                        editBase(document.copy(baseUrl = ApiConfigJson.stripUrlCredentials(it)))
+                                    },
+                                    label = { Text("API 地址") },
+                                    placeholder = {
+                                        Text(defaultBaseUrlForType(type).ifBlank { "https://your-gateway.example.com/v1" })
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Link, null)
+                                    },
+                                    isError = apiUrlError != null,
+                                    supportingText = {
+                                        apiUrlError?.let { Text(it) }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                                )
 
+                                // API 密钥
+                                ApiKeyField(
+                                    apiKey = apiKey,
+                                    onApiKeyChange = { newKey ->
+                                        apiKey = newKey
+                                        // Key 不在 JSON 内：重校验当前草稿，清掉“合法草稿上的陈旧 jsonError”；
+                                        // 若草稿本身非法，则保留原文并继续展示真实错误。
+                                        val edit =
+                                            ApiConfigEditorLogic.afterApiKeyEdit(
+                                                jsonValue.text,
+                                                newKey.isNotBlank(),
+                                                protectInvalidDraft = manualJsonEdited,
+                                            )
+                                        setJsonText(edit.text)
+                                        jsonError = edit.error
+                                        edit.parsed?.let { parsed ->
+                                            document =
+                                                parsed.copy(
+                                                    id = apiConfig?.id ?: parsed.id,
+                                                    baseUrl =
+                                                        if (parsed.baseUrl == ApiConfigJson.redactUrl(document.baseUrl)) {
+                                                            document.baseUrl
+                                                        } else {
+                                                            parsed.baseUrl
+                                                        },
+                                                )
+                                        }
+                                    },
+                                )
+
+                                // 模型输入与获取/连接工具
+                                ApiModelField(
+                                    model = model,
+                                    onModelChange = {
+                                        model = it
+                                        editBase(document.copy(model = it))
+                                    },
+                                    fetchedModels = fetchedModels,
+                                )
+                                DialogApiToolsRow(
+                                    apiUrl = apiUrl,
+                                    apiKey = apiKey,
+                                    model = model,
+                                    type = type,
+                                    viewModel = viewModel,
+                                    fetchingModels = fetchingModels,
+                                    fetchModelsError = fetchModelsError,
+                                )
+
+                                CollapsibleSection(
+                                    title = "响应与本地预算",
+                                    subtitle = "SSE、上下文长度与默认配置",
+                                    expanded = responseBudgetExpanded,
+                                    onToggle = { responseBudgetExpanded = !responseBudgetExpanded },
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        SettingsSwitchRow(
+                                            title = "SSE 流式传输",
+                                            subtitle = "逐步显示模型回复；关闭后等待整包返回",
+                                            checked = streamingEnabled,
+                                            onCheckedChange = {
+                                                streamingEnabled = it
+                                                editBase(document.copy(streamingEnabled = it))
+                                            },
+                                        )
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                "上下文长度：${formatContextLimit(contextTokenLimit)}",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                            )
+                                            Slider(
+                                                value = contextSliderValue(contextTokenLimit),
+                                                onValueChange = { value ->
+                                                    contextTokenLimit = contextLimitFromSlider(value)
+                                                    context1M = contextTokenLimit >= ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT
+                                                    editBase(document.copy(contextTokenLimit = contextTokenLimit))
+                                                },
+                                                valueRange = 0f..8f,
+                                                steps = 7,
+                                            )
+                                            Text(
+                                                "只影响本地 PromptBuilder 的历史裁剪和记忆预算",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = secondaryTextColor(),
+                                            )
+                                        }
+                                        SettingsSwitchRow(
+                                            title = "设为默认配置",
+                                            subtitle = "作为新会话的默认 API",
+                                            icon = Icons.Default.Star,
+                                            checked = setAsDefault,
+                                            onCheckedChange = { setAsDefault = it },
+                                        )
+                                    }
+                                }
                             }
                         1 ->
                             Column(
@@ -921,108 +935,109 @@ fun ApiConfigEditorDialog(
                                     }
                                 }
 
-                // 完整配置文档：表单字段只是同一个有效文档对象的投影。
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = jsonValue,
-                        onValueChange = { value ->
-                            manualJsonEdited = true
-                            jsonValue = value
-                            updateFromJson(value.text)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 8,
-                        maxLines = 14,
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        isError = jsonError != null,
-                        supportingText = {
-                            Text(jsonError ?: clipboardMessage.orEmpty())
-                        },
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val clipboard = LocalClipboardManager.current
-                        TextButton(
-                            onClick = {
-                                when (val result = ApiConfigJson.parse(jsonValue.text)) {
-                                    is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid -> {
-                                        updateFromJson(ApiConfigEditorLogic.formatForEditor(result.document, apiKey.isNotBlank()))
-                                        clipboardMessage = "已格式化"
-                                    }
-                                    is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Invalid -> jsonError = result.message
-                                }
-                            },
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                        ) { Text("格式化") }
-                        TextButton(
-                            onClick = {
-                                val safe =
-                                    ApiConfigEditorLogic.safeJsonForClipboard(
-                                        jsonValue.text,
-                                        apiKey.isNotBlank(),
+                                // 完整配置文档：表单字段只是同一个有效文档对象的投影。
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(
+                                        value = jsonValue,
+                                        onValueChange = { value ->
+                                            manualJsonEdited = true
+                                            jsonValue = value
+                                            updateFromJson(value.text)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        minLines = 8,
+                                        maxLines = 14,
+                                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                        isError = jsonError != null,
+                                        supportingText = {
+                                            Text(jsonError ?: clipboardMessage.orEmpty())
+                                        },
                                     )
-                                if (safe != null) {
-                                    clipboard.setText(AnnotatedString(safe))
-                                    clipboardMessage = "已复制脱敏 JSON"
-                                } else {
-                                    jsonError =
-                                        (ApiConfigJson.parse(jsonValue.text) as? com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Invalid)
-                                            ?.message
-                                            ?: "配置 JSON 校验失败"
-                                    clipboardMessage = "草稿未通过安全校验，已阻止复制（可能含凭据）"
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        val clipboard = LocalClipboardManager.current
+                                        TextButton(
+                                            onClick = {
+                                                when (val result = ApiConfigJson.parse(jsonValue.text)) {
+                                                    is ApiConfigJsonResult.Valid -> {
+                                                        updateFromJson(
+                                                            ApiConfigEditorLogic.formatForEditor(result.document, apiKey.isNotBlank()),
+                                                        )
+                                                        clipboardMessage = "已格式化"
+                                                    }
+                                                    is ApiConfigJsonResult.Invalid -> jsonError = result.message
+                                                }
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 4.dp),
+                                        ) { Text("格式化") }
+                                        TextButton(
+                                            onClick = {
+                                                val safe =
+                                                    ApiConfigEditorLogic.safeJsonForClipboard(
+                                                        jsonValue.text,
+                                                        apiKey.isNotBlank(),
+                                                    )
+                                                if (safe != null) {
+                                                    clipboard.setText(AnnotatedString(safe))
+                                                    clipboardMessage = "已复制脱敏 JSON"
+                                                } else {
+                                                    jsonError =
+                                                        (ApiConfigJson.parse(jsonValue.text) as? ApiConfigJsonResult.Invalid)
+                                                            ?.message
+                                                            ?: "配置 JSON 校验失败"
+                                                    clipboardMessage = "草稿未通过安全校验，已阻止复制（可能含凭据）"
+                                                }
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 4.dp),
+                                        ) { Text("复制脱敏") }
+                                        TextButton(
+                                            onClick = {
+                                                clipboard.getText()?.text?.let { text ->
+                                                    manualJsonEdited = true
+                                                    updateFromJson(text)
+                                                }
+                                                clipboardMessage = "已粘贴，保存前仍需通过校验"
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 4.dp),
+                                        ) { Text("粘贴") }
+                                        Box {
+                                            var resetMenuExpanded by remember { mutableStateOf(false) }
+                                            IconButton(onClick = { resetMenuExpanded = true }) {
+                                                Icon(Icons.Default.MoreVert, contentDescription = "更多操作")
+                                            }
+                                            DropdownMenu(
+                                                expanded = resetMenuExpanded,
+                                                onDismissRequest = { resetMenuExpanded = false },
+                                            ) {
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text("重置为协议模板", color = MaterialTheme.colorScheme.error)
+                                                    },
+                                                    leadingIcon = {
+                                                        Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                                                    },
+                                                    onClick = {
+                                                        resetMenuExpanded = false
+                                                        requestReset()
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (jsonError == null) {
+                                        val previewDiff = ApiConfigJson.diff(initialDocument, document)
+                                        if (!previewDiff.isEmpty) {
+                                            Text(
+                                                text = changePreviewText(previewDiff),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = secondaryTextColor(),
+                                            )
+                                        }
+                                    }
                                 }
-                            },
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                        ) { Text("复制脱敏") }
-                        TextButton(
-                            onClick = {
-                                clipboard.getText()?.text?.let { text ->
-                                    manualJsonEdited = true
-                                    updateFromJson(text)
-                                }
-                                clipboardMessage = "已粘贴，保存前仍需通过校验"
-                            },
-                            contentPadding = PaddingValues(horizontal = 4.dp),
-                        ) { Text("粘贴") }
-                        Box {
-                            var resetMenuExpanded by remember { mutableStateOf(false) }
-                            IconButton(onClick = { resetMenuExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "更多操作")
-                            }
-                            DropdownMenu(
-                                expanded = resetMenuExpanded,
-                                onDismissRequest = { resetMenuExpanded = false },
-                            ) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text("重置为协议模板", color = MaterialTheme.colorScheme.error)
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
-                                    },
-                                    onClick = {
-                                        resetMenuExpanded = false
-                                        requestReset()
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    if (jsonError == null) {
-                        val previewDiff = ApiConfigJson.diff(initialDocument, document)
-                        if (!previewDiff.isEmpty) {
-                            Text(
-                                text = changePreviewText(previewDiff),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = secondaryTextColor(),
-                            )
-                        }
-                    }
-                }
-
                             }
                         else ->
                             Column(
@@ -1054,7 +1069,6 @@ fun ApiConfigEditorDialog(
                             }
                     }
                 }
-
             }
         }
     }
@@ -1100,8 +1114,7 @@ private fun contextSliderValue(limit: Int): Float =
         .coerceAtLeast(0)
         .toFloat()
 
-private fun contextLimitFromSlider(value: Float): Int =
-    CONTEXT_LIMIT_STEPS[value.roundToInt().coerceIn(0, CONTEXT_LIMIT_STEPS.lastIndex)]
+private fun contextLimitFromSlider(value: Float): Int = CONTEXT_LIMIT_STEPS[value.roundToInt().coerceIn(0, CONTEXT_LIMIT_STEPS.lastIndex)]
 
 private fun formatContextLimit(limit: Int): String =
     when {
@@ -1168,47 +1181,47 @@ private fun RequestPreviewBlock(
                 color = secondaryTextColor(),
             )
 
-        CollapsibleSection(
-            title = "连接与本地预算",
-            subtitle = "地址、认证与 contextTokenLimit",
-            expanded = connectionExpanded,
-            onToggle = onToggleConnection,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                previewLine("接口类型：${apiTypeLabel(document.type)}（${document.type}）")
-                previewLine("地址：${ApiConfigJson.redactUrl(document.baseUrl)}")
-                previewLine("认证：由 SecureStore 生成（已隐藏）")
-                previewLine("contextTokenLimit=${document.contextTokenLimit}（本地 prompt 输入预算）")
+            CollapsibleSection(
+                title = "连接与本地预算",
+                subtitle = "地址、认证与 contextTokenLimit",
+                expanded = connectionExpanded,
+                onToggle = onToggleConnection,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    previewLine("接口类型：${apiTypeLabel(document.type)}（${document.type}）")
+                    previewLine("地址：${ApiConfigJson.redactUrl(document.baseUrl)}")
+                    previewLine("认证：由 SecureStore 生成（已隐藏）")
+                    previewLine("contextTokenLimit=${document.contextTokenLimit}（本地 prompt 输入预算）")
+                }
             }
-        }
 
-        CollapsiblePreviewGroup(
-            title = "协议生成字段",
-            summary = "${preview.generatedFields.size} 项",
-            fields = preview.generatedFields,
-            expanded = generatedExpanded,
-            onToggle = onToggleGenerated,
-        )
-
-        preview.parameterGroups.forEach { group ->
-            val stateKey = "${document.type}:${group.id}"
-            RequestPreviewGroupBlock(
-                group = group,
-                expanded = stateKey in expandedGroups,
-                onToggle = { onToggleGroup(stateKey) },
-            )
-        }
-
-        if (preview.ignoredFields.isNotEmpty()) {
-            val stateKey = "${document.type}:ignored"
             CollapsiblePreviewGroup(
-                title = "保护忽略字段",
-                summary = "${preview.ignoredFields.size} 项",
-                fields = preview.ignoredFields,
-                expanded = stateKey in expandedGroups,
-                onToggle = { onToggleGroup(stateKey) },
+                title = "协议生成字段",
+                summary = "${preview.generatedFields.size} 项",
+                fields = preview.generatedFields,
+                expanded = generatedExpanded,
+                onToggle = onToggleGenerated,
             )
-        }
+
+            preview.parameterGroups.forEach { group ->
+                val stateKey = "${document.type}:${group.id}"
+                RequestPreviewGroupBlock(
+                    group = group,
+                    expanded = stateKey in expandedGroups,
+                    onToggle = { onToggleGroup(stateKey) },
+                )
+            }
+
+            if (preview.ignoredFields.isNotEmpty()) {
+                val stateKey = "${document.type}:ignored"
+                CollapsiblePreviewGroup(
+                    title = "保护忽略字段",
+                    summary = "${preview.ignoredFields.size} 项",
+                    fields = preview.ignoredFields,
+                    expanded = stateKey in expandedGroups,
+                    onToggle = { onToggleGroup(stateKey) },
+                )
+            }
 
             Text(
                 text = "预览不含调用级覆盖；max_tokens / maxOutputTokens 是模型输出预算，contextTokenLimit 是本地输入预算。",

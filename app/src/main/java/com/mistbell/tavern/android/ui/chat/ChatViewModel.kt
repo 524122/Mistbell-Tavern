@@ -4,11 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
+import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.network.NetworkMonitor
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
-import com.mistbell.tavern.android.data.api.ApiConfigJson
-import kotlinx.serialization.json.buildJsonObject
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
@@ -26,6 +25,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
