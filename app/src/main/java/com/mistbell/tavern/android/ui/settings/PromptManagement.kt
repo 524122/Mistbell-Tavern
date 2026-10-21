@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -273,6 +275,9 @@ fun PromptEditorDialog(
                 modifier =
                     Modifier
                         .fillMaxWidth()
+                        // 内容超出屏幕高度时可滚动：5 个位置单选项 + 内容/优先级输入框
+                        // 在正常密度下会把「取消/确定」挤出屏幕（此前需降密度才能点到）
+                        .verticalScroll(rememberScrollState())
                         .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
