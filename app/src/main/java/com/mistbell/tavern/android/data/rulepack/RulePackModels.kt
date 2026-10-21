@@ -30,12 +30,14 @@ data class RulePackPrompt(
     val enabled: Boolean = true,
 )
 
-/** 输出正则：回复落库前对正文执行 replace（v1 仅输出侧） */
+/** 输出正则：回复落库前对正文执行 replace；applyTo 含 "input" 时同时作用于提示词中的最终用户消息（仅改 prompt，不改存储） */
 @Serializable
 data class RulePackRegexRule(
     val name: String,
     val pattern: String,
     val replacement: String = "",
+    /** 作用域："output"（回复）/ "input"（用户消息）；缺省仅输出，与 v1 行为一致 */
+    val applyTo: List<String> = listOf("output"),
     val enabled: Boolean = true,
 )
 

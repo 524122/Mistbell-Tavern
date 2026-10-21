@@ -2,6 +2,7 @@ package com.mistbell.tavern.android.extension.builtin
 
 import com.mistbell.tavern.android.data.local.entity.CustomPromptEntity
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.data.repository.EnabledRulePack
 import com.mistbell.tavern.android.data.repository.RulePackSource
 import com.mistbell.tavern.android.data.repository.awaitPacks
 import com.mistbell.tavern.android.data.repository.currentPacks
@@ -32,13 +33,15 @@ class RulePackExtension(
     override val name: String = "规则包"
     override val loadingOrder: Int = LOADING_ORDER
 
-    // ---- PromptInterceptor：包 prompts → 复用自定义提示词的落点语义 ----
+    // ---- PromptInterceptor：input 作用域正则 → 最终用户消息；包 prompts → 复用落点语义 ----
 
     override suspend fun intercept(
         segments: MutableList<PromptBuilder.Segment>,
         context: PromptHookContext,
     ) {
         source.awaitPacks().forEach { pack ->
+            // input 作用域：先于本包提示词块应用，只改 prompt 中的用户消息，不改存储
+            applyInputRegex(segments, pack)
             val prompts =
                 pack.content.prompts.map { prompt ->
                     CustomPromptEntity(
@@ -55,7 +58,26 @@ class RulePackExtension(
         }
     }
 
-    // ---- ReplyPostProcessor：包 regex 规则链式作用于回复正文 ----
+    /** input 作用域正则：改写最后一个 role=user 段的内容（对齐酒馆 USER_INPUT placement 的 prompt 侧语义） */
+    private fun applyInputRegex(
+        segments: MutableList<PromptBuilder.Segment>,
+        pack: EnabledRulePack,
+    ) {
+        val rules = pack.content.regex.filter { it.enabled && SCOPE_INPUT in it.applyTo.map { s -> s.lowercase() } }
+        if (rules.isEmpty()) return
+        val lastUserIndex = segments.indexOfLast { it.message.role == "user" }
+        if (lastUserIndex < 0) return
+        val original = segments[lastUserIndex]
+        var content = original.message.content
+        rules.forEach { rule ->
+            content = Regex(rule.pattern).replace(content, rule.replacement)
+        }
+        if (content != original.message.content) {
+            segments[lastUserIndex] = original.copy(message = original.message.copy(content = content))
+        }
+    }
+
+    // ---- ReplyPostProcessor：output 作用域包 regex 规则链式作用于回复正文 ----
 
     override suspend fun process(
         reply: String,
@@ -63,9 +85,11 @@ class RulePackExtension(
     ): String {
         var result = reply
         source.awaitPacks().forEach { pack ->
-            pack.content.regex.filter { it.enabled }.forEach { rule ->
-                result = Regex(rule.pattern).replace(result, rule.replacement)
-            }
+            pack.content.regex
+                .filter { it.enabled && SCOPE_OUTPUT in it.applyTo.map { s -> s.lowercase() } }
+                .forEach { rule ->
+                    result = Regex(rule.pattern).replace(result, rule.replacement)
+                }
         }
         return result
     }
@@ -106,5 +130,7 @@ class RulePackExtension(
         /** 排在自定义提示词（100）之后：用户自定义先于规则包注入 */
         private const val LOADING_ORDER = 200
         private const val SOURCE_PREFIX = "规则包·"
+        private const val SCOPE_OUTPUT = "output"
+        private const val SCOPE_INPUT = "input"
     }
 }

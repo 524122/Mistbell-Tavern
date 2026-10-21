@@ -3,6 +3,14 @@
     "name": "强调笨蛋",
     "pattern": "笨蛋",
     "replacement": "**笨蛋**",
+    "applyTo": ["output"],
+    "enabled": true
+  },
+  {
+    "name": "输入语气标注",
+    "pattern": "^（礼貌地）",
+    "replacement": "（礼貌且恭敬地）",
+    "applyTo": ["input"],
     "enabled": true
   }
 ]

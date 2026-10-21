@@ -127,6 +127,57 @@ class RulePackExtensionTest {
             )
         }
 
+    // ---- 正则作用域（applyTo input/output） ----
+
+    @Test
+    fun `input 作用域正则改写最终用户消息段`() =
+        runBlocking {
+            val content =
+                RulePackContent(
+                    regex =
+                        listOf(
+                            RulePackRegexRule(
+                                name = "r1",
+                                pattern = "笨蛋",
+                                replacement = "**笨蛋**",
+                                applyTo = listOf("input"),
+                            ),
+                        ),
+                )
+            val segments = mutableListOf(segment("system", "角色卡"), segment("user", "笨蛋说谁呢"))
+            extensionOf(listOf(pack("a", content))).intercept(segments, promptHookContext())
+            assertEquals("角色卡", segments[0].message.content)
+            assertEquals("**笨蛋**说谁呢", segments.last().message.content)
+        }
+
+    @Test
+    fun `input 作用域不影响回复处理，output 作用域不影响输入段`() =
+        runBlocking {
+            val inputRule = RulePackRegexRule("in", "你好", "您好", applyTo = listOf("input"))
+            val outputRule = RulePackRegexRule("out", "再见", "再会", applyTo = listOf("output"))
+            val ext = extensionOf(listOf(pack("a", RulePackContent(regex = listOf(inputRule, outputRule)))))
+
+            // output 规则只作用回复：回复被替换、输入段不动
+            assertEquals("再会", ext.process("再见", replyHookContext()))
+            // input 规则只作用输入段：段被替换、回复不动
+            val segments = mutableListOf(segment("system", "x"), segment("user", "你好"))
+            ext.intercept(segments, promptHookContext())
+            assertEquals("您好", segments.last().message.content)
+            assertEquals("你好", ext.process("你好", replyHookContext()))
+        }
+
+    @Test
+    fun `input 规则无用户消息段时安全跳过`() =
+        runBlocking {
+            val content =
+                RulePackContent(
+                    regex = listOf(RulePackRegexRule("r", "x", "y", applyTo = listOf("input"))),
+                )
+            val segments = mutableListOf(segment("system", "只有系统段"))
+            extensionOf(listOf(pack("a", content))).intercept(segments, promptHookContext())
+            assertEquals(1, segments.size)
+        }
+
     // ---- MacroProvider ----
 
     @Test

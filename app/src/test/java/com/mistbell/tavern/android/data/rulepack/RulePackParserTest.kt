@@ -162,4 +162,21 @@ class RulePackParserTest {
         assertTrue(bundle.content.quickReplies.isEmpty())
         assertTrue(bundle.warnings.isNotEmpty())
     }
+
+    @Test
+    fun `正则 applyTo 非法值跳过并告警`() {
+        val bytes =
+            zipOf(
+                mapOf(
+                    "manifest.json" to validManifest,
+                    "regex.json" to
+                        """[{"name":"好","pattern":"a","applyTo":["input","output"]},""" +
+                        """{"name":"坏","pattern":"b","applyTo":["explode"]},""" +
+                        """{"name":"空","pattern":"c","applyTo":[]}]""",
+                ),
+            )
+        val bundle = RulePackParser.parseZip(bytes)
+        assertEquals(listOf("好"), bundle.content.regex.map { it.name })
+        assertEquals(2, bundle.warnings.size)
+    }
 }

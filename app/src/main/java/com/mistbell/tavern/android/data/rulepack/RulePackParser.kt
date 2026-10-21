@@ -19,6 +19,7 @@ object RulePackParser {
     const val QUICK_REPLIES_FILE = "quickreplies.json"
 
     val VALID_QR_ACTIONS = setOf("send", "insert", "command")
+    val VALID_REGEX_SCOPES = setOf("output", "input")
 
     private val ID_PATTERN = Regex("^[A-Za-z0-9_-]{1,64}$")
 
@@ -52,7 +53,7 @@ object RulePackParser {
         val prompts = parseList<RulePackPrompt>(files[PROMPTS_FILE], PROMPTS_FILE, warnings)
         val regex =
             parseList<RulePackRegexRule>(files[REGEX_FILE], REGEX_FILE, warnings)
-                .filter { rule -> compilableRegex(rule, warnings) }
+                .filter { rule -> compilableRegex(rule, warnings) && validRegexScopes(rule, warnings) }
         val macros =
             parseList<RulePackMacro>(files[MACROS_FILE], MACROS_FILE, warnings)
                 .filter { macro ->
@@ -101,6 +102,19 @@ object RulePackParser {
         runCatching { Regex(rule.pattern) }
             .onFailure { warnings.add("正则「${rule.name}」编译失败，已跳过：${it.message}") }
             .getOrNull() ?: return false
+        return true
+    }
+
+    /** 作用域校验：applyTo 为空或含 output/input 之外的值时跳过并告警 */
+    private fun validRegexScopes(
+        rule: RulePackRegexRule,
+        warnings: MutableList<String>,
+    ): Boolean {
+        val scopes = rule.applyTo.map { it.lowercase() }
+        if (scopes.isEmpty() || scopes.any { it !in VALID_REGEX_SCOPES }) {
+            warnings.add("正则「${rule.name}」的 applyTo 非法（${rule.applyTo}），已跳过（合法值：output/input）")
+            return false
+        }
         return true
     }
 
