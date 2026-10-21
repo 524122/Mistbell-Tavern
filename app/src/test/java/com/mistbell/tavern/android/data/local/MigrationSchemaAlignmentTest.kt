@@ -85,6 +85,15 @@ class MigrationSchemaAlignmentTest {
         assertTrue("ALTER TABLE world_book_entries ADD COLUMN match_scenario INTEGER NOT NULL DEFAULT 0" in sql)
     }
 
+    @Test
+    fun `v31 to v32 adds wi session state and character filter columns`() {
+        val sql = AppDatabase.MIGRATION_31_32_SQL
+        assertTrue("ALTER TABLE sessions ADD COLUMN wi_state_json TEXT NOT NULL DEFAULT ''" in sql)
+        assertTrue(sql.any { it.contains("character_filter_names TEXT NOT NULL DEFAULT '[]'") })
+        assertTrue(sql.any { it.contains("character_filter_tags TEXT NOT NULL DEFAULT '[]'") })
+        assertTrue(sql.any { it.contains("character_filter_exclude INTEGER NOT NULL DEFAULT 0") })
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

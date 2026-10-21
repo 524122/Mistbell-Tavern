@@ -138,6 +138,18 @@ interface SessionDao {
         note: String,
     )
 
+    /** 世界书 timed effects 状态（空串 = 无状态），参照 updateAuthorNote 的复合主键定位 */
+    @Query(
+        "UPDATE sessions SET wi_state_json = :state " +
+            "WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId",
+    )
+    suspend fun updateWiState(
+        sessionId: String,
+        ownerId: String,
+        characterId: String,
+        state: String,
+    )
+
     /** 会话级长期记忆三态覆盖位：null = 清除覆盖跟随全局，true/false = 显式写入 */
     @Query(
         "UPDATE sessions SET enable_long_term_memory = :enabled WHERE id = :sessionId" +

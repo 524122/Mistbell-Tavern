@@ -184,6 +184,11 @@ data class WorldBookEntry(
     val matchPersonaDescription: Boolean = false,
     val matchCharacterDescription: Boolean = false,
     val matchScenario: Boolean = false,
+    // 角色过滤（对齐酒馆 characterFilter）：名字/标签任一命中即"匹配"；
+    // exclude=false 白名单（仅匹配角色生效），true 黑名单（匹配角色不生效）
+    val characterFilterNames: List<String> = emptyList(),
+    val characterFilterTags: List<String> = emptyList(),
+    val characterFilterExclude: Boolean = false,
 )
 
 @Serializable

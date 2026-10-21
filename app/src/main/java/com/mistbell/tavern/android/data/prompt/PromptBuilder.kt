@@ -22,6 +22,7 @@ import com.mistbell.tavern.android.extension.PromptHookContext
 import com.mistbell.tavern.android.util.MacroContext
 import com.mistbell.tavern.android.util.MacroEngine
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 
@@ -37,7 +38,7 @@ object PromptBuilder {
         const val LOGIC_NOT_ANY = 2
         const val LOGIC_AND_ALL = 3
 
-        private data class EntryState(var lastTurn: Int = -1, var stickyUntil: Int = -1)
+        internal data class EntryState(var lastTurn: Int = -1, var stickyUntil: Int = -1)
 
         private data class SessionState(var turn: Int = 0, val entries: MutableMap<String, EntryState> = mutableMapOf())
 
@@ -61,13 +62,51 @@ object PromptBuilder {
             val minActivations: Int = 0,
             /** 加深扫描的深度上限（酒馆 min_activations_depth_max）：0=不限（到聊天长度为止） */
             val minActivationsDepthMax: Int = 0,
+            /** 会话级持久化的 timed effects 快照（酒馆 chat_metadata.timedWorldInfo）；null/空=无状态 */
+            val persistedStateJson: String? = null,
+            /** 当前会话参与角色名/标签（characterFilter 匹配面）；空集=不过滤 */
+            val participantNames: Set<String> = emptySet(),
+            val participantTags: Set<String> = emptySet(),
         )
 
-        /** 激活结果：通过判定（含预算）的条目 + 因预算被裁的条目（诊断展示用） */
+        /** 激活结果：通过判定（含预算）的条目 + 因预算被裁的条目 + 待持久化的状态快照 */
         data class ActivationResult(
             val activated: Set<String>,
             val droppedByBudget: List<WorldBookEntryEntity>,
+            val stateSnapshotJson: String,
         )
+
+        /** timed effects 的持久化形态（写 sessions.wi_state_json；对齐酒馆 timedWorldInfo 语义） */
+        @kotlinx.serialization.Serializable
+        internal data class WiEntryStateSnapshot(
+            val lastTurn: Int = -1,
+            val stickyUntil: Int = -1,
+        )
+
+        @kotlinx.serialization.Serializable
+        internal data class WiSessionSnapshot(
+            val turn: Int = 0,
+            val entries: Map<String, WiEntryStateSnapshot> = emptyMap(),
+        )
+
+        internal fun encodeSnapshot(
+            turn: Int,
+            entries: Map<String, EntryState>,
+        ): String =
+            kotlinx.serialization.json.Json.encodeToString(
+                WiSessionSnapshot(
+                    turn,
+                    entries.mapValues { WiEntryStateSnapshot(it.value.lastTurn, it.value.stickyUntil) },
+                ),
+            )
+
+        internal fun decodeSnapshot(json: String): Pair<Int, Map<String, WiEntryStateSnapshot>> =
+            try {
+                val snap = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString<WiSessionSnapshot>(json)
+                snap.turn to snap.entries
+            } catch (_: Exception) {
+                0 to emptyMap()
+            }
 
         /** WI 预算记账器：charge 返回 false = 该条目因预算被裁（溢出即停并记入 dropped） */
         private class BudgetTracker(
@@ -111,7 +150,20 @@ object PromptBuilder {
             entries: List<WorldBookEntryEntity>,
             scan: ScanInput,
         ): ActivationResult {
-            val state = sessions.getOrPut(sessionId) { SessionState() }
+            val state =
+                sessions.getOrPut(sessionId) {
+                    // 会话首次进入内存：从持久化快照恢复（对齐酒馆 timedWorldInfo 跨重启存续）
+                    scan.persistedStateJson?.takeIf { it.isNotBlank() }?.let { json ->
+                        val (turn, savedEntries) = decodeSnapshot(json)
+                        SessionState(
+                            turn = turn,
+                            entries =
+                                savedEntries
+                                    .mapValues { EntryState(it.value.lastTurn, it.value.stickyUntil) }
+                                    .toMutableMap(),
+                        )
+                    } ?: SessionState()
+                }
             state.turn += 1
             val run = ScanRun(state, BudgetTracker(scan.budgetTokens))
             // 递归开关关闭时只扫一轮（酒馆默认 world_info_recursive=false）
@@ -138,7 +190,7 @@ object PromptBuilder {
                 (passIndex < maxRounds || canDeepen()) &&
                 (newCount > 0 || canDeepen())
             )
-            return ActivationResult(run.activated, run.budget.dropped)
+            return ActivationResult(run.activated, run.budget.dropped, encodeSnapshot(state.turn, state.entries))
         }
 
         /** 一轮扫描的可变状态与执行体（从 activate 拆出，控制圈复杂度） */
@@ -160,6 +212,7 @@ object PromptBuilder {
                     entries
                         .asSequence()
                         .filter { !it.disable && !it.constant }
+                        .filter { characterFilterAllows(it, scan) }
                         // 递归层级门控（对齐酒馆）：delayUntilRecursion 层起才允许；preventRecursion 仅首轮
                         .filter { passIndex >= it.delayUntilRecursion && (!it.preventRecursion || passIndex == 0) }
                         .filter { entry ->
@@ -239,6 +292,20 @@ object PromptBuilder {
                 LOGIC_AND_ALL -> hits == secondaryKeys.size
                 else -> hits > 0 // AND_ANY（缺省）
             }
+        }
+
+        /** 角色过滤（对齐酒馆 characterFilter）：名单/标签任一命中即"匹配"；exclude=true 反转为黑名单 */
+        private fun characterFilterAllows(
+            entry: WorldBookEntryEntity,
+            scan: ScanInput,
+        ): Boolean {
+            val names = parseKeywords(entry.characterFilterNamesJson)
+            val tags = parseKeywords(entry.characterFilterTagsJson)
+            if (names.isEmpty() && tags.isEmpty()) return true
+            val matched =
+                names.any { f -> scan.participantNames.any { it.equals(f, ignoreCase = true) } } ||
+                    tags.any { f -> scan.participantTags.any { it.equals(f, ignoreCase = true) } }
+            return if (entry.characterFilterExclude) !matched else matched
         }
 
         /** delay（等待轮数）与 cooldown（冷却轮数）门控；delay=0 当前轮即可激活 */
@@ -830,9 +897,27 @@ object PromptBuilder {
                     recursive = worldInfoRecursive,
                     minActivations = worldInfoMinActivations,
                     minActivationsDepthMax = worldInfoMinActivationsDepthMax,
+                    persistedStateJson = session?.wiStateJson,
+                    participantNames = participantCharacters.map { it.name }.toSet(),
+                    participantTags =
+                        participantCharacters
+                            .flatMap { participant ->
+                                try {
+                                    kotlinx.serialization.json.Json
+                                        .decodeFromString<com.mistbell.tavern.android.data.api.model.CharacterData>(
+                                            participant.dataJson,
+                                        ).tags
+                                } catch (_: Exception) {
+                                    emptyList()
+                                }
+                            }.toSet(),
                 ),
             )
         val activatedEntryIds = activation.activated
+        // timed effects 持久化（对齐酒馆 timedWorldInfo）：状态变化才写库，避免每轮空写
+        if (activation.stateSnapshotJson != session?.wiStateJson.orEmpty()) {
+            db.sessionDao().updateWiState(sessionId, ownerId, characterId, activation.stateSnapshotJson)
+        }
         // WI 预算裁剪清单（「查看提示词」展示）：constant 溢出 + 激活溢出
         val wiBudgetDrops =
             (constantBudget.dropped + activation.droppedByBudget).map {
@@ -1066,7 +1151,10 @@ object PromptBuilder {
         // 扩展钩子（对标酒馆 generate_interceptor + setExtensionPrompt）：装配完成后、发送前
         // 统一执行生成前拦截器，可增删改 Segment。拦截器的改动同时进入真实请求与
         // 「查看提示词」预览（同一装配路径）；无注册拦截器时零开销、输出与改动前一致
-        runPromptInterceptors(messages, ownerId, characterId, sessionId, db, mctx)
+        runPromptInterceptors(
+            messages,
+            PromptHookContext(ownerId, characterId, sessionId, mctx, db),
+        )
 
         // 组成诊断（只记条数与估算 token，不记内容）：用于核对上下文窗口是否装得下、
         // 历史是否被裁剪、以及估算值与 API 实发 token 的偏差——排查"实发超配置/缓存命中率低"的直接依据
@@ -1124,6 +1212,34 @@ object PromptBuilder {
                     "Thinking remains on the unified message model and is mapped by provider response parsers",
                 ),
         )
+    }
+
+    /**
+     * 执行已注册的生成前拦截器（[ExtensionRegistry.promptInterceptors]，按 loadingOrder 升序）。
+     *
+     * 单拦截器抛异常只记日志并跳过后续该拦截器——扩展故障绝不能中断聊天装配；
+     * 协程取消（用户停止生成）必须原样上抛。
+     */
+    @Suppress("TooGenericExceptionCaught") // 拦截器边界必须兜住任意扩展异常
+    private suspend fun runPromptInterceptors(
+        messages: MutableList<Segment>,
+        context: PromptHookContext,
+    ) {
+        val interceptors = ExtensionRegistry.promptInterceptors
+        if (interceptors.isEmpty()) return
+        for (interceptor in interceptors) {
+            try {
+                interceptor.intercept(messages, context)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e(
+                    "PromptBuilder",
+                    "Prompt 拦截器执行失败（已跳过）：${e.message}",
+                    e,
+                )
+            }
+        }
     }
 
     // 群聊模式当前用户消息组装（internal 仅为单元测试开放）：

@@ -94,6 +94,9 @@ class WorldBookRepository(private val context: Context) {
                     matchPersonaDescription = draft.matchPersonaDescription,
                     matchCharacterDescription = draft.matchCharacterDescription,
                     matchScenario = draft.matchScenario,
+                    characterFilterNamesJson = Json.encodeToString(stringListSerializer, draft.characterFilterNames),
+                    characterFilterTagsJson = Json.encodeToString(stringListSerializer, draft.characterFilterTags),
+                    characterFilterExclude = draft.characterFilterExclude,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
             entity.toDomain()
@@ -178,6 +181,10 @@ private fun WorldBookEntryEntity.applyGroupAndScopePatch(patch: JsonObject): Wor
         matchCharacterDescription =
             patch["matchCharacterDescription"]?.jsonPrimitive?.booleanOrNull ?: matchCharacterDescription,
         matchScenario = patch["matchScenario"]?.jsonPrimitive?.booleanOrNull ?: matchScenario,
+        characterFilterNamesJson = patchStringList(patch["characterFilterNames"], characterFilterNamesJson),
+        characterFilterTagsJson = patchStringList(patch["characterFilterTags"], characterFilterTagsJson),
+        characterFilterExclude =
+            patch["characterFilterExclude"]?.jsonPrimitive?.booleanOrNull ?: characterFilterExclude,
     )
 
 /** patch 中的字符串数组字段 → 实体 keysJson 存储格式；缺省保持原值 */
@@ -249,4 +256,8 @@ data class WorldBookEntryDraft(
     val matchPersonaDescription: Boolean = false,
     val matchCharacterDescription: Boolean = false,
     val matchScenario: Boolean = false,
+    // 角色过滤：名单/标签任一命中即"匹配"；exclude=true 黑名单
+    val characterFilterNames: List<String> = emptyList(),
+    val characterFilterTags: List<String> = emptyList(),
+    val characterFilterExclude: Boolean = false,
 )

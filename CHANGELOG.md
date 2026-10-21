@@ -12,11 +12,14 @@
 ## [Unreleased]
 
 ### Added
+- 扩展机制最小核心：新增 `extension` 包——ExtensionRegistry 扩展注册表（loadingOrder 升序、按 id 幂等）、TavernEventBus 事件总线（MessageSent/MessageReceived/GenerationStarted/GenerationEnded/ChatChanged，对标酒馆 event_types）、PromptInterceptor 生成前钩子（提示词装配末尾统一执行，对标酒馆 generate_interceptor + setExtensionPrompt，真实请求与「查看提示词」预览同源）；首个内置扩展 CustomPromptExtension 接通 custom_prompts 装配链路（SYSTEM_START/SYSTEM_END/USER_PREFIX/USER_SUFFIX/ASSISTANT_PREFIX 五种落点，内容过宏渲染、预览标注来源）；预留回复后处理/宏提供器/斜杠命令钩子接口；ChatRepository/ChatViewModel 发射聊天生命周期事件。
+- 世界书条目支持角色过滤字段（characterFilterNames/Tags/Exclude，对齐酒馆 extensions snake_case 键）的导入导出与编辑器编辑；timed effects（sticky/cooldown/delay 的轮次状态）持久化到 sessions.wi_state_json（对齐酒馆 chat_metadata.timedWorldInfo，重启存续）；数据库升级到 v32。
 - 提示词预览（聊天页「查看提示词」）新增记忆召回诊断行：结构化条数、召回条数构成（向量候选 ∩ 词法候选 → 融合条数）、两路耗时、向量缓存命中与否，召回块未注入时显示具体原因（历史未裁剪/无命中/被结构化块覆盖等）；复制提示词全文同样附带该行；预览中结构化块与召回块的来源标签分开为「会话记忆·结构化」「会话记忆·召回」。
 - 长期记忆混合召回：有 embedding 时向量与词法两路同时检索，按 RRF（Reciprocal Rank Fusion）融合排序，词法精确命中可为低余弦的向量候选兜底；新增时间衰减（14 天半衰期）与摘要权重作为有界平局裁决；召回行按来源标注 `(similarity: N%)` / `(keyword match)`。
 - 向量索引存储引擎升级为 sqlite-vec（vec0 虚拟表 + requery sqlite-android，独立 `vector_index.db`，按维度分表）：增量持久化取代整文件 JSON 重写，向量不再占用 JVM 堆，检索下推到 C 层；启动时自动从旧 `vector_store.json` 迁移（原文件改名 `.legacy` 兜底），扩展加载失败自动回退旧 JSON 引擎，备份 zip 格式不变、新旧引擎可互相恢复。
 
 ### Fixed
+- 修复过期测试 CardParserTest：@D depth 钳制上限自「depth up to 1000」起为 1000，测试仍断言旧值 10 导致红灯。
 - 修复相似度阈值设置失效：召回格式化层硬编码的 `score > 0.5` 下限把用户可配阈值（默认 0.35）实际钳到 0.5 才生效，0.35~0.5 分段的有效召回被静默丢弃。
 - 启动对账补齐消息级孤儿向量清理：删除落盘被强杀打断而复活的向量此前只在召回时兜底过滤、会持续占用索引预算，现每次启动按 Room 存在性收敛（源表为空则保守跳过）。
 

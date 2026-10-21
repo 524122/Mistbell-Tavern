@@ -16,6 +16,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import com.mistbell.tavern.android.data.api.model.Character
+import com.mistbell.tavern.android.data.api.model.WorldBookEntry
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.prompt.WorldBookPlacement
 import kotlinx.serialization.json.Json
@@ -237,6 +238,11 @@ object CharacterExporter {
         put("depth", if (e.depth > 0) e.depth else ST_DEFAULT_DEPTH)
         put("role", StInterop.toStRole(e.depthRole))
         put("selectiveLogic", e.selectiveLogic)
+        putTriggeringExtensions(e)
+    }
+
+    /** 触发/分组/递归/扫描面/角色过滤字段（从 putEntryExtensions 拆出，控制圈复杂度） */
+    private fun JsonObjectBuilder.putTriggeringExtensions(e: WorldBookEntryEntity) {
         e.caseSensitive?.let { put("case_sensitive", it) }
         e.matchWholeWords?.let { put("match_whole_words", it) }
         e.scanDepth?.let { put("scan_depth", it) }
@@ -247,6 +253,22 @@ object CharacterExporter {
         if (e.matchPersonaDescription) put("match_persona_description", true)
         if (e.matchCharacterDescription) put("match_character_description", true)
         if (e.matchScenario) put("match_scenario", true)
+        putFilterExtensions(e.toDomain())
+    }
+
+    /** 角色过滤字段（从 putTriggeringExtensions 拆出，控制圈复杂度）；名单/标签非空才写 */
+    private fun JsonObjectBuilder.putFilterExtensions(domain: WorldBookEntry) {
+        if (domain.characterFilterNames.isNotEmpty()) {
+            putJsonArray("character_filter_names") {
+                domain.characterFilterNames.forEach { add(JsonPrimitive(it)) }
+            }
+        }
+        if (domain.characterFilterTags.isNotEmpty()) {
+            putJsonArray("character_filter_tags") {
+                domain.characterFilterTags.forEach { add(JsonPrimitive(it)) }
+            }
+        }
+        if (domain.characterFilterExclude) put("character_filter_exclude", true)
     }
 
     // 生态默认值：与酒馆导出对齐（scan_depth/token_budget/depth 为 ST 缺省）

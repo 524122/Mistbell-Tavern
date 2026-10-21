@@ -39,6 +39,9 @@ class WorldInfoRuntimeTest {
         matchPersonaDescription: Boolean = false,
         matchCharacterDescription: Boolean = false,
         matchScenario: Boolean = false,
+        characterFilterNames: List<String> = emptyList(),
+        characterFilterTags: List<String> = emptyList(),
+        characterFilterExclude: Boolean = false,
     ) = WorldBookEntryEntity(
         id = id,
         bookId = "book",
@@ -69,6 +72,9 @@ class WorldInfoRuntimeTest {
         matchPersonaDescription = matchPersonaDescription,
         matchCharacterDescription = matchCharacterDescription,
         matchScenario = matchScenario,
+        characterFilterNamesJson = characterFilterNames.joinToString(",", "[", "]") { "\"$it\"" },
+        characterFilterTagsJson = characterFilterTags.joinToString(",", "[", "]") { "\"$it\"" },
+        characterFilterExclude = characterFilterExclude,
     )
 
     @Suppress("LongParameterList") // 测试辅助函数：参数即 ScanInput 平铺，不再二次封装
@@ -82,6 +88,9 @@ class WorldInfoRuntimeTest {
         recursive: Boolean = false,
         minActivations: Int = 0,
         minActivationsDepthMax: Int = 0,
+        persistedStateJson: String? = null,
+        participantNames: Set<String> = emptySet(),
+        participantTags: Set<String> = emptySet(),
     ) = PromptBuilder.WorldInfoRuntime.activate(
         session,
         entries,
@@ -94,6 +103,9 @@ class WorldInfoRuntimeTest {
             recursive,
             minActivations,
             minActivationsDepthMax,
+            persistedStateJson,
+            participantNames,
+            participantTags,
         ),
     )
 
@@ -505,5 +517,70 @@ class WorldInfoRuntimeTest {
                 minActivationsDepthMax = 2,
             )
         assertTrue(result.activated.isEmpty())
+    }
+
+    // ---- 角色过滤（酒馆 characterFilter：白名单/标签/黑名单）----
+
+    @Test
+    fun `角色名白名单_仅匹配角色生效`() {
+        val e = entry("a", keys = listOf("k"), characterFilterNames = listOf("莉莉"))
+        assertEquals(
+            setOf("book:a"),
+            activate("s-cf-hit", listOf(e), userMessage = "k", participantNames = setOf("莉莉")).activated,
+        )
+        assertTrue(
+            activate("s-cf-miss", listOf(e), userMessage = "k", participantNames = setOf("别人")).activated.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `角色标签匹配也生效`() {
+        val e = entry("a", keys = listOf("k"), characterFilterTags = listOf("魔法少女"))
+        assertEquals(
+            setOf("book:a"),
+            activate("s-cf-tag", listOf(e), userMessage = "k", participantTags = setOf("魔法少女")).activated,
+        )
+    }
+
+    @Test
+    fun `exclude为true时匹配角色反而不生效`() {
+        val e = entry("a", keys = listOf("k"), characterFilterNames = listOf("莉莉"), characterFilterExclude = true)
+        assertTrue(
+            activate("s-cf-ex-hit", listOf(e), userMessage = "k", participantNames = setOf("莉莉")).activated.isEmpty(),
+        )
+        assertEquals(
+            setOf("book:a"),
+            activate("s-cf-ex-miss", listOf(e), userMessage = "k", participantNames = setOf("别人")).activated,
+        )
+    }
+
+    @Test
+    fun `过滤器为空时不限角色`() {
+        val e = entry("a", keys = listOf("k"), characterFilterExclude = true)
+        assertEquals(setOf("book:a"), activate("s-cf-empty", listOf(e), userMessage = "k").activated)
+    }
+
+    // ---- timed effects 持久化（酒馆 timedWorldInfo：重启后 sticky/cooldown 存续）----
+
+    @Test
+    fun `状态快照可持久化并可恢复粘性`() {
+        val e = entry("a", keys = listOf("k"), sticky = 2)
+        // 第 1 轮：关键词命中并武装粘性，产出可入库的快照
+        val first = activate("s-persist-src", listOf(e), userMessage = "k")
+        assertEquals(setOf("book:a"), first.activated)
+        assertTrue(first.stateSnapshotJson.isNotBlank())
+        // 模拟重启：新会话 id（内存无该会话状态），从快照恢复——无关键词仍因粘性激活
+        val restored =
+            activate("s-persist-restored", listOf(e), userMessage = "无关", persistedStateJson = first.stateSnapshotJson)
+        assertEquals(setOf("book:a"), restored.activated)
+    }
+
+    @Test
+    fun `快照损坏时按无状态降级`() {
+        val e = entry("a", keys = listOf("k"))
+        val result = activate("s-persist-bad", listOf(e), userMessage = "无关", persistedStateJson = "{ 不是 json")
+        assertTrue(result.activated.isEmpty())
+        // 但产出的新快照必须合法
+        assertTrue(result.stateSnapshotJson.isNotBlank())
     }
 }

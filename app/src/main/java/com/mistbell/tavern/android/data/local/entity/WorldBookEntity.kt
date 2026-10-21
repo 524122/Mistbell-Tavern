@@ -103,6 +103,17 @@ data class WorldBookEntryEntity(
 
     @ColumnInfo(name = "match_scenario", defaultValue = "0")
     val matchScenario: Boolean = false,
+
+    // 角色过滤（v32，对齐酒馆 characterFilter）：名字/标签任一命中即"匹配"；
+    // exclude=false 时仅匹配角色的会话生效（白名单），true 时匹配角色反而不生效（黑名单）
+    @ColumnInfo(name = "character_filter_names", defaultValue = "'[]'")
+    val characterFilterNamesJson: String = "[]",
+
+    @ColumnInfo(name = "character_filter_tags", defaultValue = "'[]'")
+    val characterFilterTagsJson: String = "[]",
+
+    @ColumnInfo(name = "character_filter_exclude", defaultValue = "0")
+    val characterFilterExclude: Boolean = false,
     // 次键门控开关（v28，对齐酒馆 selective）：true 且次键非空时才启用 selectiveLogic 评估
     @ColumnInfo(name = "selective", defaultValue = "1") val selective: Boolean = true,
     // 次关键词四态逻辑（v28，对齐酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
@@ -115,31 +126,10 @@ data class WorldBookEntryEntity(
     @ColumnInfo(name = "scan_depth") val scanDepth: Int? = null,
 ) {
     fun toDomain(): WorldBookEntry {
-        val keyList =
-            try {
-                if (keysJson.isNotBlank()) {
-                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(keysJson)
-                } else {
-                    emptyList()
-                }
-            } catch (_: Exception) {
-                emptyList()
-            }
-        val secondaryKeyList =
-            try {
-                if (secondaryKeysJson.isNotBlank()) {
-                    kotlinx.serialization.json.Json.decodeFromString<List<String>>(secondaryKeysJson)
-                } else {
-                    emptyList()
-                }
-            } catch (_: Exception) {
-                emptyList()
-            }
-
         return WorldBookEntry(
             id = id,
             comment = comment,
-            key = keyList,
+            key = decodeStringList(keysJson),
             content = content,
             constant = constant,
             disable = disable,
@@ -148,7 +138,7 @@ data class WorldBookEntryEntity(
             probability = probability,
             depthRole = depthRole,
             order = order,
-            secondaryKeys = secondaryKeyList,
+            secondaryKeys = decodeStringList(secondaryKeysJson),
             sticky = sticky,
             cooldown = cooldown,
             delay = delay,
@@ -167,8 +157,23 @@ data class WorldBookEntryEntity(
             matchPersonaDescription = matchPersonaDescription,
             matchCharacterDescription = matchCharacterDescription,
             matchScenario = matchScenario,
+            characterFilterNames = decodeStringList(characterFilterNamesJson),
+            characterFilterTags = decodeStringList(characterFilterTagsJson),
+            characterFilterExclude = characterFilterExclude,
         )
     }
+
+    /** keysJson 存储格式 → 字符串列表（空串/损坏一律空列表降级） */
+    private fun decodeStringList(json: String): List<String> =
+        try {
+            if (json.isNotBlank()) {
+                kotlinx.serialization.json.Json.decodeFromString<List<String>>(json)
+            } else {
+                emptyList()
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
 
     companion object {
         fun fromDomain(
@@ -211,6 +216,9 @@ data class WorldBookEntryEntity(
                 matchPersonaDescription = e.matchPersonaDescription,
                 matchCharacterDescription = e.matchCharacterDescription,
                 matchScenario = e.matchScenario,
+                characterFilterNamesJson = json.encodeToString(stringListSerializer, e.characterFilterNames),
+                characterFilterTagsJson = json.encodeToString(stringListSerializer, e.characterFilterTags),
+                characterFilterExclude = e.characterFilterExclude,
             )
         }
     }

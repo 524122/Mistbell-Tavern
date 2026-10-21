@@ -377,6 +377,9 @@ private fun EntryEditSheet(
             // 递归控制与扫描面扩展（酒馆条目级高级项）
             EntryAdvancedFields(entryForm, viewModel)
 
+            // 角色过滤（酒馆 characterFilter：按角色名/标签限定生效范围）
+            EntryCharacterFilterFields(entryForm, viewModel)
+
             // Toggles
             EntryFormToggles(entryForm, viewModel)
 

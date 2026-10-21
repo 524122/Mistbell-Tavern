@@ -19,6 +19,8 @@ import com.mistbell.tavern.android.data.vector.SqliteVecStore
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.data.vector.isValidVectorIndex
+import com.mistbell.tavern.android.extension.ExtensionRegistry
+import com.mistbell.tavern.android.extension.builtin.CustomPromptExtension
 import com.mistbell.tavern.android.util.SecureStore
 import java.io.File
 
@@ -207,6 +209,16 @@ class AppContainer(private val appContext: Context) {
 
     val vectorIndexRecoveryReconciler: VectorIndexRecoveryReconciler by lazy {
         VectorIndexRecoveryReconciler(database, vectorMemoryService)
+    }
+
+    /**
+     * 注册内置扩展（幂等，ExtensionRegistry 按 id 去重）。
+     *
+     * 放 AppContainer 而非 TavernApplication：与"所有服务的唯一装配入口"职责一致；
+     * 注册表本身是 object 单例，注册动作只需触发一次。
+     */
+    fun registerBuiltinExtensions() {
+        ExtensionRegistry.register(CustomPromptExtension())
     }
 
     private fun getEmbeddingApiKey(): String {

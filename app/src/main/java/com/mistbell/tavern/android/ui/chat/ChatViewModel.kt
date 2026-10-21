@@ -15,6 +15,8 @@ import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
+import com.mistbell.tavern.android.extension.TavernEvent
+import com.mistbell.tavern.android.extension.TavernEventBus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -440,6 +442,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         messageObserverJob =
             viewModelScope.launch {
                 if (sessionId.isNotBlank() && characterId.isNotBlank()) {
+                    TavernEventBus.emit(TavernEvent.ChatChanged(ownerId, characterId, sessionId))
                     // 一次性标志：首次收到非空列表后自动执行已读，UI 不再需要手动调用 markMessagesAsRead
                     var autoReadDone = false
                     repo.observeMessages(ownerId, characterId, sessionId, MESSAGE_PAGE_SIZE).collect { msgs ->

@@ -1,20 +1,27 @@
 package com.mistbell.tavern.android.ui.worldbook
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mistbell.tavern.android.ui.components.FormTextField
 
 /**
  * 插入位置下拉（酒馆式 9 选项，顺序与文案对齐酒馆）：
@@ -93,5 +100,39 @@ internal fun WorldBookLogicField(
                 })
             }
         }
+    }
+}
+
+/** 角色过滤（酒馆 characterFilter）：名字/标签任一命中即限定生效；exclude=反转为黑名单 */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+internal fun EntryCharacterFilterFields(
+    entryForm: WorldBookEntryForm,
+    viewModel: WorldBookEditorViewModel,
+) {
+    Text(
+        "角色过滤（留空 = 全部角色生效）",
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    FormTextField(
+        value = entryForm.characterFilterNames,
+        onValueChange = { viewModel.updateEntryForm { copy(characterFilterNames = it) } },
+        label = "角色名（逗号分隔）",
+        placeholder = "仅这些角色的会话生效",
+    )
+    FormTextField(
+        value = entryForm.characterFilterTags,
+        onValueChange = { viewModel.updateEntryForm { copy(characterFilterTags = it) } },
+        label = "角色标签（逗号分隔）",
+        placeholder = "或按标签限定",
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = entryForm.characterFilterExclude,
+            onCheckedChange = { viewModel.updateEntryForm { copy(characterFilterExclude = it) } },
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("排除以上（黑名单）", style = MaterialTheme.typography.bodyMedium)
     }
 }

@@ -4,6 +4,7 @@ import com.mistbell.tavern.android.data.prompt.WorldBookPlacement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -137,6 +138,7 @@ internal object StInterop {
      * 字段——两条路径都兼容）。默认值对齐酒馆条目模板：selective=true、selectiveLogic=0(AND_ANY)、
      * sticky=0（关闭）、ignoreBudget=false、其余 null（跟随全局/关）。
      */
+    @Suppress("CyclomaticComplexMethod") // 平铺字段映射，elvis 分支即各字段独立兼容路径
     fun resolveTriggering(
         entry: JsonObject,
         warnings: MutableSet<String>,
@@ -152,6 +154,12 @@ internal object StInterop {
             default: Int,
             vararg keys: String,
         ): Int = extOrTop(*keys)?.intOrNull ?: default
+
+        fun stringList(vararg keys: String): List<String> =
+            keys.firstNotNullOfOrNull { key ->
+                ((ext?.get(key) ?: entry[key]) as? kotlinx.serialization.json.JsonArray)
+                    ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+            } ?: emptyList()
 
         // sticky 酒馆即数值（保持 N 条消息）；兼容旧布尔写法（true→1）
         val sticky =
@@ -172,6 +180,9 @@ internal object StInterop {
             matchPersonaDescription = flag("match_persona_description", "matchPersonaDescription"),
             matchCharacterDescription = flag("match_character_description", "matchCharacterDescription"),
             matchScenario = flag("match_scenario", "matchScenario"),
+            characterFilterNames = stringList("character_filter_names", "characterFilterNames"),
+            characterFilterTags = stringList("character_filter_tags", "characterFilterTags"),
+            characterFilterExclude = flag("character_filter_exclude", "characterFilterExclude"),
         )
     }
 
@@ -220,6 +231,10 @@ internal object StInterop {
         val matchPersonaDescription: Boolean,
         val matchCharacterDescription: Boolean,
         val matchScenario: Boolean,
+        /** 角色过滤（酒馆 characterFilter）：名单/标签任一命中即"匹配"；exclude=true 黑名单 */
+        val characterFilterNames: List<String>,
+        val characterFilterTags: List<String>,
+        val characterFilterExclude: Boolean,
     )
 
     /**

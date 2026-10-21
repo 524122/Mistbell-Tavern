@@ -50,6 +50,9 @@ data class SessionEntity(
     // 模式扩展配置 JSON：classic/group 本批恒为空串，narrator 等后续批次启用；
     // 迁移 DDL 的 DEFAULT '' 必须与此 defaultValue 一致（见 AppDatabase.MIGRATION_16_17）
     @ColumnInfo(name = "mode_config_json", defaultValue = "") val modeConfigJson: String = "",
+    // 世界书 timed effects 持久化（v32，对齐酒馆 chat_metadata.timedWorldInfo）：
+    // sticky/cooldown/delay 的轮次状态 JSON；空串=无状态。DDL 与 defaultValue 逐字符一致
+    @ColumnInfo(name = "wi_state_json", defaultValue = "") val wiStateJson: String = "",
 ) {
     fun participantCharacterIds(): List<String> {
         val decoded =

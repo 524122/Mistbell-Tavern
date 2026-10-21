@@ -48,6 +48,10 @@ data class WorldBookEntryForm(
     val matchPersonaDescription: Boolean = false,
     val matchCharacterDescription: Boolean = false,
     val matchScenario: Boolean = false,
+    // 角色过滤：名字/标签（逗号分隔）任一命中即"匹配"；exclude=true 时匹配角色反而不生效
+    val characterFilterNames: String = "",
+    val characterFilterTags: String = "",
+    val characterFilterExclude: Boolean = false,
 )
 
 /** 插入位置显示名：存储值 → UI 文案（6 锚点与酒馆对齐） */
@@ -258,6 +262,9 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                 matchPersonaDescription = entry.matchPersonaDescription,
                 matchCharacterDescription = entry.matchCharacterDescription,
                 matchScenario = entry.matchScenario,
+                characterFilterNames = entry.characterFilterNames.joinToString(", "),
+                characterFilterTags = entry.characterFilterTags.joinToString(", "),
+                characterFilterExclude = entry.characterFilterExclude,
             )
         _showEntryForm.value = true
     }
@@ -323,6 +330,9 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                             matchPersonaDescription = form.matchPersonaDescription,
                             matchCharacterDescription = form.matchCharacterDescription,
                             matchScenario = form.matchScenario,
+                            characterFilterNames = form.characterFilterNames.toNameList(),
+                            characterFilterTags = form.characterFilterTags.toNameList(),
+                            characterFilterExclude = form.characterFilterExclude,
                         ),
                 )
             }
@@ -344,6 +354,9 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
     fun clearMessage() {
         _message.value = null
     }
+
+    /** 逗号分隔文本 → 名字/标签列表（trim + 去空） */
+    private fun String.toNameList(): List<String> = split(",").map { it.trim() }.filter { it.isNotBlank() }
 
     /** 表单 → 编辑 patch（只含表单覆盖的字段；scanDepth 空=JsonNull 清空=跟随全局） */
     @Suppress("LongParameterList") // 四个参数即表单语义平铺
@@ -373,6 +386,11 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
             key: String,
             raw: String,
         ) = put(key, kotlinx.serialization.json.JsonPrimitive(raw.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0))
+
+        fun putStringList(
+            key: String,
+            list: List<String>,
+        ) = put(key, kotlinx.serialization.json.JsonArray(list.map { kotlinx.serialization.json.JsonPrimitive(it) }))
         putRounds("sticky", form.sticky)
         putRounds("cooldown", form.cooldown)
         putRounds("delay", form.delay)
@@ -391,6 +409,9 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         put("matchPersonaDescription", kotlinx.serialization.json.JsonPrimitive(form.matchPersonaDescription))
         put("matchCharacterDescription", kotlinx.serialization.json.JsonPrimitive(form.matchCharacterDescription))
         put("matchScenario", kotlinx.serialization.json.JsonPrimitive(form.matchScenario))
+        putStringList("characterFilterNames", form.characterFilterNames.toNameList())
+        putStringList("characterFilterTags", form.characterFilterTags.toNameList())
+        put("characterFilterExclude", kotlinx.serialization.json.JsonPrimitive(form.characterFilterExclude))
         when {
             scanDepthCleared -> put("scanDepth", kotlinx.serialization.json.JsonNull)
             scanDepthValue != null -> put("scanDepth", kotlinx.serialization.json.JsonPrimitive(scanDepthValue))

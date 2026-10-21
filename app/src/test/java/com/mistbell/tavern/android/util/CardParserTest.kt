@@ -371,7 +371,7 @@ class CardParserTest {
                     { "uid": 0, "content": "c0", "position": 0, "depth": 4 },
                     { "uid": 1, "content": "c1", "position": 4, "depth": 6, "role": 2 },
                     { "uid": 2, "content": "c2", "position": 4 },
-                    { "uid": 3, "content": "c3", "position": 4, "depth": 99 }
+                    { "uid": 3, "content": "c3", "position": 4, "depth": 1001 }
                   ]
                 }
               }
@@ -387,7 +387,8 @@ class CardParserTest {
         assertEquals("assistant", byId["1"]?.depthRole)
         // atDepth 无 depth（或 0）钳为 1
         assertEquals(1, byId["2"]?.depth)
-        assertEquals(10, byId["3"]?.depth)
+        // 超上限（StInterop.MAX_DEPTH=1000，"depth up to 1000" 起）钳为 1000 并告警
+        assertEquals(1000, byId["3"]?.depth)
         assertTrue(result.warnings.any { it.contains("已钳制") })
     }
 

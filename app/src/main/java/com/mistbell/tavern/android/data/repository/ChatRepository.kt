@@ -10,6 +10,8 @@ import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.local.entity.*
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.extension.TavernEvent
+import com.mistbell.tavern.android.extension.TavernEventBus
 import com.mistbell.tavern.android.service.MemoryExtractionService
 import com.mistbell.tavern.android.util.parseGroupSpeaker
 import kotlinx.coroutines.CancellationException
@@ -151,6 +153,7 @@ class ChatRepository(private val context: Context) {
             db.messageDao().upsert(
                 MessageEntity.fromDomain(userMsg, sessionId, ownerId, characterId),
             )
+            TavernEventBus.emit(TavernEvent.MessageSent(ownerId, characterId, sessionId, msgId))
 
             // 1.5. 源插入与恢复意图已由同一 Room 事务记录；后台恢复器自行在锁外 embedding、
             // 锁内核验版本，删除/回滚后的旧任务不会把消息写回索引。
@@ -189,6 +192,8 @@ class ChatRepository(private val context: Context) {
             var effectiveGroupContext: GroupChatContext? = null
             // 流式累计缓冲，作用域覆盖整个 try，取消时据此判断是否已有部分回复
             val sb = StringBuilder()
+            // GenerationStarted/Ended 严格配对：started 发射后才置位，finally 据此补 ended
+            var generationActive = false
             try {
                 val llmConfig = loadLlmConfig(sessionId)
                 if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
@@ -212,6 +217,8 @@ class ChatRepository(private val context: Context) {
                             groupContext = effectiveGroupContext,
                             contextTokenLimitOverride = llmConfig.contextTokenLimit,
                         )
+                    TavernEventBus.emit(TavernEvent.GenerationStarted(sessionId))
+                    generationActive = true
                     collectReply(llmConfig, promptMessages, sb, onPartial)
                     // 公共尾部：群聊归属解析 + 落库 + 向量化 + 计数回写 + 记忆提取
                     // （classic 时 speakerNames 为 null，归属/内容与改动前逐字节一致）
@@ -271,6 +278,11 @@ class ChatRepository(private val context: Context) {
                 deleteMessageVectors(msgId)
                 insertedAssistantId?.let { deleteMessageVectors(it) }
                 throw e
+            } finally {
+                // 成功/失败/取消统一在此收尾，与 GenerationStarted 严格配对
+                if (generationActive) {
+                    TavernEventBus.emit(TavernEvent.GenerationEnded(sessionId))
+                }
             }
         }
     }
@@ -1215,6 +1227,9 @@ class ChatRepository(private val context: Context) {
         // 会话已删除（慢 LLM 期间）→ 不落库、不向量化、不计数：返回消息仅供 UI 展示已流式内容
         if (persisted) {
             finalizePersistedReply(scope, mode, assistantMsg, storedCharacterId)
+            TavernEventBus.emit(
+                TavernEvent.MessageReceived(scope.ownerId, scope.characterId, scope.sessionId, assistantMsg.id),
+            )
         }
 
         return assistantMsg

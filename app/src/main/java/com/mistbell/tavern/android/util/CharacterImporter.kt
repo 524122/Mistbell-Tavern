@@ -310,11 +310,7 @@ object CardParser {
                     depth = placement.depth,
                     probability = placement.probability,
                     depthRole = placement.depthRole,
-                    secondaryKeysJson =
-                        json.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
-                            secondaryKeys,
-                        ),
+                    secondaryKeysJson = encodeStringList(json, secondaryKeys),
                     sticky = triggering.sticky,
                     cooldown = entry["cooldown"]?.jsonPrimitive?.intOrNull ?: 0,
                     delay = entry["delay"]?.jsonPrimitive?.intOrNull ?: 0,
@@ -333,6 +329,9 @@ object CardParser {
                     matchPersonaDescription = triggering.matchPersonaDescription,
                     matchCharacterDescription = triggering.matchCharacterDescription,
                     matchScenario = triggering.matchScenario,
+                    characterFilterNamesJson = encodeStringList(json, triggering.characterFilterNames),
+                    characterFilterTagsJson = encodeStringList(json, triggering.characterFilterTags),
+                    characterFilterExclude = triggering.characterFilterExclude,
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）
@@ -340,6 +339,16 @@ object CardParser {
             }
         }
     }
+
+    /** 字符串列表 → keysJson 存储格式（CardParser 内部共用） */
+    private fun encodeStringList(
+        json: Json,
+        list: List<String>,
+    ): String =
+        json.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
+            list,
+        )
 }
 
 object CharacterImporter {

@@ -172,6 +172,8 @@ class CharacterExporterTest {
                     ignoreBudget = true,
                     groupWeight = 50,
                     groupOverride = true,
+                    characterFilterNamesJson = """["莉莉"]""",
+                    characterFilterExclude = true,
                 ),
                 bookEntry("e1"),
             )
@@ -189,6 +191,8 @@ class CharacterExporterTest {
         assertEquals(true, full.ignoreBudget)
         assertEquals(50, full.groupWeight)
         assertEquals(true, full.groupOverride)
+        assertEquals(listOf("莉莉"), full.toDomain().characterFilterNames)
+        assertEquals(true, full.characterFilterExclude)
 
         // 缺省条目：导出非默认才写 → 回读为酒馆默认（selective=true、逻辑 AND_ANY、sticky=0、其余 null/false）
         val defaults = byContent["ce1"]!!

@@ -100,17 +100,7 @@ object WorldBookParser {
             val comment = entry["comment"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: ""
             val content = entry["content"]?.let { (it as? JsonPrimitive)?.contentOrNull } ?: ""
             val constant = entry["constant"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false
-
-            // enabled 存在时反相为 disable（生态主流字段）；否则读旧字段 disable
-            val disable =
-                when (val enabledEl = entry["enabled"]) {
-                    is JsonPrimitive ->
-                        enabledEl.booleanOrNull?.not()
-                            ?: entry["disable"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false
-                    else -> entry["disable"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false
-                }
-
-            // insertion_order 优先于 order
+            val disable = parseDisable(entry)
             val order =
                 entry["insertion_order"]?.let { (it as? JsonPrimitive)?.intOrNull }
                     ?: entry["order"]?.let { (it as? JsonPrimitive)?.intOrNull } ?: 0
@@ -153,15 +143,26 @@ object WorldBookParser {
                 matchPersonaDescription = triggering.matchPersonaDescription,
                 matchCharacterDescription = triggering.matchCharacterDescription,
                 matchScenario = triggering.matchScenario,
+                characterFilterNamesJson = encodeStringList(triggering.characterFilterNames),
+                characterFilterTagsJson = encodeStringList(triggering.characterFilterTags),
+                characterFilterExclude = triggering.characterFilterExclude,
             )
         } catch (_: Exception) {
             null
         }
     }
 
+    /** enabled 存在时反相为 disable（生态主流字段）；否则读旧字段 disable */
+    private fun parseDisable(entry: JsonObject): Boolean =
+        when (val enabledEl = entry["enabled"]) {
+            is JsonPrimitive ->
+                enabledEl.booleanOrNull?.not()
+                    ?: entry["disable"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false
+            else -> entry["disable"]?.let { (it as? JsonPrimitive)?.booleanOrNull } ?: false
+        }
+
     /** 条目 id 优先级：uid 字段 > id 字段 > uid-map 的键 > UUID */
-    private fun resolveEntryId(
-        entry: JsonObject,
+    private fun resolveEntryId(        entry: JsonObject,
         mapKey: String?,
     ): String =
         entry["uid"]?.let { (it as? JsonPrimitive)?.contentOrNull }?.takeIf { it.isNotBlank() }

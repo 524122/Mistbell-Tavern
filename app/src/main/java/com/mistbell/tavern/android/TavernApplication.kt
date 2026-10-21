@@ -53,6 +53,9 @@ class TavernApplication : Application() {
         // 移除同步初始化，改为完全延迟加载
         Log.d(TAG, "TavernApplication created (services will be initialized on demand)")
 
+        // 注册内置扩展（幂等）：Prompt 拦截器等钩子链路自此对装配可见
+        container.registerBuiltinExtensions()
+
         // 启动对账（后台、尽力而为，不阻塞启动）：内存里的删除意图会随进程结束丢失，
         // 磁盘上却留着"已删会话"的向量，重启后它们照样能被召回——跨会话召回还会放大影响。
         // 以 Room 的会话表为准收敛一次（见 VectorMemoryService.reconcileWithDatabase）。
