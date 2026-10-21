@@ -189,6 +189,8 @@ data class WorldBookEntry(
     val characterFilterNames: List<String> = emptyList(),
     val characterFilterTags: List<String> = emptyList(),
     val characterFilterExclude: Boolean = false,
+    // 分组按匹配分选拔（对齐酒馆 useGroupScoring 三态）：null=跟随全局 world_info_use_group_scoring
+    val useGroupScoring: Boolean? = null,
 )
 
 @Serializable

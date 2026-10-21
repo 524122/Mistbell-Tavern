@@ -146,6 +146,7 @@ object WorldBookParser {
                 characterFilterNamesJson = encodeStringList(triggering.characterFilterNames),
                 characterFilterTagsJson = encodeStringList(triggering.characterFilterTags),
                 characterFilterExclude = triggering.characterFilterExclude,
+                useGroupScoring = triggering.useGroupScoring,
             )
         } catch (_: Exception) {
             null

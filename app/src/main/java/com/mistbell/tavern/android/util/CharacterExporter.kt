@@ -253,6 +253,7 @@ object CharacterExporter {
         if (e.matchPersonaDescription) put("match_persona_description", true)
         if (e.matchCharacterDescription) put("match_character_description", true)
         if (e.matchScenario) put("match_scenario", true)
+        e.useGroupScoring?.let { put("use_group_scoring", it) }
         putFilterExtensions(e.toDomain())
     }
 

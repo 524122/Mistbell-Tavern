@@ -26,7 +26,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         CustomPromptEntity::class,
         VectorSyncOutboxEntity::class,
     ],
-    version = 32,
+    version = 33,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -737,6 +737,23 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v32→v33：分组按匹配分选拔（useGroupScoring，三态 null=跟随全局）+
+        // 作者注释深度化（author_note_depth/role，对齐酒馆 AN 的 IN_CHAT 深度插入）
+        internal val MIGRATION_32_33_SQL: List<String> =
+            listOf(
+                "ALTER TABLE world_book_entries ADD COLUMN use_group_scoring INTEGER DEFAULT NULL",
+                "ALTER TABLE sessions ADD COLUMN author_note_depth INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE sessions ADD COLUMN author_note_role INTEGER NOT NULL DEFAULT 0",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_32_33 =
+            object : Migration(32, 33) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_32_33_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -781,6 +798,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_29_30,
                         MIGRATION_30_31,
                         MIGRATION_31_32,
+                        MIGRATION_32_33,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

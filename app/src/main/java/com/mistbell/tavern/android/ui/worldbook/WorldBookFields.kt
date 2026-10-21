@@ -135,4 +135,12 @@ internal fun EntryCharacterFilterFields(
         Spacer(modifier = Modifier.width(8.dp))
         Text("排除以上（黑名单）", style = MaterialTheme.typography.bodyMedium)
     }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = entryForm.useGroupScoring,
+            onCheckedChange = { viewModel.updateEntryForm { copy(useGroupScoring = it) } },
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("同组按匹配分选拔（覆盖加权随机）", style = MaterialTheme.typography.bodyMedium)
+    }
 }

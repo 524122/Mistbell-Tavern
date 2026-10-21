@@ -43,6 +43,10 @@ data class SessionEntity(
     // 会话附加指令（作者注释）：非空时经宏渲染注入到历史之后、最终用户消息之前；
     // 迁移 DDL 的 DEFAULT '' 必须与此 defaultValue 一致（见 AppDatabase.MIGRATION_11_12）
     @ColumnInfo(name = "author_note", defaultValue = "") val authorNote: String = "",
+    // 作者注释深度化（v33，对齐酒馆 AN 的 IN_CHAT 深度插入）：
+    // depth=0（默认）=历史之后现状；>0=插进历史倒数第 N 条；role 0=system 1=user 2=assistant
+    @ColumnInfo(name = "author_note_depth", defaultValue = "0") val authorNoteDepth: Int = 0,
+    @ColumnInfo(name = "author_note_role", defaultValue = "0") val authorNoteRole: Int = 0,
     // 会话模式（v17 骨架，MODES.md：一次表达全部五档，未来加模式零迁移）：
     // 取值见 Models.kt 的 SESSION_MODE_* 常量，本批仅 classic|group；
     // 迁移 DDL 的 DEFAULT 'classic' 必须与此 defaultValue 逐字符一致（见 AppDatabase.MIGRATION_16_17）

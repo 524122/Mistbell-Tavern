@@ -188,4 +188,11 @@ class ChatSettingsResolverTest {
         assertTrue(ChatSettingsResolver.worldInfoIncludeNames("1"))
         assertFalse(ChatSettingsResolver.worldInfoIncludeNames("0"))
     }
+
+    @Test
+    fun `世界书分组评分缺省为关_仅1为开`() {
+        assertFalse(ChatSettingsResolver.worldInfoUseGroupScoring(null))
+        assertFalse(ChatSettingsResolver.worldInfoUseGroupScoring("0"))
+        assertTrue(ChatSettingsResolver.worldInfoUseGroupScoring("1"))
+    }
 }

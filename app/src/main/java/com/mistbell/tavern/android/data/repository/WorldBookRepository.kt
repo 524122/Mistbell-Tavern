@@ -97,6 +97,7 @@ class WorldBookRepository(private val context: Context) {
                     characterFilterNamesJson = Json.encodeToString(stringListSerializer, draft.characterFilterNames),
                     characterFilterTagsJson = Json.encodeToString(stringListSerializer, draft.characterFilterTags),
                     characterFilterExclude = draft.characterFilterExclude,
+                    useGroupScoring = draft.useGroupScoring,
                 )
             db.worldBookDao().upsertEntries(listOf(entity))
             entity.toDomain()
@@ -185,6 +186,7 @@ private fun WorldBookEntryEntity.applyGroupAndScopePatch(patch: JsonObject): Wor
         characterFilterTagsJson = patchStringList(patch["characterFilterTags"], characterFilterTagsJson),
         characterFilterExclude =
             patch["characterFilterExclude"]?.jsonPrimitive?.booleanOrNull ?: characterFilterExclude,
+        useGroupScoring = nullableBooleanPatch(patch["useGroupScoring"], useGroupScoring),
     )
 
 /** patch 中的字符串数组字段 → 实体 keysJson 存储格式；缺省保持原值 */
@@ -260,4 +262,6 @@ data class WorldBookEntryDraft(
     val characterFilterNames: List<String> = emptyList(),
     val characterFilterTags: List<String> = emptyList(),
     val characterFilterExclude: Boolean = false,
+    // 分组按匹配分选拔（酒馆 useGroupScoring 三态）：null=跟随全局
+    val useGroupScoring: Boolean? = null,
 )

@@ -46,6 +46,8 @@ object PromptBuilder {
             val entry: WorldBookEntryEntity,
             val key: String,
             val sticky: Boolean,
+            /** 命中关键词数（主+次），仅 useGroupScoring 分组选拔时使用 */
+            val score: Int,
         )
 
         /** 一次激活判定的输入（收拢为参数对象，避免 activate 参数表膨胀） */
@@ -67,6 +69,8 @@ object PromptBuilder {
             /** 当前会话参与角色名/标签（characterFilter 匹配面）；空集=不过滤 */
             val participantNames: Set<String> = emptySet(),
             val participantTags: Set<String> = emptySet(),
+            /** 分组按匹配分选拔的全局开关（酒馆 world_info_use_group_scoring，默认关） */
+            val useGroupScoring: Boolean = false,
         )
 
         /** 激活结果：通过判定（含预算）的条目 + 因预算被裁的条目 + 待持久化的状态快照 */
@@ -221,7 +225,7 @@ object PromptBuilder {
                         }.mapNotNull { entry ->
                             evaluateCandidate(entry, state, scan, activatedContents)
                         }.toList()
-                val winners = if (candidates.isEmpty()) emptyList() else selectWinners(candidates)
+                val winners = if (candidates.isEmpty()) emptyList() else selectWinners(candidates, scan.useGroupScoring)
                 val newlyActivated = mutableListOf<String>()
                 winners.forEach { candidate ->
                     if (tryActivateWinner(candidate, state, budget)) {
@@ -271,26 +275,28 @@ object PromptBuilder {
             val entryState = state.entries.getOrPut(key) { EntryState() }
             val corpus = scanWindow(entry, scan, activatedContents)
             val primaryHits = matchingKeywords(parseKeywords(entry.keysJson), corpus, entry, scan.mctx)
+            val secondaryKeys = parseKeywords(entry.secondaryKeysJson)
+            // 仅 selective=true 且次键非空时启用四态门控（对齐酒馆 hasSecondaryKeywords）
+            val gateOn = entry.selective && secondaryKeys.isNotEmpty()
+            val secondaryHits = if (gateOn) matchingKeywords(secondaryKeys, corpus, entry, scan.mctx) else 0
             val stickyMatched = entry.sticky > 0 && entryState.stickyUntil >= state.turn
-            val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, corpus, scan.mctx))
+            val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, secondaryKeys, secondaryHits))
             if (!keyMatched || !timingGatePassed(entry, entryState, state.turn)) return null
-            return Candidate(entry = entry, key = key, sticky = stickyMatched)
+            return Candidate(entry = entry, key = key, sticky = stickyMatched, score = primaryHits + secondaryHits)
         }
 
-        /** 次键四态门控（对齐酒馆）：selective=false 或次键为空 → 不启用门控 */
+        /** 次键四态门控（对齐酒馆）：selective=false 或次键为空 → 不启用门控；命中数由调用方算好传入 */
         private fun secondaryGatePassed(
             entry: WorldBookEntryEntity,
-            corpus: String,
-            mctx: MacroContext,
+            secondaryKeys: List<String>,
+            secondaryHits: Int,
         ): Boolean {
-            val secondaryKeys = parseKeywords(entry.secondaryKeysJson)
-            if (!entry.selective || secondaryKeys.isEmpty()) return true
-            val hits = matchingKeywords(secondaryKeys, corpus, entry, mctx)
+            if (secondaryKeys.isEmpty() || !entry.selective) return true
             return when (entry.selectiveLogic) {
-                LOGIC_NOT_ALL -> hits < secondaryKeys.size
-                LOGIC_NOT_ANY -> hits == 0
-                LOGIC_AND_ALL -> hits == secondaryKeys.size
-                else -> hits > 0 // AND_ANY（缺省）
+                LOGIC_NOT_ALL -> secondaryHits < secondaryKeys.size
+                LOGIC_NOT_ANY -> secondaryHits == 0
+                LOGIC_AND_ALL -> secondaryHits == secondaryKeys.size
+                else -> secondaryHits > 0 // AND_ANY（缺省）
             }
         }
 
@@ -322,10 +328,13 @@ object PromptBuilder {
 
         /**
          * 分组竞争（对齐酒馆）：同组 sticky 候选强制胜出（全部保留）→ groupOverride 取最高 order →
-         * groupWeight 加权随机（酒馆 roll=random×总权重 首个跨越者胜）。组外条目原样保留。
-         * 返回序按预算消费序：sticky 在前、order 降序（高 order 优先保住）。
+         * useGroupScoring（条目三态 ?? 全局）保留最高分（平分都留）→ groupWeight 加权随机。
+         * 组外条目原样保留。返回序按预算消费序：sticky 在前、order 降序（高 order 优先保住）。
          */
-        private fun selectWinners(candidates: List<Candidate>): List<Candidate> =
+        private fun selectWinners(
+            candidates: List<Candidate>,
+            globalGroupScoring: Boolean,
+        ): List<Candidate> =
             candidates
                 .groupBy { it.entry.groupName }
                 .values
@@ -336,10 +345,16 @@ object PromptBuilder {
                         stickyWinners.isNotEmpty() -> stickyWinners
                         else -> {
                             val overrides = group.filter { it.entry.groupOverride }
-                            listOf(
-                                overrides.maxWithOrNull(compareBy<Candidate> { it.entry.order })
-                                    ?: weightedRandomPick(group),
-                            )
+                            when {
+                                overrides.isNotEmpty() ->
+                                    listOf(overrides.maxWithOrNull(compareBy<Candidate> { it.entry.order })!!)
+                                // 酒馆 useGroupScoring：保留最高分（平分都留）
+                                group.first().entry.useGroupScoring ?: globalGroupScoring -> {
+                                    val maxScore = group.maxOf { it.score }
+                                    group.filter { it.score == maxScore }
+                                }
+                                else -> listOf(weightedRandomPick(group))
+                            }
                         }
                     }
                 }
@@ -866,6 +881,10 @@ object PromptBuilder {
             ChatSettingsResolver.worldInfoIncludeNames(
                 settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_INCLUDE_NAMES),
             )
+        val worldInfoUseGroupScoring =
+            ChatSettingsResolver.worldInfoUseGroupScoring(
+                settingsDao.getValue(ChatSettingsResolver.KEY_WORLD_INFO_USE_GROUP_SCORING),
+            )
         val constantBudget = allocateConstantBudget(worldBookEntries, worldInfoBudgetTokens)
         val scanHistory =
             db.messageDao().getBySession(sessionId, ownerId).first().map { msg ->
@@ -899,6 +918,7 @@ object PromptBuilder {
                     minActivationsDepthMax = worldInfoMinActivationsDepthMax,
                     persistedStateJson = session?.wiStateJson,
                     participantNames = participantCharacters.map { it.name }.toSet(),
+                    useGroupScoring = worldInfoUseGroupScoring,
                     participantTags =
                         participantCharacters
                             .flatMap { participant ->
@@ -1038,26 +1058,31 @@ object PromptBuilder {
         val primaryDataJson = participantCharacters.firstOrNull()?.dataJson.orEmpty()
         postHistorySegment(primaryDataJson, character?.name.orEmpty(), mctx)?.let { messages.add(it) }
 
-        // 会话附加指令（author_note）：非空时经宏渲染，注入在历史之后、最终用户消息之前
+        // 会话附加指令（author_note）+ AN 锚点：depth>0 时合并为一条深度块插进历史（对齐酒馆
+        // AN 的 IN_CHAT 深度插入：AN 顶/底条目并入 AN 文本）；depth=0（默认）保持尾部注入现状
         val authorNote = session?.authorNote?.trim().orEmpty()
-        if (authorNote.isNotEmpty()) {
-            messages.addSegment("system", "【附加指令】\n${MacroEngine.render(authorNote, mctx)}", "附加指令")
-        }
+        val authorNoteDepth = session?.authorNoteDepth ?: 0
+        val authorNoteInHistory = authorNoteDepth > 0
+        if (!authorNoteInHistory) {
+            if (authorNote.isNotEmpty()) {
+                messages.addSegment("system", "【附加指令】\n${MacroEngine.render(authorNote, mctx)}", "附加指令")
+            }
 
-        // AN 锚点（作者注释前/后）：紧贴【附加指令】块上沿/下沿；会话无附加指令时
-        // 两块依次落在历史之后，位置语义保持稳定
-        // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
-        worldInfoBlock(
-            wbPlan.anBefore, activatedEntryIds, mctx,
-            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
-        )?.let {
-            messages.addSegment("system", it, "世界书·作者注释前")
-        }
-        worldInfoBlock(
-            wbPlan.anAfter, activatedEntryIds, mctx,
-            selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
-        )?.let {
-            messages.addSegment("system", it, "世界书·作者注释后")
+            // AN 锚点（作者注释前/后）：紧贴【附加指令】块上沿/下沿；会话无附加指令时
+            // 两块依次落在历史之后，位置语义保持稳定
+            // 缓存优化：这些块本就在历史后，但只注入 constant 条目，activated 稍后统一注入
+            worldInfoBlock(
+                wbPlan.anBefore, activatedEntryIds, mctx,
+                selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+            )?.let {
+                messages.addSegment("system", it, "世界书·作者注释前")
+            }
+            worldInfoBlock(
+                wbPlan.anAfter, activatedEntryIds, mctx,
+                selection = WiSelection.CONSTANT, allowedKeys = constantBudget.allowed,
+            )?.let {
+                messages.addSegment("system", it, "世界书·作者注释后")
+            }
         }
 
         // @D 深度块构建（渲染用 ALL：constant 恒注入 ∪ 非常驻按激活）。
@@ -1086,6 +1111,25 @@ object PromptBuilder {
             }
         }
 
+        // 作者注释深度化（v33，对齐酒馆 AN 的 IN_CHAT 深度插入）：depth>0 时 AN 顶/底锚点
+        // 并入 AN 文本合成一条深度块，与 @D 块同算法插进历史
+        if (authorNoteInHistory) {
+            authorNoteDepthBlock(
+                authorNote = authorNote,
+                depth = authorNoteDepth,
+                role =
+                    when (session?.authorNoteRole) {
+                        1 -> WorldBookPlacement.DEPTH_ROLE_USER
+                        2 -> WorldBookPlacement.DEPTH_ROLE_ASSISTANT
+                        else -> WorldBookPlacement.DEPTH_ROLE_SYSTEM
+                    },
+                anBefore = wbPlan.anBefore,
+                anAfter = wbPlan.anAfter,
+                activatedIds = activatedEntryIds,
+                allowedKeys = constantBudget.allowed,
+                mctx = mctx,
+            )?.let { depthBlocks.add(it) }
+        }
         // 长期记忆块：排在历史之后、激活锚点块之前、最终用户消息之前——
         // 逐轮易变的内容集中尾部；@D 块默认插进历史内部（worldInfoInHistory），省电模式才落尾部
         // 会话历史**未被裁剪**时丢弃"相关历史片段"召回块：整段会话都在提示词里，
@@ -1112,11 +1156,14 @@ object PromptBuilder {
         worldInfoBlock(wbPlan.emAfter, activatedEntryIds, mctx)?.let {
             messages.addSegment("system", it, "世界书·示例消息后（激活）")
         }
-        worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx)?.let {
-            messages.addSegment("system", it, "世界书·作者注释前（激活）")
-        }
-        worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx)?.let {
-            messages.addSegment("system", it, "世界书·作者注释后（激活）")
+        // AN 深度化时（authorNoteInHistory）AN 锚点已并入深度块，此处跳过防双注
+        if (!authorNoteInHistory) {
+            worldInfoBlock(wbPlan.anBefore, activatedEntryIds, mctx)?.let {
+                messages.addSegment("system", it, "世界书·作者注释前（激活）")
+            }
+            worldInfoBlock(wbPlan.anAfter, activatedEntryIds, mctx)?.let {
+                messages.addSegment("system", it, "世界书·作者注释后（激活）")
+            }
         }
         // @D 深度块尾部注入（仅省 token 模式）：byDepth 已按深度降序排列，
         // 追加后即「大 D 在前、D=1 最贴近最终用户消息」，与酒馆「depth 越小越靠底」一致
@@ -1369,6 +1416,43 @@ object PromptBuilder {
         val role: String,
         val segment: Segment,
     )
+
+    /**
+     * 作者注释深度块（对齐酒馆 AN 的 IN_CHAT 深度插入）：AN 顶锚点内容 + 附加指令 + AN 底锚点
+     * 合成一条；三者全空返回 null（不产生空消息）。internal 仅为单元测试开放。
+     */
+    @Suppress("LongParameterList") // 参数即深度块语义平铺
+    internal fun authorNoteDepthBlock(
+        authorNote: String,
+        depth: Int,
+        role: String,
+        anBefore: List<WorldBookEntryEntity>,
+        anAfter: List<WorldBookEntryEntity>,
+        activatedIds: Set<String>,
+        allowedKeys: Set<String>?,
+        mctx: MacroContext,
+    ): WiDepthBlock? {
+        val combined =
+            buildString {
+                worldInfoBlock(anBefore, activatedIds, mctx, WiSelection.ALL, allowedKeys)?.let { appendLine(it) }
+                if (authorNote.isNotEmpty()) append("【附加指令】\n${MacroEngine.render(authorNote, mctx)}")
+                worldInfoBlock(anAfter, activatedIds, mctx, WiSelection.ALL, allowedKeys)?.let {
+                    appendLine()
+                    append(it)
+                }
+            }.trim()
+        if (combined.isBlank()) return null
+        return WiDepthBlock(
+            depth = depth,
+            role = role,
+            segment =
+                Segment(
+                    message = ChatMessage(role = role, content = combined),
+                    source = "附加指令",
+                    insertionPosition = "@D$depth/$role",
+                ),
+        )
+    }
 
     /** 同深度插入顺序（酒馆 roles 循环序 system→user→assistant；最终呈现因逐次后插而反转） */
     private fun depthInsertRoleRank(role: String): Int =

@@ -150,6 +150,19 @@ interface SessionDao {
         state: String,
     )
 
+    /** 作者注释深度化落点（depth=0 回尾部现状；role 0/1/2 = system/user/assistant） */
+    @Query(
+        "UPDATE sessions SET author_note_depth = :depth, author_note_role = :role " +
+            "WHERE id = :sessionId AND owner_id = :ownerId AND character_id = :characterId",
+    )
+    suspend fun updateAuthorNotePlacement(
+        sessionId: String,
+        ownerId: String,
+        characterId: String,
+        depth: Int,
+        role: Int,
+    )
+
     /** 会话级长期记忆三态覆盖位：null = 清除覆盖跟随全局，true/false = 显式写入 */
     @Query(
         "UPDATE sessions SET enable_long_term_memory = :enabled WHERE id = :sessionId" +

@@ -171,7 +171,8 @@ class WorldBookParserTest {
                                        "group_weight": 50, "group_override": true,
                                        "exclude_recursion": true, "delay_until_recursion": 2,
                                        "match_scenario": true,
-                                       "character_filter_names": ["莉莉"], "character_filter_exclude": true } },
+                                       "character_filter_names": ["莉莉"], "character_filter_exclude": true,
+                                       "use_group_scoring": true } },
                 "2": { "content": "缺省" }
               }
             }
@@ -194,6 +195,7 @@ class WorldBookParserTest {
         assertEquals("""["莉莉"]""", full.characterFilterNamesJson)
         assertEquals("[]", full.characterFilterTagsJson)
         assertEquals(true, full.characterFilterExclude)
+        assertEquals(true, full.useGroupScoring)
         val defaults = byId["2"]!!
         assertEquals(true, defaults.selective)
         assertEquals(0, defaults.selectiveLogic)

@@ -94,6 +94,14 @@ class MigrationSchemaAlignmentTest {
         assertTrue(sql.any { it.contains("character_filter_exclude INTEGER NOT NULL DEFAULT 0") })
     }
 
+    @Test
+    fun `v32 to v33 adds group scoring and author note placement columns`() {
+        val sql = AppDatabase.MIGRATION_32_33_SQL
+        assertTrue("ALTER TABLE world_book_entries ADD COLUMN use_group_scoring INTEGER DEFAULT NULL" in sql)
+        assertTrue("ALTER TABLE sessions ADD COLUMN author_note_depth INTEGER NOT NULL DEFAULT 0" in sql)
+        assertTrue("ALTER TABLE sessions ADD COLUMN author_note_role INTEGER NOT NULL DEFAULT 0" in sql)
+    }
+
     // ---- 工具：从真实迁移 SQL 提取索引名集合 ----
 
     private val indexNameRegex =

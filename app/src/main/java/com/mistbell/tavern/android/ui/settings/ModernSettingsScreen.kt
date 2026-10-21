@@ -354,6 +354,18 @@ private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
             )
         },
     )
+    ModernDivider()
+    WorldBookSwitchRow(
+        title = "分组按匹配分选拔",
+        subtitle = "开 = 同组保留命中关键词最多者（酒馆 group scoring）；关 = 按权重加权随机",
+        checked = viewModel.worldInfoUseGroupScoringSetting.collectAsState().value,
+        onToggle = {
+            viewModel.saveTextSettingQuietly(
+                ChatSettingsResolver.KEY_WORLD_INFO_USE_GROUP_SCORING,
+                if (it) "1" else "0",
+            )
+        },
+    )
 }
 
 /** 开关设置行：标题 + 说明 + 开关（1/0 存储由调用方转换） */

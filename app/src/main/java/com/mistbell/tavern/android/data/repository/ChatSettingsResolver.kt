@@ -73,6 +73,7 @@ object ChatSettingsResolver {
     const val KEY_WORLD_INFO_MIN_ACTIVATIONS = "world_info_min_activations"
     const val KEY_WORLD_INFO_MIN_ACTIVATIONS_DEPTH_MAX = "world_info_min_activations_depth_max"
     const val KEY_WORLD_INFO_INCLUDE_NAMES = "world_info_include_names"
+    const val KEY_WORLD_INFO_USE_GROUP_SCORING = "world_info_use_group_scoring"
 
     const val WORLD_INFO_SCAN_DEPTH_MIN = 1
     const val WORLD_INFO_SCAN_DEPTH_MAX = 50
@@ -119,6 +120,10 @@ object ChatSettingsResolver {
     // settings KV 原始值 → 扫描文本是否带「名字: 」前缀（酒馆 world_info_include_names 默认开）：
     // 缺省 true；"0"=关（只扫裸消息文本）
     fun worldInfoIncludeNames(raw: String?): Boolean = raw != "0"
+
+    // settings KV 原始值 → 分组按匹配分选拔（酒馆 world_info_use_group_scoring，默认关）：
+    // 开=同组保留匹配分最高者（平分都留），关=加权随机
+    fun worldInfoUseGroupScoring(raw: String?): Boolean = raw == "1"
 
     // ---- 提示词模板（全局行为项，无会话覆盖） ----
     //

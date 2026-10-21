@@ -114,6 +114,8 @@ data class WorldBookEntryEntity(
 
     @ColumnInfo(name = "character_filter_exclude", defaultValue = "0")
     val characterFilterExclude: Boolean = false,
+    // 分组按匹配分选拔（v33，对齐酒馆 useGroupScoring 三态）：null=跟随全局 world_info_use_group_scoring
+    @ColumnInfo(name = "use_group_scoring") val useGroupScoring: Boolean? = null,
     // 次键门控开关（v28，对齐酒馆 selective）：true 且次键非空时才启用 selectiveLogic 评估
     @ColumnInfo(name = "selective", defaultValue = "1") val selective: Boolean = true,
     // 次关键词四态逻辑（v28，对齐酒馆 selectiveLogic）：0=AND_ANY 1=NOT_ALL 2=NOT_ANY 3=AND_ALL
@@ -160,6 +162,7 @@ data class WorldBookEntryEntity(
             characterFilterNames = decodeStringList(characterFilterNamesJson),
             characterFilterTags = decodeStringList(characterFilterTagsJson),
             characterFilterExclude = characterFilterExclude,
+            useGroupScoring = useGroupScoring,
         )
     }
 
@@ -219,6 +222,7 @@ data class WorldBookEntryEntity(
                 characterFilterNamesJson = json.encodeToString(stringListSerializer, e.characterFilterNames),
                 characterFilterTagsJson = json.encodeToString(stringListSerializer, e.characterFilterTags),
                 characterFilterExclude = e.characterFilterExclude,
+                useGroupScoring = e.useGroupScoring,
             )
         }
     }

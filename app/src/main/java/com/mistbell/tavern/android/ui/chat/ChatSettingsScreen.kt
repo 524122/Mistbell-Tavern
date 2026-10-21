@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +38,7 @@ import com.mistbell.tavern.android.ui.components.formatTokenLimit
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions") // 会话设置面板按功能拆方法，AN 落点等新设置各一个小保存函数
 class ChatSettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val worldBookRepo = WorldBookRepository(application)
     private val themeRepo = ThemePackRepository(application)
@@ -115,6 +117,23 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                 db.sessionDao().observeById(sessionId).map { it?.authorNote ?: "" }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    // AN 深度化落点（v33，对齐酒馆 AN 的 IN_CHAT 深度插入）：depth=0 回尾部现状
+    val authorNoteDepth: StateFlow<Int> =
+        sessionIdFlow
+            .filterNotNull()
+            .flatMapLatest { sessionId ->
+                db.sessionDao().observeById(sessionId).map { it?.authorNoteDepth ?: 0 }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val authorNoteRole: StateFlow<Int> =
+        sessionIdFlow
+            .filterNotNull()
+            .flatMapLatest { sessionId ->
+                db.sessionDao().observeById(sessionId).map { it?.authorNoteRole ?: 0 }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     // 主角色默认世界书 ID（仅用于内部逻辑，UI 不展示）
     private val _characterDefaultWorldBookId = MutableStateFlow<String?>(null)
@@ -243,6 +262,29 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                     android.util.Log.d("ChatSettings", "Updated authorNote (${text.trim().length} chars)")
                 } catch (e: Exception) {
                     android.util.Log.e("ChatSettings", "Failed to update author note", e)
+                }
+            }
+        }
+    }
+
+    // 保存 AN 深度化落点（定向更新 author_note_depth/role，避免整体 upsert 覆盖其他字段）
+    fun saveAuthorNotePlacement(
+        depth: Int,
+        role: Int,
+    ) {
+        currentSessionId?.let { sessionId ->
+            viewModelScope.launch {
+                try {
+                    val session = db.sessionDao().getById(sessionId) ?: return@launch
+                    db.sessionDao().updateAuthorNotePlacement(
+                        sessionId = sessionId,
+                        ownerId = session.ownerId,
+                        characterId = session.characterId,
+                        depth = depth.coerceAtLeast(0),
+                        role = role.coerceIn(0, 2),
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("ChatSettings", "Failed to update author note placement", e)
                 }
             }
         }
@@ -616,7 +658,7 @@ fun ChatSettingsScreen(
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        text = "注入在最近对话之后、你的消息之前",
+                        text = "默认注入在最近对话之后；填了深度则插进历史倒数第 N 条（对齐酒馆）",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -635,6 +677,41 @@ fun ChatSettingsScreen(
                         maxLines = 8,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    // AN 深度化（对齐酒馆 Author's Note 的 IN_CHAT 深度插入）：深度>0 插进历史倒数第 N 条
+                    val anDepth by viewModel.authorNoteDepth.collectAsState()
+                    val anRole by viewModel.authorNoteRole.collectAsState()
+                    var anDepthDraft by
+                        remember(anDepth) { mutableStateOf(if (anDepth > 0) anDepth.toString() else "") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedTextField(
+                            value = anDepthDraft,
+                            onValueChange = { text ->
+                                if (text.isBlank() || text.toIntOrNull() != null) {
+                                    anDepthDraft = text
+                                    viewModel.saveAuthorNotePlacement(text.toIntOrNull() ?: 0, anRole)
+                                }
+                            },
+                            label = { Text("插入深度（空=尾部现状）", style = MaterialTheme.typography.bodySmall) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        // 角色三档：0=系统 1=用户 2=角色（酒馆 extension_prompt_roles）
+                        val roleOptions = listOf("系统", "用户", "角色")
+                        roleOptions.forEachIndexed { index, label ->
+                            FilterChip(
+                                selected = anRole == index,
+                                onClick = {
+                                    viewModel.saveAuthorNotePlacement(anDepthDraft.toIntOrNull() ?: 0, index)
+                                },
+                                label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                            )
+                        }
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,

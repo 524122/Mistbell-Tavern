@@ -92,6 +92,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             .map { ChatSettingsResolver.worldInfoIncludeNames(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), true)
 
+    // 分组按匹配分选拔：缺省 false（对齐酒馆 world_info_use_group_scoring 默认关）
+    val worldInfoUseGroupScoringSetting: StateFlow<Boolean> =
+        db.settingsDao()
+            .observeValue(ChatSettingsResolver.KEY_WORLD_INFO_USE_GROUP_SCORING)
+            .map { ChatSettingsResolver.worldInfoUseGroupScoring(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), false)
+
     private fun observeTextSetting(key: String): StateFlow<String> =
         db.settingsDao()
             .observeValue(key)

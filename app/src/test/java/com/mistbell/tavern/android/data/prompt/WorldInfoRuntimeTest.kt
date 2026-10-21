@@ -3,6 +3,7 @@ package com.mistbell.tavern.android.data.prompt
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.util.MacroContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -42,6 +43,7 @@ class WorldInfoRuntimeTest {
         characterFilterNames: List<String> = emptyList(),
         characterFilterTags: List<String> = emptyList(),
         characterFilterExclude: Boolean = false,
+        useGroupScoring: Boolean? = null,
     ) = WorldBookEntryEntity(
         id = id,
         bookId = "book",
@@ -75,6 +77,7 @@ class WorldInfoRuntimeTest {
         characterFilterNamesJson = characterFilterNames.joinToString(",", "[", "]") { "\"$it\"" },
         characterFilterTagsJson = characterFilterTags.joinToString(",", "[", "]") { "\"$it\"" },
         characterFilterExclude = characterFilterExclude,
+        useGroupScoring = useGroupScoring,
     )
 
     @Suppress("LongParameterList") // 测试辅助函数：参数即 ScanInput 平铺，不再二次封装
@@ -91,6 +94,7 @@ class WorldInfoRuntimeTest {
         persistedStateJson: String? = null,
         participantNames: Set<String> = emptySet(),
         participantTags: Set<String> = emptySet(),
+        useGroupScoring: Boolean = false,
     ) = PromptBuilder.WorldInfoRuntime.activate(
         session,
         entries,
@@ -106,6 +110,7 @@ class WorldInfoRuntimeTest {
             persistedStateJson,
             participantNames,
             participantTags,
+            useGroupScoring,
         ),
     )
 
@@ -582,5 +587,80 @@ class WorldInfoRuntimeTest {
         assertTrue(result.activated.isEmpty())
         // 但产出的新快照必须合法
         assertTrue(result.stateSnapshotJson.isNotBlank())
+    }
+
+    // ---- 分组按匹配分选拔（酒馆 useGroupScoring）----
+
+    @Test
+    fun `开启分组评分后最高分胜出`() {
+        // A 命中 1 键，B 命中 2 键；加权随机下两者都可能赢，评分模式下 B 恒胜
+        val a = entry("a", keys = listOf("k1"), groupName = "g")
+        val b = entry("b", keys = listOf("k1", "k2"), groupName = "g")
+        val result = activate("s-gs-on", listOf(a, b), userMessage = "k1 k2", useGroupScoring = true)
+        assertEquals(setOf("book:b"), result.activated)
+    }
+
+    @Test
+    fun `评分平分时都保留`() {
+        val a = entry("a", keys = listOf("k1"), groupName = "g")
+        val c = entry("c", keys = listOf("k2"), groupName = "g")
+        val result = activate("s-gs-tie", listOf(a, c), userMessage = "k1 k2", useGroupScoring = true)
+        assertEquals(setOf("book:a", "book:c"), result.activated)
+    }
+
+    @Test
+    fun `条目级useGroupScoring覆盖全局关`() {
+        val a = entry("a", keys = listOf("k1"), groupName = "g", useGroupScoring = true)
+        val b = entry("b", keys = listOf("k1", "k2"), groupName = "g")
+        val result = activate("s-gs-entry", listOf(a, b), userMessage = "k1 k2", useGroupScoring = false)
+        assertEquals(setOf("book:b"), result.activated)
+    }
+
+    @Test
+    fun `评分关闭时走加权随机`() {
+        // 权重悬殊：100 vs 0，加权随机下 100 恒胜（评分模式下结果相同，此用例锁"走随机分支"）
+        val heavy = entry("h", keys = listOf("k"), groupName = "g", groupWeight = 100)
+        val zero = entry("z", keys = listOf("k"), groupName = "g", groupWeight = 0)
+        val result = activate("s-gs-off", listOf(heavy, zero), userMessage = "k", useGroupScoring = false)
+        assertEquals(setOf("book:h"), result.activated)
+    }
+
+    // ---- 作者注释深度块（酒馆 AN 的 IN_CHAT 深度插入）----
+
+    @Test
+    fun `AN深度块合并锚点与注释文本`() {
+        val anEntry =
+            entry("an", keys = emptyList()).copy(constant = true, insertPosition = "an_before", content = "注释前条目")
+        val block =
+            PromptBuilder.authorNoteDepthBlock(
+                authorNote = "保持高冷",
+                depth = 4,
+                role = "system",
+                anBefore = listOf(anEntry),
+                anAfter = emptyList(),
+                activatedIds = emptySet(),
+                allowedKeys = null,
+                mctx = mctx,
+            )!!
+        assertEquals(4, block.depth)
+        assertEquals("system", block.role)
+        assertTrue(block.segment.message.content.contains("注释前条目"))
+        assertTrue(block.segment.message.content.contains("【附加指令】\n保持高冷"))
+    }
+
+    @Test
+    fun `AN深度块三者全空时返回null`() {
+        val block =
+            PromptBuilder.authorNoteDepthBlock(
+                authorNote = "",
+                depth = 4,
+                role = "system",
+                anBefore = emptyList(),
+                anAfter = emptyList(),
+                activatedIds = emptySet(),
+                allowedKeys = null,
+                mctx = mctx,
+            )
+        assertNull(block)
     }
 }

@@ -52,6 +52,8 @@ data class WorldBookEntryForm(
     val characterFilterNames: String = "",
     val characterFilterTags: String = "",
     val characterFilterExclude: Boolean = false,
+    // 分组按匹配分选拔（null=跟随全局；表单开关存显式布尔）
+    val useGroupScoring: Boolean = false,
 )
 
 /** 插入位置显示名：存储值 → UI 文案（6 锚点与酒馆对齐） */
@@ -265,6 +267,7 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                 characterFilterNames = entry.characterFilterNames.joinToString(", "),
                 characterFilterTags = entry.characterFilterTags.joinToString(", "),
                 characterFilterExclude = entry.characterFilterExclude,
+                useGroupScoring = entry.useGroupScoring ?: false,
             )
         _showEntryForm.value = true
     }
@@ -333,6 +336,7 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
                             characterFilterNames = form.characterFilterNames.toNameList(),
                             characterFilterTags = form.characterFilterTags.toNameList(),
                             characterFilterExclude = form.characterFilterExclude,
+                            useGroupScoring = form.useGroupScoring,
                         ),
                 )
             }
@@ -412,6 +416,7 @@ class WorldBookEditorViewModel(application: Application) : AndroidViewModel(appl
         putStringList("characterFilterNames", form.characterFilterNames.toNameList())
         putStringList("characterFilterTags", form.characterFilterTags.toNameList())
         put("characterFilterExclude", kotlinx.serialization.json.JsonPrimitive(form.characterFilterExclude))
+        put("useGroupScoring", kotlinx.serialization.json.JsonPrimitive(form.useGroupScoring))
         when {
             scanDepthCleared -> put("scanDepth", kotlinx.serialization.json.JsonNull)
             scanDepthValue != null -> put("scanDepth", kotlinx.serialization.json.JsonPrimitive(scanDepthValue))

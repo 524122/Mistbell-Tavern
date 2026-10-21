@@ -332,6 +332,7 @@ object CardParser {
                     characterFilterNamesJson = encodeStringList(json, triggering.characterFilterNames),
                     characterFilterTagsJson = encodeStringList(json, triggering.characterFilterTags),
                     characterFilterExclude = triggering.characterFilterExclude,
+                    useGroupScoring = triggering.useGroupScoring,
                 )
             } catch (_: Exception) {
                 // 纯函数：跳过坏条目（与 ST 生态容错导入约定一致）

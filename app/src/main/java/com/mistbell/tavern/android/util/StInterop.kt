@@ -183,6 +183,7 @@ internal object StInterop {
             characterFilterNames = stringList("character_filter_names", "characterFilterNames"),
             characterFilterTags = stringList("character_filter_tags", "characterFilterTags"),
             characterFilterExclude = flag("character_filter_exclude", "characterFilterExclude"),
+            useGroupScoring = extOrTop("use_group_scoring", "useGroupScoring")?.booleanOrNull,
         )
     }
 
@@ -235,6 +236,8 @@ internal object StInterop {
         val characterFilterNames: List<String>,
         val characterFilterTags: List<String>,
         val characterFilterExclude: Boolean,
+        /** 分组按匹配分选拔（酒馆 useGroupScoring 三态）：null=跟随全局 */
+        val useGroupScoring: Boolean?,
     )
 
     /**
