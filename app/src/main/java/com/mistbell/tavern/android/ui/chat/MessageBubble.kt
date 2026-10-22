@@ -55,6 +55,8 @@ fun MessageBubble(
     htmlHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost? = null,
     htmlScripts: List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript> = emptyList(),
     htmlUiEnabled: Boolean = false,
+    // 卡级正则（regex_scripts）：显示时作用于 AI 消息内容（placement 含 2），不改存储
+    cardRegexScripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> = emptyList(),
 ) {
     var showMenu by remember { mutableStateOf(false) }
     // 有思维链的消息进入聊天页时直接显示正文；仍可点击标题收起，避免用户误以为思维链没有生成。
@@ -66,7 +68,16 @@ fun MessageBubble(
         remember(message.content, message.thinking) {
             splitThinkingForDisplay(message.content)
         }
-    val displayedContent = if (inlineThinking != null) inlineContent else message.content
+    // 卡级正则（display-time，对齐酒馆 placement=2）：AI 消息展示内容经卡脚本替换，存储原文不动
+    val rawContent = if (inlineThinking != null) inlineContent else message.content
+    val displayedContent =
+        remember(rawContent, cardRegexScripts, isUser) {
+            if (isUser) {
+                rawContent
+            } else {
+                com.mistbell.tavern.android.data.regex.CardRegexEngine.applyToAiDisplay(rawContent, cardRegexScripts)
+            }
+        }
     val displayedThinking = message.thinking?.takeIf { it.isNotBlank() } ?: inlineThinking
 
     val bubbleShape = MaterialTheme.shapes.medium

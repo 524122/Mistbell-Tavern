@@ -12,6 +12,7 @@
 ## [Unreleased]
 
 ### Added
+- 卡级正则脚本（regex_scripts，display-time 子集）：角色卡 extensions.regex_scripts 在 AI 消息**展示时**按序应用（placement 含 2、disabled 跳过、/pattern/flags 支持 i/m/s、替换串按酒馆语义展开 `$$`/`$&`/`$1-99`/`$<name>`，越界组按空串不炸；jQuery 裸 `$` 不误伤），不改存储原文；苍玄界类卡片的开场 HTML 界面由此原生出现（卡级正则替换 → HTML 界面气泡渲染）。
 - HTML 界面（实验性，默认关）：消息中的 ```html 块/裸 HTML 在沙箱 WebView 中渲染为可交互界面（对齐酒馆助手楼层渲染的受控版）——设置 → 高级设置 → 实验性功能开启（含风险确认）；沙箱：禁 DOM storage/文件/地理位置/导航，仅放行 https 图片，脚本仅内联，CSP 注入兜底；桥 `TavernHelper`：getVar/setVar（会话级持久变量）、getChatMessages、sendMessage、eventEmit、log；角色卡 tavern_helper.scripts 在页面加载完成后按序注入；WebView 高度随内容自适应（70% 屏高封顶）、DOM 变化持续回报、折叠/展开/查看源码；被阻断的外部资源在气泡内联提示计数。测试卡见 samples/character-htmlui-test.json。
 - JS 脚本沙箱（扩展机制第 3 层）：规则包 manifest 可声明 `"script": "script.js"`，脚本在 Rhino 沙箱中运行（纯 JVM 解释模式、ClassShutter 仅放行宿主对象与值包装类、无文件/网络/Java 互操作、每包独立作用域、指令计数中止失控脚本 + 3 秒墙钟兜底）；宿主 API `tavern`：onPrompt（提示词注入五落点，来源标「脚本·包名」）、onReply（回复处理链）、registerCommand（动态斜杠命令，禁用即注销）、registerMacro（自定义宏）、on（五类聊天事件）、getVar/setVar（包级持久变量）；含脚本的包导入需手动确认（代码执行风险提示）；脚本源码随 contentJson 存储零数据库迁移；示例包 samples/rulepack-script-demo/，API 文档 docs/SCRIPTING.md。
 - 规则包正则作用域扩展：regex.json 条目新增 `applyTo`（`output`=回复落库前替换正文，与 v1 行为一致；`input`=提示词中最终用户消息替换，仅改 prompt 不改存储），输入侧规则在本包提示词块插入之前应用；非法 applyTo 导入时跳过并告警。

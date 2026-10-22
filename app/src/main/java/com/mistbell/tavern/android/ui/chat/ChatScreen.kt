@@ -185,6 +185,7 @@ fun ChatScreen(
     val pendingInsertText by viewModel.pendingInsertText.collectAsStateWithLifecycle()
     val htmlUiEnabled by viewModel.htmlUiEnabled.collectAsStateWithLifecycle()
     val htmlScripts by viewModel.htmlScripts.collectAsStateWithLifecycle()
+    val cardRegexScripts by viewModel.cardRegexScripts.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
     // 群聊模式：按消息归属渲染说话方 + "让TA继续"入口均以此开关
@@ -555,6 +556,7 @@ fun ChatScreen(
                                                 htmlHost = viewModel.htmlBridgeHost,
                                                 htmlScripts = htmlScripts,
                                                 htmlUiEnabled = htmlUiEnabled,
+                                                cardRegexScripts = cardRegexScripts,
                                             )
                                         }
                                         AssistChip(
@@ -591,6 +593,7 @@ fun ChatScreen(
                                             htmlHost = viewModel.htmlBridgeHost,
                                             htmlScripts = htmlScripts,
                                             htmlUiEnabled = htmlUiEnabled,
+                                            cardRegexScripts = cardRegexScripts,
                                         )
                                     }
                                 }

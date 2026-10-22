@@ -19,8 +19,7 @@ object HtmlCardDetector {
     private val BARE_HTML_PREFIX = Regex("""^\s*(<!DOCTYPE\s+html|<html[\s>])""", RegexOption.IGNORE_CASE)
 
     /** 消息是否包含可渲染的 HTML 界面（快速预检，避免每条消息全量拆分）。 */
-    fun containsHtml(content: String): Boolean =
-        content.contains("```html", ignoreCase = true) || BARE_HTML_PREFIX.containsMatchIn(content)
+    fun containsHtml(content: String): Boolean = content.contains("```html", ignoreCase = true) || BARE_HTML_PREFIX.containsMatchIn(content)
 
     /**
      * 拆分消息为有序片段列表。无 HTML 时返回单个 Markdown 段（零分配开销路径）。

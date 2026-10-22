@@ -28,9 +28,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
@@ -174,6 +174,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .map { char -> parseTavernHelperScripts(char?.data?.extensions) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** 当前角色卡的 regex_scripts（显示时作用于 AI 消息内容，不改存储） */
+    val cardRegexScripts: StateFlow<List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>> =
+        _currentCharacter
+            .map { char ->
+                com.mistbell.tavern.android.data.regex.CardRegexEngine.parse(char?.data?.extensions)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离） */
     val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost =
         object : com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost {
@@ -214,8 +221,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 android.util.Log.d("HtmlUi", "eventEmit($type): ${payload.take(EVENT_PAYLOAD_LOG_LIMIT)}")
             }
 
-            private fun huiVarKey(key: String): String =
-                "ext.hui.${_activeSessionId.value}.${key.trim()}"
+            private fun huiVarKey(key: String): String = "ext.hui.${_activeSessionId.value}.${key.trim()}"
         }
 
     /** 从角色卡 extensions 提取 tavern_helper.scripts（坏卡/无字段按空表处理）。 */
