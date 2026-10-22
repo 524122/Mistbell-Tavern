@@ -26,6 +26,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -154,6 +158,88 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
             else -> _toast.value = "快捷回复「${qr.label}」动作非法：${qr.action}"
         }
+    }
+
+    // ---- HTML 界面（楼层 WebView 渲染，沙箱 + 桥） ----
+
+    /** 全局开关（设置 → 高级设置 → 实验性功能；默认关） */
+    val htmlUiEnabled: StateFlow<Boolean> =
+        db.settingsDao().observeValue("html_ui_enabled")
+            .map { it == "1" }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** 当前角色卡的 tavern_helper.scripts（CharacterData.extensions 透传而来；无则为空表） */
+    val htmlScripts: StateFlow<List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript>> =
+        _currentCharacter
+            .map { char -> parseTavernHelperScripts(char?.data?.extensions) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离） */
+    val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost =
+        object : com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost {
+            override fun getVar(key: String): String =
+                kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    db.settingsDao().getValue(huiVarKey(key)) ?: ""
+                }
+
+            override fun setVar(
+                key: String,
+                value: String,
+            ) {
+                kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    db.settingsDao().upsert(
+                        com.mistbell.tavern.android.data.local.entity.SettingsEntity(huiVarKey(key), value),
+                    )
+                }
+            }
+
+            override fun getChatMessagesJson(limit: Int): String {
+                val array = org.json.JSONArray()
+                _messages.value.takeLast(limit).forEach { msg ->
+                    array.put(
+                        org.json.JSONObject()
+                            .put("role", msg.role)
+                            .put("content", msg.content),
+                    )
+                }
+                return array.toString()
+            }
+
+            override fun sendMessage(text: String) = this@ChatViewModel.sendMessage(text)
+
+            override fun emitEvent(
+                type: String,
+                payload: String,
+            ) {
+                android.util.Log.d("HtmlUi", "eventEmit($type): ${payload.take(EVENT_PAYLOAD_LOG_LIMIT)}")
+            }
+
+            private fun huiVarKey(key: String): String =
+                "ext.hui.${_activeSessionId.value}.${key.trim()}"
+        }
+
+    /** 从角色卡 extensions 提取 tavern_helper.scripts（坏卡/无字段按空表处理）。 */
+    private fun parseTavernHelperScripts(
+        extensions: kotlinx.serialization.json.JsonObject?,
+    ): List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript> {
+        val scripts =
+            (extensions?.get("tavern_helper") as? kotlinx.serialization.json.JsonObject)
+                ?.get("scripts") as? kotlinx.serialization.json.JsonArray
+        if (scripts == null) return emptyList()
+        return runCatching {
+            scripts.mapNotNull { element ->
+                val obj = element as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                val name = obj["name"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val content = obj["content"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript(
+                    name = name,
+                    content = content,
+                    enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
+                )
+            }
+        }.onFailure {
+            android.util.Log.w("HtmlUi", "tavern_helper.scripts 解析失败：${it.message}")
+        }.getOrDefault(emptyList())
     }
 
     // Navigation events
@@ -903,6 +989,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         // 每页加载的消息条数：与 ChatRepository.DEFAULT_MESSAGE_WINDOW 保持一致
         private const val MESSAGE_PAGE_SIZE = 200
+
+        /** HTML 桥 eventEmit 日志的载荷截断长度 */
+        private const val EVENT_PAYLOAD_LOG_LIMIT = 200
     }
 
     override fun onCleared() {

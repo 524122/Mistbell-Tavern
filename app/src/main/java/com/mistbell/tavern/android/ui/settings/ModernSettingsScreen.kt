@@ -28,6 +28,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -43,8 +44,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -735,6 +739,7 @@ private fun DataManagementSection(
 @Composable
 private fun ExperimentalFeaturesSection() {
     ModernSettingsGroup(title = "🔬 实验性功能") {
+        HtmlUiToggleItem()
         Surface(
             modifier =
                 Modifier
@@ -760,6 +765,82 @@ private fun ExperimentalFeaturesSection() {
                 )
             }
         }
+    }
+}
+
+/**
+ * HTML 界面开关：默认关；开启前弹风险确认（楼层 HTML 在沙箱 WebView 渲染，
+ * 无网络（仅图片）、无文件访问，变量会话级隔离）。
+ */
+@Suppress("FunctionNaming", "LongMethod") // Compose 组件按官方约定 PascalCase 命名；单开关项含确认对话框
+@Composable
+private fun HtmlUiToggleItem() {
+    val db = com.mistbell.tavern.android.TavernApplication.instance.container.database
+    val scope = rememberCoroutineScope()
+    val enabled by
+        db.settingsDao().observeValue("html_ui_enabled")
+            .collectAsStateWithLifecycle(initialValue = null)
+    var showConfirm by remember { mutableStateOf(false) }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("HTML 界面", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(
+                "楼层 HTML 在沙箱 WebView 中渲染（禁网络/文件/地理位置，仅放行图片）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = enabled == "1",
+            onCheckedChange = { wantOn ->
+                if (wantOn) {
+                    showConfirm = true
+                } else {
+                    scope.launch {
+                        db.settingsDao().upsert(
+                            com.mistbell.tavern.android.data.local.entity.SettingsEntity("html_ui_enabled", "0"),
+                        )
+                    }
+                }
+            },
+        )
+    }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text("启用 HTML 界面？") },
+            text = {
+                Text(
+                    "部分角色卡（如含酒馆助手脚本的卡）会在消息中携带可交互 HTML 界面。\n\n" +
+                        "本功能在沙箱 WebView 中渲染：禁止网络（仅图片可加载）、禁止文件访问、禁止地理位置，" +
+                        "卡片脚本只能访问本会话的变量与最近消息。\n\n" +
+                        "仍请只对信任的卡片开启。",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirm = false
+                    scope.launch {
+                        db.settingsDao().upsert(
+                            com.mistbell.tavern.android.data.local.entity.SettingsEntity("html_ui_enabled", "1"),
+                        )
+                    }
+                }) {
+                    Text("启用")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("取消") }
+            },
+        )
     }
 }
 

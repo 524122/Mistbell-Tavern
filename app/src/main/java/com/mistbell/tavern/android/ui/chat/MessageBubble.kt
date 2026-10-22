@@ -32,6 +32,7 @@ import java.time.format.DateTimeFormatter
 private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 @OptIn(ExperimentalFoundationApi::class)
+@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod", "LongParameterList")
 @Composable
 fun MessageBubble(
     message: Message,
@@ -50,6 +51,10 @@ fun MessageBubble(
     onContinue: () -> Unit = {},
     onSwipeLeft: () -> Unit = {},
     onSwipeRight: () -> Unit = {},
+    // HTML 界面：桥宿主 + 卡片脚本 + 全局开关（三者齐备且消息含 HTML 才渲染 WebView）
+    htmlHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost? = null,
+    htmlScripts: List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript> = emptyList(),
+    htmlUiEnabled: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     // 有思维链的消息进入聊天页时直接显示正文；仍可点击标题收起，避免用户误以为思维链没有生成。
@@ -171,23 +176,43 @@ fun MessageBubble(
                             )
                             .padding(horizontal = 18.dp, vertical = 13.dp),
                 ) {
-                    if (isUser) {
-                        // 用户消息也使用 MarkdownRenderer 以支持语义高亮（引号、括号变色）
-                        MarkdownRenderer(
-                            content = displayedContent,
-                            dark = dark,
-                            highlightColor = MaterialTheme.colorScheme.onPrimary,
-                            textColor = cardTextColor,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                    // HTML 界面：消息内 ```html 块 / 裸 HTML 经检测拆分后按片段渲染
+                    val htmlParts =
+                        remember(displayedContent) {
+                            com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.split(displayedContent)
+                        }
+                    val renderHtml =
+                        htmlUiEnabled && htmlHost != null &&
+                            htmlParts.any {
+                                it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc
+                            }
+                    if (renderHtml) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            htmlParts.forEach { part ->
+                                when (part) {
+                                    is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.Markdown ->
+                                        MessageMarkdown(
+                                            displayedContent = part.text,
+                                            dark = dark,
+                                            isUser = isUser,
+                                            cardTextColor = cardTextColor,
+                                        )
+                                    is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ->
+                                        com.mistbell.tavern.android.ui.chat.htmlui.HtmlBubble(
+                                            messageId = message.id,
+                                            html = part.html,
+                                            scripts = htmlScripts,
+                                            host = htmlHost!!,
+                                        )
+                                }
+                            }
+                        }
                     } else {
-                        MarkdownRenderer(
-                            content = displayedContent,
-                            // 透传应用内三态深浅色，而非组件内部读系统设置
+                        MessageMarkdown(
+                            displayedContent = displayedContent,
                             dark = dark,
-                            highlightColor = MaterialTheme.colorScheme.tertiary,
-                            textColor = cardTextColor,
-                            modifier = Modifier.fillMaxWidth(),
+                            isUser = isUser,
+                            cardTextColor = cardTextColor,
                         )
                     }
                 }
@@ -422,5 +447,35 @@ private fun formatTime(isoString: String): String {
         zonedDateTime.format(TIME_FORMATTER)
     } catch (e: Exception) {
         ""
+    }
+}
+
+/** 消息正文的 Markdown 渲染（用户/AI 两个分支的既有差异收敛一处） */
+@Suppress("FunctionNaming")
+@Composable
+private fun MessageMarkdown(
+    displayedContent: String,
+    dark: Boolean,
+    isUser: Boolean,
+    cardTextColor: Color,
+) {
+    if (isUser) {
+        // 用户消息也使用 MarkdownRenderer 以支持语义高亮（引号、括号变色）
+        MarkdownRenderer(
+            content = displayedContent,
+            dark = dark,
+            highlightColor = MaterialTheme.colorScheme.onPrimary,
+            textColor = cardTextColor,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else {
+        MarkdownRenderer(
+            content = displayedContent,
+            // 透传应用内三态深浅色，而非组件内部读系统设置
+            dark = dark,
+            highlightColor = MaterialTheme.colorScheme.tertiary,
+            textColor = cardTextColor,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
