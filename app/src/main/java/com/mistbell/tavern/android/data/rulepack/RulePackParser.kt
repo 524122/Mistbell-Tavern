@@ -11,6 +11,7 @@ import java.util.zip.ZipInputStream
  * 规则包 zip 解析器：纯 JVM 实现（java.util.zip + kotlinx.serialization），无 Android 依赖，
  * 单元测试直接覆盖；Android 侧（RulePackRepository）只负责取流与落库。
  */
+@Suppress("TooManyFunctions") // 解析/校验/节读取按职责拆小函数，优于挤进少数大函数
 object RulePackParser {
     const val MANIFEST_FILE = "manifest.json"
     const val PROMPTS_FILE = "prompts.json"
@@ -20,6 +21,9 @@ object RulePackParser {
 
     val VALID_QR_ACTIONS = setOf("send", "insert", "command")
     val VALID_REGEX_SCOPES = setOf("output", "input")
+
+    /** 脚本源码体积上限（防止异常大包拖垮导入/存储） */
+    const val MAX_SCRIPT_BYTES = 256 * 1024
 
     private val ID_PATTERN = Regex("^[A-Za-z0-9_-]{1,64}$")
 
@@ -64,6 +68,7 @@ object RulePackParser {
         val quickReplies =
             parseList<RulePackQuickReply>(files[QUICK_REPLIES_FILE], QUICK_REPLIES_FILE, warnings)
                 .filter { qr -> validQuickReply(qr, warnings) }
+        val scriptSource = parseScript(files, manifest)
 
         return Bundle(
             manifest = manifest,
@@ -73,9 +78,31 @@ object RulePackParser {
                     regex = regex,
                     macros = macros,
                     quickReplies = quickReplies,
+                    scriptSource = scriptSource,
                 ),
             warnings = warnings,
         )
+    }
+
+    /**
+     * 读取 manifest.script 声明的脚本文件：纯文件名（不允许目录/穿越）、存在于 zip、
+     * 且未超 [MAX_SCRIPT_BYTES]；manifest 未声明 script 时返回 null。
+     */
+    private fun parseScript(
+        files: Map<String, String>,
+        manifest: RulePackManifest,
+    ): String? {
+        val scriptFile = manifest.script ?: return null
+        require(scriptFile.isNotBlank() && !scriptFile.contains('/') && !scriptFile.contains("..")) {
+            "规则包非法：manifest.script 必须是 zip 内的纯文件名（当前：$scriptFile）"
+        }
+        val source =
+            files[scriptFile]
+                ?: throw IllegalArgumentException("规则包无效：manifest.script 声明的 $scriptFile 在 zip 中不存在")
+        require(source.toByteArray(Charsets.UTF_8).size <= MAX_SCRIPT_BYTES) {
+            "规则包非法：脚本超过 256KB 上限"
+        }
+        return source
     }
 
     /** 快捷回复条目校验：label 空白或 action 非法（send/insert/command 之外）跳过并告警 */

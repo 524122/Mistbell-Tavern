@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +26,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +57,7 @@ fun RulePackManagerScreen(
 ) {
     val packs by viewModel.packs.collectAsState()
     val message by viewModel.message.collectAsState()
+    val pendingScriptImport by viewModel.pendingScriptImport.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(message) {
@@ -130,6 +133,31 @@ fun RulePackManagerScreen(
                 pendingDelete = null
             },
             onDismiss = { pendingDelete = null },
+        )
+    }
+
+    // 含可执行脚本的包：导入前二次确认（对标酒馆安装第三方扩展的风险确认）
+    pendingScriptImport?.let { bundle ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissScriptImport() },
+            title = { Text("包含可执行脚本") },
+            text = {
+                Text(
+                    "规则包「${bundle.manifest.name}」包含 JS 脚本（${bundle.manifest.script}）。\n\n" +
+                        "脚本在沙箱中运行，只能访问酒馆提供的受限 API（提示词注入、回复处理、命令、宏、事件），" +
+                        "无法访问文件系统、网络或其他应用数据；但仍请只安装你信任来源的脚本包。",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmScriptImport() }) {
+                    Text("信任并导入")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissScriptImport() }) {
+                    Text("取消")
+                }
+            },
         )
     }
 }

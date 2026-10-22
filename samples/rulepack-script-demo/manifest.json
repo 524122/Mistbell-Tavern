@@ -1,0 +1,9 @@
+{
+  "id": "rulepack-script-demo",
+  "name": "示例脚本包",
+  "author": "Mistbell",
+  "version": "1.0",
+  "description": "演示 JS 沙箱四种钩子 + 事件 + 包级变量",
+  "loadingOrder": 100,
+  "script": "script.js"
+}

@@ -179,4 +179,40 @@ class RulePackParserTest {
         assertEquals(listOf("好"), bundle.content.regex.map { it.name })
         assertEquals(2, bundle.warnings.size)
     }
+
+    @Test
+    fun `script 节读取成功`() {
+        val bytes =
+            zipOf(
+                mapOf(
+                    "manifest.json" to """{"id":"demo","name":"演示包","script":"script.js"}""",
+                    "script.js" to "tavern.log('hi');",
+                ),
+            )
+        val bundle = RulePackParser.parseZip(bytes)
+        assertEquals("tavern.log('hi');", bundle.content.scriptSource)
+    }
+
+    @Test
+    fun `manifest 声明 script 但 zip 缺失该文件则拒绝`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            RulePackParser.parseZip(
+                zipOf(mapOf("manifest.json" to """{"id":"demo","name":"x","script":"script.js"}""")),
+            )
+        }
+    }
+
+    @Test
+    fun `manifest script 含路径则拒绝`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            RulePackParser.parseZip(
+                zipOf(
+                    mapOf(
+                        "manifest.json" to """{"id":"demo","name":"x","script":"../evil.js"}""",
+                        "script.js" to "x",
+                    ),
+                ),
+            )
+        }
+    }
 }

@@ -26,20 +26,54 @@ class RulePackManagerViewModel(application: Application) : AndroidViewModel(appl
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 
+    /** 含可执行脚本的待确认导入（UI 弹确认框；确认后 confirmScriptImport 落库） */
+    private val _pendingScriptImport =
+        MutableStateFlow<com.mistbell.tavern.android.data.rulepack.RulePackParser.Bundle?>(null)
+    val pendingScriptImport: StateFlow<com.mistbell.tavern.android.data.rulepack.RulePackParser.Bundle?> =
+        _pendingScriptImport.asStateFlow()
+
     fun importPack(uri: Uri) {
         viewModelScope.launch {
             try {
-                val result = repo.importFromUri(uri)
-                _message.value =
-                    if (result.warnings.isEmpty()) {
-                        "已导入并启用：${result.name}"
-                    } else {
-                        "已导入：${result.name}（${result.warnings.size} 条警告：${result.warnings.first()}）"
-                    }
+                val bundle = repo.previewFromUri(uri)
+                if (bundle.content.scriptSource != null) {
+                    // 含可执行脚本：先弹确认（代码执行风险），确认后才落库
+                    _pendingScriptImport.value = bundle
+                } else {
+                    finishImport(repo.persist(bundle))
+                }
             } catch (e: Exception) {
                 _message.value = "导入失败: ${e.message}"
             }
         }
+    }
+
+    fun confirmScriptImport() {
+        viewModelScope.launch {
+            val bundle = _pendingScriptImport.value
+            _pendingScriptImport.value = null
+            if (bundle != null) {
+                try {
+                    finishImport(repo.persist(bundle))
+                } catch (e: Exception) {
+                    _message.value = "导入失败: ${e.message}"
+                }
+            }
+        }
+    }
+
+    fun dismissScriptImport() {
+        _pendingScriptImport.value = null
+        _message.value = "已取消导入"
+    }
+
+    private fun finishImport(result: RulePackRepository.ImportResult) {
+        _message.value =
+            if (result.warnings.isEmpty()) {
+                "已导入并启用：${result.name}"
+            } else {
+                "已导入：${result.name}（${result.warnings.size} 条警告：${result.warnings.first()}）"
+            }
     }
 
     fun setEnabled(

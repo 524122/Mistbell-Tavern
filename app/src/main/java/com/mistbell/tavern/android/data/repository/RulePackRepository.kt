@@ -39,6 +39,10 @@ import java.util.zip.ZipOutputStream
 class RulePackRepository(private val context: Context) {
     private val db get() = TavernApplication.instance.container.database
 
+    companion object {
+        private const val EXPORT_SCRIPT_FILE = "script.js"
+    }
+
     private val contentJson =
         Json {
             ignoreUnknownKeys = true
@@ -47,12 +51,23 @@ class RulePackRepository(private val context: Context) {
 
     fun observePacks(): Flow<List<RulePackEntity>> = db.rulePackDao().observeAll()
 
-    /** 导入结果：包 id + 非致命警告（内容节解析失败/坏正则跳过等） */
+    /** 导入结果：包 id + 非致命警告 + 是否含可执行脚本（UI 据此先弹确认再落库） */
     data class ImportResult(
         val id: String,
         val name: String,
         val warnings: List<String>,
+        val hasScript: Boolean = false,
     )
+
+    /**
+     * 预解析 zip（不落库）：供 UI 在含脚本时先弹确认。[parseZip] 成功返回 Bundle。
+     */
+    fun previewFromUri(uri: Uri): RulePackParser.Bundle {
+        val bytes =
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: throw IllegalArgumentException("规则包导入失败：无法打开所选文件")
+        return RulePackParser.parseZip(bytes)
+    }
 
     /**
      * 从 zip 导入规则包。同 id 覆盖安装（沿用主题包"先写新"语义，实体单行无残留文件问题）。
@@ -60,11 +75,13 @@ class RulePackRepository(private val context: Context) {
      */
     suspend fun importFromUri(uri: Uri): ImportResult =
         withContext(Dispatchers.IO) {
-            val bytes =
-                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IllegalArgumentException("规则包导入失败：无法打开所选文件")
-            val bundle = RulePackParser.parseZip(bytes)
+            val bundle = previewFromUri(uri)
+            persist(bundle)
+        }
 
+    /** 落库已解析的包（previewFromUri 之后、用户确认脚本风险后的第二步） */
+    suspend fun persist(bundle: RulePackParser.Bundle): ImportResult =
+        withContext(Dispatchers.IO) {
             val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
             db.rulePackDao().upsert(
                 RulePackEntity(
@@ -79,7 +96,12 @@ class RulePackRepository(private val context: Context) {
                     createdAt = now,
                 ),
             )
-            ImportResult(bundle.manifest.id, bundle.manifest.name, bundle.warnings)
+            ImportResult(
+                id = bundle.manifest.id,
+                name = bundle.manifest.name,
+                warnings = bundle.warnings,
+                hasScript = bundle.content.scriptSource != null,
+            )
         }
 
     suspend fun setEnabled(
@@ -108,6 +130,8 @@ class RulePackRepository(private val context: Context) {
                     author = pack.author,
                     version = pack.version,
                     loadingOrder = pack.loadingOrder,
+                    // 脚本文件名不单独存储：导出统一规范化为 script.js
+                    script = if (content.scriptSource != null) EXPORT_SCRIPT_FILE else null,
                 )
             val outFile = java.io.File(java.io.File(context.cacheDir, "rulepacks"), "$id.zip")
             outFile.parentFile?.mkdirs()
@@ -129,6 +153,10 @@ class RulePackRepository(private val context: Context) {
                 if (content.quickReplies.isNotEmpty()) {
                     val text = encodeList(RulePackQuickReply.serializer(), content.quickReplies)
                     writeZipEntry(zip, RulePackParser.QUICK_REPLIES_FILE, text)
+                }
+                // 脚本源码对称写回（导出统一规范化为 script.js）
+                if (content.scriptSource != null) {
+                    writeZipEntry(zip, EXPORT_SCRIPT_FILE, content.scriptSource)
                 }
             }
             outFile

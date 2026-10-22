@@ -18,6 +18,8 @@ data class RulePackManifest(
     val description: String = "",
     /** 包级加载顺序（对齐酒馆 loading_order）：多包启用时按此升序应用 */
     val loadingOrder: Int = 100,
+    /** 可选：zip 内 JS 脚本文件名（声明即视为"脚本包"，导入需用户确认代码执行风险） */
+    val script: String? = null,
 )
 
 /** 提示词块：position 复用自定义提示词五值（SYSTEM_START/SYSTEM_END/USER_PREFIX/USER_SUFFIX/ASSISTANT_PREFIX） */
@@ -58,11 +60,13 @@ data class RulePackQuickReply(
     val enabled: Boolean = true,
 )
 
-/** 四个可选内容文件的合并体（RulePackEntity.contentJson 的序列化形态） */
+/** 四个可选内容文件 + 可选脚本源码的合并体（RulePackEntity.contentJson 的序列化形态） */
 @Serializable
 data class RulePackContent(
     val prompts: List<RulePackPrompt> = emptyList(),
     val regex: List<RulePackRegexRule> = emptyList(),
     val macros: List<RulePackMacro> = emptyList(),
     val quickReplies: List<RulePackQuickReply> = emptyList(),
+    /** manifest.script 声明的脚本源码（null=非脚本包）；随 contentJson 存储，零额外迁移 */
+    val scriptSource: String? = null,
 )

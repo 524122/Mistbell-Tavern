@@ -12,6 +12,7 @@
 ## [Unreleased]
 
 ### Added
+- JS 脚本沙箱（扩展机制第 3 层）：规则包 manifest 可声明 `"script": "script.js"`，脚本在 Rhino 沙箱中运行（纯 JVM 解释模式、ClassShutter 仅放行宿主对象与值包装类、无文件/网络/Java 互操作、每包独立作用域、指令计数中止失控脚本 + 3 秒墙钟兜底）；宿主 API `tavern`：onPrompt（提示词注入五落点，来源标「脚本·包名」）、onReply（回复处理链）、registerCommand（动态斜杠命令，禁用即注销）、registerMacro（自定义宏）、on（五类聊天事件）、getVar/setVar（包级持久变量）；含脚本的包导入需手动确认（代码执行风险提示）；脚本源码随 contentJson 存储零数据库迁移；示例包 samples/rulepack-script-demo/，API 文档 docs/SCRIPTING.md。
 - 规则包正则作用域扩展：regex.json 条目新增 `applyTo`（`output`=回复落库前替换正文，与 v1 行为一致；`input`=提示词中最终用户消息替换，仅改 prompt 不改存储），输入侧规则在本包提示词块插入之前应用；非法 applyTo 导入时跳过并告警。
 - 快捷回复（Quick Reply）：聊天输入区上方横向按钮栏，三种动作——send（直接发送，斜杠拦截自然生效）、insert（填入输入框可编辑）、command（斜杠命令分发）；数据双源：用户全局自定义（设置 → 高级设置 → 提示词管理 → 快捷回复 增删改）与规则包 quickreplies.json 节（随包启停即时生效，按钮带 ⌁包名 下标区分来源）；数据库升级到 v35（quick_replies 表）。
 - 规则包（声明式扩展包，第 2 层）：zip 打包提示词块/输出正则/自定义宏，设置 → 高级设置 → 提示词管理 → 规则包导入、启停、删除、分享；经扩展钩子在生成前注入提示词（复用自定义提示词五种落点）、回复落库前链式正则替换正文、宏查表解析（支持一层嵌套内置宏，自引用有防递归守卫）；数据库升级到 v34（rule_packs 表）；示例包见 samples/rulepack-demo/。包内容缓存全进程唯一并预热，挂起钩子确定性等待首次加载（修复冷启动首包丢失竞态）。

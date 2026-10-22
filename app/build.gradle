@@ -112,6 +112,9 @@ android {
 }
 
 dependencies {
+    // JS 脚本沙箱（规则包 script.js 的宿主）：纯 JVM、无网络/文件能力，指令数限流防失控
+    implementation "org.mozilla:rhino:1.8.0"
+
     // Compose BOM
     def composeBom = platform('androidx.compose:compose-bom:2024.12.01')
     implementation composeBom

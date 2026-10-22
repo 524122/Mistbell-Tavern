@@ -25,6 +25,8 @@ import com.mistbell.tavern.android.extension.builtin.CustomPromptExtension
 import com.mistbell.tavern.android.extension.builtin.HelpCommand
 import com.mistbell.tavern.android.extension.builtin.NoteCommand
 import com.mistbell.tavern.android.extension.builtin.RulePackExtension
+import com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
+import com.mistbell.tavern.android.extension.scripting.ScriptedPackExtension
 import com.mistbell.tavern.android.util.SecureStore
 import java.io.File
 
@@ -226,6 +228,18 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
+    /** 脚本包运行时管理器（JS 沙箱生命周期；start() 幂等，注册扩展时启动） */
+    val scriptRuntimeManager: ScriptRuntimeManager by lazy {
+        ScriptRuntimeManager(
+            source = rulePackCache,
+            settingsDaoProvider = { database.settingsDao() },
+            scope =
+                kotlinx.coroutines.CoroutineScope(
+                    kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+                ),
+        )
+    }
+
     /**
      * 注册内置扩展（幂等，ExtensionRegistry 按 id 去重）。
      *
@@ -238,6 +252,8 @@ class AppContainer(private val appContext: Context) {
         ExtensionRegistry.register(NoteCommand())
         // 触碰 rulePackCache 即预热缓存（注册期开始收集 Room Flow），与 awaitPacks 共同消除冷启动竞态
         ExtensionRegistry.register(RulePackExtension(rulePackCache))
+        ExtensionRegistry.register(ScriptedPackExtension(scriptRuntimeManager))
+        scriptRuntimeManager.start()
         // 宏桥：MacroEngine（util 层）不反向依赖 extension 包，注册表查询经此 lambda 注入
         com.mistbell.tavern.android.util.MacroEngine.registerMacroProvider { name, ctx ->
             ExtensionRegistry.macroProviders.firstNotNullOfOrNull { it.resolve(name, ctx) }
