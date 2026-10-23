@@ -57,6 +57,8 @@ fun MessageBubble(
     htmlUiEnabled: Boolean = false,
     // 卡级正则（regex_scripts）：显示时作用于 AI 消息内容（placement 含 2），不改存储
     cardRegexScripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> = emptyList(),
+    /** MVU 变量版本（>0 且变化时 HtmlBubble 向页面推送变量更新） */
+    variablesVersion: Long = 0,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     // 有思维链的消息进入聊天页时直接显示正文；仍可点击标题收起，避免用户误以为思维链没有生成。
@@ -214,6 +216,7 @@ fun MessageBubble(
                                             html = part.html,
                                             scripts = htmlScripts,
                                             host = htmlHost!!,
+                                            variablesVersion = variablesVersion,
                                         )
                                 }
                             }

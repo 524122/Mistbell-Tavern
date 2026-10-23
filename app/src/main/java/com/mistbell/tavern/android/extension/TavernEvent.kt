@@ -39,4 +39,10 @@ sealed interface TavernEvent {
         val characterId: String,
         val sessionId: String,
     ) : TavernEvent
+
+    /** MVU 变量更新完成（MvuExtension 在回复落库前应用 UpdateVariable patch 后发射） */
+    data class VariablesUpdated(
+        val sessionId: String,
+        val version: Long,
+    ) : TavernEvent
 }

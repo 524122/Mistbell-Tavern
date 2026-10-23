@@ -55,6 +55,22 @@ class TavernJsBridge(
         host.emitEvent(type, payload.orEmpty())
     }
 
+    // ---- MVU 兼容层（净室）：会话级 stat_data 读写 + 命令触发 ----
+
+    @JavascriptInterface
+    fun getMvuVariables(): String = host.getMvuVariablesJson()
+
+    @JavascriptInterface
+    fun insertMvuVariables(json: String) {
+        host.insertMvuVariablesJson(json)
+    }
+
+    @JavascriptInterface
+    fun triggerSlash(command: String) {
+        if (command.isBlank()) return
+        host.triggerSlash(command.take(MAX_SEND_LENGTH))
+    }
+
     /** 页面高度回报（气泡据此调整 WebView 高度） */
     @JavascriptInterface
     fun reportHeight(heightPx: Int) {
@@ -87,4 +103,13 @@ interface HtmlBridgeHost {
         type: String,
         payload: String,
     )
+
+    /** 会话级 MVU stat_data（JSON 对象字符串，无则 "{}"） */
+    fun getMvuVariablesJson(): String
+
+    /** insertOrAssign 语义：浅合并顶层键进 stat_data 并广播变量更新 */
+    fun insertMvuVariablesJson(json: String)
+
+    /** 转发斜杠命令到 SlashCommandDispatcher（与输入框同一通道） */
+    fun triggerSlash(command: String)
 }

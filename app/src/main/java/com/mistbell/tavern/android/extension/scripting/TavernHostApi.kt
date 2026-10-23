@@ -107,6 +107,7 @@ class TavernHostApi(
                 "generation:started",
                 "generation:ended",
                 "chat:changed",
+                "variables:updated",
             )
     }
 }

@@ -30,6 +30,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -181,6 +182,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 com.mistbell.tavern.android.data.regex.CardRegexEngine.parse(char?.data?.extensions)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** MVU 变量版本（当前会话的 VariablesUpdated 事件计数；HtmlBubble 据此推送变量更新） */
+    val mvuVariablesVersion: StateFlow<Long> =
+        TavernEventBus.events
+            .filterIsInstance<TavernEvent.VariablesUpdated>()
+            .map { it.takeIf { ev -> ev.sessionId == _activeSessionId.value }?.version }
+            .filterNotNull()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
     /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离） */
     val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost =
         object : com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost {
@@ -219,6 +228,54 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 payload: String,
             ) {
                 android.util.Log.d("HtmlUi", "eventEmit($type): ${payload.take(EVENT_PAYLOAD_LOG_LIMIT)}")
+            }
+
+            override fun getMvuVariablesJson(): String =
+                kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    db.settingsDao().getValue(
+                        com.mistbell.tavern.android.extension.builtin.MvuExtension.statKey(_activeSessionId.value),
+                    ) ?: "{}"
+                }
+
+            override fun insertMvuVariablesJson(json: String) {
+                kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    val mvu = com.mistbell.tavern.android.extension.builtin.MvuExtension
+                    val statKey = mvu.statKey(_activeSessionId.value)
+                    val verKey = mvu.versionKey(_activeSessionId.value)
+                    val current =
+                        db.settingsDao().getValue(statKey)
+                            ?.let {
+                                runCatching {
+                                    kotlinx.serialization.json.Json.parseToJsonElement(it).jsonObject
+                                }.getOrNull()
+                            } ?: kotlinx.serialization.json.JsonObject(emptyMap())
+                    val patch =
+                        runCatching {
+                            kotlinx.serialization.json.Json.parseToJsonElement(json).jsonObject
+                        }.getOrNull() ?: return@runBlocking
+                    // insertOrAssign 语义：顶层键浅合并赋值
+                    val merged =
+                        kotlinx.serialization.json.JsonObject(
+                            current.toMutableMap().apply { putAll(patch) },
+                        )
+                    db.settingsDao().upsert(
+                        com.mistbell.tavern.android.data.local.entity.SettingsEntity(statKey, merged.toString()),
+                    )
+                    val version = (db.settingsDao().getValue(verKey)?.toLongOrNull() ?: 0L) + 1
+                    db.settingsDao().upsert(
+                        com.mistbell.tavern.android.data.local.entity.SettingsEntity(verKey, version.toString()),
+                    )
+                }
+            }
+
+            override fun triggerSlash(command: String) {
+                viewModelScope.launch {
+                    _toast.value =
+                        SlashCommandDispatcher.dispatch(
+                            command,
+                            SlashCommandContext(ownerId, _currentCharacter.value?.id.orEmpty(), _activeSessionId.value),
+                        )
+                }
             }
 
             private fun huiVarKey(key: String): String = "ext.hui.${_activeSessionId.value}.${key.trim()}"

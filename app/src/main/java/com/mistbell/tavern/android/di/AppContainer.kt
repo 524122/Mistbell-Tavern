@@ -23,6 +23,7 @@ import com.mistbell.tavern.android.data.vector.isValidVectorIndex
 import com.mistbell.tavern.android.extension.ExtensionRegistry
 import com.mistbell.tavern.android.extension.builtin.CustomPromptExtension
 import com.mistbell.tavern.android.extension.builtin.HelpCommand
+import com.mistbell.tavern.android.extension.builtin.MvuExtension
 import com.mistbell.tavern.android.extension.builtin.NoteCommand
 import com.mistbell.tavern.android.extension.builtin.RulePackExtension
 import com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
@@ -253,6 +254,7 @@ class AppContainer(private val appContext: Context) {
         // 触碰 rulePackCache 即预热缓存（注册期开始收集 Room Flow），与 awaitPacks 共同消除冷启动竞态
         ExtensionRegistry.register(RulePackExtension(rulePackCache))
         ExtensionRegistry.register(ScriptedPackExtension(scriptRuntimeManager))
+        ExtensionRegistry.register(MvuExtension())
         scriptRuntimeManager.start()
         // 宏桥：MacroEngine（util 层）不反向依赖 extension 包，注册表查询经此 lambda 注入
         com.mistbell.tavern.android.util.MacroEngine.registerMacroProvider { name, ctx ->

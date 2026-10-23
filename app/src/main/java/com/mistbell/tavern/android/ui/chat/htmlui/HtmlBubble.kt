@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -39,7 +40,7 @@ import androidx.compose.ui.viewinterop.AndroidView
  * 生命周期：按 messageId remember WebView（LazyColumn 回收重组不丢页面状态）；
  * 文档/脚本注入一次完成（按 messageId + html 记忆）。
  */
-@Suppress("FunctionNaming", "LongMethod")
+@Suppress("FunctionNaming", "LongMethod", "LongParameterList") // 楼层气泡的参数即其外部契约，拆分反而碎
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun HtmlBubble(
@@ -48,6 +49,8 @@ fun HtmlBubble(
     scripts: List<HtmlScript>,
     host: HtmlBridgeHost,
     modifier: Modifier = Modifier,
+    /** MVU 变量版本：变化时向页面推送 mvu_variable_update_ended（携带最新 stat_data） */
+    variablesVersion: Long = 0,
 ) {
     var expanded by remember(messageId) { mutableStateOf(false) }
 
@@ -80,6 +83,21 @@ fun HtmlBubble(
     var heightPx by remember(messageId) { mutableIntStateOf(MIN_HEIGHT_DP) }
     val blockedResources = remember(messageId) { mutableStateListOf<String>() }
     var showSource by remember(messageId) { mutableStateOf(false) }
+    // WebView 引用：供变量更新推送等宿主主动调用（evaluateJavascript）
+    val webViewRef = remember(messageId) { arrayOfNulls<android.webkit.WebView>(1) }
+
+    // 变量更新推送：版本变化时向页面广播 mvu_variable_update_ended（携带最新 stat_data）
+    LaunchedEffect(variablesVersion, messageId) {
+        if (variablesVersion > 0) {
+            val varsJson =
+                com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
+                    .jsonString(host.getMvuVariablesJson())
+            webViewRef[0]?.evaluateJavascript(
+                "window.__tavernEmit && window.__tavernEmit('mvu_variable_update_ended', $varsJson)",
+                null,
+            )
+        }
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         AndroidView(
@@ -92,6 +110,7 @@ fun HtmlBubble(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                         )
+                    webViewRef[0] = this
                     val bridge =
                         TavernJsBridge(
                             host = host,
@@ -109,8 +128,17 @@ fun HtmlBubble(
                     HtmlUiSandbox.configure(this, { blockedResources.add(it) }) { webView ->
                         webView.evaluateJavascript(FACADE_JS, null)
                         webView.evaluateJavascript(HEIGHT_REPORT_JS, null)
+                        // 卡片脚本以 <script type="module"> 注入（ES Module 语义，支持顶层 import 语法——
+                        // 外链 import 被沙箱拦截，单脚本失败不影响其他；evaluateJavascript 的 classic
+                        // 语义遇到 import 直接整脚本语法错误）
                         scripts.filter { it.enabled }.forEach { script ->
-                            runCatching { webView.evaluateJavascript(script.content, null) }
+                            val contentJson =
+                                com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
+                                    .jsonString(script.content)
+                            val moduleJs =
+                                "(() => { const s = document.createElement('script'); s.type = 'module'; " +
+                                    "s.textContent = $contentJson; document.head.appendChild(s); })()"
+                            runCatching { webView.evaluateJavascript(moduleJs, null) }
                                 .onFailure {
                                     android.util.Log.w("HtmlBubble", "脚本「${script.name}」注入失败：${it.message}")
                                 }
@@ -180,18 +208,38 @@ fun HtmlBubble(
     }
 }
 
-/** 注入页面的 JS 门面：把桥包装成楼层界面熟悉的 API 形态。 */
+/** 注入页面的 JS 门面：把桥包装成楼层界面熟悉的 API 形态（TavernHelper + Mvu 兼容层）。 */
 private val FACADE_JS =
     """
+    window.__tavernListeners = {};
+    window.__tavernEmit = function (name, payloadJson) {
+      (window.__tavernListeners[name] || []).forEach(function (fn) {
+        try { fn(JSON.parse(payloadJson)); } catch (e) { console.error(e); }
+      });
+    };
     window.TavernHelper = {
       getVar: (k) => window.TavernBridge.getVar(k),
       setVar: (k, v) => window.TavernBridge.setVar(k, String(v)),
       getChatMessages: (n) => Promise.resolve(JSON.parse(window.TavernBridge.getChatMessages(n || 20))),
       sendMessage: (t) => window.TavernBridge.sendMessage(String(t)),
       eventEmit: (t, p) => window.TavernBridge.eventEmit(String(t), JSON.stringify(p ?? null)),
+      eventOn: (name, fn) => {
+        const key = String(name);
+        (window.__tavernListeners[key] = window.__tavernListeners[key] || []).push(fn);
+      },
       log: (m) => window.TavernBridge.log(String(m)),
+      getVariables: () => Promise.resolve(JSON.parse(window.TavernBridge.getMvuVariables())),
+      insertOrAssignVariables: (obj) => Promise.resolve(window.TavernBridge.insertMvuVariables(JSON.stringify(obj ?? {}))),
+      registerMvuSchema: (schema) => window.TavernBridge.log("registerMvuSchema 占位（v1 不做 schema 校验）"),
+      triggerSlash: (cmd) => window.TavernBridge.triggerSlash(String(cmd)),
     };
-    window.Mvu = window.Mvu || { events: {}, on: () => {}, emit: () => {} };
+    window.Mvu = {
+      events: {
+        COMMAND_PARSED: "mvu_command_parsed",
+        VARIABLE_UPDATE_ENDED: "mvu_variable_update_ended",
+      },
+      on: (event, fn) => window.TavernHelper.eventOn(event, fn),
+    };
     """.trimIndent()
 
 /** 高度回报：即时 + 延迟补报（onPageFinished 时布局/字体未稳定，scrollHeight 偏小）+ DOM 变化持续回报。 */

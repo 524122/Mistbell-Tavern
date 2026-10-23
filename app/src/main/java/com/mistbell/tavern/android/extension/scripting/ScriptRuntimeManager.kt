@@ -166,6 +166,8 @@ class ScriptRuntimeManager(
                 is TavernEvent.GenerationStarted -> "generation:started" to eventPayload(event.sessionId)
                 is TavernEvent.GenerationEnded -> "generation:ended" to eventPayload(event.sessionId)
                 is TavernEvent.ChatChanged -> "chat:changed" to eventPayload(event.sessionId, event.characterId)
+                is TavernEvent.VariablesUpdated ->
+                    "variables:updated" to "{\"sessionId\":${jsonString(event.sessionId)},\"version\":${event.version}}"
             }
         packsWithHook(TavernHostApi.REG_EVENT + eventName).forEach { (packId, _) ->
             sandbox.callRegistered(packId, TavernHostApi.REG_EVENT + eventName, arrayOf(payload))
