@@ -54,7 +54,9 @@ internal object HtmlWebViewFactory {
             }
             loadDataWithBaseURL(
                 HtmlUiSandbox.BASE_URL,
-                HtmlUiSandbox.injectCsp(html),
+                // 先注入前置库（jQuery/lodash 垫片），再注 CSP——meta 落在前置脚本之前，
+                // 保证 CSP 先于一切资源生效；卡片文档自身脚本解析期即有 $ / _ 可用
+                HtmlUiSandbox.injectCsp(HtmlPrereqs.inject(context, html)),
                 "text/html",
                 "utf-8",
                 null,
