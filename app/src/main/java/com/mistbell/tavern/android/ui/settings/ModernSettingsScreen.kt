@@ -792,7 +792,7 @@ private fun HtmlUiToggleItem() {
         Column(modifier = Modifier.weight(1f)) {
             Text("HTML 界面", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Text(
-                "楼层 HTML 在沙箱 WebView 中渲染（禁网络/文件/地理位置，仅放行图片）",
+                "楼层 HTML 在沙箱 WebView 中渲染（禁脚本外链/文件/地理位置，放行 https 图片/样式/字体/音视频）",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -820,7 +820,8 @@ private fun HtmlUiToggleItem() {
             text = {
                 Text(
                     "部分角色卡（如含酒馆助手脚本的卡）会在消息中携带可交互 HTML 界面。\n\n" +
-                        "本功能在沙箱 WebView 中渲染：禁止网络（仅图片可加载）、禁止文件访问、禁止地理位置，" +
+                        "本功能在沙箱 WebView 中渲染：禁止外链脚本、fetch/XHR、文件访问与地理位置；" +
+                        "放行 https 被动资源（图片/样式/字体/音视频）以还原卡片原生观感。" +
                         "卡片脚本只能访问本会话的变量与最近消息。\n\n" +
                         "仍请只对信任的卡片开启。",
                 )
