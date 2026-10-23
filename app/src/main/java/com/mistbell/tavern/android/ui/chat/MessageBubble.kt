@@ -59,6 +59,9 @@ fun MessageBubble(
     cardRegexScripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> = emptyList(),
     /** MVU 变量版本（>0 且变化时 HtmlBubble 向页面推送变量更新） */
     variablesVersion: Long = 0,
+    /** HTML 界面展开状态（宿主按会话持久化；默认折叠） */
+    htmlExpanded: Boolean = false,
+    onHtmlExpandedChange: (Boolean) -> Unit = {},
 ) {
     var showMenu by remember { mutableStateOf(false) }
     // 有思维链的消息进入聊天页时直接显示正文；仍可点击标题收起，避免用户误以为思维链没有生成。
@@ -81,6 +84,28 @@ fun MessageBubble(
             }
         }
     val displayedThinking = message.thinking?.takeIf { it.isNotBlank() } ?: inlineThinking
+
+    // HTML 界面：消息内 ```html 块 / 裸 HTML 经检测拆分；纯 HTML 消息（如苍玄界开场界面）
+    // 去气泡外壳全宽渲染，与聊天背景融合；混排（正文+HTML）保留气泡壳
+    val htmlParts =
+        remember(displayedContent) {
+            com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.split(displayedContent)
+        }
+    val renderHtml =
+        htmlUiEnabled && htmlHost != null &&
+            htmlParts.any {
+                it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc
+            }
+    val htmlFullBleed =
+        renderHtml &&
+            htmlParts.all { part ->
+                part is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ||
+                    (
+                        (part as? com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.Markdown)
+                            ?.text
+                            ?.isBlank() == true
+                    )
+            }
 
     val bubbleShape = MaterialTheme.shapes.medium
     val cardBackgroundColor =
@@ -165,7 +190,7 @@ fun MessageBubble(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = if (htmlFullBleed) 6.dp else 16.dp),
             horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
             verticalAlignment = Alignment.Top,
         ) {
@@ -176,29 +201,32 @@ fun MessageBubble(
                 Box(
                     modifier =
                         Modifier
-                            .widthIn(max = if (isUser) 320.dp else 620.dp)
+                            .then(
+                                if (htmlFullBleed) {
+                                    Modifier.fillMaxWidth()
+                                } else {
+                                    Modifier.widthIn(max = if (isUser) 320.dp else 620.dp)
+                                },
+                            )
                             .combinedClickable(
                                 onClick = {},
                                 onLongClick = { showMenu = true },
                             )
                             .then(
-                                Modifier
-                                    .shadow(0.dp, bubbleShape, ambientColor = cardShadowColor)
-                                    .background(cardBackgroundColor, bubbleShape)
-                                    .border(1.dp, cardBorderColor, bubbleShape),
+                                if (htmlFullBleed) {
+                                    Modifier
+                                } else {
+                                    Modifier
+                                        .shadow(0.dp, bubbleShape, ambientColor = cardShadowColor)
+                                        .background(cardBackgroundColor, bubbleShape)
+                                        .border(1.dp, cardBorderColor, bubbleShape)
+                                },
                             )
-                            .padding(horizontal = 18.dp, vertical = 13.dp),
+                            .padding(
+                                horizontal = if (htmlFullBleed) 0.dp else 18.dp,
+                                vertical = if (htmlFullBleed) 0.dp else 13.dp,
+                            ),
                 ) {
-                    // HTML 界面：消息内 ```html 块 / 裸 HTML 经检测拆分后按片段渲染
-                    val htmlParts =
-                        remember(displayedContent) {
-                            com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.split(displayedContent)
-                        }
-                    val renderHtml =
-                        htmlUiEnabled && htmlHost != null &&
-                            htmlParts.any {
-                                it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc
-                            }
                     if (renderHtml) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             htmlParts.forEach { part ->
@@ -216,6 +244,8 @@ fun MessageBubble(
                                             html = part.html,
                                             scripts = htmlScripts,
                                             host = htmlHost!!,
+                                            expanded = htmlExpanded,
+                                            onExpandedChange = onHtmlExpandedChange,
                                             variablesVersion = variablesVersion,
                                         )
                                 }

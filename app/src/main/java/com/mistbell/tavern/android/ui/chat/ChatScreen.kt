@@ -187,6 +187,7 @@ fun ChatScreen(
     val htmlScripts by viewModel.htmlScripts.collectAsStateWithLifecycle()
     val cardRegexScripts by viewModel.cardRegexScripts.collectAsStateWithLifecycle()
     val mvuVariablesVersion by viewModel.mvuVariablesVersion.collectAsStateWithLifecycle()
+    val htmlExpandedIds by viewModel.htmlExpandedIds.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
     // 群聊模式：按消息归属渲染说话方 + "让TA继续"入口均以此开关
@@ -559,6 +560,10 @@ fun ChatScreen(
                                                 htmlUiEnabled = htmlUiEnabled,
                                                 cardRegexScripts = cardRegexScripts,
                                                 variablesVersion = mvuVariablesVersion,
+                                                htmlExpanded = message.id in htmlExpandedIds,
+                                                onHtmlExpandedChange = { exp ->
+                                                    viewModel.setHtmlExpanded(message.id, exp)
+                                                },
                                             )
                                         }
                                         AssistChip(
@@ -597,6 +602,10 @@ fun ChatScreen(
                                             htmlUiEnabled = htmlUiEnabled,
                                             cardRegexScripts = cardRegexScripts,
                                             variablesVersion = mvuVariablesVersion,
+                                            htmlExpanded = message.id in htmlExpandedIds,
+                                            onHtmlExpandedChange = { exp ->
+                                                viewModel.setHtmlExpanded(message.id, exp)
+                                            },
                                         )
                                     }
                                 }

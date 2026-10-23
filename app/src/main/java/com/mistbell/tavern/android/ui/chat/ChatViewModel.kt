@@ -281,6 +281,46 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             private fun huiVarKey(key: String): String = "ext.hui.${_activeSessionId.value}.${key.trim()}"
         }
 
+    // ---- HTML 界面展开状态（按会话持久化） ----
+
+    /** 当前会话中处于展开状态的 HTML 消息 id 集合；默认折叠，用户操作后按会话记忆 */
+    private val _htmlExpandedIds = MutableStateFlow<Set<String>>(emptySet())
+    val htmlExpandedIds: StateFlow<Set<String>> = _htmlExpandedIds.asStateFlow()
+
+    fun setHtmlExpanded(
+        messageId: String,
+        expanded: Boolean,
+    ) {
+        val sessionId = _activeSessionId.value
+        if (sessionId.isBlank()) return
+        val next =
+            _htmlExpandedIds.value.toMutableSet().apply {
+                if (expanded) add(messageId) else remove(messageId)
+            }
+        _htmlExpandedIds.value = next
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
+                    huiExpandKey(sessionId),
+                    com.mistbell.tavern.android.ui.chat.htmlui.HtmlExpandCodec.encode(next),
+                ),
+            )
+        }
+    }
+
+    /** 会话切换时重载该会话的展开状态集合（无记录则为空集 = 全部默认折叠） */
+    private suspend fun reloadHtmlExpanded(sessionId: String) {
+        _htmlExpandedIds.value =
+            if (sessionId.isBlank()) {
+                emptySet()
+            } else {
+                com.mistbell.tavern.android.ui.chat.htmlui.HtmlExpandCodec
+                    .decode(db.settingsDao().getValue(huiExpandKey(sessionId)))
+            }
+    }
+
+    private fun huiExpandKey(sessionId: String): String = "ext.htmlui.expanded.$sessionId"
+
     /** 从角色卡 extensions 提取 tavern_helper.scripts（坏卡/无字段按空表处理）。 */
     private fun parseTavernHelperScripts(
         extensions: kotlinx.serialization.json.JsonObject?,
@@ -562,6 +602,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     init {
         networkMonitor.start()
         // 不在 init 中调用 loadLocalState()，等待显式的 loadSession() 调用
+
+        // HTML 界面展开状态跟随会话切换重载（按会话隔离持久化）
+        viewModelScope.launch {
+            _activeSessionId.collect { reloadHtmlExpanded(it) }
+        }
 
         // 移除自动同步 - 安卓和Web数据完全隔离，本地优先
         // 用户如果需要同步可以手动触发

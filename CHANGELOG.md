@@ -33,6 +33,7 @@
 - 启动对账补齐消息级孤儿向量清理：删除落盘被强杀打断而复活的向量此前只在召回时兜底过滤、会持续占用索引预算，现每次启动按 Room 存在性收敛（源表为空则保守跳过）。
 
 ### Changed
+- HTML 界面呈现升级：纯 HTML 消息（如苍玄界开场界面）去掉气泡外壳全宽渲染（左右边距 16dp→6dp、无气泡底色/边框/内边距），WebView 透明底与聊天背景融合，高度上限 70%→85% 屏高；新增「全屏」沉浸层（工具行入口，边缘到边缘渲染、隐藏系统栏、✕/返回关闭，与内嵌同一沙箱工厂与桥）；折叠/展开状态按会话持久化（settings 表 ext.htmlui.expanded.<sessionId>，重启与回收不丢，默认折叠）；工具行加半透明底色保证透明背景下可读；WebView 创建收敛为 HtmlWebViewFactory（内嵌与全屏共用）。
 - PromptBuilder 核心装配拆分重构：`buildPromptTrace` 单体函数（442 行/圈复杂度 88）拆为「装配上下文 + 17 个阶段函数」，入参打包为 `PromptRequest`；**输出逐字节不变**（预览与真实请求同一装配路径的契约不变），detekt 的 LongMethod/CyclomaticComplexMethod/LongParameterList 三项告警消除，重复的角色卡 data_json 解析收敛为 `parseCharacterData` helper。
 
 ## [0.9.5-beta] - 2026-10-20
