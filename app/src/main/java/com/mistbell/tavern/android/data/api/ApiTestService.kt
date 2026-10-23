@@ -137,10 +137,12 @@ class ApiTestService {
             } catch (e: java.net.UnknownHostException) {
                 ApiTestResult.Error("无法连接到服务器，请检查网络或 API 地址")
             } catch (e: java.net.SocketTimeoutException) {
+                android.util.Log.e("ApiTestService", "连接超时: url=${ApiConfigJson.redactUrl(apiUrl)}", e)
                 ApiTestResult.Error("连接超时，请检查网络")
             } catch (e: javax.net.ssl.SSLException) {
                 ApiTestResult.Error("SSL 证书验证失败")
             } catch (e: Exception) {
+                android.util.Log.e("ApiTestService", "测试异常: url=${ApiConfigJson.redactUrl(apiUrl)}", e)
                 // 异常文本可能携带完整请求 URL（Gemini key 在 query），落 UI 前统一脱敏
                 ApiTestResult.Error("测试失败: ${ApiConfigJson.redactUrl(e.message ?: "未知错误")}")
             }
