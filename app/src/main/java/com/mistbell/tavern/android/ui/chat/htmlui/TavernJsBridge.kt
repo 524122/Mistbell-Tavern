@@ -18,9 +18,11 @@ import android.webkit.JavascriptInterface
  * - log(msg)
  * - eventEmit(type, payloadJson)
  */
+@Suppress("TooManyFunctions") // 桥方法即白名单契约，逐个对应一类宿主能力
 class TavernJsBridge(
     private val host: HtmlBridgeHost,
     private val onHeightReport: (Int) -> Unit,
+    private val onScrollableChange: (Boolean) -> Unit = {},
 ) {
     @JavascriptInterface
     fun log(message: String?) {
@@ -76,6 +78,12 @@ class TavernJsBridge(
     fun reportHeight(heightPx: Int) {
         Log.d(TAG, "reportHeight: $heightPx")
         onHeightReport(heightPx)
+    }
+
+    /** 页面是否存在可纵向滚动的内容（决定面板手势由 WebView 还是外层聊天列表接管） */
+    @JavascriptInterface
+    fun reportScrollable(scrollable: Boolean) {
+        onScrollableChange(scrollable)
     }
 
     companion object {

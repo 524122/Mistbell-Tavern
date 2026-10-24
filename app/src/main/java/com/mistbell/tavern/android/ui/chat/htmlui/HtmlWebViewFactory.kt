@@ -30,20 +30,32 @@ internal object HtmlWebViewFactory {
                 )
             // 透明底：无自带背景的 HTML 与聊天背景融合，不罩一层白板
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            // 嵌套滚动：手势落在面板上时由 WebView 自行处理——外层聊天 LazyColumn
-            // 抢先拦截会导致面板内部滚动与悬浮球拖动全部失灵；手势结束恢复拦截。
+            // 关闭 overscroll 光晕：内容不溢出时手势不再被 WebView 吃掉，
+            // 未消耗的滚动才能经嵌套滚动回传给外层聊天列表
+            overScrollMode = android.view.View.OVER_SCROLL_NEVER
+            // 嵌套滚动：仅当页面确有可滚动内容时才禁止父级拦截——
+            // 不可滚动的面板（如 600px 固定开场界面）把手势还给外层聊天列表，
+            // 否则大面板会把消息列表「锁死」，滚不到后续消息。
+            val scrollableState = booleanArrayOf(false)
             setOnTouchListener { view, event ->
                 when (event.actionMasked) {
                     android.view.MotionEvent.ACTION_DOWN,
                     android.view.MotionEvent.ACTION_MOVE,
-                    -> view.parent?.requestDisallowInterceptTouchEvent(true)
+                    -> view.parent?.requestDisallowInterceptTouchEvent(scrollableState[0])
                     android.view.MotionEvent.ACTION_UP,
                     android.view.MotionEvent.ACTION_CANCEL,
                     -> view.parent?.requestDisallowInterceptTouchEvent(false)
                 }
                 false // 事件继续交给 WebView 自身（滚动/点击/拖动）
             }
-            addJavascriptInterface(TavernJsBridge(host = host, onHeightReport = onHeightReport), "TavernBridge")
+            addJavascriptInterface(
+                TavernJsBridge(
+                    host = host,
+                    onHeightReport = onHeightReport,
+                    onScrollableChange = { scrollableState[0] = it },
+                ),
+                "TavernBridge",
+            )
             // 桥/门面/卡片脚本的注入必须在页面加载完成后进行——
             // 过早注入会被新文档覆盖（此前高度回报与桥失效即由此而来）
             HtmlUiSandbox.configure(this, onExternalBlocked) { webView ->
@@ -124,7 +136,41 @@ internal object HtmlWebViewFactory {
         """
         (function () {
           if (window.__tavernHeightObserver) return;
-          const report = () => window.TavernBridge.reportHeight(document.documentElement.scrollHeight);
+          // 可滚动性判定（嵌套滚动谁接管手势的依据）：文档或任一 overflow 容器纵向溢出即为 true。
+          // 全量扫描较贵，用 800ms 时间窗去抖，复用高度回报的触发节奏。
+          let lastScrollableCheck = 0;
+          const computeScrollable = () => {
+            const now = Date.now();
+            if (now - lastScrollableCheck < 800) return;
+            lastScrollableCheck = now;
+            const de = document.documentElement;
+            // 有效可见性：沿祖先排除 display:none / visibility:hidden / 近零透明度 / pointer-events:none。
+            // 卡片弹层常用 opacity:0 + pointer-events:none 表示「关闭」，不能算进可滚动内容。
+            const isVisible = (el) => {
+              let cur = el;
+              while (cur && cur.nodeType === 1) {
+                const st = getComputedStyle(cur);
+                if (st.display === 'none' || st.visibility === 'hidden' ||
+                    Number(st.opacity) < 0.05 || st.pointerEvents === 'none') return false;
+                cur = cur.parentElement;
+              }
+              return true;
+            };
+            let scrollable = de.scrollHeight > window.innerHeight + 4;
+            if (!scrollable) {
+              scrollable = Array.from(document.querySelectorAll('*')).some(el => {
+                if (!isVisible(el)) return false;
+                if (el.scrollHeight <= el.clientHeight + 4) return false;
+                const oy = getComputedStyle(el).overflowY;
+                return oy === 'auto' || oy === 'scroll';
+              });
+            }
+            window.TavernBridge.reportScrollable(scrollable);
+          };
+          const report = () => {
+            window.TavernBridge.reportHeight(document.documentElement.scrollHeight);
+            computeScrollable();
+          };
           report();
           setTimeout(report, 300);
           setTimeout(report, 1200);
