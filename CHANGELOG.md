@@ -39,6 +39,7 @@
 - 启动对账补齐消息级孤儿向量清理：删除落盘被强杀打断而复活的向量此前只在召回时兜底过滤、会持续占用索引预算，现每次启动按 Room 存在性收敛（源表为空则保守跳过）。
 
 ### Changed
+- WebView 预热池与实例回收：进聊天页预热一个裸 WebView（仅初始化 Chromium 进程，不加载文档），首个 HTML 消息直接复用，消除首次初始化白屏；实例用 applicationContext 避免持有 Activity，会话退出时兜底销毁未取走的预热实例；气泡离开组合即销毁（滚出视口释放），回滚由工厂重建，长 HTML 会话不再累积实例。
 - WebView 生命周期与资源策略优化：HTML 气泡/全屏层/全局宿主层在离开组合时 `destroy()`（不再累积 Chromium 实例）；缓存策略由 `LOAD_NO_CACHE` 改回 `LOAD_DEFAULT`（字体/图标/头像跨会话复用）；新增 Google Fonts 本地镜像——常用三款字体 CSS（Noto Sans/Serif SC、Zhi Mang Xing）及其全部 woff2 子集打包进 `assets/htmlui/fonts/`（约 496 个文件），CSS 与 `fonts.gstatic.com` 字体文件经 `tavern.local` 由 assets 提供，离线也可用、零重复下载。
 - HTML 界面兼容前置库：沙箱 WebView 在文档自身脚本之前注入内置 jQuery 3.7.1（MIT，assets/htmlui/jquery.min.js）与 lodash get/set 净室最小垫片——酒馆卡片默认宿主提供 `$`/`_`，此前卡片内联脚本解析期即抛错，苍玄界的地志列表、3D 因果轮盘等动态子页面无法渲染；注入结构与 CSP 同一 <head> 插入路径（HtmlPrereqsTest 4 例）。
 - HTML 界面沙箱资源策略放宽：由「仅 https 图片」放宽为「https 被动资源全放行」——图片/样式/字体/音频/视频按扩展名放行，无扩展名样式表（如 fonts.googleapis.com/css2）按 Accept: text/css 放行；外链脚本（.js）、fetch/XHR（connect-src 'none'）、明文 http、导航一律维持阻断，CSP meta 同步更新；判定抽纯函数（HtmlUiSandboxTest 5 例）；设置页开关与确认文案同步。楼层界面的 FontAwesome 图标、Google Fonts 书法字与 BGM 由此可原生加载。

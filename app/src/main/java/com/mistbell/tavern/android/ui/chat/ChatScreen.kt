@@ -190,6 +190,15 @@ fun ChatScreen(
     val htmlExpandedIds by viewModel.htmlExpandedIds.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
+    // 预热 WebView：提前初始化 Chromium 进程，首个 HTML 消息直接复用（只预热不加载文档）
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.mistbell.tavern.android.ui.chat.htmlui.HtmlWebViewPool.preheat(appContext)
+    }
+    // 会话退出时兜底销毁未被取走的预热实例
+    androidx.compose.runtime.DisposableEffect(sessionId) {
+        onDispose { com.mistbell.tavern.android.ui.chat.htmlui.HtmlWebViewPool.clear() }
+    }
     // 群聊模式：按消息归属渲染说话方 + "让TA继续"入口均以此开关
     val groupMode by viewModel.groupMode.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()

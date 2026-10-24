@@ -18,7 +18,7 @@ internal object HtmlWebViewFactory {
         host: HtmlBridgeHost,
         onHeightReport: (Int) -> Unit,
         onExternalBlocked: (String) -> Unit,
-        webViewFactory: (android.content.Context) -> WebView = { WebView(it) },
+        webViewFactory: (android.content.Context) -> WebView = { HtmlWebViewPool.take(it) },
     ): WebView =
         webViewFactory(context).apply {
             // WRAP_CONTENT：高度完全由 Compose Modifier 驱动（此前 MATCH_PARENT+1px 与
@@ -141,7 +141,7 @@ internal object HtmlWebViewFactory {
           let lastScrollableCheck = 0;
           const computeScrollable = () => {
             const now = Date.now();
-            if (now - lastScrollableCheck < 800) return;
+            if (now - lastScrollableCheck < 2500) return;
             lastScrollableCheck = now;
             const de = document.documentElement;
             // 有效可见性：沿祖先排除 display:none / visibility:hidden / 近零透明度 / pointer-events:none。
@@ -159,8 +159,9 @@ internal object HtmlWebViewFactory {
             let scrollable = de.scrollHeight > window.innerHeight + 4;
             if (!scrollable) {
               scrollable = Array.from(document.querySelectorAll('*')).some(el => {
-                if (!isVisible(el)) return false;
+                // 先做零成本尺寸过滤（绝大多数元素在此被排除），再对少数候选走祖先可见性
                 if (el.scrollHeight <= el.clientHeight + 4) return false;
+                if (!isVisible(el)) return false;
                 const oy = getComputedStyle(el).overflowY;
                 return oy === 'auto' || oy === 'scroll';
               });
