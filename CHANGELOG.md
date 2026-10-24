@@ -12,6 +12,7 @@
 ## [Unreleased]
 
 ### Added
+- HTML 界面全局宿主层：卡片 tavern_helper.scripts 改由覆盖聊天区的透明 WebView 执行（与卡片在酒馆助手里往 window.parent 宿主窗口插悬浮控件对齐）——坊/灵悬浮球、状态面板、工坊弹窗不再困在消息面板内，可覆盖整个聊天区并自由拖动；消息面板仅保留消息内联 HTML。区域外触摸穿透回聊天区（JS 周期上报悬浮球/弹层 rect，HostLayerWebView 对区域外 ACTION_DOWN 直接交回父布局；弹层打开时整层可交互以支持外部点击关闭）；覆盖层与内嵌共用沙箱/前置库/桥与 MVU 变量推送；RegionReportTest 4 例。
 - MVU 变量兼容层（MVU-lite，净室实现，契约兼容 MagVarUpdate 不复制其代码）：回复落库前解析 `<UpdateVariable>…<JSONPatch>` 指令（replace/delta/remove 三操作、`/`-分隔路径、路径安全防护、`delta` 对非数值跳过与缺键从 0 起），指令块剥离后正文正常渲染；变量树按会话隔离持久化于 settings 表并带单调版本号；变更后广播 `TavernEvent.VariablesUpdated`——脚本包收 `variables:updated` 事件、HTML 界面收 `mvu_variable_update_ended`（及 `mvu_command_parsed`）事件；HTML 门面新增 `getVariables`/`insertOrAssignVariables`/`triggerSlash`/`eventOn`/`window.Mvu` 别名，卡片脚本改以 `<script type="module">` 注入（单脚本失败不互相炸）；`registerMvuSchema` 为空操作占位。解析引擎 `data/mvu/MvuEngine` 纯 JVM 可独立单测（8 例），文档见 docs/SCRIPTING.md「MVU 变量兼容层」。
 - 卡级正则脚本（regex_scripts，display-time 子集）：角色卡 extensions.regex_scripts 在 AI 消息**展示时**按序应用（placement 含 2、disabled 跳过、/pattern/flags 支持 i/m/s、替换串按酒馆语义展开 `$$`/`$&`/`$1-99`/`$<name>`，越界组按空串不炸；jQuery 裸 `$` 不误伤），不改存储原文；苍玄界类卡片的开场 HTML 界面由此原生出现（卡级正则替换 → HTML 界面气泡渲染）。
 - HTML 界面（实验性，默认关）：消息中的 ```html 块/裸 HTML 在沙箱 WebView 中渲染为可交互界面（对齐酒馆助手楼层渲染的受控版）——设置 → 高级设置 → 实验性功能开启（含风险确认）；沙箱：禁 DOM storage/文件/地理位置/导航，仅放行 https 图片，脚本仅内联，CSP 注入兜底；桥 `TavernHelper`：getVar/setVar（会话级持久变量）、getChatMessages、sendMessage、eventEmit、log；角色卡 tavern_helper.scripts 在页面加载完成后按序注入；WebView 高度随内容自适应（70% 屏高封顶）、DOM 变化持续回报、折叠/展开/查看源码；被阻断的外部资源在气泡内联提示计数。测试卡见 samples/character-htmlui-test.json。

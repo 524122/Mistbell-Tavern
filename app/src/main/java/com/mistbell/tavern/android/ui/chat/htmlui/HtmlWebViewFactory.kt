@@ -18,8 +18,9 @@ internal object HtmlWebViewFactory {
         host: HtmlBridgeHost,
         onHeightReport: (Int) -> Unit,
         onExternalBlocked: (String) -> Unit,
+        webViewFactory: (android.content.Context) -> WebView = { WebView(it) },
     ): WebView =
-        WebView(context).apply {
+        webViewFactory(context).apply {
             // WRAP_CONTENT：高度完全由 Compose Modifier 驱动（此前 MATCH_PARENT+1px 与
             // interop 布局博弈导致 Modifier.height 失效，视口被钉在 ~76dp 裁掉内容）
             layoutParams =

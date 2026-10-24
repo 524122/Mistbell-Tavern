@@ -556,7 +556,8 @@ fun ChatScreen(
                                                 onSwipeLeft = onSwipeLeft,
                                                 onSwipeRight = onSwipeRight,
                                                 htmlHost = viewModel.htmlBridgeHost,
-                                                htmlScripts = htmlScripts,
+                                                // tavern_helper.scripts 已移交全局宿主层执行，面板只渲染消息内联 HTML
+                                                htmlScripts = emptyList(),
                                                 htmlUiEnabled = htmlUiEnabled,
                                                 cardRegexScripts = cardRegexScripts,
                                                 variablesVersion = mvuVariablesVersion,
@@ -598,7 +599,8 @@ fun ChatScreen(
                                             onSwipeLeft = onSwipeLeft,
                                             onSwipeRight = onSwipeRight,
                                             htmlHost = viewModel.htmlBridgeHost,
-                                            htmlScripts = htmlScripts,
+                                            // tavern_helper.scripts 已移交全局宿主层执行，面板只渲染消息内联 HTML
+                                            htmlScripts = emptyList(),
                                             htmlUiEnabled = htmlUiEnabled,
                                             cardRegexScripts = cardRegexScripts,
                                             variablesVersion = mvuVariablesVersion,
@@ -772,6 +774,18 @@ fun ChatScreen(
                                 )
                             }
                         }
+                    }
+
+                    // 全局宿主层：卡片 tavern_helper.scripts 在此覆盖层执行，
+                    // 悬浮球/状态面板/工坊弹窗覆盖整个聊天区（区域外触摸穿透回消息区）。
+                    // 必须放在输入区 Surface 之外——否则 Surface 被撑满全高，
+                    // messageListBottomInset 随之异常，消息列表被压成零高度。
+                    if (htmlUiEnabled && htmlScripts.isNotEmpty()) {
+                        com.mistbell.tavern.android.ui.chat.htmlui.HtmlHostLayer(
+                            scripts = htmlScripts,
+                            host = viewModel.htmlBridgeHost,
+                            variablesVersion = mvuVariablesVersion,
+                        )
                     }
                 }
             }
