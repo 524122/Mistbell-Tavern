@@ -15,11 +15,16 @@ internal object HtmlPrereqs {
     @Volatile
     private var jqueryCache: String? = null
 
-    /** 把 jQuery + lodash 垫片注入 <head>（无 <head> 则前置——文档片段场景本就没有 <!DOCTYPE>）。 */
-    fun inject(context: Context, html: String): String =
+    /** 把 jQuery + lodash/localStorage 垫片注入 <head>（无 <head> 则前置——文档片段场景本就没有 <!DOCTYPE>）。 */
+    fun inject(
+        context: Context,
+        html: String,
+    ): String =
         injectWithPrereq(
             html,
-            "<script>${loadJquery(context)}</script>\n<script>$LODASH_SHIM</script>",
+            "<script>${loadJquery(context)}</script>\n" +
+                "<script>$LODASH_SHIM</script>\n" +
+                "<script>$LOCALSTORAGE_SHIM</script>",
         )
 
     /** 注入结构（纯函数，便于单测）：<head> 内紧跟插入；无 <head> 则前置。 */
@@ -64,5 +69,34 @@ internal object HtmlPrereqs {
             return o;
           },
         };
+        """
+
+    /**
+     * localStorage 垫片：domStorageEnabled=false 时原生 localStorage 访问直接抛
+     * SecurityError，卡片脚本（悬浮球位置、状态栏缓存等）整块崩坏。
+     * 用 JS 属性覆盖换成桥实现——读写走 TavernBridge getVar/setVar（ext.hui.<sessionId>），
+     * 保持会话级隔离；key()/length 为 v1 空实现（不支持遍历键）。
+     */
+    private const val LOCALSTORAGE_SHIM =
+        """
+        (function () {
+          const PREFIX = 'ls.';
+          const shim = {
+            getItem: function (k) {
+              const v = window.TavernBridge.getVar(PREFIX + String(k));
+              return v === '' ? null : v;
+            },
+            setItem: function (k, v) { window.TavernBridge.setVar(PREFIX + String(k), String(v)); },
+            removeItem: function (k) { window.TavernBridge.setVar(PREFIX + String(k), ''); },
+            clear: function () {},
+            key: function () { return null; },
+            get length() { return 0; },
+          };
+          try {
+            Object.defineProperty(window, 'localStorage', { value: shim, configurable: true });
+          } catch (e) {
+            try { window.localStorage = shim; } catch (e2) { console.error('localStorage shim failed', e2); }
+          }
+        })();
         """
 }

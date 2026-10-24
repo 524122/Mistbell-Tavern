@@ -135,6 +135,18 @@ object HtmlUiSandbox {
                     onPageFinished(view)
                 }
             }
+
+        // 卡片 JS 控制台转发 logcat：兼容垫片/卡片脚本异常可诊断（此前脚本静默失败只能猜）
+        webView.webChromeClient =
+            object : android.webkit.WebChromeClient() {
+                override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage): Boolean {
+                    android.util.Log.d(
+                        "HtmlUiConsole",
+                        "${consoleMessage.message()} @${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}",
+                    )
+                    return true
+                }
+            }
     }
 
     /** 阻断响应：空 204。 */

@@ -27,6 +27,8 @@
 - 向量索引存储引擎升级为 sqlite-vec（vec0 虚拟表 + requery sqlite-android，独立 `vector_index.db`，按维度分表）：增量持久化取代整文件 JSON 重写，向量不再占用 JVM 堆，检索下推到 C 层；启动时自动从旧 `vector_store.json` 迁移（原文件改名 `.legacy` 兜底），扩展加载失败自动回退旧 JSON 引擎，备份 zip 格式不变、新旧引擎可互相恢复。
 
 ### Fixed
+- 修复 HTML 面板无法内部滚动、悬浮球无法拖动：WebView 嵌在聊天 LazyColumn 中，纵向手势被外层滚动容器抢先拦截；现触摸落在面板上时由 WebView 自行处理手势（DOWN/MOVE 禁止父级拦截、UP/CANCEL 恢复），面板内滚动与卡片悬浮球拖动可用，面板外的聊天滚动不受影响。
+- 修复卡片脚本因 localStorage 被禁用整块崩坏：domStorageEnabled=false 时访问原生 localStorage 直接抛 SecurityError（悬浮球拖动安装、状态栏缓存均依赖）；新增桥接垫片——JS 属性覆盖 localStorage，读写经 TavernBridge 落到 ext.hui.<sessionId> 会话级存储（保持隔离、key()/length 为空实现）；悬浮控件拖动另需 touchmove 取消拦截原生滚动（pointer 事件 preventDefault 不影响原生滚动），touchstart 不动以保留点击；卡片 JS 控制台同步转发 logcat（HtmlUiConsole）便于排障。
 - 修复提示词编辑对话框（添加/编辑自定义提示词）内容过高时「取消/确定」按钮被挤出屏幕不可达：对话框内容列改为可滚动（verticalScroll）。
 - 修复过期测试 CardParserTest：@D depth 钳制上限自「depth up to 1000」起为 1000，测试仍断言旧值 10 导致红灯。
 - 修复相似度阈值设置失效：召回格式化层硬编码的 `score > 0.5` 下限把用户可配阈值（默认 0.35）实际钳到 0.5 才生效，0.35~0.5 分段的有效召回被静默丢弃。
