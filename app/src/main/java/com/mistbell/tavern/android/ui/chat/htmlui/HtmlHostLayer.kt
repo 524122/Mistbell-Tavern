@@ -108,9 +108,8 @@ fun HtmlHostLayer(
         factory = { context ->
             val layer = HostLayerWebView(context)
             webViewRef.value = layer
-            // 覆盖层必须真正透明：部分 WebView 版本硬件加速下透明背景失效变白，
-            // 需要软件层 + 清空背景资源双重保底
-            layer.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+            // 透明底由工厂统一 setBackgroundColor(TRANSPARENT) + 壳文档透明背景保证，
+            // 不再强制软件渲染层（硬件加速下帧率更高）
             layer.setBackgroundResource(0)
             HtmlWebViewFactory.create(
                 context = context,

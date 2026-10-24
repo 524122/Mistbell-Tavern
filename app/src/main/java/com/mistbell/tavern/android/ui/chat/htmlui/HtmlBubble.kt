@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -90,6 +91,18 @@ fun HtmlBubble(
     var showFullscreen by remember(messageId) { mutableStateOf(false) }
     // WebView 引用：供变量更新推送等宿主主动调用（evaluateJavascript）
     val webViewRef = remember(messageId) { arrayOfNulls<android.webkit.WebView>(1) }
+
+    // 实例生命周期：离开组合（滚出视口/会话切换）即销毁，避免长会话残留大量 Chromium 实例
+    DisposableEffect(messageId) {
+        onDispose {
+            webViewRef[0]?.let { webView ->
+                webView.stopLoading()
+                webView.removeJavascriptInterface("TavernBridge")
+                webView.destroy()
+            }
+            webViewRef[0] = null
+        }
+    }
 
     // 离开组合即销毁实例，避免长会话中大量 HTML 消息累积 Chromium 实例
     androidx.compose.runtime.DisposableEffect(messageId) {
