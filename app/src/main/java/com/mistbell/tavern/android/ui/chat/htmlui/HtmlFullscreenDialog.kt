@@ -102,6 +102,10 @@ fun HtmlFullscreenDialog(
         val blockedResources = remember { mutableStateListOf<String>() }
         val webViewRef = remember { arrayOfNulls<android.webkit.WebView>(1) }
 
+        androidx.compose.runtime.DisposableEffect(Unit) {
+            onDispose { webViewRef[0]?.destroy() }
+        }
+
         // 变量更新推送（与内嵌气泡同一契约）
         LaunchedEffect(variablesVersion) {
             if (variablesVersion > 0) {

@@ -91,6 +91,11 @@ fun HtmlBubble(
     // WebView 引用：供变量更新推送等宿主主动调用（evaluateJavascript）
     val webViewRef = remember(messageId) { arrayOfNulls<android.webkit.WebView>(1) }
 
+    // 离开组合即销毁实例，避免长会话中大量 HTML 消息累积 Chromium 实例
+    androidx.compose.runtime.DisposableEffect(messageId) {
+        onDispose { webViewRef[0]?.destroy() }
+    }
+
     // 变量更新推送：版本变化时向页面广播 mvu_variable_update_ended（携带最新 stat_data）
     LaunchedEffect(variablesVersion, messageId) {
         if (variablesVersion > 0) {

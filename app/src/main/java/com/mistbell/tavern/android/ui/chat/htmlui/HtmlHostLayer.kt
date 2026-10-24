@@ -100,6 +100,10 @@ fun HtmlHostLayer(
 ) {
     val webViewRef = remember(scripts) { mutableStateOf<HostLayerWebView?>(null) }
 
+    androidx.compose.runtime.DisposableEffect(scripts) {
+        onDispose { webViewRef.value?.destroy() }
+    }
+
     AndroidView(
         factory = { context ->
             val layer = HostLayerWebView(context)

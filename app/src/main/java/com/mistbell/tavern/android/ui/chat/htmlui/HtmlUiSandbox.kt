@@ -32,6 +32,31 @@ object HtmlUiSandbox {
 
     private const val BLOCKED_STATUS = 204
 
+    /** Google Fonts CSS → 本地镜像（assets/htmlui/fonts/，离线可用；fonts.gstatic.com 的字体文件经 tavern.local 同样走 assets）。 */
+    private val GOOGLE_FONT_CSS =
+        mapOf(
+            "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900" +
+                "&family=Noto+Serif+SC:wght@600;800;900&display=swap" to
+                "htmlui/fonts/noto-sans-serif-sc.css",
+            "https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing" +
+                "&family=Noto+Serif+SC:wght@400;700;900&display=swap" to
+                "htmlui/fonts/zhi-mang-xing.css",
+            "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800;900&display=swap" to
+                "htmlui/fonts/noto-serif-sc.css",
+        )
+
+    internal fun localFontCssAssetFor(url: String): String? = GOOGLE_FONT_CSS[url.trimEnd('\\')]
+
+    private fun fontMimeType(path: String): String =
+        when (path.substringAfterLast('.', "").lowercase()) {
+            "css" -> "text/css"
+            "woff2" -> "font/woff2"
+            "woff" -> "font/woff"
+            "ttf" -> "font/ttf"
+            "otf" -> "font/otf"
+            else -> "application/octet-stream"
+        }
+
     /** 被动资源扩展名：只读展示/播放，无代码执行面。 */
     private val PASSIVE_EXTENSIONS =
         setOf(
@@ -95,15 +120,31 @@ object HtmlUiSandbox {
             allowUniversalAccessFromFileURLs = false
             setGeolocationEnabled(false)
             mediaPlaybackRequiresUserGesture = true
-            cacheMode = WebSettings.LOAD_NO_CACHE
+            // 默认缓存策略：字体/图标/头像跨会话复用（此前 NO_CACHE 每次都重新拉取）
+            cacheMode = WebSettings.LOAD_DEFAULT
         }
         webView.webViewClient =
             object : WebViewClient() {
+                @Suppress("ReturnCount") // 镜像命中即返回，分支即语义
                 override fun shouldInterceptRequest(
                     view: WebView,
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
                     val url = request.url
+                    // 字体本地镜像：Google Fonts CSS 与 tavern.local/fonts/* 由 assets 直接提供（离线可用）
+                    if (url != null) {
+                        localFontCssAssetFor(url.toString())?.let { asset ->
+                            return WebResourceResponse("text/css", "utf-8", view.context.assets.open(asset))
+                        }
+                        if (url.host == "tavern.local" && url.path?.startsWith("/fonts/") == true) {
+                            val assetPath = "htmlui" + url.path
+                            return WebResourceResponse(
+                                fontMimeType(assetPath),
+                                "utf-8",
+                                view.context.assets.open(assetPath),
+                            )
+                        }
+                    }
                     val host = url?.host?.lowercase().orEmpty()
                     // data: 方案是 loadDataWithBaseURL 内容的实际加载形式（新版本 WebView 会把
                     // 传入内容转成 data: URL 再发起拦截回调）——文档本体，必须放行

@@ -1,5 +1,6 @@
 package com.mistbell.tavern.android.ui.chat.htmlui
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,5 +50,27 @@ class HtmlUiSandboxTest {
     fun `query and fragment do not confuse extension parsing`() {
         assertTrue(HtmlUiSandbox.shouldAllowHttps("https://a.b/c.PNg?x=.js", null))
         assertFalse(HtmlUiSandbox.shouldAllowHttps("https://a.b/c.js?x=.png", null))
+    }
+}
+
+@Suppress("MaxLineLength") // Google Fonts 完整查询串本就超长
+class FontMirrorTest {
+    @Test
+    fun `google font css urls map to local assets`() {
+        val noto =
+            "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900" +
+                "&family=Noto+Serif+SC:wght@600;800;900&display=swap"
+        val zhi =
+            "https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing" +
+                "&family=Noto+Serif+SC:wght@400;700;900&display=swap"
+        assertEquals("htmlui/fonts/noto-sans-serif-sc.css", HtmlUiSandbox.localFontCssAssetFor(noto))
+        assertEquals("htmlui/fonts/zhi-mang-xing.css", HtmlUiSandbox.localFontCssAssetFor(zhi))
+    }
+
+    @Test
+    fun `trailing backslash tolerated and unknown urls return null`() {
+        val url = "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800;900&display=swap"
+        assertEquals("htmlui/fonts/noto-serif-sc.css", HtmlUiSandbox.localFontCssAssetFor(url + "\\"))
+        assertEquals(null, HtmlUiSandbox.localFontCssAssetFor("https://fonts.googleapis.com/css2?family=Roboto"))
     }
 }
