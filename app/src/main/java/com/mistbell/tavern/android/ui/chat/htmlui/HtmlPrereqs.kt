@@ -15,7 +15,7 @@ internal object HtmlPrereqs {
     @Volatile
     private var jqueryCache: String? = null
 
-    /** 把 jQuery + lodash/localStorage 垫片注入 <head>（无 <head> 则前置——文档片段场景本就没有 <!DOCTYPE>）。 */
+    /** 把 jQuery + lodash/localStorage/等待初始化垫片注入 <head>（无 <head> 则前置——文档片段场景本就没有 <!DOCTYPE>）。 */
     fun inject(
         context: Context,
         html: String,
@@ -24,7 +24,9 @@ internal object HtmlPrereqs {
             html,
             "<script>${loadJquery(context)}</script>\n" +
                 "<script>$LODASH_SHIM</script>\n" +
-                "<script>$LOCALSTORAGE_SHIM</script>",
+                "<script>$LOCALSTORAGE_SHIM</script>\n" +
+                "<script>$WAIT_GLOBAL_SHIM</script>\n" +
+                "<script>${iframePatchJs(context)}</script>",
         )
 
     /** 注入结构（纯函数，便于单测）：<head> 内紧跟插入；无 <head> 则前置。 */
@@ -99,4 +101,36 @@ internal object HtmlPrereqs {
           }
         })();
         """
+
+    private const val WAIT_GLOBAL_SHIM =
+        "window.waitGlobalInitialized = window.waitGlobalInitialized || function () { return Promise.resolve(); };"
+
+    /** 给卡片动态创建的 iframe srcdoc 打补丁：写入时把兼容垫片插到 <head>（无则前置），保证 waitGlobalInitialized 等在 iframe 脚本解析前存在。 */
+    private fun iframePatchJs(context: Context): String {
+        // 注入串用 '</scr'+'ipt>' 拼闭合标签，避免外层补丁脚本被提前闭合
+        val shimCode = loadJquery(context) + LODASH_SHIM + LOCALSTORAGE_SHIM + WAIT_GLOBAL_SHIM
+        val shimJson = com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager.jsonString(shimCode)
+        return """
+            (function () {
+              const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'srcdoc');
+              if (!desc || !desc.set) return;
+              const origSet = desc.set;
+              const shim = $shimJson;
+              const injection = '<script>' + shim + '</scr' + 'ipt>';
+              Object.defineProperty(HTMLIFrameElement.prototype, 'srcdoc', {
+                set: function (html) {
+                  const m = /<head[^>]*>/i.exec(html);
+                  if (m) {
+                    const idx = m.index + m[0].length;
+                    origSet.call(this, html.slice(0, idx) + injection + html.slice(idx));
+                  } else {
+                    origSet.call(this, injection + html);
+                  }
+                },
+                get: desc.get,
+                configurable: true,
+              });
+            })();
+            """.trimIndent()
+    }
 }

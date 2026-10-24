@@ -121,6 +121,8 @@ internal object HtmlWebViewFactory {
           },
           on: (event, fn) => window.TavernHelper.eventOn(event, fn),
         };
+        // 酒馆助手同名全局函数别名（部分卡片直接用裸 eventOn）
+        window.eventOn = window.TavernHelper.eventOn;
         // 悬浮控件拖动兼容：pointer 事件的 preventDefault 不影响 WebView 原生滚动，
         // 手势会被原生滚动抢走（pointercancel）。在首次 touchmove 取消后原生滚动不再启动，
         // 拖动全程交给卡片的 Pointer Events 实现；touchstart 不动，点击开面板不受影响。

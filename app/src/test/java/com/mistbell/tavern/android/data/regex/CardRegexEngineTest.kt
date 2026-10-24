@@ -35,8 +35,8 @@ class CardRegexEngineTest {
 
     @Test
     fun `斜杠包裹与大小写 flag`() {
-        val result = CardRegexEngine.applyToAiDisplay("HELLO hello", listOf(script("/hello/i", "hi")))
-        assertEquals("hi hi", result)
+        assertEquals("hi hello", CardRegexEngine.applyToAiDisplay("HELLO hello", listOf(script("/hello/i", "hi"))))
+        assertEquals("hi hi", CardRegexEngine.applyToAiDisplay("HELLO hello", listOf(script("/hello/gi", "hi"))))
     }
 
     @Test
@@ -62,7 +62,59 @@ class CardRegexEngineTest {
     }
 
     @Test
-    fun `parse 从 extensions 提取`() {
+    fun `用户输入按普通显示和提示词规则分流`() {
+        val scripts =
+            listOf(
+                script("input", "stored", placement = listOf(1)),
+                script("display", "<b>display</b>", placement = listOf(1)).copy(markdownOnly = true),
+                script("prompt", "hidden", placement = listOf(1)).copy(promptOnly = true),
+            )
+        assertEquals("stored", CardRegexEngine.applyToUserInput("input", scripts))
+        assertEquals("<b>display</b>", CardRegexEngine.applyToDisplay("display", "user", scripts, depth = 0))
+        assertEquals("hidden", CardRegexEngine.applyToPrompt("prompt", "user", scripts, depth = 0))
+    }
+
+    @Test
+    fun `markdownOnly 与 promptOnly 不串场景`() {
+        val scripts =
+            listOf(
+                script("x", "common"),
+                script("common", "display").copy(markdownOnly = true),
+                script("common", "prompt").copy(promptOnly = true),
+            )
+        assertEquals("display", CardRegexEngine.applyToAiDisplay("x", scripts, depth = 0))
+        assertEquals("prompt", CardRegexEngine.applyToPrompt("x", "assistant", scripts, depth = 0))
+    }
+
+    @Test
+    fun `深度范围按当前零最近历史一计算`() {
+        val oldOnly = script("x", "old").copy(minDepth = 2)
+        val recentOnly = script("x", "recent").copy(maxDepth = 1)
+        assertEquals("x", CardRegexEngine.applyToPrompt("x", "assistant", listOf(oldOnly), depth = 1))
+        assertEquals("old", CardRegexEngine.applyToPrompt("x", "assistant", listOf(oldOnly), depth = 2))
+        assertEquals("recent", CardRegexEngine.applyToAiDisplay("x", listOf(recentOnly), depth = 1))
+        assertEquals("x", CardRegexEngine.applyToAiDisplay("x", listOf(recentOnly), depth = 2))
+    }
+
+    @Test
+    fun `编辑时只运行 runOnEdit 规则`() {
+        val scripts =
+            listOf(
+                script("a", "b", placement = listOf(1)),
+                script("a", "c", placement = listOf(1)).copy(runOnEdit = true),
+            )
+        assertEquals("b", CardRegexEngine.applyToUserInput("a", scripts))
+        assertEquals("c", CardRegexEngine.applyToUserInput("a", scripts, isEdit = true))
+    }
+
+    @Test
+    fun `match 宏与捕获组内容裁剪`() {
+        val rule = script("(secret)-(\\d+)", "$1:{{match}}").copy(trimStrings = listOf("secret"))
+        assertEquals(":-42", CardRegexEngine.applyToAiDisplay("secret-42", listOf(rule)))
+    }
+
+    @Test
+    fun `parse 从 extensions 提取完整执行字段`() {
         val extensions =
             buildJsonObject {
                 put(
@@ -75,14 +127,24 @@ class CardRegexEngineTest {
                                 put("replaceString", JsonPrimitive("<html>x</html>"))
                                 put("disabled", JsonPrimitive(false))
                                 put("placement", buildJsonArray { add(JsonPrimitive(2)) })
+                                put("trimStrings", buildJsonArray { add(JsonPrimitive("trim")) })
+                                put("markdownOnly", JsonPrimitive(true))
+                                put("promptOnly", JsonPrimitive(false))
+                                put("runOnEdit", JsonPrimitive(true))
+                                put("minDepth", JsonPrimitive(2))
+                                put("maxDepth", JsonPrimitive(7))
                             },
                         )
                     },
                 )
             }
-        val scripts = CardRegexEngine.parse(extensions)
-        assertEquals(1, scripts.size)
-        assertEquals("开场白", scripts.first().name)
+        val script = CardRegexEngine.parse(extensions).single()
+        assertEquals("开场白", script.name)
+        assertEquals(listOf("trim"), script.trimStrings)
+        assertTrue(script.markdownOnly)
+        assertTrue(script.runOnEdit)
+        assertEquals(2, script.minDepth)
+        assertEquals(7, script.maxDepth)
         assertTrue(CardRegexEngine.parse(null).isEmpty())
         assertTrue(CardRegexEngine.parse(JsonObject(emptyMap())).isEmpty())
     }

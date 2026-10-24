@@ -1,19 +1,18 @@
 package com.mistbell.tavern.android.data.regex
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * 卡级正则脚本引擎（酒馆 regex_scripts 的显示时子集）。
+ * 卡级正则脚本引擎：按数组顺序执行，坏正则或坏替换只跳过当前条目。
  *
- * 语义（对齐酒馆 display-time）：只作用于 AI 消息（placement 含 2）的**展示内容**，
- * 不改存储原文；脚本按数组顺序依次应用；disabled 跳过。
- *
- * findRegex 支持两种形态：/pattern/flags（flags 支持 i/m/s）与裸模式字符串；
- * replaceString 支持 Kotlin 组引用（$1…）。trimStrings / runOnEdit / minDepth 等不在本期。
+ * 支持用户输入、AI 展示及提示词三类路径；显示/提示词规则由 markdownOnly 与
+ * promptOnly 分流，并支持楼层深度、编辑开关、捕获组裁剪。原始 AI 消息不被改写。
  */
+@Suppress("TooManyFunctions") // 解析、场景过滤与替换展开是同一纯函数引擎的内聚职责
 object CardRegexEngine {
     data class CardRegexScript(
         val name: String,
@@ -21,53 +20,176 @@ object CardRegexEngine {
         val replaceString: String,
         val disabled: Boolean,
         val placement: List<Int>,
+        val trimStrings: List<String> = emptyList(),
+        val markdownOnly: Boolean = false,
+        val promptOnly: Boolean = false,
+        val runOnEdit: Boolean = false,
+        val minDepth: Int? = null,
+        val maxDepth: Int? = null,
     )
 
-    /** 从角色卡 extensions.regex_scripts 解析；坏条目跳过（坏卡不崩会话）。 */
+    private enum class ApplyMode {
+        NORMAL,
+        DISPLAY,
+        PROMPT,
+    }
+
+    /** 从角色卡 extensions.regex_scripts 解析；结构不合法的条目跳过。 */
     fun parse(extensions: JsonObject?): List<CardRegexScript> {
-        val array =
-            extensions?.get("regex_scripts") as? kotlinx.serialization.json.JsonArray ?: return emptyList()
+        val array = extensions?.get("regex_scripts") as? JsonArray ?: return emptyList()
         return array.mapNotNull { element ->
             val obj = element as? JsonObject ?: return@mapNotNull null
-            val find = obj["findRegex"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            val find = obj.string("findRegex") ?: return@mapNotNull null
             CardRegexScript(
-                name = obj["scriptName"]?.jsonPrimitive?.contentOrNull ?: "未命名",
+                name = obj.string("scriptName") ?: "未命名",
                 findRegex = find,
-                replaceString = obj["replaceString"]?.jsonPrimitive?.contentOrNull ?: "",
-                disabled = obj["disabled"]?.jsonPrimitive?.booleanOrNull ?: false,
-                placement =
-                    (obj["placement"] as? kotlinx.serialization.json.JsonArray)
-                        ?.mapNotNull { it.jsonPrimitive.contentOrNull?.toIntOrNull() }
-                        ?: emptyList(),
+                replaceString = obj.string("replaceString").orEmpty(),
+                disabled = obj.boolean("disabled") ?: false,
+                placement = obj.intList("placement"),
+                trimStrings = obj.stringList("trimStrings"),
+                markdownOnly = obj.boolean("markdownOnly") ?: false,
+                promptOnly = obj.boolean("promptOnly") ?: false,
+                runOnEdit = obj.boolean("runOnEdit") ?: false,
+                minDepth = obj.int("minDepth"),
+                maxDepth = obj.int("maxDepth"),
             )
         }
     }
 
-    /** 对 AI 消息展示内容依次应用启用脚本（placement 含 2）。坏正则/坏替换单条跳过。 */
+    private data class ApplyContext(
+        val placement: Int,
+        val mode: ApplyMode,
+        val depth: Int? = null,
+        val isEdit: Boolean = false,
+    )
+
     fun applyToAiDisplay(
         content: String,
         scripts: List<CardRegexScript>,
+        depth: Int? = null,
+        isEdit: Boolean = false,
+    ): String = apply(content, scripts, ApplyContext(PLACEMENT_AI_OUTPUT, ApplyMode.DISPLAY, depth, isEdit))
+
+    /** 按消息角色选择 placement；系统消息不进入卡级对话正则。 */
+    fun applyToDisplay(
+        content: String,
+        role: String,
+        scripts: List<CardRegexScript>,
+        depth: Int? = null,
+        isEdit: Boolean = false,
+    ): String =
+        when (role) {
+            "user" ->
+                apply(
+                    content,
+                    scripts,
+                    ApplyContext(PLACEMENT_USER_INPUT, ApplyMode.DISPLAY, depth, isEdit),
+                )
+            "assistant" -> applyToAiDisplay(content, scripts, depth, isEdit)
+            else -> content
+        }
+
+    /** 发送或编辑用户消息时执行普通规则；只用于显示或提示词的规则不在这里执行。 */
+    fun applyToUserInput(
+        content: String,
+        scripts: List<CardRegexScript>,
+        isEdit: Boolean = false,
+    ): String = apply(content, scripts, ApplyContext(PLACEMENT_USER_INPUT, ApplyMode.NORMAL, isEdit = isEdit))
+
+    /** 当前消息 depth=0，最近一条历史 depth=1，依次向前递增。 */
+    fun applyToPrompt(
+        content: String,
+        role: String,
+        scripts: List<CardRegexScript>,
+        depth: Int,
+        isEdit: Boolean = false,
+    ): String =
+        when (role) {
+            "user" ->
+                apply(
+                    content,
+                    scripts,
+                    ApplyContext(PLACEMENT_USER_INPUT, ApplyMode.PROMPT, depth, isEdit),
+                )
+            "assistant" ->
+                apply(
+                    content,
+                    scripts,
+                    ApplyContext(PLACEMENT_AI_OUTPUT, ApplyMode.PROMPT, depth, isEdit),
+                )
+            else -> content
+        }
+
+    private fun apply(
+        content: String,
+        scripts: List<CardRegexScript>,
+        context: ApplyContext,
     ): String {
         var result = content
-        scripts
-            .filter { !it.disabled && PLACEMENT_AI_OUTPUT in it.placement }
-            .forEach { script ->
-                compileRegex(script.findRegex)?.let { regex ->
-                    runCatching {
-                        result = regex.replace(result) { match -> substituteGroups(script.replaceString, match) }
+        scripts.forEach { script ->
+            if (!script.appliesTo(context)) return@forEach
+            val compiled = compilePattern(script.findRegex) ?: return@forEach
+            runCatching {
+                val replacement = script.replaceString.replace(MATCH_MACRO_REGEX) { "$0" }
+                if (compiled.replaceAll) {
+                    result =
+                        compiled.regex.replace(result) { match ->
+                            substituteGroups(replacement, match, script.trimStrings)
+                        }
+                } else {
+                    compiled.regex.find(result)?.let { match ->
+                        val expanded = substituteGroups(replacement, match, script.trimStrings)
+                        result = result.replaceRange(match.range, expanded)
                     }
                 }
             }
+        }
         return result
     }
 
+    private fun CardRegexScript.appliesTo(context: ApplyContext): Boolean =
+        isUsable(context.placement, context.isEdit) && isInDepth(context.depth) && supports(context.mode)
+
+    private fun CardRegexScript.isUsable(
+        placement: Int,
+        isEdit: Boolean,
+    ): Boolean = !disabled && findRegex.isNotEmpty() && placement in this.placement && (!isEdit || runOnEdit)
+
+    private fun CardRegexScript.isInDepth(depth: Int?): Boolean {
+        if (depth == null) return true
+        val afterMin = minDepth?.let { it < -1 || depth >= it } ?: true
+        val beforeMax = maxDepth?.let { it < 0 || depth <= it } ?: true
+        return afterMin && beforeMax
+    }
+
+    private fun CardRegexScript.supports(mode: ApplyMode): Boolean =
+        when (mode) {
+            ApplyMode.DISPLAY -> markdownOnly || (!markdownOnly && !promptOnly)
+            ApplyMode.PROMPT -> promptOnly || (!markdownOnly && !promptOnly)
+            ApplyMode.NORMAL -> !markdownOnly && !promptOnly
+        }
+
+    private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
+
+    private fun JsonObject.boolean(key: String): Boolean? = (this[key] as? JsonPrimitive)?.booleanOrNull
+
+    private fun JsonObject.int(key: String): Int? = string(key)?.toIntOrNull()
+
+    private fun JsonObject.intList(key: String): List<Int> =
+        (this[key] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }
+            ?: emptyList()
+
+    private fun JsonObject.stringList(key: String): List<String> =
+        (this[key] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull } ?: emptyList()
+
     /**
-     * 酒馆语义的替换串展开（不用 Kotlin 的 $ 组引用——HTML/JS 内容里大量裸 $ 会被误炸）：
-     * `$$`→字面 `$`；`$&`→整段命中；`$1`…`$99`→捕获组；`$<name>`→命名组；其余 `$` 原样。
+     * 替换串展开：`$$`→字面 `$`；`$&`→原始整段命中；`$0`…`$99` 与 `$<name>`
+     * →应用 trimStrings 后的捕获组；其他 `$` 保持原样，避免误伤 HTML/JS。
      */
     internal fun substituteGroups(
         replacement: String,
         match: MatchResult,
+        trimStrings: List<String> = emptyList(),
     ): String {
         val out = StringBuilder(replacement.length)
         var i = 0
@@ -81,19 +203,19 @@ object CardRegexEngine {
             when (replacement[i + 1]) {
                 '$' -> out.append('$').also { i += 2 }
                 '&' -> out.append(match.value).also { i += 2 }
-                '<' -> i = expandNamedGroup(replacement, i, match, out)
-                in '0'..'9' -> i = expandNumberedGroup(replacement, i, match, out)
+                '<' -> i = expandNamedGroup(replacement, i, match, trimStrings, out)
+                in '0'..'9' -> i = expandNumberedGroup(replacement, i, match, trimStrings, out)
                 else -> out.append(ch).also { i++ }
             }
         }
         return out.toString()
     }
 
-    /** `$<name>` → 命名组展开；未闭合按字面 `$` 处理。返回消费后的新下标。 */
     private fun expandNamedGroup(
         replacement: String,
         dollarIndex: Int,
         match: MatchResult,
+        trimStrings: List<String>,
         out: StringBuilder,
     ): Int {
         val close = replacement.indexOf('>', dollarIndex + 2)
@@ -102,15 +224,16 @@ object CardRegexEngine {
             return dollarIndex + 1
         }
         val name = replacement.substring(dollarIndex + 2, close)
-        out.append(match.groups[name]?.value.orEmpty())
+        val value = match.groups[name]?.value.orEmpty()
+        out.append(trimCapturedValue(value, trimStrings))
         return close + 1
     }
 
-    /** `$1`…`$99` → 数字组展开；越界组按空串展开不外炸。返回消费后的新下标。 */
     private fun expandNumberedGroup(
         replacement: String,
         dollarIndex: Int,
         match: MatchResult,
+        trimStrings: List<String>,
         out: StringBuilder,
     ): Int {
         val digits = replacement.substring(dollarIndex + 1).takeWhile { it.isDigit() }.take(2)
@@ -121,33 +244,43 @@ object CardRegexEngine {
             } else {
                 ""
             }
-        out.append(value)
+        out.append(trimCapturedValue(value, trimStrings))
         return dollarIndex + 1 + digits.length
     }
 
-    /** /pattern/flags（i/m/s）或裸模式；坏正则返回 null（调用方跳过） */
-    internal fun compileRegex(findRegex: String): Regex? {
-        val (pattern, flags) = splitPatternAndFlags(findRegex)
-        return runCatching { Regex(pattern, flags) }.getOrNull()
-    }
+    private fun trimCapturedValue(
+        value: String,
+        trimStrings: List<String>,
+    ): String = trimStrings.fold(value) { text, trim -> text.replace(trim, "") }
 
-    private fun splitPatternAndFlags(findRegex: String): Pair<String, Set<RegexOption>> {
+    private data class CompiledPattern(
+        val regex: Regex,
+        val replaceAll: Boolean,
+    )
+
+    /** /pattern/flags 或裸模式；g 控制全部/首次替换，i/m/s 映射为 Kotlin 选项。 */
+    private fun compilePattern(findRegex: String): CompiledPattern? {
         val trimmed = findRegex.trim()
-        if (trimmed.length > 2 && trimmed.startsWith("/") && trimmed.lastIndexOf('/') > 0) {
-            val lastSlash = trimmed.lastIndexOf('/')
-            val flags =
-                trimmed.substring(lastSlash + 1).mapNotNull {
-                    when (it) {
-                        'i' -> RegexOption.IGNORE_CASE
-                        'm' -> RegexOption.MULTILINE
-                        's' -> RegexOption.DOT_MATCHES_ALL
-                        else -> null
-                    }
-                }.toSet()
-            return trimmed.substring(1, lastSlash) to flags
-        }
-        return findRegex to emptySet()
+        val lastSlash = trimmed.lastIndexOf('/')
+        val literal = trimmed.length > 2 && trimmed.startsWith("/") && lastSlash > 0
+        val flagText = if (literal) trimmed.substring(lastSlash + 1) else ""
+        if (literal && flagText.any { it !in "gimsuy" }) return null
+        val pattern = if (literal) trimmed.substring(1, lastSlash) else findRegex
+        val options =
+            flagText.mapNotNull {
+                when (it) {
+                    'i' -> RegexOption.IGNORE_CASE
+                    'm' -> RegexOption.MULTILINE
+                    's' -> RegexOption.DOT_MATCHES_ALL
+                    else -> null
+                }
+            }.toSet()
+        return runCatching { CompiledPattern(Regex(pattern, options), 'g' in flagText) }.getOrNull()
     }
 
+    internal fun compileRegex(findRegex: String): Regex? = compilePattern(findRegex)?.regex
+
+    private val MATCH_MACRO_REGEX = Regex("\\{\\{match\\}\\}", RegexOption.IGNORE_CASE)
+    private const val PLACEMENT_USER_INPUT = 1
     private const val PLACEMENT_AI_OUTPUT = 2
 }

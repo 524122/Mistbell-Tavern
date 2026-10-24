@@ -9,7 +9,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -245,6 +244,18 @@ fun ChatScreen(
     // 最后一条消息 id 只需算一次：原先在每个 item 内读 messages.lastOrNull()，
     // 相当于每个 item 都订阅整个列表状态
     val lastMessageId = messages.lastOrNull()?.id
+    // 酒馆楼层深度只计 user/assistant；当前消息为 0，最近一条历史为 1。
+    val regexDepthById =
+        remember(messages) {
+            buildMap {
+                var depth = 0
+                messages.asReversed().forEach { message ->
+                    if (message.role == "user" || message.role == "assistant") {
+                        put(message.id, depth++)
+                    }
+                }
+            }
+        }
 
     // 开场白切换（聊天界面）：仅当会话只剩开场白这一条 AI 消息（没人接话）且有多个
     // 选项时提供入口——已有对话历史后开场白属于既成上下文，不允许改写
@@ -502,8 +513,13 @@ fun ChatScreen(
                                 ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            items(messages, key = { it.id }, contentType = { "message" }) { message ->
+                            itemsIndexed(
+                                messages,
+                                key = { _, message -> message.id },
+                                contentType = { _, _ -> "message" },
+                            ) { index, message ->
                                 val isUser = message.role == "user"
+                                val regexDepth = regexDepthById[message.id]
                                 val isLastMsg = message.id == lastMessageId
                                 // 群聊按消息归属渲染说话方：AI 消息按 message.characterId 查参与者
                                 // 映射（名字/颜色），查不到回落主角色（现状）；用户消息不需要查
@@ -569,6 +585,7 @@ fun ChatScreen(
                                                 htmlScripts = emptyList(),
                                                 htmlUiEnabled = htmlUiEnabled,
                                                 cardRegexScripts = cardRegexScripts,
+                                                regexDepth = regexDepth,
                                                 variablesVersion = mvuVariablesVersion,
                                                 htmlExpanded = message.id in htmlExpandedIds,
                                                 onHtmlExpandedChange = { exp ->
@@ -612,6 +629,7 @@ fun ChatScreen(
                                             htmlScripts = emptyList(),
                                             htmlUiEnabled = htmlUiEnabled,
                                             cardRegexScripts = cardRegexScripts,
+                                            regexDepth = regexDepth,
                                             variablesVersion = mvuVariablesVersion,
                                             htmlExpanded = message.id in htmlExpandedIds,
                                             onHtmlExpandedChange = { exp ->
@@ -789,7 +807,13 @@ fun ChatScreen(
                     // 悬浮球/状态面板/工坊弹窗覆盖整个聊天区（区域外触摸穿透回消息区）。
                     // 必须放在输入区 Surface 之外——否则 Surface 被撑满全高，
                     // messageListBottomInset 随之异常，消息列表被压成零高度。
-                    if (htmlUiEnabled && htmlScripts.isNotEmpty()) {
+                    // 脚本异步到达后再创建覆盖层；角色切换时重置挂载状态。
+                    val hasHostScripts =
+                        androidx.compose.runtime.remember(currentCharacter?.id) {
+                            androidx.compose.runtime.mutableStateOf(htmlScripts.isNotEmpty())
+                        }
+                    if (htmlScripts.isNotEmpty()) hasHostScripts.value = true
+                    if (htmlUiEnabled && hasHostScripts.value) {
                         com.mistbell.tavern.android.ui.chat.htmlui.HtmlHostLayer(
                             scripts = htmlScripts,
                             host = viewModel.htmlBridgeHost,

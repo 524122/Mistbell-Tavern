@@ -51,6 +51,34 @@ class HtmlUiSandboxTest {
         assertTrue(HtmlUiSandbox.shouldAllowHttps("https://a.b/c.PNg?x=.js", null))
         assertFalse(HtmlUiSandbox.shouldAllowHttps("https://a.b/c.js?x=.png", null))
     }
+
+    @Test
+    fun `only declared workshop api hosts are allowed for connections`() {
+        assertTrue(
+            HtmlUiSandbox.shouldAllowHttps(
+                "https://cangxuan-workshop.cangxuanjie.workers.dev/api/cultivation-world/modules?page_size=100",
+                "application/json",
+            ),
+        )
+        assertTrue(
+            HtmlUiSandbox.shouldAllowHttps(
+                "https://cangxuan-forum.cangxuanjie.workers.dev/auth/exchange",
+                "application/json",
+            ),
+        )
+        assertFalse(
+            HtmlUiSandbox.shouldAllowHttps(
+                "https://cangxuan-workshop.cangxuanjie.workers.dev.evil.example/api/cultivation-world/modules",
+                "application/json",
+            ),
+        )
+        assertFalse(
+            HtmlUiSandbox.shouldAllowHttps(
+                "http://cangxuan-workshop.cangxuanjie.workers.dev/api/cultivation-world/modules",
+                "application/json",
+            ),
+        )
+    }
 }
 
 @Suppress("MaxLineLength") // Google Fonts 完整查询串本就超长

@@ -13,21 +13,28 @@ import java.io.ByteArrayInputStream
  *
  * - 文档经 loadDataWithBaseURL(tavern.local) 加载；后续请求一律拦截：
  *   放行 https 被动资源（图片/样式/字体/音频/视频——楼层界面的图标字体与 BGM 需求），
- *   脚本（外链 .js）、fetch/XHR（connect-src 'none'）、导航一律阻断
+ *   工坊接口只放行明确列出的 HTTPS 域名，任意外链脚本与导航仍阻断
  * - 内联脚本允许（楼层界面的本质），DOM storage / 文件访问 / 地理位置 / 下载 / 多窗口全禁
  * - CSP meta 注入作为第二道防线（拦截器是第一道）
  */
 object HtmlUiSandbox {
     const val BASE_URL = "https://tavern.local/"
 
+    private val ALLOWED_CONNECT_HOSTS =
+        setOf(
+            "cangxuan-workshop.cangxuanjie.workers.dev",
+            "cangxuan-forum.cangxuanjie.workers.dev",
+        )
+
     private const val CSP =
         "default-src 'none'; " +
-            "script-src 'unsafe-inline'; " +
+            "script-src 'unsafe-inline' https://tavern.local https://cdn.tailwindcss.com; " +
             "style-src 'unsafe-inline' https:; " +
             "img-src https: data:; " +
             "font-src https: data:; " +
             "media-src https:; " +
-            "connect-src 'none'; " +
+            "connect-src https://cangxuan-workshop.cangxuanjie.workers.dev " +
+            "https://cangxuan-forum.cangxuanjie.workers.dev; " +
             "frame-src 'none'; object-src 'none';"
 
     private const val BLOCKED_STATUS = 204
@@ -71,23 +78,26 @@ object HtmlUiSandbox {
         )
 
     /**
-     * 拦截判定（纯函数，便于单测）：
-     * - https + 被动扩展名 → 放行
-     * - https + Accept 含 text/css（fonts.googleapis.com/css2 这类无扩展名样式表）→ 放行
-     * - 其余（脚本 .js、fetch/XHR、明文 http、未知类型）→ 阻断
+     * 拦截判定（纯函数，便于单测）：HTTPS 被动资源、无扩展名样式表及白名单接口放行；
+     * 任意外链脚本、未知接口和明文请求仍阻断（外链脚本另受 CSP 限制）。
      */
     internal fun shouldAllowHttps(
         url: String,
         acceptHeader: String?,
     ): Boolean {
+        val uri = runCatching { java.net.URI(url) }.getOrNull()
         val extension =
             url
                 .substringBefore('?')
                 .substringBefore('#')
                 .substringAfterLast('.', "")
                 .lowercase()
-        if (extension in PASSIVE_EXTENSIONS) return true
-        return acceptHeader?.contains("text/css") == true
+        return uri?.scheme == "https" &&
+            (
+                extension in PASSIVE_EXTENSIONS ||
+                    acceptHeader?.contains("text/css") == true ||
+                    uri?.host?.lowercase() in ALLOWED_CONNECT_HOSTS
+            )
     }
 
     /** 在 HTML 文档 <head> 内注入 viewport 与 CSP meta（无 <head> 则前置）。 */
@@ -131,6 +141,14 @@ object HtmlUiSandbox {
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
                     val url = request.url
+                    // Tailwind 域名只提供本地镜像，不执行该站点的远程响应。
+                    if (url?.host == "cdn.tailwindcss.com") {
+                        return WebResourceResponse(
+                            "application/javascript",
+                            "utf-8",
+                            view.context.assets.open("htmlui/tailwind.min.js"),
+                        )
+                    }
                     // 字体本地镜像：Google Fonts CSS 与 tavern.local/fonts/* 由 assets 直接提供（离线可用）
                     if (url != null) {
                         localFontCssAssetFor(url.toString())?.let { asset ->

@@ -55,8 +55,9 @@ fun MessageBubble(
     htmlHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost? = null,
     htmlScripts: List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript> = emptyList(),
     htmlUiEnabled: Boolean = false,
-    // 卡级正则（regex_scripts）：显示时作用于 AI 消息内容（placement 含 2），不改存储
+    // 卡级正则按角色与楼层深度处理展示内容，不改存储
     cardRegexScripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> = emptyList(),
+    regexDepth: Int? = null,
     /** MVU 变量版本（>0 且变化时 HtmlBubble 向页面推送变量更新） */
     variablesVersion: Long = 0,
     /** HTML 界面展开状态（宿主按会话持久化；默认折叠） */
@@ -73,15 +74,16 @@ fun MessageBubble(
         remember(message.content, message.thinking) {
             splitThinkingForDisplay(message.content)
         }
-    // 卡级正则（display-time，对齐酒馆 placement=2）：AI 消息展示内容经卡脚本替换，存储原文不动
+    // 卡级正则（display-time）：按消息角色与楼层深度替换展示内容，存储原文不动
     val rawContent = if (inlineThinking != null) inlineContent else message.content
     val displayedContent =
-        remember(rawContent, cardRegexScripts, isUser) {
-            if (isUser) {
-                rawContent
-            } else {
-                com.mistbell.tavern.android.data.regex.CardRegexEngine.applyToAiDisplay(rawContent, cardRegexScripts)
-            }
+        remember(rawContent, cardRegexScripts, message.role, regexDepth) {
+            com.mistbell.tavern.android.data.regex.CardRegexEngine.applyToDisplay(
+                rawContent,
+                message.role,
+                cardRegexScripts,
+                regexDepth,
+            )
         }
     val displayedThinking = message.thinking?.takeIf { it.isNotBlank() } ?: inlineThinking
 

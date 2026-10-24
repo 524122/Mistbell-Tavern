@@ -98,38 +98,48 @@ fun HtmlHostLayer(
     variablesVersion: Long,
     modifier: Modifier = Modifier,
 ) {
-    val webViewRef = remember(scripts) { mutableStateOf<HostLayerWebView?>(null) }
+    val webViewRef = remember { mutableStateOf<HostLayerWebView?>(null) }
 
     androidx.compose.runtime.DisposableEffect(scripts) {
-        onDispose { webViewRef.value?.destroy() }
+        onDispose {
+            webViewRef.value?.destroy()
+            webViewRef.value = null
+        }
     }
 
-    AndroidView(
-        factory = { context ->
-            val layer = HostLayerWebView(context)
-            webViewRef.value = layer
-            // 透明底由工厂统一 setBackgroundColor(TRANSPARENT) + 壳文档透明背景保证，
-            // 不再强制软件渲染层（硬件加速下帧率更高）
-            layer.setBackgroundResource(0)
-            HtmlWebViewFactory.create(
-                context = context,
-                html = HOST_SHELL_HTML,
-                scripts = scripts,
-                host = host,
-                onHeightReport = {},
-                onExternalBlocked = { android.util.Log.d("HtmlHostLayer", "blocked: $it") },
-                webViewFactory = { layer },
-            )
-        },
-        modifier = modifier.fillMaxSize(),
-    )
+    // 脚本内容变化时必须重建文档；AndroidView.factory 不会仅靠参数捕获变化自动重跑。
+    androidx.compose.runtime.key(scripts) {
+        AndroidView(
+            factory = { context ->
+                val layer = HostLayerWebView(context)
+                webViewRef.value = layer
+                layer.setBackgroundResource(0)
+                HtmlWebViewFactory.create(
+                    context = context,
+                    html = HOST_SHELL_HTML,
+                    scripts = scripts,
+                    host = host,
+                    onHeightReport = {},
+                    onExternalBlocked = {},
+                    webViewFactory = { layer },
+                ).also { webView ->
+                    // 全屏宿主使用确定的父容器高度，避免 wrap_content 下 vh 系列单位坍缩为 0。
+                    webView.layoutParams.height = android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                }
+            },
+            modifier = modifier.fillMaxSize(),
+        )
+    }
 
     // 轮询可交互区域（悬浮球位置会随拖动变化，模态会开合，故用周期轮询而非一次性订阅）
-    LaunchedEffect(webViewRef.value) {
-        val layer = webViewRef.value ?: return@LaunchedEffect
+    LaunchedEffect(Unit) {
         while (true) {
-            layer.evaluateJavascript("window.__tavernCollectRegions ? window.__tavernCollectRegions() : null") { raw ->
-                parseRegionReport(raw)?.let { layer.regionReport = it }
+            webViewRef.value?.let { layer ->
+                runCatching {
+                    layer.evaluateJavascript(COLLECT_REGIONS_JS) { raw ->
+                        parseRegionReport(raw)?.let { layer.regionReport = it }
+                    }
+                }
             }
             delay(REGION_POLL_MS)
         }
@@ -150,6 +160,7 @@ fun HtmlHostLayer(
 }
 
 private const val REGION_POLL_MS = 500L
+private const val COLLECT_REGIONS_JS = "window.__tavernCollectRegions ? window.__tavernCollectRegions() : null"
 
 /**
  * 宿主壳文档：透明、禁滚动、预置区域采集函数。
@@ -169,7 +180,7 @@ private val HOST_SHELL_HTML =
     window.__tavernCollectRegions = function () {
       const out = { vw: window.innerWidth, regions: [], fullscreen: false };
       const modalSel = [
-        '#cx-floating-status-root.is-open',
+        '#cx-floating-status-root.is-open #cx-floating-status-panel',
         '.cx-char-modal', '.cx-modal', '.cx-detail-page',
         '.cx-workshop-cf-modal', '.cx-workshop-cf-overlay',
       ].join(',');
@@ -178,7 +189,20 @@ private val HOST_SHELL_HTML =
         return st.display !== 'none' && st.visibility !== 'hidden' &&
           Number(st.opacity) > 0.05 && st.pointerEvents !== 'none';
       });
-      if (modalOpen) { out.fullscreen = true; return JSON.stringify(out); }
+      if (modalOpen) {
+        const panel = document.querySelector('#cx-floating-status-root.is-open #cx-floating-status-panel');
+        if (panel) {
+          const root = document.querySelector('#cx-floating-status-root');
+          const rect = panel.getBoundingClientRect();
+          const margin = 8;
+          const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+          const left = Math.min(Math.max(rect.left, margin), maxLeft);
+          panel.style.left = (left - root.getBoundingClientRect().left) + 'px';
+          panel.style.right = 'auto';
+        }
+        out.fullscreen = true;
+        return JSON.stringify(out);
+      }
       ['#cx-floating-status-root', '#cx-workshop-cf-root'].forEach(sel => {
         const el = document.querySelector(sel);
         if (!el) return;

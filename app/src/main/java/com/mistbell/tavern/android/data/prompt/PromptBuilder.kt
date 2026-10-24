@@ -13,6 +13,7 @@ import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
+import com.mistbell.tavern.android.data.regex.CardRegexEngine
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.LexicalMemoryService
 import com.mistbell.tavern.android.data.repository.MemoryScope
@@ -783,6 +784,7 @@ object PromptBuilder {
         var history: List<MessageEntity> = emptyList()
         var recentMessages: List<MessageEntity> = emptyList()
         var historyTruncated = false
+        var cardRegexScripts: List<CardRegexEngine.CardRegexScript> = emptyList()
         val depthBlocks = mutableListOf<WiDepthBlock>()
         var authorNote = ""
         var authorNoteDepth = 0
@@ -815,6 +817,7 @@ object PromptBuilder {
                     .mapNotNull { participantById[it] }
                     .ifEmpty { participantById[request.characterId]?.let { listOf(it) } ?: emptyList() }
             character = participantCharacters.firstOrNull() ?: participantById[request.characterId]
+            cardRegexScripts = CardRegexEngine.parse(character?.toDomain()?.data?.extensions)
             // F2.1 宏引擎上下文（契约 B）：用户名与人设统一取全局设置（键常量收敛在 ChatSettingsResolver，
             // 禁止手写字面量）；用户名缺省 "User"，人设缺省空串（不注入该段）
             userName = ChatSettingsResolver.userName(settingsDao.getValue(ChatSettingsResolver.KEY_USER_NAME))
@@ -1164,28 +1167,48 @@ object PromptBuilder {
                     contextTokenLimit = contextTokenLimit,
                 )
             historyTruncated = recentMessages.size > history.size
+            val promptHistory = historyForPrompt()
             val groupContext = request.groupContext
             if (groupContext != null) {
                 // 群聊模式：历史消息加说话方前缀（AI 消息按 character_id 查名字，用户消息用 {{user}} 值）
                 messages.addAll(
                     annotateGroupHistory(
-                        history = history,
+                        history = promptHistory,
                         speakerNames = groupContext.speakerNames,
                         userName = mctx.user,
                     ).map { Segment(it, "历史·群聊") },
                 )
             } else {
-                history.forEachIndexed { index, msg: MessageEntity ->
-                    // 历史消息不做宏二次渲染（生成时已解析）；仅剔除 <think>…</think> 块，
-                    // 思考型模型的历史推理不进上下文（展示层不动）
+                promptHistory.forEachIndexed { index, msg: MessageEntity ->
+                    // 历史消息不做宏二次渲染（生成时已解析）；思考型模型的历史推理不进上下文（展示层不动）
                     messages.add(
                         Segment(
-                            ChatMessage(role = msg.role, content = stripThinkingBlocks(msg.content)),
+                            ChatMessage(role = msg.role, content = msg.content),
                             "历史第 ${index + 1}/${history.size} 条",
                             truncationReason = if (historyTruncated) "上下文预算裁剪后保留的最近窗口" else null,
                         ),
                     )
                 }
+            }
+        }
+
+        private fun historyForPrompt(): List<MessageEntity> {
+            val promptDepths = IntArray(history.size)
+            var nextDepth = 1
+            for (index in history.indices.reversed()) {
+                promptDepths[index] = nextDepth
+                if (history[index].role == "user" || history[index].role == "assistant") nextDepth++
+            }
+            return history.mapIndexed { index, message ->
+                message.copy(
+                    content =
+                        CardRegexEngine.applyToPrompt(
+                            content = stripThinkingBlocks(message.content),
+                            role = message.role,
+                            scripts = cardRegexScripts,
+                            depth = promptDepths[index],
+                        ),
+                )
             }
         }
 
@@ -1338,10 +1361,17 @@ object PromptBuilder {
                 messages.addSegment("system", groupNudge, "群聊推动语")
                 return
             }
-            val renderedUserMessage = MacroEngine.render(request.userMessage, mctx)
+            val promptUserMessage =
+                CardRegexEngine.applyToPrompt(
+                    content = request.userMessage,
+                    role = "user",
+                    scripts = cardRegexScripts,
+                    depth = 0,
+                )
+            val renderedUserMessage = MacroEngine.render(promptUserMessage, mctx)
             // 群聊模式：当前用户消息与历史行格式对齐，加 "{user}: " 前缀（历史每行已带
             // 『名字:』前缀标注发言者，当前消息同样标注可显著提高模型按格式发言的命中率）；
-            // classic 模式保持原样零改动
+            // classic 模式不添加说话方前缀
             val finalUserMessage =
                 if (request.groupContext != null) {
                     groupCurrentUserMessage(userName = mctx.user, renderedUserMessage = renderedUserMessage)

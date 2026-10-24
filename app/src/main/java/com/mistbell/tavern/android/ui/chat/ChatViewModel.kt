@@ -175,7 +175,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .map { char -> parseTavernHelperScripts(char?.data?.extensions) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** 当前角色卡的 regex_scripts（显示时作用于 AI 消息内容，不改存储） */
+    /** 当前角色卡的 regex_scripts：发送、展示和提示词按各自 placement 与场景标志分流 */
     val cardRegexScripts: StateFlow<List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>> =
         _currentCharacter
             .map { char ->
@@ -846,7 +846,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     )
             }
         } else {
-            sendChatMessage(content, char.id)
+            sendChatMessage(
+                com.mistbell.tavern.android.data.regex.CardRegexEngine.applyToUserInput(
+                    content,
+                    cardRegexScripts.value,
+                ),
+                char.id,
+            )
         }
     }
 
@@ -855,8 +861,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         characterId: String,
     ) {
         // 群聊模式：组装 GroupChatContext（参与者 id→名字 + @提及 解析出的 targetSpeakerId）；
-        // 经典模式传 null（提示词路径零变化）。落库的用户消息内容保留原文——这里不改 content，
-        // 仅把提及目标作为 groupContext 传入，剥前缀与回复归属由仓库层处理
+        // 经典模式传 null。content 已完成发送侧卡级正则处理，这里只补充提及目标，不重复执行规则。
         val groupContext =
             if (groupMode.value) {
                 GroupChatContext(
