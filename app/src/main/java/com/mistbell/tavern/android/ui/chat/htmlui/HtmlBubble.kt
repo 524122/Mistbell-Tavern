@@ -55,8 +55,10 @@ fun HtmlBubble(
     modifier: Modifier = Modifier,
     /** MVU 变量版本：变化时向页面推送 mvu_variable_update_ended（携带最新 stat_data） */
     variablesVersion: Long = 0,
+    /** 叙事行内 HTML：始终展开、高度封顶 85% 屏高（长内容内滚），不显示全屏/收起入口 */
+    narrative: Boolean = false,
 ) {
-    if (!expanded) {
+    if (!expanded && !narrative) {
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceVariant,
@@ -112,7 +114,9 @@ fun HtmlBubble(
                         scripts = scripts,
                         host = host,
                         onHeightReport = { reported ->
-                            // WebView CSS px 即 dp：直接作为 dp 高度（含下限与 85% 屏高上限）
+                            // WebView CSS px 即 dp：直接作为 dp 高度（含下限与 85% 屏高上限）。
+                            // 超长叙事同样封顶——全高巨型 WebView 会卡死主线程（ANR），
+                            // 长内容走面板内滚，外层消息列表滚动不受影响。
                             heightPx =
                                 reported
                                     .coerceAtLeast(MIN_HEIGHT_DP)
@@ -148,24 +152,28 @@ fun HtmlBubble(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "全屏",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { showFullscreen = true },
-                )
+                if (!narrative) {
+                    Text(
+                        text = "全屏",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showFullscreen = true },
+                    )
+                }
                 Text(
                     text = "查看源码",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { showSource = true },
                 )
-                Text(
-                    text = "收起",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onExpandedChange(false) },
-                )
+                if (!narrative) {
+                    Text(
+                        text = "收起",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onExpandedChange(false) },
+                    )
+                }
             }
         }
     }

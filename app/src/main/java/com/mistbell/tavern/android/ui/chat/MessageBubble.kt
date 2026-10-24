@@ -96,8 +96,10 @@ fun MessageBubble(
             htmlParts.any {
                 it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc
             }
+    val hasNarrativeHtml =
+        htmlParts.any { it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc && it.narrative }
     val htmlFullBleed =
-        renderHtml &&
+        renderHtml && !hasNarrativeHtml &&
             htmlParts.all { part ->
                 part is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ||
                     (
@@ -247,6 +249,7 @@ fun MessageBubble(
                                             expanded = htmlExpanded,
                                             onExpandedChange = onHtmlExpandedChange,
                                             variablesVersion = variablesVersion,
+                                            narrative = part.narrative,
                                         )
                                 }
                             }

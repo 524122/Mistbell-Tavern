@@ -71,4 +71,39 @@ class HtmlCardDetectorTest {
         assertTrue(HtmlCardDetector.containsHtml("```HTML\n<x>\n```"))
         assertTrue(HtmlCardDetector.containsHtml("<!doctype html><html></html>"))
     }
+
+    @Test
+    fun `叙事行内 HTML 整段包装为 narrative 文档`() {
+        val content =
+            """
+            她看着User。
+            <span class="cxi-wrap"><span class="cxi-text">心声</span></span>
+            <style>.cxi-wrap{color:gold}</style>
+            """.trimIndent()
+        val parts = HtmlCardDetector.split(content)
+        assertEquals(1, parts.size)
+        val doc = parts.first() as HtmlCardDetector.Part.HtmlDoc
+        assertTrue(doc.narrative)
+        assertTrue(doc.html.startsWith("<!DOCTYPE html>"))
+        assertTrue(doc.html.contains("她看着User"))
+        assertTrue(doc.html.contains("<style>"))
+    }
+
+    @Test
+    fun `带 class 的 span 也判定为叙事 HTML`() {
+        val parts = HtmlCardDetector.split("文本 <span class=\"x\">内容</span>")
+        assertTrue((parts.first() as HtmlCardDetector.Part.HtmlDoc).narrative)
+    }
+
+    @Test
+    fun `普通文本不触发叙事 HTML`() {
+        val parts = HtmlCardDetector.split("只是普通对话，没有标签")
+        assertTrue(parts.first() is HtmlCardDetector.Part.Markdown)
+    }
+
+    @Test
+    fun `裸 HTML 文档不标记 narrative`() {
+        val parts = HtmlCardDetector.split("<!DOCTYPE html><html><body><span class=\"x\">a</span></body></html>")
+        assertFalse((parts.first() as HtmlCardDetector.Part.HtmlDoc).narrative)
+    }
 }
