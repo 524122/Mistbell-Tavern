@@ -192,6 +192,7 @@ dependencies {
 detekt {
     buildUponDefaultConfig = true
     allRules = false
+    config = files("$rootDir/config/detekt/detekt.yml")
     // 基线吸收存量告警，新代码零容忍；基线文件入库，随修复逐步清空
     baseline = file("$rootDir/config/detekt/baseline.xml")
     reports {

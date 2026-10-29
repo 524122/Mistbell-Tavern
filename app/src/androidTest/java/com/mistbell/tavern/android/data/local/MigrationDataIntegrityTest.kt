@@ -326,7 +326,7 @@ class MigrationDataIntegrityTest {
         raw.close()
     }
 
-    /** 打开数据库并执行迁移（用生产同款迁移链，直达当前版本 27） */
+    /** 打开数据库并执行迁移（用生产同款迁移链，直达当前版本 35） */
     private fun openWithRoom(): AppDatabase {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         return Room.databaseBuilder(context, AppDatabase::class.java, dbName)
@@ -355,6 +355,14 @@ class MigrationDataIntegrityTest {
                 AppDatabase.Companion.MIGRATION_24_25,
                 AppDatabase.Companion.MIGRATION_25_26,
                 AppDatabase.Companion.MIGRATION_26_27,
+                AppDatabase.Companion.MIGRATION_27_28,
+                AppDatabase.Companion.MIGRATION_28_29,
+                AppDatabase.Companion.MIGRATION_29_30,
+                AppDatabase.Companion.MIGRATION_30_31,
+                AppDatabase.Companion.MIGRATION_31_32,
+                AppDatabase.Companion.MIGRATION_32_33,
+                AppDatabase.Companion.MIGRATION_33_34,
+                AppDatabase.Companion.MIGRATION_34_35,
             )
             .addCallback(AppDatabase.vectorSyncCallback)
             .allowMainThreadQueries()

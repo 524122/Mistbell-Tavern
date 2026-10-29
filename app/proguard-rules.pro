@@ -31,6 +31,13 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+# Rhino 的可选 BEAN 转换器需要桌面 JDK；本沙箱只使用默认的 STRING 转换，不进入该路径。
+-dontwarn java.beans.BeanDescriptor
+-dontwarn java.beans.BeanInfo
+-dontwarn java.beans.IntrospectionException
+-dontwarn java.beans.Introspector
+-dontwarn java.beans.PropertyDescriptor
+
 # OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**
