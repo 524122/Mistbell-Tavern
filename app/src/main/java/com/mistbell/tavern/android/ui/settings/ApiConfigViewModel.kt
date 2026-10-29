@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.ApiConfigDocument
+import com.mistbell.tavern.android.data.api.ApiConfigFields
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiConfigJsonResult
 import com.mistbell.tavern.android.data.api.ApiRequestTemplate
@@ -145,19 +146,26 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                 configJson =
                     ApiConfigJson.format(
                         ApiConfigJson.fromFields(
-                            id = "",
-                            name = "OpenAI API",
-                            type = "openai",
-                            baseUrl = "https://api.openai.com/v1",
-                            model = "gpt-4o",
-                            hasApiKey = false,
-                            streamingEnabled = true,
-                            contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
-                            request = ApiRequestTemplate.templateFor("openai"),
+                            fields =
+                                ApiConfigFields(
+                                    id = "",
+                                    name = "OpenAI API",
+                                    type = "openai",
+                                    baseUrl = "https://api.openai.com/v1",
+                                    model = "gpt-4o",
+                                    hasApiKey = false,
+                                    streamingEnabled = true,
+                                    contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+                                    request = ApiRequestTemplate.templateFor("openai"),
+                                ),
                         ).copy(id = ""),
                     ),
             )
-        apiConfigDao.insert(defaultConfig.copy(configJson = ApiConfigJson.format(ApiConfigJson.fromEntity(defaultConfig))))
+        apiConfigDao.insert(
+            defaultConfig.copy(
+                configJson = ApiConfigJson.format(ApiConfigJson.fromEntity(defaultConfig)),
+            ),
+        )
     }
 
     /**
@@ -173,7 +181,12 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
         type: String = "openai",
         context1M: Boolean = false,
         streamingEnabled: Boolean = true,
-        contextTokenLimit: Int = if (context1M) ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT else ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+        contextTokenLimit: Int =
+            if (context1M) {
+                ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT
+            } else {
+                ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT
+            },
         configJson: String = "",
     ) {
         viewModelScope.launch {
@@ -182,13 +195,16 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
                 val document =
                     parseOrBuildDocument(
                         configJson = configJson,
-                        id = id,
-                        name = name,
-                        type = type,
-                        apiUrl = apiUrl,
-                        model = model,
-                        streamingEnabled = streamingEnabled,
-                        contextTokenLimit = contextTokenLimit,
+                        fields =
+                            ApiConfigEditorFields(
+                                id = id,
+                                name = name,
+                                type = type,
+                                apiUrl = apiUrl,
+                                model = model,
+                                streamingEnabled = streamingEnabled,
+                                contextTokenLimit = contextTokenLimit,
+                            ),
                         hasApiKey = apiKey.isNotBlank(),
                     )
                 val newConfig =
@@ -225,8 +241,11 @@ class ApiConfigViewModel(application: Application) : AndroidViewModel(applicatio
     fun updateApiConfig(apiConfig: ApiConfig) {
         viewModelScope.launch {
             try {
-                if (apiConfig.configJson.isNotBlank() && ApiConfigJson.parse(apiConfig.configJson) is ApiConfigJsonResult.Invalid) {
-                    throw IllegalArgumentException("配置 JSON 校验失败，未保存")
+                require(
+                    apiConfig.configJson.isBlank() ||
+                        ApiConfigJson.parse(apiConfig.configJson) !is ApiConfigJsonResult.Invalid,
+                ) {
+                    "配置 JSON 校验失败，未保存"
                 }
                 val entity = apiConfig.toEntity()
                 apiConfigDao.update(entity.copy(updatedAt = System.currentTimeMillis()))
@@ -496,13 +515,16 @@ private fun ApiConfig.toEntity(): ApiConfigEntity {
     val document =
         parseOrBuildDocument(
             configJson = configJson,
-            id = id,
-            name = name,
-            type = type,
-            apiUrl = apiUrl,
-            model = model,
-            streamingEnabled = streamingEnabled,
-            contextTokenLimit = contextTokenLimit,
+            fields =
+                ApiConfigEditorFields(
+                    id = id,
+                    name = name,
+                    type = type,
+                    apiUrl = apiUrl,
+                    model = model,
+                    streamingEnabled = streamingEnabled,
+                    contextTokenLimit = contextTokenLimit,
+                ),
             hasApiKey = apiKey.isNotBlank(),
         )
     return ApiConfigEntity(
@@ -533,39 +555,40 @@ private fun ApiConfig.toEntity(): ApiConfigEntity {
 
 private fun parseOrBuildDocument(
     configJson: String,
-    id: String,
-    name: String,
-    type: String,
-    apiUrl: String,
-    model: String,
-    streamingEnabled: Boolean,
-    contextTokenLimit: Int,
+    fields: ApiConfigEditorFields,
     hasApiKey: Boolean,
-): com.mistbell.tavern.android.data.api.ApiConfigDocument {
+): ApiConfigDocument {
     val sanitizedBaseUrl =
-        ApiConfigJson.sanitizeBaseUrl(apiUrl)
+        ApiConfigJson.sanitizeBaseUrl(fields.apiUrl)
             ?: throw IllegalArgumentException("API 地址包含无法安全清理的凭据或格式错误，请修正后再保存")
     val parsed = (ApiConfigJson.parse(configJson) as? ApiConfigJsonResult.Valid)?.document
     val base =
         parsed ?: ApiConfigJson.fromFields(
-            id = id,
-            name = name,
-            type = type,
-            baseUrl = apiUrl,
-            model = model,
-            hasApiKey = hasApiKey,
-            streamingEnabled = streamingEnabled,
-            contextTokenLimit = contextTokenLimit,
-            request = ApiRequestTemplate.templateFor(type),
+            fields =
+                ApiConfigFields(
+                    id = fields.id,
+                    name = fields.name,
+                    type = fields.type,
+                    baseUrl = fields.apiUrl,
+                    model = fields.model,
+                    hasApiKey = hasApiKey,
+                    streamingEnabled = fields.streamingEnabled,
+                    contextTokenLimit = fields.contextTokenLimit,
+                    request = ApiRequestTemplate.templateFor(fields.type),
+                ),
         )
     return base.copy(
-        id = id,
-        name = name,
-        type = normalizeApiType(type),
+        id = fields.id,
+        name = fields.name,
+        type = normalizeApiType(fields.type),
         baseUrl = sanitizedBaseUrl,
-        model = model,
-        streamingEnabled = streamingEnabled,
-        contextTokenLimit = contextTokenLimit.coerceIn(ApiConfigJson.MIN_CONTEXT_TOKEN_LIMIT, ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT),
-        apiKeyRef = if (hasApiKey) "secure:$id" else "",
+        model = fields.model,
+        streamingEnabled = fields.streamingEnabled,
+        contextTokenLimit =
+            fields.contextTokenLimit.coerceIn(
+                ApiConfigJson.MIN_CONTEXT_TOKEN_LIMIT,
+                ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT,
+            ),
+        apiKeyRef = if (hasApiKey) "secure:${fields.id}" else "",
     )
 }

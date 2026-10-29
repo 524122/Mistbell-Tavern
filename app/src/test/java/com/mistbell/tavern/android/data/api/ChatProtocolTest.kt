@@ -429,7 +429,10 @@ class ChatProtocolTest {
             geminiConfig()
                 .copy(
                     maxTokens = 4096,
-                    request = buildJsonObject { put("generationConfig", buildJsonObject { put("maxOutputTokens", 512) }) },
+                    request =
+                        buildJsonObject {
+                            put("generationConfig", buildJsonObject { put("maxOutputTokens", 512) })
+                        },
                 ).withCallOverrides(maxTokens = 1024)
         val body = bodyOf(GeminiChatProtocol.buildRequest(config, messages, stream = false))
         assertTrue(body.contains("\"maxOutputTokens\":1024"))

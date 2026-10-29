@@ -101,34 +101,12 @@ internal fun LlmConfig.withCallOverrides(
     frequencyPenalty: Double? = null,
     disableThinking: Boolean? = null,
 ): LlmConfig {
-    val normalizedType = normalizeApiType(type)
-    val effectiveDisableThinking = disableThinking ?: this.disableThinking
-    val overrides =
-        buildJsonObject {
-            when (normalizedType) {
-                ApiType.GEMINI -> {
-                    val generation =
-                        buildJsonObject {
-                            temperature?.let { put("temperature", it) }
-                            maxTokens?.let { put("maxOutputTokens", it) }
-                            topP?.let { put("topP", it) }
-                            topK?.let { put("topK", it) }
-                        }
-                    if (generation.isNotEmpty()) put("generationConfig", generation)
-                }
-                else -> {
-                    temperature?.let { put("temperature", it) }
-                    maxTokens?.let { put("max_tokens", it) }
-                    topP?.let { put("top_p", it) }
-                    topK?.let { put("top_k", it) }
-                    frequencyPenalty?.let { put("frequency_penalty", it) }
-                }
-            }
-            // DeepSeek OpenAI 格式专有；Anthropic/Gemini 不能收到这个字段。
-            if (effectiveDisableThinking && normalizedType != ApiType.ANTHROPIC && normalizedType != ApiType.GEMINI) {
-                put("thinking", buildJsonObject { put("type", "disabled") })
-            }
-        }
+    val values =
+        CallOverrideValues(
+            sampling = SamplingOverrides(temperature, maxTokens, topP, topK, frequencyPenalty),
+            disableThinking = disableThinking ?: this.disableThinking,
+        )
+    val overrides = buildCallOverrides(normalizeApiType(type), values)
     val mergedOverrides =
         if (requestOverrides.isEmpty()) {
             overrides
@@ -141,7 +119,53 @@ internal fun LlmConfig.withCallOverrides(
         topP = topP ?: this.topP,
         topK = topK ?: this.topK,
         frequencyPenalty = frequencyPenalty ?: this.frequencyPenalty,
-        disableThinking = effectiveDisableThinking,
+        disableThinking = values.disableThinking,
         requestOverrides = mergedOverrides,
     )
+}
+
+private data class SamplingOverrides(
+    val temperature: Double?,
+    val maxTokens: Int?,
+    val topP: Double?,
+    val topK: Int?,
+    val frequencyPenalty: Double?,
+)
+
+private data class CallOverrideValues(
+    val sampling: SamplingOverrides,
+    val disableThinking: Boolean,
+)
+
+private fun buildCallOverrides(
+    type: String,
+    values: CallOverrideValues,
+): JsonObject =
+    buildJsonObject {
+        when (type) {
+            ApiType.GEMINI -> putGeminiOverrides(values.sampling)
+            else -> putStandardOverrides(values.sampling)
+        }
+        if (values.disableThinking && type != ApiType.ANTHROPIC && type != ApiType.GEMINI) {
+            put("thinking", buildJsonObject { put("type", "disabled") })
+        }
+    }
+
+private fun kotlinx.serialization.json.JsonObjectBuilder.putGeminiOverrides(values: SamplingOverrides) {
+    val generation =
+        buildJsonObject {
+            values.temperature?.let { put("temperature", it) }
+            values.maxTokens?.let { put("maxOutputTokens", it) }
+            values.topP?.let { put("topP", it) }
+            values.topK?.let { put("topK", it) }
+        }
+    if (generation.isNotEmpty()) put("generationConfig", generation)
+}
+
+private fun kotlinx.serialization.json.JsonObjectBuilder.putStandardOverrides(values: SamplingOverrides) {
+    values.temperature?.let { put("temperature", it) }
+    values.maxTokens?.let { put("max_tokens", it) }
+    values.topP?.let { put("top_p", it) }
+    values.topK?.let { put("top_k", it) }
+    values.frequencyPenalty?.let { put("frequency_penalty", it) }
 }

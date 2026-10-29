@@ -39,3 +39,4 @@ RELEASE_DESCRIPTION_*.md
 # 本地产物副本（_research_*）不入库
 _research_*/
 /app/debug/
+.zcode/

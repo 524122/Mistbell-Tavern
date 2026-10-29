@@ -37,7 +37,12 @@ object SessionImporter {
         uri: Uri,
     ): SessionExportData? {
         return try {
-            val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return null
+            val text =
+                context.contentResolver
+                    .openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    ?: return null
             parseJsonlSessionData(text)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -67,37 +72,11 @@ object SessionImporter {
             val element = json.parseToJsonElement(line).jsonObject
             if (element["type"]?.jsonPrimitive?.contentOrNull == "session") {
                 session = element["session"]?.let { json.decodeFromJsonElement<SessionSummary>(it) }
-            } else if (element["chat_metadata"] != null || element["type"]?.jsonPrimitive?.contentOrNull == "metadata") {
+            } else if (isJsonlMetadata(element)) {
                 // Native Tavern JSONL may contain a metadata line before messages.
                 return@forEach
             } else {
-                val role =
-                    element["role"]?.jsonPrimitive?.contentOrNull
-                        ?: when {
-                            element["is_system"]?.jsonPrimitive?.booleanOrNull == true -> "system"
-                            element["is_user"]?.jsonPrimitive?.booleanOrNull == true -> "user"
-                            else -> "assistant"
-                        }
-                val content =
-                    element["content"]?.jsonPrimitive?.contentOrNull
-                        ?: element["mes"]?.jsonPrimitive?.contentOrNull
-                        ?: ""
-                messages +=
-                    Message(
-                        id = element["id"]?.jsonPrimitive?.contentOrNull ?: "",
-                        role = role,
-                        content = content,
-                        thinking = element["thinking"]?.jsonPrimitive?.contentOrNull,
-                        characterId =
-                            element["characterId"]?.jsonPrimitive?.contentOrNull
-                                ?: element["name"]?.jsonPrimitive?.contentOrNull.takeIf { role == "assistant" }.orEmpty(),
-                        createdAt =
-                            element["createdAt"]?.jsonPrimitive?.contentOrNull
-                                ?: element["send_date"]?.jsonPrimitive?.contentOrNull.orEmpty(),
-                        swipeIndex = element["swipeIndex"]?.jsonPrimitive?.intOrNull ?: 0,
-                        swipes = element["swipes"]?.jsonArray?.map { it.jsonPrimitive.content },
-                        thinkingSwipes = element["thinkingSwipes"]?.jsonArray?.map { it.jsonPrimitive.content },
-                    )
+                messages += parseJsonlMessage(element)
             }
         }
         val resolvedSession =
@@ -108,6 +87,43 @@ object SessionImporter {
                 mode = SESSION_MODE_CLASSIC,
             )
         return SessionExportData(resolvedSession.copy(messageCount = messages.size), messages)
+    }
+
+    private fun isJsonlMetadata(element: JsonObject): Boolean =
+        element["chat_metadata"] != null ||
+            element["type"]?.jsonPrimitive?.contentOrNull == "metadata"
+
+    private fun parseJsonlRole(element: JsonObject): String =
+        element["role"]?.jsonPrimitive?.contentOrNull
+            ?: when {
+                element["is_system"]?.jsonPrimitive?.booleanOrNull == true -> "system"
+                element["is_user"]?.jsonPrimitive?.booleanOrNull == true -> "user"
+                else -> "assistant"
+            }
+
+    private fun parseJsonlMessage(element: JsonObject): Message {
+        val role = parseJsonlRole(element)
+        val content =
+            element["content"]?.jsonPrimitive?.contentOrNull
+                ?: element["mes"]?.jsonPrimitive?.contentOrNull
+                ?: ""
+        return Message(
+            id = element["id"]?.jsonPrimitive?.contentOrNull ?: "",
+            role = role,
+            content = content,
+            thinking = element["thinking"]?.jsonPrimitive?.contentOrNull,
+            characterId =
+                element["characterId"]?.jsonPrimitive?.contentOrNull
+                    ?: element["name"]?.jsonPrimitive?.contentOrNull
+                        .takeIf { role == "assistant" }
+                        .orEmpty(),
+            createdAt =
+                element["createdAt"]?.jsonPrimitive?.contentOrNull
+                    ?: element["send_date"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            swipeIndex = element["swipeIndex"]?.jsonPrimitive?.intOrNull ?: 0,
+            swipes = element["swipes"]?.jsonArray?.map { it.jsonPrimitive.content },
+            thinkingSwipes = element["thinkingSwipes"]?.jsonArray?.map { it.jsonPrimitive.content },
+        )
     }
 
     /**

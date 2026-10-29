@@ -43,24 +43,25 @@ class SettingsRepository(private val context: Context) {
         if (entity == null) return null
         // 非空但不可解析/未来版本的 configJson 必须保留原文，不能自动覆盖未知 request。
         val document = ApiConfigJson.fromEntityForBackfill(entity)
-        if (document == null) {
-            // 独立列仍可安全处理：apiKey 加密、可清理的 apiUrl 去凭据；configJson 原文不动。
-            val normalized =
+        val normalized =
+            if (document == null) {
+                // 独立列仍可安全处理：apiKey 加密、可清理的 apiUrl 去凭据；configJson 原文不动。
                 entity.copy(
                     apiKey = SecureStore.wrap(entity.apiKey),
                     apiUrl = ApiConfigJson.sanitizeBaseUrl(entity.apiUrl) ?: entity.apiUrl,
                 )
-            if (normalized.apiKey != entity.apiKey || normalized.apiUrl != entity.apiUrl) {
-                db.apiConfigDao().update(normalized)
+            } else {
+                entity.copy(
+                    apiKey = SecureStore.wrap(entity.apiKey),
+                    apiUrl = document.baseUrl,
+                    configJson =
+                        ApiConfigJson.format(
+                            document.copy(
+                                apiKeyRef = if (entity.apiKey.isBlank()) "" else "secure:${entity.id}",
+                            ),
+                        ),
+                )
             }
-            return normalized
-        }
-        val normalized =
-            entity.copy(
-                apiKey = SecureStore.wrap(entity.apiKey),
-                apiUrl = document.baseUrl,
-                configJson = ApiConfigJson.format(document.copy(apiKeyRef = if (entity.apiKey.isBlank()) "" else "secure:${entity.id}")),
-            )
         if (normalized.apiKey != entity.apiKey ||
             normalized.configJson != entity.configJson ||
             normalized.apiUrl != entity.apiUrl
@@ -87,12 +88,11 @@ class SettingsRepository(private val context: Context) {
                 ?.content
                 ?.equals("disabled", ignoreCase = true) == true
         val runtime = document?.runtime
+        val baseValues = resolveBaseConfigValues(document, defaultApiConfig, dao)
         return LlmConfig(
-            baseUrl = document?.baseUrl ?: defaultApiConfig?.apiUrl ?: dao.getValue("llm_base_url") ?: "",
-            apiKey =
-                defaultApiConfig?.let { SecureStore.unwrap(it.apiKey) }
-                    ?: SecureStore.unwrap(dao.getValue("llm_api_key") ?: ""),
-            model = document?.model ?: defaultApiConfig?.model ?: dao.getValue("llm_model") ?: "",
+            baseUrl = baseValues.baseUrl,
+            apiKey = baseValues.apiKey,
+            model = baseValues.model,
             type = type,
             temperature = sampling.temperature ?: LlmConfig.DEFAULT_TEMPERATURE,
             maxTokens = sampling.maxTokens ?: LlmConfig.DEFAULT_MAX_TOKENS,
@@ -102,11 +102,41 @@ class SettingsRepository(private val context: Context) {
             timeoutSeconds = runtime?.timeoutSeconds ?: LlmConfig.DEFAULT_TIMEOUT_SECONDS,
             retries = runtime?.retries ?: LlmConfig.DEFAULT_RETRIES,
             disableThinking = thinkingDisabled,
-            streamingEnabled = document?.streamingEnabled ?: defaultApiConfig?.streamingEnabled ?: globalStreamingEnabled,
+            streamingEnabled =
+                document?.streamingEnabled
+                    ?: defaultApiConfig?.streamingEnabled
+                    ?: globalStreamingEnabled,
             request = request ?: kotlinx.serialization.json.buildJsonObject { },
             contextTokenLimit = document?.contextTokenLimit ?: ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
         )
     }
+
+    private data class BaseConfigValues(
+        val baseUrl: String,
+        val apiKey: String,
+        val model: String,
+    )
+
+    private suspend fun resolveBaseConfigValues(
+        document: com.mistbell.tavern.android.data.api.ApiConfigDocument?,
+        defaultApiConfig: com.mistbell.tavern.android.data.local.entity.ApiConfigEntity?,
+        dao: SettingsDao,
+    ): BaseConfigValues =
+        BaseConfigValues(
+            baseUrl =
+                document?.baseUrl
+                    ?: defaultApiConfig?.apiUrl
+                    ?: dao.getValue("llm_base_url")
+                    ?: "",
+            apiKey =
+                defaultApiConfig?.let { SecureStore.unwrap(it.apiKey) }
+                    ?: SecureStore.unwrap(dao.getValue("llm_api_key") ?: ""),
+            model =
+                document?.model
+                    ?: defaultApiConfig?.model
+                    ?: dao.getValue("llm_model")
+                    ?: "",
+        )
 
     // --- 生成与记忆默认值（settings KV）---
 

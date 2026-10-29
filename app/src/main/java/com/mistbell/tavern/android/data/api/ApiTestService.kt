@@ -39,24 +39,29 @@ object ApiType {
  */
 internal fun normalizeApiBaseUrl(apiUrl: String): String {
     val trimmed = apiUrl.trim()
-    if (trimmed.isBlank()) return trimmed
-
-    val httpUrl = trimmed.toHttpUrlOrNull()
-    if (httpUrl != null) {
-        val path = httpUrl.encodedPath.trimEnd('/').removeSuffix("/chat/completions").trimEnd('/')
-        val builder = httpUrl.newBuilder().encodedPath(path.ifBlank { "/" })
-        val normalized = builder.build().toString()
-        return if (path.isBlank() || path == "/") {
-            if (httpUrl.query == null) {
-                normalized.trimEnd('/')
-            } else {
-                normalized.replaceFirst(Regex("^(https?://[^/]+)/\\?"), "$1?")
-            }
-        } else {
-            normalized
-        }
+    return if (trimmed.isBlank()) {
+        trimmed
+    } else {
+        trimmed.toHttpUrlOrNull()?.let(::normalizeHttpApiBaseUrl)
+            ?: normalizeNonHttpApiBaseUrl(trimmed)
     }
+}
 
+private fun normalizeHttpApiBaseUrl(httpUrl: okhttp3.HttpUrl): String {
+    val path = httpUrl.encodedPath.trimEnd('/').removeSuffix("/chat/completions").trimEnd('/')
+    val normalized = httpUrl.newBuilder().encodedPath(path.ifBlank { "/" }).build().toString()
+    return if (path.isBlank() || path == "/") {
+        if (httpUrl.query == null) {
+            normalized.trimEnd('/')
+        } else {
+            normalized.replaceFirst(Regex("^(https?://[^/]+)/\\?"), "$1?")
+        }
+    } else {
+        normalized
+    }
+}
+
+private fun normalizeNonHttpApiBaseUrl(trimmed: String): String {
     val queryIndex = trimmed.indexOf('?')
     val pathPart = if (queryIndex >= 0) trimmed.substring(0, queryIndex) else trimmed
     val queryPart = if (queryIndex >= 0) trimmed.substring(queryIndex) else ""

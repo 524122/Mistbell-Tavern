@@ -1,5 +1,6 @@
 package com.mistbell.tavern.android.ui.settings
 
+import com.mistbell.tavern.android.data.api.ApiConfigFields
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiConfigJsonResult
 import com.mistbell.tavern.android.data.api.ApiRequestTemplate
@@ -18,14 +19,17 @@ class ApiConfigEditorSavePipelineTest {
         // 对话框打开时的初始草稿（apiConfig == null 路径）
         val base =
             ApiConfigJson.fromFields(
-                id = "new-id",
-                name = "测试 $type",
-                type = type,
-                baseUrl = baseUrl,
-                model = "test-model",
-                hasApiKey = true,
-                streamingEnabled = true,
-                contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+                fields =
+                    ApiConfigFields(
+                        id = "new-id",
+                        name = "测试 $type",
+                        type = type,
+                        baseUrl = baseUrl,
+                        model = "test-model",
+                        hasApiKey = true,
+                        streamingEnabled = true,
+                        contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+                    ),
             )
         val materialized = base.copy(request = ApiRequestTemplate.materialize(base.request, base.type))
         val editorText = ApiConfigEditorLogic.formatForEditor(materialized, hasApiKey = true)
@@ -42,13 +46,16 @@ class ApiConfigEditorSavePipelineTest {
         val final =
             ApiConfigEditorLogic.finalDocument(
                 parsed = document,
-                id = document.id,
-                name = "测试 $type",
-                type = type,
-                apiUrl = baseUrl,
-                model = "test-model",
-                streamingEnabled = true,
-                contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+                fields =
+                    ApiConfigEditorFields(
+                        id = document.id,
+                        name = "测试 $type",
+                        type = type,
+                        apiUrl = baseUrl,
+                        model = "test-model",
+                        streamingEnabled = true,
+                        contextTokenLimit = ApiConfigJson.DEFAULT_CONTEXT_TOKEN_LIMIT,
+                    ),
             )
 
         // onConfirm 交给 ViewModel 前的最后一次序列化 + addApiConfig 里的再 parse

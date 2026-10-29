@@ -92,7 +92,13 @@ class RequestSamplingParamsTest {
             RequestSamplingParams.write(
                 request,
                 ApiType.GEMINI,
-                RequestSamplingParams(temperature = 0.6, maxTokens = 8192, topP = 0.8, topK = 20, frequencyPenalty = 0.4),
+                RequestSamplingParams(
+                    temperature = 0.6,
+                    maxTokens = 8192,
+                    topP = 0.8,
+                    topK = 20,
+                    frequencyPenalty = 0.4,
+                ),
             )
 
         assertEquals("0.6", written.value("generationConfig.temperature"))

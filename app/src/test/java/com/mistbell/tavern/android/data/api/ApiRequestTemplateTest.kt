@@ -42,14 +42,17 @@ class ApiRequestTemplateTest {
     fun `fromFields 默认保留空 request 不后台物化`() {
         val document =
             ApiConfigJson.fromFields(
-                id = "x",
-                name = "x",
-                type = ApiType.GEMINI,
-                baseUrl = "https://example.test/v1",
-                model = "m",
-                hasApiKey = false,
-                streamingEnabled = true,
-                contextTokenLimit = 4096,
+                fields =
+                    ApiConfigFields(
+                        id = "x",
+                        name = "x",
+                        type = ApiType.GEMINI,
+                        baseUrl = "https://example.test/v1",
+                        model = "m",
+                        hasApiKey = false,
+                        streamingEnabled = true,
+                        contextTokenLimit = 4096,
+                    ),
             )
         assertTrue(document.request.isEmpty())
     }
@@ -59,15 +62,18 @@ class ApiRequestTemplateTest {
         val template = ApiRequestTemplate.templateFor(ApiType.GEMINI)
         val document =
             ApiConfigJson.fromFields(
-                id = "x",
-                name = "x",
-                type = ApiType.GEMINI,
-                baseUrl = "https://example.test/v1",
-                model = "m",
-                hasApiKey = false,
-                streamingEnabled = true,
-                contextTokenLimit = 4096,
-                request = template,
+                fields =
+                    ApiConfigFields(
+                        id = "x",
+                        name = "x",
+                        type = ApiType.GEMINI,
+                        baseUrl = "https://example.test/v1",
+                        model = "m",
+                        hasApiKey = false,
+                        streamingEnabled = true,
+                        contextTokenLimit = 4096,
+                        request = template,
+                    ),
             )
         assertEquals(template, document.request)
     }

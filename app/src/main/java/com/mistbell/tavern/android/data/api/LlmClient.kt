@@ -23,6 +23,8 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
+private class LlmRequestException(message: String) : Exception(message)
+
 @Serializable
 data class ChatMessage(
     val role: String,
@@ -228,10 +230,13 @@ object LlmClient {
     private fun redactedMessage(e: Exception): String = ApiConfigJson.redactUrl(e.message.orEmpty())
 
     private fun redactedException(e: Exception): Exception {
-        if (e is CancellationException) return e
         val message = redactedMessage(e)
-        if (message == e.message.orEmpty()) return e
-        return if (e is IOException) IOException(message, e) else Exception(message, e)
+        return when {
+            e is CancellationException -> e
+            message == e.message.orEmpty() -> e
+            e is IOException -> IOException(message, e)
+            else -> Exception(message, e)
+        }
     }
 
     /** 疑似"思考参数被拒"：错误正文提到 thinking，或 HTTP 400（请求格式错误） */
@@ -255,7 +260,11 @@ object LlmClient {
                     lastException = e
                     if (attempt < maxAttempts - 1) {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt) // 指数退避：1s, 2s, 4s
-                        android.util.Log.w("LlmClient", "Request timeout, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms")
+                        android.util.Log.w(
+                            "LlmClient",
+                            "Request timeout, retry ${attempt + 1}/$maxAttempts " +
+                                "after ${delayMs}ms",
+                        )
                         delay(delayMs)
                     }
                 } catch (e: IOException) {
@@ -265,7 +274,8 @@ object LlmClient {
                         val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt)
                         android.util.Log.w(
                             "LlmClient",
-                            "Network error, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${redactedMessage(e)}",
+                            "Network error, retry ${attempt + 1}/$maxAttempts " +
+                                "after ${delayMs}ms: ${redactedMessage(e)}",
                         )
                         delay(delayMs)
                     }
@@ -276,7 +286,11 @@ object LlmClient {
                         lastException = e
                         if (attempt < maxAttempts - 1) {
                             val delayMs = INITIAL_RETRY_DELAY_MS * (1 shl attempt) * 2 // 速率限制时延迟更久
-                            android.util.Log.w("LlmClient", "Rate limit hit, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms")
+                            android.util.Log.w(
+                                "LlmClient",
+                                "Rate limit hit, retry ${attempt + 1}/$maxAttempts " +
+                                    "after ${delayMs}ms",
+                            )
                             delay(delayMs)
                         }
                     } else {
@@ -287,7 +301,7 @@ object LlmClient {
             }
 
             // 所有重试都失败
-            throw lastException ?: Exception("LLM request failed after $maxAttempts retries")
+            throw lastException ?: LlmRequestException("LLM request failed after $maxAttempts retries")
         }
     }
 
@@ -312,10 +326,13 @@ object LlmClient {
         val response = clientFor(config).newCall(request).execute()
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "No error details"
-            throw Exception("LLM API error: ${response.code} ${response.message} - ${ApiConfigJson.redactUrl(errorBody)}")
+            val redactedError = ApiConfigJson.redactUrl(errorBody)
+            throw LlmRequestException(
+                "LLM API error: ${response.code} ${response.message} - $redactedError",
+            )
         }
 
-        val responseBody = response.body?.string() ?: throw Exception("Empty response")
+        val responseBody = response.body?.string() ?: throw LlmRequestException("Empty response")
         val content = chatProtocolFor(config.type).parseContent(responseBody)
         logUsage(content.usage, config.model, "non-stream")
         // 截断是最隐蔽的失败：JSON 写到一半被 max_tokens 砍断，调用方只看到"解析失败/空结果"
@@ -371,7 +388,7 @@ object LlmClient {
                     }
                 }
             }
-            throw lastException ?: Exception("LLM request failed after $maxAttempts retries")
+            throw lastException ?: LlmRequestException("LLM request failed after $maxAttempts retries")
         }
 
     /**
@@ -408,7 +425,8 @@ object LlmClient {
                         val delayMs = 1000L * (1 shl attempt) * (if (e.message?.contains("429") == true) 2 else 1)
                         android.util.Log.w(
                             "LlmClient",
-                            "Stream failed before first token, retry ${attempt + 1}/$maxAttempts after ${delayMs}ms: ${redactedMessage(e)}",
+                            "Stream failed before first token, retry ${attempt + 1}/$maxAttempts " +
+                                "after ${delayMs}ms: ${redactedMessage(e)}",
                         )
                         delay(delayMs)
                     } else {
@@ -460,8 +478,13 @@ object LlmClient {
                     ) {
                         val message = ApiConfigJson.redactUrl(t?.message.orEmpty())
                         // 某些兼容网关流式响应 Content-Type 非 text/event-stream 会被 okhttp-sse 拒收
-                        if (message.contains("Content-Type", ignoreCase = true) || message.contains("content type", ignoreCase = true)) {
-                            close(IllegalStateException("流式响应 Content-Type 不受支持（$message）：该网关可能不兼容 SSE 流式，请在模型设置中关闭流式输出（降级为普通请求）。"))
+                        if (message.contains("Content-Type", ignoreCase = true) ||
+                            message.contains("content type", ignoreCase = true)
+                        ) {
+                            val errorMessage =
+                                "流式响应 Content-Type 不受支持（$message）：" +
+                                    "该网关可能不兼容 SSE 流式，请在模型设置中关闭流式输出（降级为普通请求）。"
+                            close(IllegalStateException(errorMessage))
                             return
                         }
                         if (response != null) {
@@ -471,9 +494,10 @@ object LlmClient {
                                 } catch (_: Exception) {
                                     "No error details"
                                 }
+                            val redactedSummary = ApiConfigJson.redactUrl(summary)
                             close(
                                 IllegalStateException(
-                                    "LLM API error: ${response.code} ${response.message} - ${ApiConfigJson.redactUrl(summary)}",
+                                    "LLM API error: ${response.code} ${response.message} - $redactedSummary",
                                 ),
                             )
                         } else {

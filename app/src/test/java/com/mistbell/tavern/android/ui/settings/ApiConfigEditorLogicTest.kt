@@ -1,5 +1,6 @@
 package com.mistbell.tavern.android.ui.settings
 
+import com.mistbell.tavern.android.data.api.ApiConfigFields
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiRequestTemplate
 import com.mistbell.tavern.android.data.api.ApiType
@@ -15,14 +16,17 @@ import org.junit.Test
 class ApiConfigEditorLogicTest {
     private fun document(name: String = "Config") =
         ApiConfigJson.fromFields(
-            id = "id-1",
-            name = name,
-            type = "openai",
-            baseUrl = "https://api.example.com/v1",
-            model = "model-1",
-            hasApiKey = true,
-            streamingEnabled = true,
-            contextTokenLimit = 4096,
+            fields =
+                ApiConfigFields(
+                    id = "id-1",
+                    name = name,
+                    type = "openai",
+                    baseUrl = "https://api.example.com/v1",
+                    model = "model-1",
+                    hasApiKey = true,
+                    streamingEnabled = true,
+                    contextTokenLimit = 4096,
+                ),
         )
 
     @Test
@@ -132,7 +136,8 @@ class ApiConfigEditorLogicTest {
         assertNull(ApiConfigEditorLogic.safeJsonForClipboard("{bad", hasApiKey = true))
         assertNull(
             ApiConfigEditorLogic.safeJsonForClipboard(
-                """{"schemaVersion":1,"id":"x","name":"x","type":"openai","baseUrl":"u","model":"m","apiKey":"secret"}""",
+                """{"schemaVersion":1,"id":"x","name":"x","type":"openai",""" +
+                    """"baseUrl":"u","model":"m","apiKey":"secret"}""",
                 hasApiKey = true,
             ),
         )
@@ -258,7 +263,10 @@ class ApiConfigEditorLogicTest {
         assertTrue(formatted.indexOf("\"request\"") < formatted.indexOf("\"id\""))
         val parsed = ApiConfigJson.parse(formatted)
         assertTrue(parsed is com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid)
-        assertEquals(document.request, (parsed as com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid).document.request)
+        assertEquals(
+            document.request,
+            (parsed as com.mistbell.tavern.android.data.api.ApiConfigJsonResult.Valid).document.request,
+        )
     }
 
     @Test
@@ -266,13 +274,16 @@ class ApiConfigEditorLogicTest {
         val finalDocument =
             ApiConfigEditorLogic.finalDocument(
                 parsed = document(),
-                id = "id-1",
-                name = "Config",
-                type = " Gemini ",
-                apiUrl = "https://generativelanguage.googleapis.com?foo=1&key=secret",
-                model = "gemini-2.0-flash",
-                streamingEnabled = false,
-                contextTokenLimit = 8192,
+                fields =
+                    ApiConfigEditorFields(
+                        id = "id-1",
+                        name = "Config",
+                        type = " Gemini ",
+                        apiUrl = "https://generativelanguage.googleapis.com?foo=1&key=secret",
+                        model = "gemini-2.0-flash",
+                        streamingEnabled = false,
+                        contextTokenLimit = 8192,
+                    ),
             )
         assertEquals(ApiType.GEMINI, finalDocument.type)
         assertEquals("https://generativelanguage.googleapis.com?foo=1", finalDocument.baseUrl)

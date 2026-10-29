@@ -39,11 +39,15 @@ import com.mistbell.tavern.android.ui.common.ModernDivider
 import com.mistbell.tavern.android.ui.common.ModernTopBar
 import kotlin.math.roundToInt
 
-private val MAX_TOKENS_STEPS = listOf(256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536)
+private const val MAX_TOKENS_BASE = 256
+private const val MAX_TOKENS_STEP_COUNT = 9
+private val MAX_TOKENS_STEPS = List(MAX_TOKENS_STEP_COUNT) { index -> MAX_TOKENS_BASE shl index }
 
 private const val TIMEOUT_MIN_SECONDS = 15
 private const val TIMEOUT_MAX_SECONDS = 600
+private const val TIMEOUT_INPUT_MAX_LENGTH = 4
 private const val RETRIES_MAX = 5
+private const val PARAM_DECIMAL_FACTOR = 100.0
 
 /**
  * 模型参数独立页面：编辑默认 API 配置的采样参数（request JSON）与超时/重试（runtime）。
@@ -110,7 +114,10 @@ private fun ModelParamsEditor(
     val params = RequestSamplingParams.read(document.request, type)
     val showFrequencyPenalty = type == ApiType.OPENAI || type == ApiType.CUSTOM
 
-    fun saveSampling(next: RequestSamplingParams) = onSave { d -> d.copy(request = RequestSamplingParams.write(d.request, type, next)) }
+    fun saveSampling(next: RequestSamplingParams) =
+        onSave { d ->
+            d.copy(request = RequestSamplingParams.write(d.request, type, next))
+        }
 
     Column(
         modifier =
@@ -174,10 +181,10 @@ private fun ModelParamsEditor(
             onCommit = { v -> saveSampling(params.copy(maxTokens = v)) },
         )
         ModernDivider()
-        TimeoutRetriesRows(
-            document = document,
-            onSave = onSave,
-        )
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            TimeoutRow(document = document, onSave = onSave)
+            RetriesRow(document = document, onSave = onSave)
+        }
     }
 }
 
@@ -290,99 +297,104 @@ private fun MaxTokensParamRow(
     }
 }
 
-/** runtime 请求策略：超时（15–600 秒）与重试（0–5 次），始终随文档发送。 */
-@Suppress("FunctionNaming")
 @Composable
-private fun TimeoutRetriesRows(
+private fun TimeoutRow(
     document: ApiConfigDocument,
     onSave: ((ApiConfigDocument) -> ApiConfigDocument) -> Unit,
 ) {
     var timeoutText by remember(document.runtime.timeoutSeconds) {
         mutableStateOf(document.runtime.timeoutSeconds.toString())
     }
-    var dragRetries by remember(document.runtime.retries) { mutableStateOf<Float?>(null) }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "请求超时",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = "单次请求最长等待时间（$TIMEOUT_MIN_SECONDS–$TIMEOUT_MAX_SECONDS 秒）",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            OutlinedTextField(
-                value = timeoutText,
-                onValueChange = { input ->
-                    if (input.all { it.isDigit() }) {
-                        timeoutText = input.take(4)
-                        input.toIntOrNull()?.let { seconds ->
-                            if (seconds in TIMEOUT_MIN_SECONDS..TIMEOUT_MAX_SECONDS) {
-                                onSave { d -> d.copy(runtime = d.runtime.copy(timeoutSeconds = seconds)) }
-                            }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "请求超时",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "单次请求最长等待时间（$TIMEOUT_MIN_SECONDS–$TIMEOUT_MAX_SECONDS 秒）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OutlinedTextField(
+            value = timeoutText,
+            onValueChange = { input ->
+                if (input.all { it.isDigit() }) {
+                    timeoutText = input.take(TIMEOUT_INPUT_MAX_LENGTH)
+                    input.toIntOrNull()?.let { seconds ->
+                        if (seconds in TIMEOUT_MIN_SECONDS..TIMEOUT_MAX_SECONDS) {
+                            onSave { d -> d.copy(runtime = d.runtime.copy(timeoutSeconds = seconds)) }
                         }
                     }
-                },
-                modifier = Modifier.width(96.dp),
-                singleLine = true,
-                trailingIcon = { Text("秒", style = MaterialTheme.typography.labelMedium) },
-                shape = RoundedCornerShape(8.dp),
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    ),
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "重试次数",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = "请求失败后的自动重试上限（0–$RETRIES_MAX 次）",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                text = (dragRetries?.roundToInt() ?: document.runtime.retries).toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Slider(
-            value = dragRetries ?: document.runtime.retries.toFloat(),
-            onValueChange = { dragRetries = it },
-            onValueChangeFinished = {
-                onSave { d ->
-                    d.copy(
-                        runtime =
-                            d.runtime.copy(
-                                retries = dragRetries?.roundToInt()?.coerceIn(0, RETRIES_MAX) ?: d.runtime.retries,
-                            ),
-                    )
                 }
             },
-            valueRange = 0f..RETRIES_MAX.toFloat(),
-            steps = RETRIES_MAX - 1,
+            modifier = Modifier.width(96.dp),
+            singleLine = true,
+            trailingIcon = { Text("秒", style = MaterialTheme.typography.labelMedium) },
+            shape = RoundedCornerShape(8.dp),
+            colors =
+                OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                ),
         )
     }
+}
+
+@Composable
+private fun RetriesRow(
+    document: ApiConfigDocument,
+    onSave: ((ApiConfigDocument) -> ApiConfigDocument) -> Unit,
+) {
+    var dragRetries by remember(document.runtime.retries) { mutableStateOf<Float?>(null) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "重试次数",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "请求失败后的自动重试上限（0–$RETRIES_MAX 次）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = (dragRetries?.roundToInt() ?: document.runtime.retries).toString(),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+    Slider(
+        value = dragRetries ?: document.runtime.retries.toFloat(),
+        onValueChange = { dragRetries = it },
+        onValueChangeFinished = {
+            onSave { d ->
+                d.copy(
+                    runtime =
+                        d.runtime.copy(
+                            retries =
+                                dragRetries?.roundToInt()?.coerceIn(0, RETRIES_MAX)
+                                    ?: d.runtime.retries,
+                        ),
+                )
+            }
+        },
+        valueRange = 0f..RETRIES_MAX.toFloat(),
+        steps = RETRIES_MAX - 1,
+    )
 }
 
 @Suppress("FunctionNaming")
@@ -401,7 +413,9 @@ private fun maxTokensStepIndex(value: Int): Int =
         .indexOfFirst { it >= value }
         .coerceAtLeast(0)
 
-private fun round2(value: Double): Double = (value * 100).roundToInt() / 100.0
+private fun round2(value: Double): Double {
+    return (value * PARAM_DECIMAL_FACTOR).roundToInt() / PARAM_DECIMAL_FACTOR
+}
 
 private fun formatParamValue(
     value: Double,

@@ -44,66 +44,22 @@ data class ApiRequestPreview(
          */
         fun from(document: ApiConfigDocument): ApiRequestPreview {
             val type = normalizeApiType(document.type)
-            val templateFields = ApiRequestTemplate.templateFields(type)
-            val templateByPath = templateFields.associateBy { it.path }
-            val knownPaths = templateByPath.keys
+            val templateByPath = ApiRequestTemplate.templateFields(type).associateBy { it.path }
             val request = ApiRequestTemplate.withoutNulls(document.request)
-
-            val protectedFields = ApiConfigJson.protectedFieldsForType(type)
             val merge =
                 ApiConfigJson.mergeRequest(
                     base = buildJsonObject { },
                     extension = request,
-                    protectedFields = protectedFields,
+                    protectedFields = ApiConfigJson.protectedFieldsForType(type),
                 )
-
-            val ignoredPaths = merge.ignored.map { it.path }.toSet()
-            val specs = groupSpecsForType(type)
-            val fieldsByGroup = linkedMapOf<String, LinkedHashMap<String, ApiRequestPreviewField>>()
-            specs.forEach { spec ->
-                val fields = linkedMapOf<String, ApiRequestPreviewField>()
-                spec.paths.forEach { path ->
-                    val templateValue = templateByPath.getValue(path).value
-                    fields[path] = previewField(path, request.valueAt(path), templateValue)
-                }
-                fieldsByGroup[spec.id] = fields
-            }
-
-            // 非空未知字段作为 USER 归入对应分组；模板路径的后代已由已知字段整体表达，避免重复。
-            ApiRequestTemplate
-                .flattenLeaves(request)
-                .filter { field ->
-                    field.path.isNotBlank() &&
-                        field.path !in knownPaths &&
-                        knownPaths.none { known -> field.path.startsWith("$known.") } &&
-                        ignoredPaths.none { ignored ->
-                            field.path == ignored ||
-                                field.path.startsWith("$ignored.") ||
-                                ignored.startsWith("${field.path}.") ||
-                                ignored.startsWith("${field.path}[")
-                        } &&
-                        field.value.isNonEmptyUnknown()
-                }.forEach { field ->
-                    val groupId = groupIdForPath(type, field.path)
-                    val groupFields = fieldsByGroup[groupId] ?: fieldsByGroup.getValue(CUSTOM_GROUP_ID)
-                    groupFields[field.path] =
-                        ApiRequestPreviewField(
-                            path = field.path,
-                            value = field.value.toString(),
-                            state = ApiRequestFieldState.USER,
-                        )
-                }
-
             val groups =
-                specs.mapNotNull { spec ->
-                    val fields = fieldsByGroup.getValue(spec.id).values.toList()
-                    if (spec.id == CUSTOM_GROUP_ID && fields.isEmpty()) {
-                        null
-                    } else {
-                        ApiRequestPreviewGroup(spec.id, spec.title, fields)
-                    }
-                }
-
+                parameterGroups(
+                    type = type,
+                    specs = groupSpecsForType(type),
+                    request = request,
+                    templateByPath = templateByPath,
+                    ignoredPaths = merge.ignored.map { it.path }.toSet(),
+                )
             return ApiRequestPreview(
                 generatedFields = generatedFields(document),
                 parameterGroups = groups,
@@ -113,6 +69,75 @@ data class ApiRequestPreview(
                     },
             )
         }
+
+        private fun parameterGroups(
+            type: String,
+            specs: List<RequestGroupSpec>,
+            request: JsonObject,
+            templateByPath: Map<String, ApiRequestTemplateField>,
+            ignoredPaths: Set<String>,
+        ): List<ApiRequestPreviewGroup> {
+            val fieldsByGroup = initialFieldsByGroup(specs, request, templateByPath)
+            addUnknownFields(type, request, templateByPath.keys, ignoredPaths, fieldsByGroup)
+            return specs.mapNotNull { spec ->
+                val fields = fieldsByGroup.getValue(spec.id).values.toList()
+                if (spec.id == CUSTOM_GROUP_ID && fields.isEmpty()) {
+                    null
+                } else {
+                    ApiRequestPreviewGroup(spec.id, spec.title, fields)
+                }
+            }
+        }
+
+        private fun initialFieldsByGroup(
+            specs: List<RequestGroupSpec>,
+            request: JsonObject,
+            templateByPath: Map<String, ApiRequestTemplateField>,
+        ): PreviewFieldsByGroup {
+            val fieldsByGroup = linkedMapOf<String, LinkedHashMap<String, ApiRequestPreviewField>>()
+            specs.forEach { spec ->
+                val fields = linkedMapOf<String, ApiRequestPreviewField>()
+                spec.paths.forEach { path ->
+                    val templateValue = templateByPath.getValue(path).value
+                    fields[path] = previewField(path, request.valueAt(path), templateValue)
+                }
+                fieldsByGroup[spec.id] = fields
+            }
+            return fieldsByGroup
+        }
+
+        private fun addUnknownFields(
+            type: String,
+            request: JsonObject,
+            knownPaths: Set<String>,
+            ignoredPaths: Set<String>,
+            fieldsByGroup: PreviewFieldsByGroup,
+        ) {
+            ApiRequestTemplate
+                .flattenLeaves(request)
+                .filter { field -> shouldIncludeUnknown(field, knownPaths, ignoredPaths) }
+                .forEach { field ->
+                    val groupId = groupIdForPath(type, field.path)
+                    val groupFields = fieldsByGroup[groupId] ?: fieldsByGroup.getValue(CUSTOM_GROUP_ID)
+                    groupFields[field.path] =
+                        ApiRequestPreviewField(
+                            path = field.path,
+                            value = field.value.toString(),
+                            state = ApiRequestFieldState.USER,
+                        )
+                }
+        }
+
+        private fun shouldIncludeUnknown(
+            field: ApiRequestTemplateField,
+            knownPaths: Set<String>,
+            ignoredPaths: Set<String>,
+        ): Boolean =
+            field.path.isNotBlank() &&
+                field.path !in knownPaths &&
+                knownPaths.none { known -> field.path.startsWith("$known.") } &&
+                ignoredPaths.none { ignored -> field.path.overlaps(ignored) } &&
+                field.value.isNonEmptyUnknown()
 
         private fun previewField(
             path: String,
@@ -136,134 +161,19 @@ data class ApiRequestPreview(
     }
 }
 
-private const val CUSTOM_GROUP_ID = "custom"
+private typealias PreviewFieldsByGroup =
+    LinkedHashMap<String, LinkedHashMap<String, ApiRequestPreviewField>>
 
-private data class RequestGroupSpec(
-    val id: String,
-    val title: String,
-    val paths: List<String> = emptyList(),
-)
+private fun String.overlaps(other: String): Boolean =
+    this == other ||
+        startsWith("$other.") ||
+        other.startsWith("$this.") ||
+        other.startsWith("$this[")
 
-private fun groupSpecsForType(type: String): List<RequestGroupSpec> =
-    when (normalizeApiType(type)) {
-        ApiType.GEMINI ->
-            listOf(
-                RequestGroupSpec(
-                    id = "generationConfig",
-                    title = "生成配置 · generationConfig",
-                    paths =
-                        listOf(
-                            "generationConfig.maxOutputTokens",
-                            "generationConfig.temperature",
-                            "generationConfig.topP",
-                            "generationConfig.topK",
-                            "generationConfig.responseMimeType",
-                            "generationConfig.responseSchema",
-                        ),
-                ),
-                RequestGroupSpec(
-                    id = "thinkingConfig",
-                    title = "思考配置 · thinkingConfig",
-                    paths = listOf("generationConfig.thinkingConfig"),
-                ),
-                RequestGroupSpec(
-                    id = "safetySettings",
-                    title = "安全设置 · safetySettings",
-                    paths = listOf("safetySettings"),
-                ),
-                RequestGroupSpec(CUSTOM_GROUP_ID, "自定义字段"),
-            )
-        ApiType.ANTHROPIC ->
-            listOf(
-                RequestGroupSpec(
-                    id = "sampling",
-                    title = "采样参数 · sampling",
-                    paths =
-                        listOf(
-                            "temperature",
-                            "max_tokens",
-                            "top_p",
-                            "top_k",
-                        ),
-                ),
-                RequestGroupSpec(
-                    id = "thinking",
-                    title = "思考参数 · thinking",
-                    paths = listOf("thinking"),
-                ),
-                RequestGroupSpec(
-                    id = "metadata",
-                    title = "元数据 · metadata",
-                    paths = listOf("metadata"),
-                ),
-                RequestGroupSpec(CUSTOM_GROUP_ID, "自定义字段"),
-            )
-        else ->
-            listOf(
-                RequestGroupSpec(
-                    id = "sampling",
-                    title = "采样参数 · sampling",
-                    paths =
-                        listOf(
-                            "temperature",
-                            "max_tokens",
-                            "top_p",
-                            "top_k",
-                            "frequency_penalty",
-                        ),
-                ),
-                RequestGroupSpec(
-                    id = "thinking",
-                    title = "思考参数 · thinking / reasoning",
-                    paths = listOf("thinking", "reasoning_effort"),
-                ),
-                RequestGroupSpec(
-                    id = "response_format",
-                    title = "响应格式 · response_format",
-                    paths = listOf("response_format"),
-                ),
-                RequestGroupSpec(CUSTOM_GROUP_ID, "自定义字段"),
-            )
+private fun JsonObject.valueAt(path: String): JsonElement? =
+    path.split('.').fold<String, JsonElement?>(this) { current, segment ->
+        (current as? JsonObject)?.get(segment)
     }
-
-private fun groupIdForPath(
-    type: String,
-    path: String,
-): String =
-    when (normalizeApiType(type)) {
-        ApiType.GEMINI ->
-            when {
-                path.hasJsonPathPrefix("generationConfig.thinkingConfig") -> "thinkingConfig"
-                path.hasJsonPathPrefix("generationConfig") -> "generationConfig"
-                path.hasJsonPathPrefix("safetySettings") -> "safetySettings"
-                else -> CUSTOM_GROUP_ID
-            }
-        ApiType.ANTHROPIC ->
-            when {
-                path.hasJsonPathPrefix("thinking") -> "thinking"
-                path.hasJsonPathPrefix("metadata") -> "metadata"
-                else -> CUSTOM_GROUP_ID
-            }
-        else ->
-            when {
-                path.hasJsonPathPrefix("thinking") ||
-                    path.hasJsonPathPrefix("reasoning") ||
-                    path == "reasoning_effort" -> "thinking"
-                path.hasJsonPathPrefix("response_format") -> "response_format"
-                else -> CUSTOM_GROUP_ID
-            }
-    }
-
-private fun String.hasJsonPathPrefix(prefix: String): Boolean = this == prefix || startsWith("$prefix.")
-
-private fun JsonObject.valueAt(path: String): JsonElement? {
-    var current: JsonElement = this
-    path.split('.').forEach { segment ->
-        val objectValue = current as? JsonObject ?: return null
-        current = objectValue[segment] ?: return null
-    }
-    return current
-}
 
 private fun JsonElement.isNonEmptyUnknown(): Boolean =
     when (this) {

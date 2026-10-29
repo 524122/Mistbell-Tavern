@@ -27,7 +27,9 @@ class ApiRequestPreviewTest {
 
     private fun ApiRequestPreviewGroup.field(path: String): ApiRequestPreviewField = fields.single { it.path == path }
 
-    private fun ApiRequestPreview.generated(path: String): ApiRequestPreviewField = generatedFields.single { it.path == path }
+    private fun ApiRequestPreview.generated(path: String): ApiRequestPreviewField {
+        return generatedFields.single { it.path == path }
+    }
 
     @Test
     fun `openai 模板默认值显示 DEFAULT 且 null 显示未设置`() {
@@ -58,8 +60,14 @@ class ApiRequestPreviewTest {
         assertEquals(ApiRequestPreview.UNSET_VALUE, preview.group("response_format").field("response_format").value)
         assertEquals("采样参数 · sampling", preview.group("sampling").title)
         assertEquals(0, preview.userFieldCount)
-        assertEquals(ApiRequestPreviewField("model", "real-model", ApiRequestFieldState.PROTECTED), preview.generated("model"))
-        assertEquals(ApiRequestPreviewField("stream", "false", ApiRequestFieldState.PROTECTED), preview.generated("stream"))
+        assertEquals(
+            ApiRequestPreviewField("model", "real-model", ApiRequestFieldState.PROTECTED),
+            preview.generated("model"),
+        )
+        assertEquals(
+            ApiRequestPreviewField("stream", "false", ApiRequestFieldState.PROTECTED),
+            preview.generated("stream"),
+        )
         assertTrue(preview.ignoredFields.isEmpty())
     }
 
@@ -132,20 +140,21 @@ class ApiRequestPreviewTest {
     @Test
     fun `gemini 模板默认值与 null 状态`() {
         val preview = ApiRequestPreview.from(document(ApiType.GEMINI))
+        val generation = preview.group("generationConfig")
 
-        assertEquals(ApiRequestFieldState.DEFAULT, preview.group("generationConfig").field("generationConfig.maxOutputTokens").state)
-        assertEquals("1024", preview.group("generationConfig").field("generationConfig.maxOutputTokens").value)
-        assertEquals("0.8", preview.group("generationConfig").field("generationConfig.temperature").value)
-        assertEquals("0.9", preview.group("generationConfig").field("generationConfig.topP").value)
-        assertEquals(ApiRequestPreview.UNSET_VALUE, preview.group("generationConfig").field("generationConfig.topK").value)
-        assertEquals(ApiRequestPreview.UNSET_VALUE, preview.group("generationConfig").field("generationConfig.responseMimeType").value)
-        assertEquals(ApiRequestPreview.UNSET_VALUE, preview.group("generationConfig").field("generationConfig.responseSchema").value)
+        assertEquals(ApiRequestFieldState.DEFAULT, generation.field("generationConfig.maxOutputTokens").state)
+        assertEquals("1024", generation.field("generationConfig.maxOutputTokens").value)
+        assertEquals("0.8", generation.field("generationConfig.temperature").value)
+        assertEquals("0.9", generation.field("generationConfig.topP").value)
+        assertEquals(ApiRequestPreview.UNSET_VALUE, generation.field("generationConfig.topK").value)
+        assertEquals(ApiRequestPreview.UNSET_VALUE, generation.field("generationConfig.responseMimeType").value)
+        assertEquals(ApiRequestPreview.UNSET_VALUE, generation.field("generationConfig.responseSchema").value)
         assertEquals(
             ApiRequestPreview.UNSET_VALUE,
             preview.group("thinkingConfig").field("generationConfig.thinkingConfig").value,
         )
         assertEquals(ApiRequestPreview.UNSET_VALUE, preview.group("safetySettings").field("safetySettings").value)
-        assertEquals("生成配置 · generationConfig", preview.group("generationConfig").title)
+        assertEquals("生成配置 · generationConfig", generation.title)
         assertEquals(0, preview.userFieldCount)
     }
 }

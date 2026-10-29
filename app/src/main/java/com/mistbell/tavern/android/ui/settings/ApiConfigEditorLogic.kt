@@ -7,6 +7,16 @@ import com.mistbell.tavern.android.data.api.ApiRequestTemplate
 import com.mistbell.tavern.android.data.api.normalizeApiType
 import kotlinx.serialization.json.JsonObject
 
+internal data class ApiConfigEditorFields(
+    val id: String,
+    val name: String,
+    val type: String,
+    val apiUrl: String,
+    val model: String,
+    val streamingEnabled: Boolean,
+    val contextTokenLimit: Int,
+)
+
 /**
  * API 配置编辑器的纯状态逻辑（不依赖 Compose，可直接单测）。
  *
@@ -142,25 +152,19 @@ internal object ApiConfigEditorLogic {
     /** 保存时合并表单基础字段，并统一清理 URL query 凭据/规范化协议类型。 */
     fun finalDocument(
         parsed: ApiConfigDocument,
-        id: String,
-        name: String,
-        type: String,
-        apiUrl: String,
-        model: String,
-        streamingEnabled: Boolean,
-        contextTokenLimit: Int,
+        fields: ApiConfigEditorFields,
     ): ApiConfigDocument =
         parsed.copy(
-            id = id,
-            name = name,
-            type = normalizeApiType(type),
+            id = fields.id,
+            name = fields.name,
+            type = normalizeApiType(fields.type),
             baseUrl =
-                ApiConfigJson.sanitizeBaseUrl(apiUrl)
+                ApiConfigJson.sanitizeBaseUrl(fields.apiUrl)
                     ?: throw IllegalArgumentException("API 地址包含无法安全清理的凭据或格式错误，请修正后再保存"),
-            model = model,
-            streamingEnabled = streamingEnabled,
+            model = fields.model,
+            streamingEnabled = fields.streamingEnabled,
             contextTokenLimit =
-                contextTokenLimit.coerceIn(
+                fields.contextTokenLimit.coerceIn(
                     ApiConfigJson.MIN_CONTEXT_TOKEN_LIMIT,
                     ApiConfigJson.MAX_CONTEXT_TOKEN_LIMIT,
                 ),

@@ -54,14 +54,17 @@ class ApiConfigDocumentTest {
         val formatted =
             ApiConfigJson.format(
                 ApiConfigJson.fromFields(
-                    id = "x",
-                    name = "Changed",
-                    type = "openai",
-                    baseUrl = "https://example.test/v1",
-                    model = "model-2",
-                    hasApiKey = true,
-                    streamingEnabled = false,
-                    contextTokenLimit = 8192,
+                    fields =
+                        ApiConfigFields(
+                            id = "x",
+                            name = "Changed",
+                            type = "openai",
+                            baseUrl = "https://example.test/v1",
+                            model = "model-2",
+                            hasApiKey = true,
+                            streamingEnabled = false,
+                            contextTokenLimit = 8192,
+                        ),
                 ),
             )
         val parsed = ApiConfigJson.parse(formatted) as ApiConfigJsonResult.Valid
@@ -187,71 +190,7 @@ class ApiConfigDocumentTest {
 
     @Test
     fun `JSON Schema 属性名和 required 列表不被凭据规则破坏`() {
-        val request =
-            buildJsonObject {
-                put(
-                    "response_format",
-                    buildJsonObject {
-                        put(
-                            "json_schema",
-                            buildJsonObject {
-                                put("name", "profile")
-                                put(
-                                    "schema",
-                                    buildJsonObject {
-                                        put("type", "object")
-                                        put(
-                                            "properties",
-                                            buildJsonObject {
-                                                put("model", buildJsonObject { put("type", "string") })
-                                                put("password", buildJsonObject { put("type", "string") })
-                                                put("api_key", buildJsonObject { put("type", "string") })
-                                            },
-                                        )
-                                        put(
-                                            "required",
-                                            buildJsonArray {
-                                                add("model")
-                                                add("password")
-                                            },
-                                        )
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-                put(
-                    "tools",
-                    buildJsonArray {
-                        add(
-                            buildJsonObject {
-                                put("type", "function")
-                                put(
-                                    "function",
-                                    buildJsonObject {
-                                        put("name", "lookup")
-                                        put(
-                                            "parameters",
-                                            buildJsonObject {
-                                                put("type", "object")
-                                                put(
-                                                    "properties",
-                                                    buildJsonObject {
-                                                        put("password", buildJsonObject { put("type", "string") })
-                                                        put("model", buildJsonObject { put("type", "string") })
-                                                    },
-                                                )
-                                                put("required", buildJsonArray { add("password") })
-                                            },
-                                        )
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-            }
+        val request = schemaRequestWithCredentialNames()
         val merged = ApiConfigJson.mergeRequest(buildJsonObject { }, request)
         val mergedText = merged.json.toString()
         assertTrue(mergedText.contains("\"model\":{\"type\":\"string\"}"))
@@ -264,6 +203,72 @@ class ApiConfigDocumentTest {
         assertTrue(imported is ApiConfigJsonResult.Valid)
         assertEquals(request, (imported as ApiConfigJsonResult.Valid).document.request)
     }
+
+    private fun schemaRequestWithCredentialNames() =
+        buildJsonObject {
+            put("response_format", responseFormatWithCredentialNames())
+            put("tools", toolsWithCredentialNames())
+        }
+
+    private fun responseFormatWithCredentialNames() =
+        buildJsonObject {
+            put(
+                "json_schema",
+                buildJsonObject {
+                    put("name", "profile")
+                    put(
+                        "schema",
+                        buildJsonObject {
+                            put("type", "object")
+                            put(
+                                "properties",
+                                buildJsonObject {
+                                    put("model", buildJsonObject { put("type", "string") })
+                                    put("password", buildJsonObject { put("type", "string") })
+                                    put("api_key", buildJsonObject { put("type", "string") })
+                                },
+                            )
+                            put(
+                                "required",
+                                buildJsonArray {
+                                    add("model")
+                                    add("password")
+                                },
+                            )
+                        },
+                    )
+                },
+            )
+        }
+
+    private fun toolsWithCredentialNames() =
+        buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("type", "function")
+                    put(
+                        "function",
+                        buildJsonObject {
+                            put("name", "lookup")
+                            put(
+                                "parameters",
+                                buildJsonObject {
+                                    put("type", "object")
+                                    put(
+                                        "properties",
+                                        buildJsonObject {
+                                            put("password", buildJsonObject { put("type", "string") })
+                                            put("model", buildJsonObject { put("type", "string") })
+                                        },
+                                    )
+                                    put("required", buildJsonArray { add("password") })
+                                },
+                            )
+                        },
+                    )
+                },
+            )
+        }
 
     @Test
     fun `数组元素中的凭据也会被拒绝`() {
@@ -303,7 +308,11 @@ class ApiConfigDocumentTest {
 
     @Test
     fun `schema migration v0`() {
-        val result = ApiConfigJson.parse("{\"id\":\"x\",\"name\":\"x\",\"type\":\"openai\",\"baseUrl\":\"u\",\"model\":\"m\"}")
+        val result =
+            ApiConfigJson.parse(
+                "{\"id\":\"x\",\"name\":\"x\",\"type\":\"openai\"," +
+                    "\"baseUrl\":\"u\",\"model\":\"m\"}",
+            )
         assertTrue(result is ApiConfigJsonResult.Valid)
         assertTrue((result as ApiConfigJsonResult.Valid).migrated)
     }
@@ -400,7 +409,8 @@ class ApiConfigDocumentTest {
     @Test
     fun `导入 URL 的 query 凭据被移除`() {
         val json =
-            """{"schemaVersion":1,"id":"x","name":"x","type":"openai","baseUrl":"https://example.test/v1?foo=1&key=secret","model":"m"}"""
+            """{"schemaVersion":1,"id":"x","name":"x","type":"openai",""" +
+                """"baseUrl":"https://example.test/v1?foo=1&key=secret","model":"m"}"""
         val parsed = ApiConfigJson.parse(json) as ApiConfigJsonResult.Valid
         assertEquals("https://example.test/v1?foo=1", parsed.document.baseUrl)
     }
@@ -423,7 +433,14 @@ class ApiConfigDocumentTest {
         assertEquals("https://example.test/v1?foo=1", backfilled!!.baseUrl)
         assertEquals("keep", backfilled.request["vendor_extension"]?.toString()?.trim('"'))
 
-        val future = validEntity.copy(configJson = validEntity.configJson.replace("\"schemaVersion\": 1", "\"schemaVersion\": 99"))
+        val future =
+            validEntity.copy(
+                configJson =
+                    validEntity.configJson.replace(
+                        "\"schemaVersion\": 1",
+                        "\"schemaVersion\": 99",
+                    ),
+            )
         assertNull(ApiConfigJson.fromEntityForBackfill(future))
         val broken = validEntity.copy(configJson = "{bad")
         assertNull(ApiConfigJson.fromEntityForBackfill(broken))
@@ -466,14 +483,17 @@ class ApiConfigDocumentTest {
     fun `新增配置与旧列回填都只保留清理后的 baseUrl`() {
         val fromFields =
             ApiConfigJson.fromFields(
-                id = "x",
-                name = "x",
-                type = "openai",
-                baseUrl = "https://example.test/v1?foo=1&key=secret",
-                model = "m",
-                hasApiKey = true,
-                streamingEnabled = true,
-                contextTokenLimit = 4096,
+                fields =
+                    ApiConfigFields(
+                        id = "x",
+                        name = "x",
+                        type = "openai",
+                        baseUrl = "https://example.test/v1?foo=1&key=secret",
+                        model = "m",
+                        hasApiKey = true,
+                        streamingEnabled = true,
+                        contextTokenLimit = 4096,
+                    ),
             )
         assertEquals("https://example.test/v1?foo=1", fromFields.baseUrl)
 

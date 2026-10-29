@@ -221,7 +221,18 @@ fun InlineApiCardsSection(
             apiConfig = null,
             viewModel = viewModel,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, apiUrl, apiKey, model, setAsDefault, type, context1M, streamingEnabled, contextTokenLimit, configJson ->
+            onConfirm = {
+                    name,
+                    apiUrl,
+                    apiKey,
+                    model,
+                    setAsDefault,
+                    type,
+                    context1M,
+                    streamingEnabled,
+                    contextTokenLimit,
+                    configJson,
+                ->
                 viewModel.addApiConfig(
                     name = name,
                     apiUrl = apiUrl,
@@ -245,7 +256,18 @@ fun InlineApiCardsSection(
             apiConfig = config,
             viewModel = viewModel,
             onDismiss = { editingConfig = null },
-            onConfirm = { name, apiUrl, apiKey, model, setAsDefault, type, context1M, streamingEnabled, contextTokenLimit, configJson ->
+            onConfirm = {
+                    name,
+                    apiUrl,
+                    apiKey,
+                    model,
+                    setAsDefault,
+                    type,
+                    context1M,
+                    streamingEnabled,
+                    contextTokenLimit,
+                    configJson,
+                ->
                 viewModel.updateApiConfig(
                     config.copy(
                         name = name,
