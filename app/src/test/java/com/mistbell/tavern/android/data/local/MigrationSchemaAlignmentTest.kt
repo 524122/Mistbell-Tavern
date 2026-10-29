@@ -563,4 +563,79 @@ class MigrationSchemaAlignmentTest {
             referenced,
         )
     }
+
+    @Test
+    fun `v35 to v36 creates global_regex_rules table`() {
+        val sql = AppDatabase.MIGRATION_35_36_SQL
+        assertEquals(1, sql.size)
+        val ddl = sql.single()
+        assertTrue(ddl.contains("CREATE TABLE IF NOT EXISTS `global_regex_rules`"))
+        assertTrue(ddl.contains("`find_regex` TEXT NOT NULL"))
+        assertTrue(ddl.contains("`placement_json` TEXT NOT NULL DEFAULT '[2]'"))
+        assertTrue(ddl.contains("`trim_strings_json` TEXT NOT NULL DEFAULT '[]'"))
+        assertTrue(ddl.contains("`min_depth` INTEGER DEFAULT NULL"))
+        assertTrue(ddl.contains("`max_depth` INTEGER DEFAULT NULL"))
+        assertTrue(ddl.contains("`sort_order` INTEGER NOT NULL DEFAULT 0"))
+        assertTrue(ddl.contains("PRIMARY KEY(`id`)"))
+    }
+
+    @Test
+    fun `v36 迁移真实 DDL 的列集合与 GlobalRegexRuleEntity 逐列对齐`() {
+        val ddl = AppDatabase.MIGRATION_35_36_SQL.single()
+        val body = ddl.substringAfter('(').substringBeforeLast(')')
+        val columns =
+            body.split(',')
+                .map { it.trim().substringBefore(' ').trim('`') }
+                .filter {
+                    it.isNotEmpty() &&
+                        !it.equals("PRIMARY", ignoreCase = true) &&
+                        !it.equals("UNIQUE", ignoreCase = true)
+                }
+                .toSet()
+        assertEquals(
+            "global_regex_rules 列集合应与 GlobalRegexRuleEntity 完全一致",
+            setOf(
+                "id",
+                "name",
+                "find_regex",
+                "replace_string",
+                "disabled",
+                "placement_json",
+                "trim_strings_json",
+                "markdown_only",
+                "prompt_only",
+                "run_on_edit",
+                "min_depth",
+                "max_depth",
+                "sort_order",
+                "created_at",
+            ),
+            columns,
+        )
+        assertFalse("min_depth 不应有 NOT NULL", body.contains("`min_depth` INTEGER NOT NULL"))
+        assertFalse("max_depth 不应有 NOT NULL", body.contains("`max_depth` INTEGER NOT NULL"))
+    }
+
+    @Test
+    fun `v36 迁移仅新建表不触碰既有数据`() {
+        // 防呆：v36 是纯建表迁移，只允许触碰 global_regex_rules，不删除任何数据。
+        // DDL 表名带反引号，先归一化再套用与 v22 防呆相同的表引用正则
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_35_36_SQL
+                .map { sql -> sql.replace("`", "") }
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v36 迁移只允许触碰 global_regex_rules",
+            setOf("global_regex_rules"),
+            referenced,
+        )
+        assertFalse(
+            "v36 迁移不应包含 DELETE/DROP",
+            AppDatabase.MIGRATION_35_36_SQL.any {
+                it.contains("DELETE FROM", ignoreCase = true) || it.contains("DROP TABLE", ignoreCase = true)
+            },
+        )
+    }
 }

@@ -27,8 +27,9 @@ import com.mistbell.tavern.android.data.local.entity.*
         VectorSyncOutboxEntity::class,
         RulePackEntity::class,
         QuickReplyEntity::class,
+        GlobalRegexRuleEntity::class,
     ],
-    version = 35,
+    version = 36,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -61,6 +62,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rulePackDao(): RulePackDao
 
     abstract fun quickReplyDao(): QuickReplyDao
+
+    abstract fun globalRegexDao(): GlobalRegexDao
 
     companion object {
         @Volatile
@@ -795,9 +798,36 @@ abstract class AppDatabase : RoomDatabase() {
             )
 
         internal val MIGRATION_34_35 =
-            object : Migration(34, 35) {
+            object : Migration(MIGRATION_33_34.endVersion, MIGRATION_33_34.endVersion + 1) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     MIGRATION_34_35_SQL.forEach(db::execSQL)
+                }
+            }
+
+        internal val MIGRATION_35_36_SQL: List<String> =
+            listOf(
+                "CREATE TABLE IF NOT EXISTS `global_regex_rules` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`find_regex` TEXT NOT NULL, " +
+                    "`replace_string` TEXT NOT NULL, " +
+                    "`disabled` INTEGER NOT NULL DEFAULT 0, " +
+                    "`placement_json` TEXT NOT NULL DEFAULT '[2]', " +
+                    "`trim_strings_json` TEXT NOT NULL DEFAULT '[]', " +
+                    "`markdown_only` INTEGER NOT NULL DEFAULT 0, " +
+                    "`prompt_only` INTEGER NOT NULL DEFAULT 0, " +
+                    "`run_on_edit` INTEGER NOT NULL DEFAULT 0, " +
+                    "`min_depth` INTEGER DEFAULT NULL, " +
+                    "`max_depth` INTEGER DEFAULT NULL, " +
+                    "`sort_order` INTEGER NOT NULL DEFAULT 0, " +
+                    "`created_at` INTEGER NOT NULL DEFAULT 0, " +
+                    "PRIMARY KEY(`id`))",
+            )
+
+        internal val MIGRATION_35_36 =
+            object : Migration(MIGRATION_34_35.endVersion, MIGRATION_34_35.endVersion + 1) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_35_36_SQL.forEach(db::execSQL)
                 }
             }
 
@@ -848,6 +878,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_32_33,
                         MIGRATION_33_34,
                         MIGRATION_34_35,
+                        MIGRATION_35_36,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

@@ -116,8 +116,17 @@ TavernHelper.eventOn("mvu_variable_update_ended", function (varsJson) { … });
 TavernHelper.eventOn("mvu_command_parsed", …);   // patch 解析完成时也会派发
 // 触发斜杠命令
 TavernHelper.triggerSlash("/note 提示");
+// 读生效正则管线（全局 + 当前角色卡，酒馆助手 getTavernRegexes 契约；数组序即执行序）
+// 字段：id("global-N"/"card-N")、scriptName、findRegex、replaceString、trimStrings、
+// placement(1=用户输入 2=AI 输出)、disabled、markdownOnly、promptOnly、runOnEdit、minDepth/maxDepth
+TavernHelper.getTavernRegexes().then(function (regexes) { … });
 // window.Mvu 别名：Mvu.events.COMMAND_PARSED / VARIABLE_UPDATE_ENDED 常量可用
 ```
+
+### HTML 网络与提示
+
+- `toastr.info/success/warning/error/warn` 与 `TavernBridge.showToast(message)` 使用系统 Toast；空消息忽略，提示最长 240 字符。
+- `fetch` 默认 15 秒超时，可通过 `init.tavernTimeoutMs` 调整，支持 `AbortSignal` 取消；结束或取消时清理计时器。错误只包含主机名，不带 URL query 中的凭据，网络白名单仍由 HTML 沙箱控制。
 
 ### 边界
 

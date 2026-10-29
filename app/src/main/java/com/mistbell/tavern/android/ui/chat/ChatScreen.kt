@@ -14,11 +14,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -36,8 +33,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mistbell.tavern.android.data.prompt.PromptBuilder
-import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.theme.resolved
 import com.mistbell.tavern.android.ui.common.rememberBitmap
 import com.mistbell.tavern.android.ui.common.rememberFileBitmap
@@ -184,7 +179,7 @@ fun ChatScreen(
     val pendingInsertText by viewModel.pendingInsertText.collectAsStateWithLifecycle()
     val htmlUiEnabled by viewModel.htmlUiEnabled.collectAsStateWithLifecycle()
     val htmlScripts by viewModel.htmlScripts.collectAsStateWithLifecycle()
-    val cardRegexScripts by viewModel.cardRegexScripts.collectAsStateWithLifecycle()
+    val regexScripts by viewModel.activeRegexScripts.collectAsStateWithLifecycle()
     val mvuVariablesVersion by viewModel.mvuVariablesVersion.collectAsStateWithLifecycle()
     val htmlExpandedIds by viewModel.htmlExpandedIds.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
@@ -364,10 +359,9 @@ fun ChatScreen(
         }
     }
 
-    val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(error) {
         error?.let {
-            snackbarHostState.showSnackbar(it)
+            android.widget.Toast.makeText(appContext, it, android.widget.Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
     }
@@ -375,7 +369,7 @@ fun ChatScreen(
     val toast by viewModel.toast.collectAsStateWithLifecycle()
     LaunchedEffect(toast) {
         toast?.let {
-            snackbarHostState.showSnackbar(it)
+            android.widget.Toast.makeText(appContext, it, android.widget.Toast.LENGTH_LONG).show()
             viewModel.clearToast()
         }
     }
@@ -478,7 +472,8 @@ fun ChatScreen(
                         onSettingsClick = onSettingsClick,
                     )
                 },
-                snackbarHost = { SnackbarHost(snackbarHostState) },
+                // 系统 Toast 承载提示，避免被 HTML 原生覆盖层遮挡。
+                snackbarHost = {},
                 containerColor =
                     if (hasChatBackground) {
                         Color.Transparent
@@ -584,7 +579,7 @@ fun ChatScreen(
                                                 // tavern_helper.scripts 已移交全局宿主层执行，面板只渲染消息内联 HTML
                                                 htmlScripts = emptyList(),
                                                 htmlUiEnabled = htmlUiEnabled,
-                                                cardRegexScripts = cardRegexScripts,
+                                                regexScripts = regexScripts,
                                                 regexDepth = regexDepth,
                                                 variablesVersion = mvuVariablesVersion,
                                                 htmlExpanded = message.id in htmlExpandedIds,
@@ -628,7 +623,7 @@ fun ChatScreen(
                                             // tavern_helper.scripts 已移交全局宿主层执行，面板只渲染消息内联 HTML
                                             htmlScripts = emptyList(),
                                             htmlUiEnabled = htmlUiEnabled,
-                                            cardRegexScripts = cardRegexScripts,
+                                            regexScripts = regexScripts,
                                             regexDepth = regexDepth,
                                             variablesVersion = mvuVariablesVersion,
                                             htmlExpanded = message.id in htmlExpandedIds,
@@ -789,15 +784,18 @@ fun ChatScreen(
                                     onClick = { viewModel.executeQuickReply(it) },
                                 )
                                 MessageInput(
-                                    onSend = { viewModel.sendMessage(it) },
+                                    callbacks =
+                                        MessageInputCallbacks(
+                                            onSend = { viewModel.sendMessage(it) },
+                                            onStop = { viewModel.stopGeneration() },
+                                            onInsertConsumed = { viewModel.consumePendingInsert() },
+                                        ),
                                     enabled = !isTyping,
                                     // 生成中：发送按钮变为"停止生成"按钮
                                     isGenerating = isTyping,
-                                    onStop = { viewModel.stopGeneration() },
                                     // 传递参与者列表以支持 @ 提及
                                     participants = if (groupMode) participantCharacters else emptyList(),
                                     insertRequest = pendingInsertText,
-                                    onInsertConsumed = { viewModel.consumePendingInsert() },
                                 )
                             }
                         }
@@ -935,329 +933,15 @@ fun ChatScreen(
             requestParams = promptRequestParams,
             isLoading = isLoadingPromptTrace,
             error = promptTraceError,
-            onCopyAll = { viewModel.copyPromptTraceText() },
-            onDismiss = {
-                showPromptSheet = false
-                viewModel.clearPromptTrace()
-            },
+            callbacks =
+                PromptTraceSheetCallbacks(
+                    onCopyAll = { viewModel.copyPromptTraceText() },
+                    onDismiss = {
+                        showPromptSheet = false
+                        viewModel.clearPromptTrace()
+                    },
+                ),
         )
-    }
-}
-
-/**
- * 提示词预览底部抽屉。
- *
- * 内容与真实请求**同一次装配**（PromptBuilder.buildPromptTrace），因此这里看到的就是
- * 发给模型的那份，逐字节一致——不存在"预览一份、发送另一份"的漂移。
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PromptTraceSheet(
-    trace: PromptTrace?,
-    requestParams: List<Pair<String, String>>,
-    isLoading: Boolean,
-    error: String?,
-    onCopyAll: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val listState = rememberLazyListState()
-    var showFullText by remember { mutableStateOf(false) }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "本次提示词",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    trace?.let {
-                        Text(
-                            text =
-                                "${it.segments.size} 条消息 · 约 ${it.totalEstimatedTokens} tokens" +
-                                    if (it.truncationReasons.isNotEmpty()) " · 已裁剪" else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                if (trace != null) {
-                    TextButton(onClick = onCopyAll) { Text("复制全文") }
-                }
-            }
-            if (trace != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FilterChip(
-                        selected = !showFullText,
-                        onClick = { showFullText = false },
-                        label = { Text("按消息") },
-                    )
-                    FilterChip(
-                        selected = showFullText,
-                        onClick = { showFullText = true },
-                        label = { Text("完整文本") },
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
-
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator(modifier = Modifier.size(28.dp)) }
-            }
-            error != null -> {
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(24.dp),
-                )
-            }
-            trace == null -> {
-                Text(
-                    text = "暂无数据",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(24.dp),
-                )
-            }
-            else -> {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    if (showFullText) {
-                        item(key = "__full_text__") {
-                            FullPromptTextBlock(trace = trace)
-                        }
-                    } else {
-                        if (requestParams.isNotEmpty()) {
-                            item(key = "__params__") {
-                                RequestParamsSection(params = requestParams)
-                            }
-                        }
-                        items(
-                            count = trace.segments.size,
-                            key = { index -> "prompt-${trace.segments[index].message.role}-$index" },
-                            contentType = { "prompt-segment" },
-                        ) { index ->
-                            PromptSegmentCard(trace.segments[index], index + 1, trace.tokensOf(trace.segments[index]))
-                        }
-                    }
-                    if (trace.truncationReasons.isNotEmpty() || trace.protocolConversionResults.isNotEmpty()) {
-                        item(key = "__trace_meta__") {
-                            TraceMetadataSection(trace)
-                        }
-                    }
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-                }
-                Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
-            }
-        }
-    }
-}
-
-/** 完整文本视图：按真实发送顺序展示 role、来源和全部正文。 */
-@Suppress("FunctionNaming")
-@Composable
-private fun FullPromptTextBlock(trace: PromptTrace) {
-    val fullText =
-        remember(trace) {
-            buildString {
-                trace.segments.forEachIndexed { index, segment ->
-                    if (index > 0) appendLine("\n")
-                    appendLine("─── #${index + 1} [${segment.message.role}] ${segment.source} ───")
-                    appendLine(segment.message.content)
-                }
-            }
-        }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.small,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)),
-    ) {
-        SelectionContainer {
-            Text(
-                text = fullText,
-                modifier = Modifier.padding(14.dp),
-                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-/**
- * 请求参数折叠区：本次请求实际生效的采样/请求参数。
- *
- * 取值与真实请求同源（`SettingsRepository.getLlmConfig` 解析后的结果），排查
- * "两次回复差别大"时先看这一栏。密钥只显示"是否已配置"，不显示内容。
- */
-@Composable
-private fun RequestParamsSection(params: List<Pair<String, String>>) {
-    var expanded by remember { mutableStateOf(false) }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "请求参数",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "收起请求参数" else "展开请求参数",
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            if (expanded) {
-                Spacer(modifier = Modifier.height(6.dp))
-                params.forEach { (key, value) ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Text(
-                            text = key,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(132.dp),
-                        )
-                        Text(
-                            text = value,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** 单条提示词消息卡：序号 + role 徽标 + 来源标签 + 估算 token + 可展开全文 */
-@Composable
-private fun PromptSegmentCard(
-    segment: PromptBuilder.Segment,
-    ordinal: Int,
-    tokens: Int,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val roleColor =
-        when (segment.message.role) {
-            "user" -> MaterialTheme.colorScheme.tertiary
-            "assistant" -> MaterialTheme.colorScheme.primary
-            else -> MaterialTheme.colorScheme.secondary
-        }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "$ordinal",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.width(24.dp),
-                )
-                Text(
-                    text = segment.message.role,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = roleColor,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = segment.source,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "~$tokens",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                IconButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.size(28.dp),
-                ) {
-                    Icon(
-                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "收起" else "展开",
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-            val metadata =
-                listOfNotNull(
-                    segment.activationReason?.let { "激活：$it" },
-                    segment.insertionPosition?.let { "位置：$it" },
-                    segment.truncationReason?.let { "裁剪：$it" },
-                    segment.protocolConversionResult?.let { "协议：$it" },
-                )
-            if (metadata.isNotEmpty()) {
-                Text(
-                    text = metadata.joinToString(" · "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            Text(
-                text = segment.message.content,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = if (expanded) Int.MAX_VALUE else 3,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.clickable { expanded = !expanded },
-            )
-        }
-    }
-}
-
-@Composable
-private fun TraceMetadataSection(trace: PromptTrace) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                "最终请求：${trace.segments.size} 条消息，估算输入 ${trace.totalEstimatedTokens} token",
-                style = MaterialTheme.typography.labelSmall,
-            )
-            trace.truncationReasons.forEach { Text("裁剪：$it", style = MaterialTheme.typography.labelSmall) }
-            trace.protocolConversionResults.forEach { Text("协议：$it", style = MaterialTheme.typography.labelSmall) }
-        }
     }
 }
 

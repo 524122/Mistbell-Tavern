@@ -14,6 +14,7 @@ import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
 import com.mistbell.tavern.android.data.regex.CardRegexEngine
+import com.mistbell.tavern.android.data.regex.GlobalRegexStore
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.LexicalMemoryService
 import com.mistbell.tavern.android.data.repository.MemoryScope
@@ -110,7 +111,9 @@ object PromptBuilder {
 
         internal fun decodeSnapshot(json: String): Pair<Int, Map<String, WiEntryStateSnapshot>> =
             try {
-                val snap = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.decodeFromString<WiSessionSnapshot>(json)
+                val snap =
+                    kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                        .decodeFromString<WiSessionSnapshot>(json)
                 snap.turn to snap.entries
             } catch (_: Exception) {
                 0 to emptyMap()
@@ -194,11 +197,28 @@ object PromptBuilder {
                 val newCount = run.pass(entries, roundScan, passIndex)
                 passIndex++
             } while (
-                !run.budget.overflowed && // 预算溢出：与酒馆一致，不再递归/加深
-                (passIndex < maxRounds || canDeepen()) &&
-                (newCount > 0 || canDeepen())
+                shouldContinueScan(
+                    budgetOverflowed = run.budget.overflowed,
+                    passIndex = passIndex,
+                    maxRounds = maxRounds,
+                    newCount = newCount,
+                    canDeepen = { canDeepen() },
+                )
             )
             return ActivationResult(run.activated, run.budget.dropped, encodeSnapshot(state.turn, state.entries))
+        }
+
+        private fun shouldContinueScan(
+            budgetOverflowed: Boolean,
+            passIndex: Int,
+            maxRounds: Int,
+            newCount: Int,
+            canDeepen: () -> Boolean,
+        ): Boolean {
+            // 预算溢出：与酒馆一致，不再递归/加深
+            if (budgetOverflowed) return false
+            val hasNextPass = passIndex < maxRounds || canDeepen()
+            return hasNextPass && (newCount > 0 || canDeepen())
         }
 
         /** 一轮扫描的可变状态与执行体（从 activate 拆出，控制圈复杂度） */
@@ -284,7 +304,9 @@ object PromptBuilder {
             val gateOn = entry.selective && secondaryKeys.isNotEmpty()
             val secondaryHits = if (gateOn) matchingKeywords(secondaryKeys, corpus, entry, scan.mctx) else 0
             val stickyMatched = entry.sticky > 0 && entryState.stickyUntil >= state.turn
-            val keyMatched = stickyMatched || (primaryHits > 0 && secondaryGatePassed(entry, secondaryKeys, secondaryHits))
+            val keyMatched =
+                stickyMatched ||
+                    (primaryHits > 0 && secondaryGatePassed(entry, secondaryKeys, secondaryHits))
             if (!keyMatched || !timingGatePassed(entry, entryState, state.turn)) return null
             return Candidate(entry = entry, key = key, sticky = stickyMatched, score = primaryHits + secondaryHits)
         }
@@ -533,6 +555,7 @@ object PromptBuilder {
     private const val MEMORY_BLOCK_BUDGET_RATIO = 0.25
     private const val MEMORY_BLOCK_MIN_TOKENS = 120
     private const val MEMORY_BLOCK_MAX_TOKENS = 1200
+    private const val NANOS_PER_MILLISECOND = 1_000_000L
 
     /** 未归入任何分组的记忆统一收在这段标题下 */
     private const val FACTS_HEADER = "其他事实："
@@ -784,6 +807,7 @@ object PromptBuilder {
         var history: List<MessageEntity> = emptyList()
         var recentMessages: List<MessageEntity> = emptyList()
         var historyTruncated = false
+        var globalRegexScripts: List<CardRegexEngine.CardRegexScript> = emptyList()
         var cardRegexScripts: List<CardRegexEngine.CardRegexScript> = emptyList()
         val depthBlocks = mutableListOf<WiDepthBlock>()
         var authorNote = ""
@@ -817,7 +841,17 @@ object PromptBuilder {
                     .mapNotNull { participantById[it] }
                     .ifEmpty { participantById[request.characterId]?.let { listOf(it) } ?: emptyList() }
             character = participantCharacters.firstOrNull() ?: participantById[request.characterId]
-            cardRegexScripts = CardRegexEngine.parse(character?.toDomain()?.data?.extensions)
+            // 正则管线：全局规则（跨角色）先、卡级规则后；被逐角色停用的卡视为无规则
+            globalRegexScripts = GlobalRegexStore.toScripts(db.globalRegexDao().getAll())
+            val cardRegexDisabledIds =
+                GlobalRegexStore.parseDisabledIds(settingsDao.getValue(GlobalRegexStore.KEY_CARD_REGEX_DISABLED))
+            val mainCharacter = character
+            cardRegexScripts =
+                if (mainCharacter == null || mainCharacter.id in cardRegexDisabledIds) {
+                    emptyList()
+                } else {
+                    CardRegexEngine.parse(mainCharacter.toDomain().data?.extensions)
+                }
             // F2.1 宏引擎上下文（契约 B）：用户名与人设统一取全局设置（键常量收敛在 ChatSettingsResolver，
             // 禁止手写字面量）；用户名缺省 "User"，人设缺省空串（不注入该段）
             userName = ChatSettingsResolver.userName(settingsDao.getValue(ChatSettingsResolver.KEY_USER_NAME))
@@ -1205,7 +1239,7 @@ object PromptBuilder {
                         CardRegexEngine.applyToPrompt(
                             content = stripThinkingBlocks(message.content),
                             role = message.role,
-                            scripts = cardRegexScripts,
+                            scripts = GlobalRegexStore.combine(globalRegexScripts, cardRegexScripts),
                             depth = promptDepths[index],
                         ),
                 )
@@ -1365,7 +1399,7 @@ object PromptBuilder {
                 CardRegexEngine.applyToPrompt(
                     content = request.userMessage,
                     role = "user",
-                    scripts = cardRegexScripts,
+                    scripts = GlobalRegexStore.combine(globalRegexScripts, cardRegexScripts),
                     depth = 0,
                 )
             val renderedUserMessage = MacroEngine.render(promptUserMessage, mctx)
@@ -1639,34 +1673,29 @@ object PromptBuilder {
     internal fun orderLoreEntries(
         entries: List<Pair<WorldBookEntryEntity, LoreSource>>,
         strategy: Int,
-    ): List<WorldBookEntryEntity> {
-        fun rank(source: LoreSource): Int =
-            when (strategy) {
-                ChatSettingsResolver.STRATEGY_GLOBAL_FIRST ->
-                    when (source) {
-                        LoreSource.CHAT -> 0
-                        LoreSource.PERSONA -> 1
-                        LoreSource.GLOBAL -> 2
-                        LoreSource.CHARACTER -> 3
-                    }
-                ChatSettingsResolver.STRATEGY_EVENLY ->
-                    when (source) {
-                        LoreSource.CHAT -> 0
-                        LoreSource.PERSONA -> 1
-                        else -> 2 // character/global 混排
-                    }
-                else -> // character_first（酒馆默认）
-                    when (source) {
-                        LoreSource.CHAT -> 0
-                        LoreSource.PERSONA -> 1
-                        LoreSource.CHARACTER -> 2
-                        LoreSource.GLOBAL -> 3
-                    }
-            }
-        return entries
-            .sortedWith(compareBy<Pair<WorldBookEntryEntity, LoreSource>> { rank(it.second) }.thenBy { it.first.order })
-            .map { it.first }
-    }
+    ): List<WorldBookEntryEntity> =
+        entries
+            .sortedWith(
+                compareBy<Pair<WorldBookEntryEntity, LoreSource>> {
+                    loreSourceRank(it.second, strategy)
+                }.thenBy { it.first.order },
+            ).map { it.first }
+
+    private fun loreSourceRank(
+        source: LoreSource,
+        strategy: Int,
+    ): Int =
+        when (source) {
+            LoreSource.CHAT -> 0
+            LoreSource.PERSONA -> 1
+            LoreSource.CHARACTER ->
+                if (strategy == ChatSettingsResolver.STRATEGY_GLOBAL_FIRST) 3 else 2
+            LoreSource.GLOBAL ->
+                when (strategy) {
+                    ChatSettingsResolver.STRATEGY_GLOBAL_FIRST, ChatSettingsResolver.STRATEGY_EVENLY -> 2
+                    else -> 3 // character_first（酒馆默认）
+                }
+        }
 
     /**
      * 作者注释深度块（对齐酒馆 AN 的 IN_CHAT 深度插入）：AN 顶锚点内容 + 附加指令 + AN 底锚点
@@ -1913,7 +1942,7 @@ object PromptBuilder {
         val lexicalItems =
             LexicalMemoryService(TavernApplication.instance)
                 .searchRelevantHistory(window = window, query = query.userMessage)
-        val lexicalLatencyMs = (System.nanoTime() - lexicalStartedAt) / 1_000_000
+        val lexicalLatencyMs = (System.nanoTime() - lexicalStartedAt) / NANOS_PER_MILLISECOND
 
         // 阈值不再在这里预先过滤：RecallRanker 需要看到低于阈值的向量候选——
         // 其中有词法 corroborate 的会被保留（混合召回的核心收益），其余才丢弃
@@ -2001,7 +2030,7 @@ object PromptBuilder {
                 window = window,
                 query = query.userMessage,
             )
-        val lexicalLatencyMs = (System.nanoTime() - startedAt) / 1_000_000
+        val lexicalLatencyMs = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND
         val diagnostics =
             RecallDiagnostics(
                 vectorAvailable = false,
@@ -2341,7 +2370,9 @@ object PromptBuilder {
         selection: WiSelection = WiSelection.ACTIVATED,
         allowedKeys: Set<String>? = null,
     ): String? {
-        fun allowed(entry: WorldBookEntryEntity): Boolean = allowedKeys == null || "${entry.bookId}:${entry.id}" in allowedKeys
+        fun allowed(entry: WorldBookEntryEntity): Boolean {
+            return allowedKeys == null || "${entry.bookId}:${entry.id}" in allowedKeys
+        }
         val entries =
             when (selection) {
                 WiSelection.CONSTANT -> group.filter { it.constant && allowed(it) }

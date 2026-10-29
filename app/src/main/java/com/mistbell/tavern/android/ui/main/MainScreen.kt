@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Rule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -33,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.ui.character.CharacterListScreen
 import com.mistbell.tavern.android.ui.chatlist.ChatListScreen
+import com.mistbell.tavern.android.ui.regex.RegexHubScreen
 import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.worldbook.WorldBookListScreen
@@ -51,6 +53,7 @@ private val mainDestinations =
         MainDestination("聊天", Icons.Default.Chat),
         MainDestination("角色", Icons.Default.Person),
         MainDestination("世界书", Icons.Default.Book),
+        MainDestination("正则", Icons.Default.Rule),
         MainDestination("设置", Icons.Default.Settings),
     )
 
@@ -75,6 +78,8 @@ fun MainScreen(
     onNavigateToVersionChangelog: () -> Unit,
     onNavigateToAbout: () -> Unit,
     onNavigateToThemeManager: () -> Unit = {},
+    onOpenGlobalRegex: () -> Unit = {},
+    onOpenCharacterRegex: (String) -> Unit = {},
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
 
@@ -151,7 +156,13 @@ fun MainScreen(
                     onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
                     modifier = contentModifier,
                 )
-            3 -> {
+            3 ->
+                RegexHubScreen(
+                    onOpenGlobalRegex = onOpenGlobalRegex,
+                    onOpenCharacterRegex = onOpenCharacterRegex,
+                    modifier = contentModifier,
+                )
+            else -> {
                 val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
                 ModernSettingsScreen(
                     onBack = null,

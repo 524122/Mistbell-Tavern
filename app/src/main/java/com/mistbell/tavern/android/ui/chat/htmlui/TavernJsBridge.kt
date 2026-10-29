@@ -16,6 +16,7 @@ import android.webkit.JavascriptInterface
  * - getChatMessages(limit)（JSON 数组字符串）
  * - sendMessage(text)
  * - log(msg)
+ * - showToast(message)（长度受限的用户提示）
  * - eventEmit(type, payloadJson)
  */
 @Suppress("TooManyFunctions") // 桥方法即白名单契约，逐个对应一类宿主能力
@@ -27,6 +28,11 @@ class TavernJsBridge(
     @JavascriptInterface
     fun log(message: String?) {
         Log.d(TAG, message ?: "null")
+    }
+
+    @JavascriptInterface
+    fun showToast(message: String) {
+        if (message.isNotBlank()) host.showToast(message.take(MAX_TOAST_LENGTH))
     }
 
     @JavascriptInterface
@@ -73,6 +79,10 @@ class TavernJsBridge(
         host.triggerSlash(command.take(MAX_SEND_LENGTH))
     }
 
+    /** 生效正则管线快照（酒馆助手 getTavernRegexes 契约：全局先、卡级后，数组序即执行序） */
+    @JavascriptInterface
+    fun getTavernRegexes(): String = host.getTavernRegexesJson()
+
     /** 页面高度回报（气泡据此调整 WebView 高度） */
     @JavascriptInterface
     fun reportHeight(heightPx: Int) {
@@ -90,6 +100,7 @@ class TavernJsBridge(
         private const val TAG = "TavernJsBridge"
         private const val MAX_MESSAGES_SLICE = 50
         private const val MAX_SEND_LENGTH = 2_000
+        private const val MAX_TOAST_LENGTH = 240
     }
 }
 
@@ -107,6 +118,9 @@ interface HtmlBridgeHost {
 
     fun sendMessage(text: String)
 
+    /** 无界面的测试/预览宿主可忽略提示。 */
+    fun showToast(message: String) = Unit
+
     fun emitEvent(
         type: String,
         payload: String,
@@ -120,4 +134,7 @@ interface HtmlBridgeHost {
 
     /** 转发斜杠命令到 SlashCommandDispatcher（与输入框同一通道） */
     fun triggerSlash(command: String)
+
+    /** 生效正则脚本 JSON（ST 字段形态）；默认空数组——测试/预览宿主无正则场景安全降级 */
+    fun getTavernRegexesJson(): String = "[]"
 }

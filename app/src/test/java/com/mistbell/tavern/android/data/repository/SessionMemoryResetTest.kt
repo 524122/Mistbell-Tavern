@@ -8,6 +8,7 @@ import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.dao.ApiConfigDao
 import com.mistbell.tavern.android.data.local.dao.CharacterDao
 import com.mistbell.tavern.android.data.local.dao.CustomPromptDao
+import com.mistbell.tavern.android.data.local.dao.GlobalRegexDao
 import com.mistbell.tavern.android.data.local.dao.MemoryDao
 import com.mistbell.tavern.android.data.local.dao.MessageDao
 import com.mistbell.tavern.android.data.local.dao.QuickReplyDao
@@ -247,6 +248,8 @@ class SessionMemoryResetTest {
             override fun rulePackDao(): RulePackDao = throw UnsupportedOperationException()
 
             override fun quickReplyDao(): QuickReplyDao = throw UnsupportedOperationException()
+
+            override fun globalRegexDao(): GlobalRegexDao = throw UnsupportedOperationException()
 
             override fun createInvalidationTracker(): InvalidationTracker = throw UnsupportedOperationException()
 

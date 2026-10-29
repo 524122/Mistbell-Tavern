@@ -41,6 +41,8 @@ object Routes {
     const val CHAT_SETTINGS = "chat_settings/{sessionId}"
     const val SETTINGS = "settings"
     const val CHARACTER_EDITOR = "character_editor/{characterId}"
+    const val CHARACTER_REGEX = "character_regex/{characterId}"
+    const val GLOBAL_REGEX = "global_regex"
     const val WORLD_BOOK_LIST = "world_book_list"
     const val WORLD_BOOK_DETAIL = "world_book_detail/{bookId}"
     const val MEMORY_LIST = "memory_list?sessionId={sessionId}&characterId={characterId}"
@@ -62,6 +64,8 @@ object Routes {
     fun chatSetup(characterId: String? = null) = if (characterId != null) "chat_setup?characterId=$characterId" else "chat_setup"
 
     fun characterEditor(characterId: String? = null) = if (characterId != null) "character_editor/$characterId" else "character_editor/new"
+
+    fun characterRegex(characterId: String) = "character_regex/$characterId"
 
     fun worldBookDetail(bookId: String) = "world_book_detail/$bookId"
 
@@ -250,6 +254,12 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     },
                     onNavigateToThemeManager = {
                         navController.navigate(Routes.themeManager())
+                    },
+                    onOpenGlobalRegex = {
+                        navController.navigate(Routes.GLOBAL_REGEX)
+                    },
+                    onOpenCharacterRegex = { characterId ->
+                        navController.navigate(Routes.characterRegex(characterId))
                     },
                 )
             }
@@ -462,8 +472,39 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) { backStackEntry ->
                 val characterId = backStackEntry.arguments?.getString("characterId")
-                com.mistbell.tavern.android.ui.character.CharacterEditorScreen(
-                    characterId = characterId,
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.mistbell.tavern.android.ui.character.LocalCharacterRegexNavigation provides
+                        { id -> navController.navigate(Routes.characterRegex(id)) },
+                ) {
+                    com.mistbell.tavern.android.ui.character.CharacterEditorScreen(
+                        characterId = characterId,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Routes.CHARACTER_REGEX,
+                arguments = listOf(navArgument("characterId") { type = NavType.StringType }),
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) { backStackEntry ->
+                com.mistbell.tavern.android.ui.character.CharacterRegexManagerScreen(
+                    characterId = backStackEntry.arguments?.getString("characterId").orEmpty(),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = Routes.GLOBAL_REGEX,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.regex.GlobalRegexManagerScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

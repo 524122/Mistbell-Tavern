@@ -113,6 +113,7 @@ internal object HtmlWebViewFactory {
           insertOrAssignVariables: (obj) => Promise.resolve(window.TavernBridge.insertMvuVariables(JSON.stringify(obj ?? {}))),
           registerMvuSchema: (schema) => window.TavernBridge.log("registerMvuSchema 占位（v1 不做 schema 校验）"),
           triggerSlash: (cmd) => window.TavernBridge.triggerSlash(String(cmd)),
+          getTavernRegexes: () => Promise.resolve(JSON.parse(window.TavernBridge.getTavernRegexes())),
         };
         window.Mvu = {
           events: {

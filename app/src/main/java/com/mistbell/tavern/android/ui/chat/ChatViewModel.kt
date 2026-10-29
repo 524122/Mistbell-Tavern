@@ -175,12 +175,34 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .map { char -> parseTavernHelperScripts(char?.data?.extensions) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** 当前角色卡的 regex_scripts：发送、展示和提示词按各自 placement 与场景标志分流 */
+    /** 全局正则（跨角色）：对所有会话生效，执行顺序先于卡级（酒馆 GLOBAL→SCOPED） */
+    val globalRegexScripts: StateFlow<List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>> =
+        db.globalRegexDao().observeAll()
+            .map { rules -> com.mistbell.tavern.android.data.regex.GlobalRegexStore.toScripts(rules) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** 卡级正则停用名单（正则 Tab 逐角色开关；默认全部允许） */
+    private val cardRegexDisabledIds: StateFlow<Set<String>> =
+        db.settingsDao()
+            .observeValue(com.mistbell.tavern.android.data.regex.GlobalRegexStore.KEY_CARD_REGEX_DISABLED)
+            .map { raw -> com.mistbell.tavern.android.data.regex.GlobalRegexStore.parseDisabledIds(raw) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    /** 当前角色卡的 regex_scripts（被停用的角色视为无规则）：发送、展示和提示词按各自 placement 与场景标志分流 */
     val cardRegexScripts: StateFlow<List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>> =
-        _currentCharacter
-            .map { char ->
+        kotlinx.coroutines.flow.combine(_currentCharacter, cardRegexDisabledIds) { char, disabled ->
+            if (char == null || char.id in disabled) {
+                emptyList()
+            } else {
                 com.mistbell.tavern.android.data.regex.CardRegexEngine.parse(char?.data?.extensions)
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** 实际生效的正则管线 = 全局 + 卡级（列表顺序即执行顺序，全局产物可被卡级继续改写） */
+    val activeRegexScripts: StateFlow<List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>> =
+        kotlinx.coroutines.flow.combine(globalRegexScripts, cardRegexScripts) { global, card ->
+            com.mistbell.tavern.android.data.regex.GlobalRegexStore.combine(global, card)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** MVU 变量版本（当前会话的 VariablesUpdated 事件计数；HtmlBubble 据此推送变量更新） */
     val mvuVariablesVersion: StateFlow<Long> =
@@ -191,6 +213,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离） */
+    @Suppress("TooManyFunctions") // 桥宿主即白名单契约，逐个方法对应一类受控能力（桥侧同注释）
     val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost =
         object : com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost {
             override fun getVar(key: String): String =
@@ -222,6 +245,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             override fun sendMessage(text: String) = this@ChatViewModel.sendMessage(text)
+
+            override fun getTavernRegexesJson(): String =
+                com.mistbell.tavern.android.data.regex.TavernRegexJson.toTavernJson(
+                    globalRegexScripts.value,
+                    cardRegexScripts.value,
+                )
+
+            override fun showToast(message: String) {
+                _toast.value = message
+            }
 
             override fun emitEvent(
                 type: String,
@@ -849,7 +882,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             sendChatMessage(
                 com.mistbell.tavern.android.data.regex.CardRegexEngine.applyToUserInput(
                     content,
-                    cardRegexScripts.value,
+                    activeRegexScripts.value,
                 ),
                 char.id,
             )

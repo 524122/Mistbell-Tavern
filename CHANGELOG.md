@@ -27,6 +27,8 @@
 - 提示词预览（聊天页「查看提示词」）新增记忆召回诊断行：结构化条数、召回条数构成（向量候选 ∩ 词法候选 → 融合条数）、两路耗时、向量缓存命中与否，召回块未注入时显示具体原因（历史未裁剪/无命中/被结构化块覆盖等）；复制提示词全文同样附带该行；预览中结构化块与召回块的来源标签分开为「会话记忆·结构化」「会话记忆·召回」。
 - 长期记忆混合召回：有 embedding 时向量与词法两路同时检索，按 RRF（Reciprocal Rank Fusion）融合排序，词法精确命中可为低余弦的向量候选兜底；新增时间衰减（14 天半衰期）与摘要权重作为有界平局裁决；召回行按来源标注 `(similarity: N%)` / `(keyword match)`。
 - 向量索引存储引擎升级为 sqlite-vec（vec0 虚拟表 + requery sqlite-android，独立 `vector_index.db`，按维度分表）：增量持久化取代整文件 JSON 重写，向量不再占用 JVM 堆，检索下推到 C 层；启动时自动从旧 `vector_store.json` 迁移（原文件改名 `.legacy` 兜底），扩展加载失败自动回退旧 JSON 引擎，备份 zip 格式不变、新旧引擎可互相恢复。
+- 「正则」Tab 与全局正则（对标酒馆 regex 扩展的 global script，净室实现）：底部导航新增第五 Tab，两段式页面——全局正则（跨角色生效、对所有会话可用，先于角色卡规则执行，复用卡级编辑器的列表/排序/启停与三模式实时预览，保存即整表替换）+ 角色卡正则聚合（各角色卡内嵌 regex_scripts 的规则数汇总，点进既有卡级管理页，逐角色启停开关对标酒馆按角色放行卡内脚本的安全模型，默认放行维持导入即生效的既有行为）；全局规则持久化于 global_regex_rules 表（placement/trimStrings 以酒馆同构 JSON 存储，数据库升级到 v36）；执行顺序对齐酒馆 SCRIPT_TYPES（GLOBAL 先于 SCOPED，同层按列表序），显示、用户输入、提示词三处管线统一为"全局 + 卡级"拼接（ChatViewModel/PromptBuilder），停用卡视为无规则；编辑组件抽 RegexEditingContract 接口供卡级/全局两个 ViewModel 共用，GlobalRegexStoreTest 6 例 + 迁移对齐 3 例。
+- 正则互通 HTML 门面：`TavernHelper.getTavernRegexes()`（酒馆助手契约）——HTML 界面与卡片脚本可读取当前生效的正则管线快照（全局 + 当前角色卡，全局在前、数组序即执行序），字段为 ST regex 形态（scriptName/findRegex/replaceString/trimStrings/placement/disabled/markdownOnly/promptOnly/runOnEdit/minDepth/maxDepth），id 以 `global-N`/`card-N` 区分来源；桥白名单新增 `TavernBridge.getTavernRegexes()`（宿主默认空数组安全降级），TavernRegexJsonTest 4 例。
 
 ### Fixed
 - 修复悬浮球点击后面板不显示：自动高度 WebView 将 vh/dvh/svh 计算为 0，导致灵球面板与工坊弹窗只有 DOM 而没有可见高度；全屏宿主层改用 MATCH_PARENT 确定视口高度，脚本变化时同步重建文档并正确释放旧实例；状态面板水平位置限制在视口内，悬浮球拖到边缘后不再裁掉面板内容。模拟器实测灵球状态内容与坊球全屏工坊均可见、可点击；工坊接口默认仍拒绝，仅对苍玄界工坊/论坛两个 HTTPS 域名显式放行。

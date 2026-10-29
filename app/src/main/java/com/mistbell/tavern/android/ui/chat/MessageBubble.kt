@@ -55,8 +55,8 @@ fun MessageBubble(
     htmlHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost? = null,
     htmlScripts: List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript> = emptyList(),
     htmlUiEnabled: Boolean = false,
-    // 卡级正则按角色与楼层深度处理展示内容，不改存储
-    cardRegexScripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> = emptyList(),
+    // 生效正则管线（全局+卡级）按角色与楼层深度处理展示内容，不改存储
+    regexScripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> = emptyList(),
     regexDepth: Int? = null,
     /** MVU 变量版本（>0 且变化时 HtmlBubble 向页面推送变量更新） */
     variablesVersion: Long = 0,
@@ -74,14 +74,14 @@ fun MessageBubble(
         remember(message.content, message.thinking) {
             splitThinkingForDisplay(message.content)
         }
-    // 卡级正则（display-time）：按消息角色与楼层深度替换展示内容，存储原文不动
+    // 显示时正则：按消息角色与楼层深度替换展示内容，存储原文不动
     val rawContent = if (inlineThinking != null) inlineContent else message.content
     val displayedContent =
-        remember(rawContent, cardRegexScripts, message.role, regexDepth) {
+        remember(rawContent, regexScripts, message.role, regexDepth) {
             com.mistbell.tavern.android.data.regex.CardRegexEngine.applyToDisplay(
                 rawContent,
                 message.role,
-                cardRegexScripts,
+                regexScripts,
                 regexDepth,
             )
         }
@@ -233,7 +233,7 @@ fun MessageBubble(
                 ) {
                     if (renderHtml) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            htmlParts.forEach { part ->
+                            htmlParts.forEachIndexed { partIndex, part ->
                                 when (part) {
                                     is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.Markdown ->
                                         MessageMarkdown(
@@ -243,16 +243,18 @@ fun MessageBubble(
                                             cardTextColor = cardTextColor,
                                         )
                                     is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ->
-                                        com.mistbell.tavern.android.ui.chat.htmlui.HtmlBubble(
-                                            messageId = message.id,
-                                            html = part.html,
-                                            scripts = htmlScripts,
-                                            host = htmlHost!!,
-                                            expanded = htmlExpanded,
-                                            onExpandedChange = onHtmlExpandedChange,
-                                            variablesVersion = variablesVersion,
-                                            narrative = part.narrative,
-                                        )
+                                        key(message.id, partIndex, part.html) {
+                                            com.mistbell.tavern.android.ui.chat.htmlui.HtmlBubble(
+                                                messageId = message.id,
+                                                html = part.html,
+                                                scripts = htmlScripts,
+                                                host = htmlHost!!,
+                                                expanded = htmlExpanded,
+                                                onExpandedChange = onHtmlExpandedChange,
+                                                variablesVersion = variablesVersion,
+                                                narrative = part.narrative,
+                                            )
+                                        }
                                 }
                             }
                         }
