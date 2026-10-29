@@ -116,6 +116,11 @@ class CharacterEditorViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             _isSaving.value = true
             try {
+                editingCharacterId?.let { id ->
+                    loadedExtensions =
+                        characterRepo.observeCharacters().first().find { it.id == id }?.data?.extensions
+                            ?: loadedExtensions
+                }
                 val characterData =
                     CharacterData(
                         systemPrompt = f.systemPrompt,

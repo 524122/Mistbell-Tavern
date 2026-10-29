@@ -39,6 +39,7 @@ fun CharacterEditorScreen(
     onBack: () -> Unit,
     viewModel: CharacterEditorViewModel = viewModel(),
 ) {
+    val onNavigateToRegex = LocalCharacterRegexNavigation.current
     val form by viewModel.form.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -95,8 +96,9 @@ fun CharacterEditorScreen(
                     com.mistbell.tavern.android.util.ImageUtils.processImage(
                         context = context,
                         uri = it,
-                        maxSize = 1024, // 降低到1024px，确保不超过数据库限制
-                        quality = 85, // 适中质量
+                        // 限制图片尺寸与质量，避免数据库字段过大
+                        maxSize = 1024,
+                        quality = 85,
                     )
                 if (processedImage != null) {
                     viewModel.updateForm { copy(avatarData = processedImage) }
@@ -116,8 +118,9 @@ fun CharacterEditorScreen(
                     com.mistbell.tavern.android.util.ImageUtils.processImage(
                         context = context,
                         uri = uri,
-                        maxSize = 1024, // 降低到1024px，确保不超过数据库限制
-                        quality = 85, // 适中质量
+                        // 限制图片尺寸与质量，避免数据库字段过大
+                        maxSize = 1024,
+                        quality = 85,
                     )
                 if (processedImage != null) {
                     viewModel.updateForm { copy(avatarData = processedImage) }
@@ -446,6 +449,16 @@ fun CharacterEditorScreen(
                         }
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        SectionHeader("正则表达式")
+                        OutlinedButton(
+                            onClick = { characterId?.let(onNavigateToRegex) },
+                            enabled = characterId != null && characterId != "new",
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("管理卡级正则")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // 专属主题选择
                         SectionHeader("专属主题")
