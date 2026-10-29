@@ -117,7 +117,9 @@ open class OpenAIEmbeddingService(
 
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "Unknown error"
-            throw Exception("OpenAI API error: ${response.code} - ${ApiConfigJson.redactUrl(errorBody)}")
+            throw OpenAIEmbeddingException(
+                "OpenAI API error: ${response.code} - ${ApiConfigJson.redactUrl(errorBody)}",
+            )
         }
 
         val responseBody =
@@ -205,7 +207,9 @@ open class OpenAIEmbeddingService(
 
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "Unknown error"
-            throw Exception("OpenAI API error: ${response.code} - ${ApiConfigJson.redactUrl(errorBody)}")
+            throw OpenAIEmbeddingException(
+                "OpenAI API error: ${response.code} - ${ApiConfigJson.redactUrl(errorBody)}",
+            )
         }
 
         val responseBody =
@@ -253,3 +257,6 @@ open class OpenAIEmbeddingService(
         val index: Int,
     )
 }
+
+/** 非 2xx 响应仍由原有重试分类按消息中的状态码处理。 */
+private class OpenAIEmbeddingException(message: String) : Exception(message)

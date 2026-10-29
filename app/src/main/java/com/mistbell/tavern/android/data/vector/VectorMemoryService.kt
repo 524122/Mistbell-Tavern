@@ -23,6 +23,7 @@ class VectorMemoryService(
 ) {
     companion object {
         private const val TAG = "VectorMemoryService"
+        private const val NANOS_PER_MILLISECOND = 1_000_000L
     }
 
     /**
@@ -274,7 +275,7 @@ class VectorMemoryService(
             // 3. 向量检索（含 CachedVectorStore 命中）后仍按 Room 当前源版本收口
             val indexedResults = vectorStore.search(queryEmbedding, topK, filters)
             val results = recallValidator?.invoke(indexedResults) ?: indexedResults
-            val latencyMs = (System.nanoTime() - startedAt) / 1_000_000
+            val latencyMs = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND
 
             Log.d(
                 TAG,

@@ -83,34 +83,48 @@ suspend fun VectorMemoryService.reconcileWithDatabase(db: AppDatabase): Int {
 suspend fun VectorMemoryService.reconcileOrphanedSourcesWithDatabase(db: AppDatabase): Int {
     return try {
         val entries = indexStore().entriesSnapshot()
-        if (entries.isEmpty()) return 0
-        val sourceIds = collectVectorSourceIds(entries)
+        if (entries.isEmpty()) {
+            0
+        } else {
+            val sourceIds = collectVectorSourceIds(entries)
+            val existingMessageIds = existingMessageIdsOrNull(db, sourceIds.messageIds)
+            val existingMemoryIds =
+                if (sourceIds.memoryIds.isEmpty()) {
+                    emptySet()
+                } else {
+                    // 与消息表同一闸门：空表不能作为"全被删了"的证据
+                    db.structuredMemoryDao().getAllOnce().mapTo(mutableSetOf()) { it.id }
+                        .takeIf { it.isNotEmpty() }
+                }
 
-        val existingMessageIds = existingMessageIdsOrNull(db, sourceIds.messageIds)
-        val existingMemoryIds =
-            if (sourceIds.memoryIds.isEmpty()) {
-                emptySet()
+            val orphans = orphanedVectorMessageIds(entries, existingMessageIds, existingMemoryIds)
+            if (orphans.isEmpty()) {
+                0
             } else {
-                // 与消息表同一闸门：空表不能作为"全被删了"的证据
-                db.structuredMemoryDao().getAllOnce().mapTo(mutableSetOf()) { it.id }
-                    .takeIf { it.isNotEmpty() }
+                VectorOrphanMaintenance.deleteOrphanedSourceVectors(this, orphans)
             }
-
-        val orphans = orphanedVectorMessageIds(entries, existingMessageIds, existingMemoryIds)
-        if (orphans.isEmpty()) return 0
-        var deleted = 0
-        orphans.chunked(SOURCE_CHECK_CHUNK_SIZE).forEach { chunk ->
-            deleted += indexStore().deleteByFilters(mapOf("message_id" to chunk))
         }
-        if (deleted > 0) {
-            Log.w(TAG, "启动对账：索引中有 $deleted 条向量的源消息/记忆已不存在，已清理")
-        }
-        deleted
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
         Log.e(TAG, "孤儿向量对账失败（保留原索引）：${e.message}", e)
         0
+    }
+}
+
+private object VectorOrphanMaintenance {
+    suspend fun deleteOrphanedSourceVectors(
+        service: VectorMemoryService,
+        orphans: Set<String>,
+    ): Int {
+        var deleted = 0
+        orphans.chunked(SOURCE_CHECK_CHUNK_SIZE).forEach { chunk ->
+            deleted += service.indexStore().deleteByFilters(mapOf("message_id" to chunk))
+        }
+        if (deleted > 0) {
+            Log.w(TAG, "启动对账：索引中有 $deleted 条向量的源消息/记忆已不存在，已清理")
+        }
+        return deleted
     }
 }
 

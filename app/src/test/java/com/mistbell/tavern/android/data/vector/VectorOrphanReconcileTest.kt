@@ -64,7 +64,12 @@ class VectorOrphanReconcileTest {
     fun `源消息不存在的向量是孤儿_存在的保留`() {
         val entries = listOf(entry("alive"), entry("gone"))
 
-        val orphans = orphanedVectorMessageIds(entries, existingMessageIds = setOf("alive"), existingMemoryIds = emptySet())
+        val orphans =
+            orphanedVectorMessageIds(
+                entries,
+                existingMessageIds = setOf("alive"),
+                existingMemoryIds = emptySet(),
+            )
 
         assertEquals(setOf("gone"), orphans)
     }

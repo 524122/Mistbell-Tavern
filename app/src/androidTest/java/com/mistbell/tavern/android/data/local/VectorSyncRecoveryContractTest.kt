@@ -214,11 +214,13 @@ class VectorSyncRecoveryContractTest {
             val prompt =
                 PromptBuilder.buildPrompt(
                     runtime.db,
-                    owner,
-                    "character-1",
-                    "s-edit",
-                    "请回忆旧版本秘密",
-                    contextTokenLimitOverride = 64,
+                    PromptBuilder.PromptRequest(
+                        ownerId = owner,
+                        characterId = "character-1",
+                        sessionId = "s-edit",
+                        userMessage = "请回忆旧版本秘密",
+                        contextTokenLimitOverride = 64,
+                    ),
                 )
             assertFalse(prompt.joinToString("\n") { it.content }.contains("旧版本秘密-7f3a"))
 
