@@ -75,6 +75,12 @@ class HostLayerWebView(context: Context) : WebView(context) {
                 if (report.rects.none { it.contains(cssX, cssY) }) return false
             }
         }
+        if (
+            (event.actionMasked == MotionEvent.ACTION_DOWN || event.actionMasked == MotionEvent.ACTION_MOVE) &&
+            regionReport?.fullscreen == true
+        ) {
+            parent?.requestDisallowInterceptTouchEvent(true)
+        }
         return super.onTouchEvent(event)
     }
 }
@@ -182,11 +188,12 @@ private val HOST_SHELL_HTML =
       const modalSel = [
         '#cx-floating-status-root.is-open #cx-floating-status-panel',
         '.cx-char-modal', '.cx-modal', '.cx-detail-page',
-        '.cx-workshop-cf-modal', '.cx-workshop-cf-overlay',
+        '.cx-workshop-cf-modal', '#cx-workshop-cf-modal',
+        '.cx-workshop-cf-overlay', '#cx-workshop-cf-overlay',
       ].join(',');
       const modalOpen = Array.from(document.querySelectorAll(modalSel)).some(el => {
         const st = getComputedStyle(el);
-        return st.display !== 'none' && st.visibility !== 'hidden' &&
+        return el.getClientRects().length > 0 && st.display !== 'none' && st.visibility !== 'hidden' &&
           Number(st.opacity) > 0.05 && st.pointerEvents !== 'none';
       });
       if (modalOpen) {

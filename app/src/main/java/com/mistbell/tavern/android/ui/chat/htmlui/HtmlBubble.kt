@@ -40,8 +40,8 @@ import androidx.compose.ui.viewinterop.AndroidView
  * - WebView 透明底，无自带背景的 HTML 与聊天背景融合
  * - 工具行提供「全屏」进入沉浸层（HtmlFullscreenDialog）
  *
- * 生命周期：按 messageId remember WebView（LazyColumn 回收重组不丢页面状态）；
- * 文档/脚本注入一次完成（按 messageId + html 记忆）。
+ * 生命周期：调用方按 messageId + HTML 内容建立组合 key；内容变化时销毁并重建 WebView，
+ * 同一文档的重组不重复加载。
  */
 @Suppress("FunctionNaming", "LongMethod", "LongParameterList") // 楼层气泡的参数即其外部契约，拆分反而碎
 @SuppressLint("SetJavaScriptEnabled")

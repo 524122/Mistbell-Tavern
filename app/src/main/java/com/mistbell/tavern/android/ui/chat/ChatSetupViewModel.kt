@@ -13,7 +13,6 @@ import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
-import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -27,7 +26,6 @@ internal const val MAX_SELECTABLE_CHARACTERS = MAX_GROUP_PARTICIPANTS
 
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
-    private val settingsRepo = SettingsRepository(application)
     private val worldBookRepo = WorldBookRepository(application)
 
     // 所有角色

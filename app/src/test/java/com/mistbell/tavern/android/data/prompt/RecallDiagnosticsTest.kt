@@ -28,7 +28,13 @@ class RecallDiagnosticsTest {
 
     @Test
     fun `缓存未命中与命中标注不同`() {
-        val diag = RecallDiagnostics(injectedRecallLines = 1, fusedCount = 1, vectorCacheHit = false, vectorLatencyMs = 20)
+        val diag =
+            RecallDiagnostics(
+                injectedRecallLines = 1,
+                fusedCount = 1,
+                vectorCacheHit = false,
+                vectorLatencyMs = 20,
+            )
 
         val line = diag.summaryLine()
 

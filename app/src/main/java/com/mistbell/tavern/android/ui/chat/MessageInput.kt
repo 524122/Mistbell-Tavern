@@ -26,50 +26,40 @@ import androidx.compose.ui.unit.dp
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.ui.theme.*
 
+private data class MessageInputUiState(
+    val value: TextFieldValue,
+    val isFocused: Boolean,
+    val enabled: Boolean,
+    val hasParticipants: Boolean,
+    val showStop: Boolean,
+)
+
 @Composable
 fun MessageInput(
-    onSend: (String) -> Unit,
+    callbacks: MessageInputCallbacks,
     enabled: Boolean = true,
     isGenerating: Boolean = false,
-    onStop: (() -> Unit)? = null,
     participants: List<Character> = emptyList(),
     // 快捷回复 insert 动作的填入请求：一次性（非 null 到达即写入并回调消费）
     insertRequest: String? = null,
-    onInsertConsumed: () -> Unit = {},
 ) {
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var isFocused by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
-    val isEnabled = textFieldValue.text.isNotBlank() && enabled
-    val showStop = isGenerating && onStop != null
-
-    // 快捷回复 insert：填入内容（追加到现有文本之后），光标移到末尾
-    LaunchedEffect(insertRequest) {
-        insertRequest?.let { insert ->
-            val merged =
-                if (textFieldValue.text.isBlank()) {
-                    insert
-                } else {
-                    textFieldValue.text + insert
-                }
-            textFieldValue = TextFieldValue(text = merged, selection = TextRange(merged.length))
-            onInsertConsumed()
-        }
-    }
-
-    // @ 提及检测
-    val mentionQuery =
-        remember(textFieldValue.text, textFieldValue.selection.start) {
-            detectMentionInput(textFieldValue.text, textFieldValue.selection.start)
-        }
-    val suggestions =
-        remember(mentionQuery) {
-            if (mentionQuery != null && participants.isNotEmpty()) {
-                filterCharacters(participants, mentionQuery)
-            } else {
-                emptyList()
-            }
-        }
+    ConsumeInsertRequest(
+        insertRequest = insertRequest,
+        currentValue = { textFieldValue },
+        onValueChange = { textFieldValue = it },
+        onConsumed = callbacks.onInsertConsumed,
+    )
+    val suggestions = rememberMentionSuggestions(textFieldValue, participants)
+    val uiState =
+        MessageInputUiState(
+            value = textFieldValue,
+            isFocused = isFocused,
+            enabled = enabled,
+            hasParticipants = participants.isNotEmpty(),
+            showStop = isGenerating && callbacks.onStop != null,
+        )
 
     Column(
         modifier =
@@ -79,172 +69,249 @@ fun MessageInput(
                 .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // @ 提及自动补全弹窗
-        AnimatedVisibility(
-            visible = suggestions.isNotEmpty() && isFocused,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut(),
-        ) {
-            MentionSuggestionPopup(
-                suggestions = suggestions,
-                onSuggestionClick = { character ->
-                    val (newText, newCursor) =
-                        replaceMention(
-                            textFieldValue.text,
-                            textFieldValue.selection.start,
-                            character.name,
-                        )
-                    textFieldValue =
-                        TextFieldValue(
-                            text = newText,
-                            selection = TextRange(newCursor),
-                        )
-                },
-                onDismiss = { },
-            )
-        }
+        MentionSuggestionVisibility(
+            suggestions = suggestions,
+            isFocused = isFocused,
+            onSuggestionClick = { character ->
+                val (newText, newCursor) =
+                    replaceMention(
+                        textFieldValue.text,
+                        textFieldValue.selection.start,
+                        character.name,
+                    )
+                textFieldValue =
+                    TextFieldValue(
+                        text = newText,
+                        selection = TextRange(newCursor),
+                    )
+            },
+        )
+        InputFormatToolbar(
+            onInsert = { opening, closing ->
+                textFieldValue = insertPair(textFieldValue, opening, closing)
+                isFocused = true
+            },
+        )
+        MessageInputEditor(
+            state = uiState,
+            onValueChange = { textFieldValue = it },
+            onFocusChanged = { isFocused = it },
+            callbacks = callbacks,
+        )
+    }
+}
 
-        // 快捷字符工具栏独立放在输入框上沿，避免占用输入文字的垂直空间。
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp, bottom = 7.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            InputFormatChip(
-                label = "对话「」",
-                onClick = {
-                    textFieldValue = insertPair(textFieldValue, "「", "」")
-                    isFocused = true
-                },
-            )
-            InputFormatChip(
-                label = "动作（）",
-                onClick = {
-                    textFieldValue = insertPair(textFieldValue, "（", "）")
-                    isFocused = true
-                },
-            )
+@Composable
+private fun ConsumeInsertRequest(
+    insertRequest: String?,
+    currentValue: () -> TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    onConsumed: () -> Unit,
+) {
+    // 快捷回复 insert：填入内容（追加到现有文本之后），光标移到末尾
+    LaunchedEffect(insertRequest) {
+        insertRequest?.let { insert ->
+            val value = currentValue()
+            val merged = if (value.text.isBlank()) insert else value.text + insert
+            onValueChange(TextFieldValue(text = merged, selection = TextRange(merged.length)))
+            onConsumed()
         }
+    }
+}
 
-        // 输入框主体
+@Composable
+private fun rememberMentionSuggestions(
+    value: TextFieldValue,
+    participants: List<Character>,
+): List<Character> {
+    val mentionQuery =
+        remember(value.text, value.selection.start) {
+            detectMentionInput(value.text, value.selection.start)
+        }
+    return remember(mentionQuery) {
+        if (mentionQuery != null && participants.isNotEmpty()) {
+            filterCharacters(participants, mentionQuery)
+        } else {
+            emptyList()
+        }
+    }
+}
+
+@Composable
+private fun MentionSuggestionVisibility(
+    suggestions: List<Character>,
+    isFocused: Boolean,
+    onSuggestionClick: (Character) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = suggestions.isNotEmpty() && isFocused,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+    ) {
+        MentionSuggestionPopup(
+            suggestions = suggestions,
+            onSuggestionClick = onSuggestionClick,
+            onDismiss = { },
+        )
+    }
+}
+
+@Composable
+private fun InputFormatToolbar(onInsert: (String, String) -> Unit) {
+    // 快捷字符工具栏独立放在输入框上沿，避免占用输入文字的垂直空间。
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, bottom = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        InputFormatChip(label = "对话「」", onClick = { onInsert("「", "」") })
+        InputFormatChip(label = "动作（）", onClick = { onInsert("（", "）") })
+    }
+}
+
+@Composable
+private fun MessageInputEditor(
+    state: MessageInputUiState,
+    onValueChange: (TextFieldValue) -> Unit,
+    onFocusChanged: (Boolean) -> Unit,
+    callbacks: MessageInputCallbacks,
+) {
+    val outerBorderColor =
+        if (state.isFocused) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
+        }
+    val innerBorderColor =
+        if (state.isFocused) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.52f)
+        }
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .widthIn(max = 720.dp),
+        shape = RoundedCornerShape(20.dp),
+        shadowElevation = 0.dp,
+        tonalElevation = if (state.isFocused) 1.dp else 0.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        border = BorderStroke(width = 1.dp, color = outerBorderColor),
+    ) {
         Surface(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 720.dp),
-            shape = RoundedCornerShape(20.dp),
-            shadowElevation = 0.dp,
-            tonalElevation = if (isFocused) 1.dp else 0.dp,
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            border =
-                BorderStroke(
-                    width = 1.dp,
-                    color =
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
-                        },
-                ),
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Transparent,
+            border = BorderStroke(width = 0.75.dp, color = innerBorderColor),
         ) {
-            Surface(
+            Row(
+                modifier = Modifier.padding(horizontal = 3.dp, vertical = 0.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MessageTextField(
+                    state = state,
+                    onValueChange = onValueChange,
+                    onFocusChanged = onFocusChanged,
+                )
+                SendStopButton(
+                    state = state,
+                    onValueChange = onValueChange,
+                    callbacks = callbacks,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.MessageTextField(
+    state: MessageInputUiState,
+    onValueChange: (TextFieldValue) -> Unit,
+    onFocusChanged: (Boolean) -> Unit,
+) {
+    BasicTextField(
+        value = state.value,
+        onValueChange = onValueChange,
+        textStyle = MaterialTheme.typography.bodyMedium,
+        minLines = 1,
+        maxLines = 4,
+        enabled = state.enabled,
+        decorationBox = { innerTextField ->
+            Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = Color.Transparent,
-                border =
-                    BorderStroke(
-                        width = 0.75.dp,
-                        color =
-                            if (isFocused) {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
-                            } else {
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.52f)
-                            },
-                    ),
+                        .padding(start = 8.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 0.dp),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // 文本输入区域
-                    BasicTextField(
-                        value = textFieldValue,
-                        onValueChange = { textFieldValue = it },
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        minLines = 1,
-                        maxLines = 4,
-                        enabled = enabled,
-                        decorationBox = { innerTextField ->
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 8.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                if (textFieldValue.text.isBlank()) {
-                                    Text(
-                                        text = if (participants.isNotEmpty()) "输入消息… (@提及角色)" else "输入消息…",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        },
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .heightIn(min = 38.dp, max = 88.dp)
-                                .onFocusChanged { isFocused = it.isFocused },
+                if (state.value.text.isBlank()) {
+                    Text(
+                        text = if (state.hasParticipants) "输入消息… (@提及角色)" else "输入消息…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
-
-                    // 发送/停止按钮
-                    AnimatedVisibility(
-                        visible = isEnabled || showStop,
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut(),
-                    ) {
-                        FloatingActionButton(
-                            onClick = {
-                                if (showStop) {
-                                    onStop?.invoke()
-                                } else if (isEnabled) {
-                                    onSend(textFieldValue.text.trim())
-                                    textFieldValue = TextFieldValue("")
-                                    focusManager.clearFocus()
-                                }
-                            },
-                            modifier = Modifier.size(36.dp),
-                            shape = CircleShape,
-                            containerColor =
-                                when {
-                                    showStop -> MaterialTheme.colorScheme.error
-                                    else -> MaterialTheme.colorScheme.primary
-                                },
-                            elevation =
-                                FloatingActionButtonDefaults.elevation(
-                                    defaultElevation = 0.dp,
-                                    pressedElevation = 2.dp,
-                                ),
-                        ) {
-                            Icon(
-                                imageVector = if (showStop) Icons.Filled.Stop else Icons.AutoMirrored.Filled.Send,
-                                contentDescription = if (showStop) "停止生成" else "发送",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                    }
                 }
+                innerTextField()
             }
+        },
+        modifier =
+            Modifier
+                .weight(1f)
+                .heightIn(min = 38.dp, max = 88.dp)
+                .onFocusChanged { onFocusChanged(it.isFocused) },
+    )
+}
+
+@Composable
+private fun SendStopButton(
+    state: MessageInputUiState,
+    onValueChange: (TextFieldValue) -> Unit,
+    callbacks: MessageInputCallbacks,
+) {
+    val focusManager = LocalFocusManager.current
+    val isEnabled = state.value.text.isNotBlank() && state.enabled
+    AnimatedVisibility(
+        visible = isEnabled || state.showStop,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+    ) {
+        FloatingActionButton(
+            onClick = {
+                if (state.showStop) {
+                    callbacks.onStop?.invoke()
+                } else if (isEnabled) {
+                    callbacks.onSend(state.value.text.trim())
+                    onValueChange(TextFieldValue(""))
+                    focusManager.clearFocus()
+                }
+            },
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            containerColor =
+                when {
+                    state.showStop -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.primary
+                },
+            elevation =
+                FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 2.dp,
+                ),
+        ) {
+            Icon(
+                imageVector = if (state.showStop) Icons.Filled.Stop else Icons.AutoMirrored.Filled.Send,
+                contentDescription = if (state.showStop) "停止生成" else "发送",
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

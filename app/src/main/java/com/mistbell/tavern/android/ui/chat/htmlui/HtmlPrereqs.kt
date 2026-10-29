@@ -15,7 +15,7 @@ internal object HtmlPrereqs {
     @Volatile
     private var jqueryCache: String? = null
 
-    /** 把 jQuery + lodash/localStorage/等待初始化垫片注入 <head>（无 <head> 则前置——文档片段场景本就没有 <!DOCTYPE>）。 */
+    /** 把 jQuery、lodash、存储、fetch/toastr 与初始化兼容垫片注入 <head>（无 <head> 则前置）。 */
     fun inject(
         context: Context,
         html: String,
@@ -25,6 +25,8 @@ internal object HtmlPrereqs {
             "<script>${loadJquery(context)}</script>\n" +
                 "<script>$LODASH_SHIM</script>\n" +
                 "<script>$LOCALSTORAGE_SHIM</script>\n" +
+                "<script>$FETCH_SHIM</script>\n" +
+                "<script>$TOASTR_SHIM</script>\n" +
                 "<script>$WAIT_GLOBAL_SHIM</script>\n" +
                 "<script>${iframePatchJs(context)}</script>",
         )
@@ -102,13 +104,105 @@ internal object HtmlPrereqs {
         })();
         """
 
+    private const val FETCH_SHIM =
+        """
+        (function () {
+          if (window.__tavernFetchWithTimeout || typeof window.fetch !== 'function') return;
+          const nativeFetch = window.fetch.bind(window);
+          const hostOf = function (input) {
+            try {
+              const raw = typeof input === 'string' ? input : input && input.url;
+              return new URL(raw, window.location.href).hostname;
+            } catch (_) { return ''; }
+          };
+          window.__tavernFetchWithTimeout = function (fetcher, input, init, timeoutMs) {
+            const options = Object.assign({}, init || {});
+            const callerSignal = options.signal || (input && input.signal);
+            if (callerSignal && callerSignal.aborted) {
+              return Promise.reject(callerSignal.reason || new DOMException('Aborted', 'AbortError'));
+            }
+            const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 15000;
+            return new Promise((resolve, reject) => {
+              const controller = new AbortController();
+              let detach = null;
+              let settled = false;
+              const finish = (callback, value) => {
+                if (settled) return;
+                settled = true;
+                window.clearTimeout(timer);
+                if (detach) detach();
+                callback(value);
+              };
+              const timer = window.setTimeout(() => {
+                const host = hostOf(input);
+                const error = new Error(
+                  '连接远程服务超时（' + Math.round(timeout / 1000) + '秒）' +
+                  (host ? '：' + host : '') + '，请检查网络或代理'
+                );
+                error.name = 'TimeoutError';
+                controller.abort(error);
+                finish(reject, error);
+              }, timeout);
+              if (callerSignal) {
+                const abort = () => {
+                  const reason = callerSignal.reason || new DOMException('Aborted', 'AbortError');
+                  controller.abort(reason);
+                  finish(reject, reason);
+                };
+                callerSignal.addEventListener('abort', abort, { once: true });
+                detach = () => callerSignal.removeEventListener('abort', abort);
+              }
+              options.signal = controller.signal;
+              Promise.resolve()
+                .then(() => {
+                  if (controller.signal.aborted) {
+                    throw controller.signal.reason || new DOMException('Aborted', 'AbortError');
+                  }
+                  return fetcher(input, options);
+                })
+                .then(
+                  value => finish(resolve, value),
+                  error => finish(reject, error),
+                );
+            });
+          };
+          window.fetch = function (input, init) {
+            const options = Object.assign({}, init || {});
+            const timeout = options.tavernTimeoutMs;
+            delete options.tavernTimeoutMs;
+            return window.__tavernFetchWithTimeout(nativeFetch, input, options, timeout);
+          };
+        })();
+        """
+
+    private const val TOASTR_SHIM =
+        """
+        (function () {
+          const show = function (message) {
+            if (message === undefined || message === null || String(message).trim() === '') return;
+            try {
+              if (window.TavernBridge && typeof window.TavernBridge.showToast === 'function') {
+                window.TavernBridge.showToast(String(message));
+              } else {
+                console.warn(String(message));
+              }
+            } catch (_) { console.warn(String(message)); }
+          };
+          window.toastr = window.toastr || {};
+          ['info', 'success', 'warning', 'error', 'warn'].forEach(function (type) {
+            if (typeof window.toastr[type] !== 'function') window.toastr[type] = show;
+          });
+        })();
+        """
+
     private const val WAIT_GLOBAL_SHIM =
         "window.waitGlobalInitialized = window.waitGlobalInitialized || function () { return Promise.resolve(); };"
 
     /** 给卡片动态创建的 iframe srcdoc 打补丁：写入时把兼容垫片插到 <head>（无则前置），保证 waitGlobalInitialized 等在 iframe 脚本解析前存在。 */
     private fun iframePatchJs(context: Context): String {
         // 注入串用 '</scr'+'ipt>' 拼闭合标签，避免外层补丁脚本被提前闭合
-        val shimCode = loadJquery(context) + LODASH_SHIM + LOCALSTORAGE_SHIM + WAIT_GLOBAL_SHIM
+        val shimCode =
+            loadJquery(context) + LODASH_SHIM + LOCALSTORAGE_SHIM + FETCH_SHIM + TOASTR_SHIM + WAIT_GLOBAL_SHIM
         val shimJson = com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager.jsonString(shimCode)
         return """
             (function () {
