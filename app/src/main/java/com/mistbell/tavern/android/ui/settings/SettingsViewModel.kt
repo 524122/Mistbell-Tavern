@@ -326,6 +326,38 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.6-beta",
+                versionCode = 17,
+                releaseDate = "2026-10-29",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "新增「正则」Tab 与全局正则：跨角色生效、先于角色卡规则执行，附角色卡正则聚合入口与逐角色启停",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "正则互通桥 getTavernRegexes：HTML 界面与卡片脚本可读取当前生效的正则管线快照（全局 + 当前角色卡）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "扩展机制补全：卡级正则脚本、JS 脚本沙箱、规则包、快捷回复与 MVU 变量兼容层（对标酒馆生态）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "HTML 界面升级：悬浮球/弹窗提升到全局宿主层覆盖整个聊天区，叙事消息行内 HTML 渲染，WebView 生命周期与性能优化",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "核心模块拆分重构：PromptBuilder 装配、API 编辑器、向量存储、卡级正则编辑器与聊天页拆分为独立组件，行为不变",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "修复悬浮球面板不显示、大 HTML 面板锁死消息滚动、相似度阈值设置失效等问题",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.5-beta",
                 versionCode = 16,
                 releaseDate = "2026-10-20",
