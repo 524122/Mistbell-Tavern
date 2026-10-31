@@ -103,6 +103,8 @@ fun HtmlHostLayer(
     host: HtmlBridgeHost,
     variablesVersion: Long,
     modifier: Modifier = Modifier,
+    /** 当前会话聊天事件的有界队列：按 version 游标补推 __tavernEmit（酒馆助手事件名） */
+    chatEvents: List<HtmlFacadeContract.HtmlChatEvent> = emptyList(),
 ) {
     val webViewRef = remember { mutableStateOf<HostLayerWebView?>(null) }
 
@@ -162,6 +164,15 @@ fun HtmlHostLayer(
                 null,
             )
         }
+    }
+
+    // 聊天事件推送（与上方 MVU 推送旁挂同一机制）：chatEvents 是宿主常驻收集的有界队列
+    // （不随订阅启停，生成事件的成对快速发射不会在订阅窗口内丢失）。游标挂载时对齐队列
+    // 末尾（旧事件不重放），队列增长/WebView 重建时按序补推、序号守卫不重不漏。
+    val chatEventLastPushedSeq =
+        remember { androidx.compose.runtime.mutableLongStateOf(chatEvents.lastOrNull()?.version ?: Long.MIN_VALUE) }
+    LaunchedEffect(chatEvents, webViewRef.value) {
+        drainChatEvents(chatEvents, webViewRef.value, chatEventLastPushedSeq)
     }
 }
 

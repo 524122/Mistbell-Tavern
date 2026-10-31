@@ -56,7 +56,7 @@ private fun withFullscreenStyle(html: String): String {
  * 与内嵌气泡是两个 WebView 实例（页面内临时状态不共享），但变量/ MVU 数据
  * 都落在宿主 settings，重进后界面可从变量重建。
  */
-@Suppress("FunctionNaming", "LongMethod")
+@Suppress("FunctionNaming", "LongMethod", "LongParameterList") // 参数即全屏层的装配契约，拆分反而碎
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun HtmlFullscreenDialog(
@@ -65,6 +65,8 @@ fun HtmlFullscreenDialog(
     host: HtmlBridgeHost,
     variablesVersion: Long,
     onDismiss: () -> Unit,
+    /** 当前会话聊天事件的有界队列：按 version 游标补推 __tavernEmit（酒馆助手事件名） */
+    chatEvents: List<HtmlFacadeContract.HtmlChatEvent> = emptyList(),
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -117,6 +119,14 @@ fun HtmlFullscreenDialog(
                     null,
                 )
             }
+        }
+
+        // 聊天事件推送（与内嵌气泡同一契约）：chatEvents 是宿主常驻收集的有界队列。
+        // 游标挂载时对齐队列末尾（打开全屏不重放打开前的旧事件），队列增长时按序补推。
+        val chatEventLastPushedSeq =
+            remember { androidx.compose.runtime.mutableLongStateOf(chatEvents.lastOrNull()?.version ?: Long.MIN_VALUE) }
+        LaunchedEffect(chatEvents) {
+            drainChatEvents(chatEvents, webViewRef[0], chatEventLastPushedSeq)
         }
 
         Box(

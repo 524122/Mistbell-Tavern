@@ -181,6 +181,7 @@ fun ChatScreen(
     val htmlScripts by viewModel.htmlScripts.collectAsStateWithLifecycle()
     val regexScripts by viewModel.activeRegexScripts.collectAsStateWithLifecycle()
     val mvuVariablesVersion by viewModel.mvuVariablesVersion.collectAsStateWithLifecycle()
+    val htmlChatEvents by viewModel.htmlChatEvents.collectAsStateWithLifecycle()
     val htmlExpandedIds by viewModel.htmlExpandedIds.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
@@ -582,6 +583,7 @@ fun ChatScreen(
                                                 regexScripts = regexScripts,
                                                 regexDepth = regexDepth,
                                                 variablesVersion = mvuVariablesVersion,
+                                                chatEvents = htmlChatEvents,
                                                 htmlExpanded = message.id in htmlExpandedIds,
                                                 onHtmlExpandedChange = { exp ->
                                                     viewModel.setHtmlExpanded(message.id, exp)
@@ -626,6 +628,7 @@ fun ChatScreen(
                                             regexScripts = regexScripts,
                                             regexDepth = regexDepth,
                                             variablesVersion = mvuVariablesVersion,
+                                            chatEvents = htmlChatEvents,
                                             htmlExpanded = message.id in htmlExpandedIds,
                                             onHtmlExpandedChange = { exp ->
                                                 viewModel.setHtmlExpanded(message.id, exp)
@@ -816,6 +819,7 @@ fun ChatScreen(
                             scripts = htmlScripts,
                             host = viewModel.htmlBridgeHost,
                             variablesVersion = mvuVariablesVersion,
+                            chatEvents = htmlChatEvents,
                         )
                     }
                 }

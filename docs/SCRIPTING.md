@@ -120,7 +120,53 @@ TavernHelper.triggerSlash("/note 提示");
 // 字段：id("global-N"/"card-N")、scriptName、findRegex、replaceString、trimStrings、
 // placement(1=用户输入 2=AI 输出)、disabled、markdownOnly、promptOnly、runOnEdit、minDepth/maxDepth
 TavernHelper.getTavernRegexes().then(function (regexes) { … });
+// ---- 消息写 API（酒馆助手同名方法）：HTML 页面/卡片脚本不经 LLM 直写会话消息 ----
+// 契约差异（净室明示）：按消息 id 寻址而非酒馆的楼层序号——本应用消息列表是
+// 「最新 200 条窗口 + 上滚补页」，全局序号在长会话中不稳定；id 由 getChatMessages
+// 返回的条目携带（酒馆助手无此字段），与 getLastMessageId() 配套
+var lastId = TavernHelper.getLastMessageId();   // 同步返回最新消息 id；空串 = 无消息
+// 批量改写正文：[{id, content, thinking?}]（thinking 传 null 表示不改）→ {updated:N}（不存在的 id 不计入）
+TavernHelper.setChatMessages([{ id: lastId, content: "新正文" }]).then(function (r) { … });
+// 会话末尾追加一条消息：role 仅 user/assistant → {id:"…"}（新消息 id，供后续改写/删除寻址）
+TavernHelper.createChatMessage({ role: "user", content: "…" }).then(function (r) { … });
+// 按 id 批量删除 → {deleted:N}（不存在的 id 不计入，会话计数同步扣减）
+TavernHelper.deleteChatMessages([lastId]).then(function (r) { … });
+// 上限防护：正文 20000 字符、批量 50 条、id 1..64 字符；超限或负载非法整单拒绝 → {error:"原因"}
+//（部分写入会让页面侧状态与预期错位，宁可整单失败让脚本重试）
+// 语义边界：写操作不经 LLM 也不触发失败回滚链；桥写入的消息不进向量索引与记忆抽取
+//（多为界面产物，召回价值低，避免离线向量任务堆积）
 // window.Mvu 别名：Mvu.events.COMMAND_PARSED / VARIABLE_UPDATE_ENDED 常量可用
+```
+
+#### 聊天事件推送
+
+宿主把当前会话的聊天事件推送给所有已挂载的 HTML 页面（全局宿主层、内嵌气泡、全屏层），事件名为酒馆助手风格，`eventOn` 直通订阅：
+
+```js
+// 载荷：消息类 {sessionId, messageId}；其余 {sessionId}（与酒馆助手事件载荷形态对齐的最小集）
+TavernHelper.eventOn("message_sent", function (p) { … });        // 用户消息已落库
+TavernHelper.eventOn("message_received", function (p) { … });    // AI 回复已落库
+TavernHelper.eventOn("generation_started", function (p) { … });  // LLM 请求即将发出
+TavernHelper.eventOn("generation_ended", function (p) { … });    // 生成流程结束：成功/失败/停止均发射，与 started 严格成对（离线/失败也配对，脚本可据此复位"生成中"状态）
+TavernHelper.eventOn("chat_changed", function (p) { … });        // 会话切换
+// 边界：事件是通知而非状态——页面挂载前发生的事件不重放；只推送当前会话的事件；
+// MVU 变量更新仍走 mvu_variable_update_ended 专属推送（载荷为整棵变量树）
+```
+
+#### 生成控制与宏替换
+
+```js
+// generate：不插入用户消息，直接让 AI 以当前会话历史生成一条回复（自动推进类玩法的核心）
+// → {started:true}（已启动）或 {error:"当前无会话"}；流式渲染、错误提示与"停止生成"
+// 通道均与输入框发送完全一致，并成对发射 generation_started/generation_ended
+TavernHelper.generate().then(function (r) {
+  if (r.error) { … } else { /* 生成已启动，等 generation_ended */ }
+});
+// stopGeneration：停止当前生成（与输入框「停止生成」同一通道；无生成任务时空操作）
+TavernHelper.stopGeneration();
+// substituteParams：{{char}}/{{user}} 等宏按当前角色名与用户名渲染（其余宏字段为空串，
+// 与提示词同一宏引擎；输入上限 20000 字符，超限原样返回不替换）
+var text = TavernHelper.substituteParams("{{char}}正看着{{user}}");
 ```
 
 ### HTML 网络与提示

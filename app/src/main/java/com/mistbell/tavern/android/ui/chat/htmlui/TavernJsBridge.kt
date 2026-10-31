@@ -18,6 +18,9 @@ import android.webkit.JavascriptInterface
  * - log(msg)
  * - showToast(message)（长度受限的用户提示）
  * - eventEmit(type, payloadJson)
+ * - setChatMessages / createChatMessage / deleteChatMessages / getLastMessageId（消息写 API）
+ * - triggerGenerate()（返回 JSON：{started:true} 或 {error:...}）/ stopGeneration()
+ * - substituteParams(str)（宏替换）
  */
 @Suppress("TooManyFunctions") // 桥方法即白名单契约，逐个对应一类宿主能力
 class TavernJsBridge(
@@ -83,6 +86,43 @@ class TavernJsBridge(
     @JavascriptInterface
     fun getTavernRegexes(): String = host.getTavernRegexesJson()
 
+    // ---- 酒馆助手消息写 API：id 寻址（净室差异，见 BridgeMessageContract 注释） ----
+
+    /** setChatMessages([{id, content, thinking?}]) → {updated:N}（部分 id 不存在不计入） */
+    @JavascriptInterface
+    fun setChatMessages(payloadJson: String): String = host.setChatMessagesJson(payloadJson)
+
+    /** createChatMessage({role, content}) → {id:...}（会话末尾追加，不经 LLM 与回滚链） */
+    @JavascriptInterface
+    fun createChatMessage(payloadJson: String): String = host.createChatMessageJson(payloadJson)
+
+    /** deleteChatMessages([id,...]) → {deleted:N} */
+    @JavascriptInterface
+    fun deleteChatMessages(idsJson: String): String = host.deleteChatMessagesJson(idsJson)
+
+    /** 最新一条消息的 id（空串 = 无消息） */
+    @JavascriptInterface
+    fun getLastMessageId(): String = host.getLastMessageId()
+
+    // ---- 酒馆助手生成控制与宏替换（generate / stopGeneration / substituteParams） ----
+
+    /**
+     * generate 兼容入口：有会话则启动一次生成（不插入用户消息），同步返回
+     * {"started":true}；无会话返回契约错误 JSON（门面 JSON.parse 后得到 {error:...}）。
+     */
+    @JavascriptInterface
+    fun triggerGenerate(): String = host.triggerGenerateJson()
+
+    /** 停止当前生成（与输入框停止同一通道）；无生成任务时空操作。 */
+    @JavascriptInterface
+    fun stopGeneration() {
+        host.stopGeneration()
+    }
+
+    /** substituteParams：{{char}}/{{user}} 等宏替换；输入超限原样返回（契约见 HtmlFacadeContract） */
+    @JavascriptInterface
+    fun substituteParams(input: String): String = host.substituteParams(input)
+
     /** 页面高度回报（气泡据此调整 WebView 高度） */
     @JavascriptInterface
     fun reportHeight(heightPx: Int) {
@@ -105,6 +145,7 @@ class TavernJsBridge(
 }
 
 /** 桥宿主接口：ChatViewModel 实现，向 WebView 提供受控数据与动作。 */
+@Suppress("TooManyFunctions") // 桥宿主即白名单契约，逐个方法对应一类受控能力（桥侧/实现侧同注释）
 interface HtmlBridgeHost {
     fun getVar(key: String): String
 
@@ -137,4 +178,22 @@ interface HtmlBridgeHost {
 
     /** 生效正则脚本 JSON（ST 字段形态）；默认空数组——测试/预览宿主无正则场景安全降级 */
     fun getTavernRegexesJson(): String = "[]"
+
+    /** 消息写 API 的默认降级：无会话宿主一律拒绝/空操作，返回契约错误 JSON */
+    fun setChatMessagesJson(payloadJson: String): String = BridgeMessageContract.error("当前无会话")
+
+    fun createChatMessageJson(payloadJson: String): String = BridgeMessageContract.error("当前无会话")
+
+    fun deleteChatMessagesJson(idsJson: String): String = BridgeMessageContract.error("当前无会话")
+
+    fun getLastMessageId(): String = ""
+
+    /** generate 兼容入口的默认降级：无会话宿主返回契约错误 JSON（页面侧得到 {error:...}） */
+    fun triggerGenerateJson(): String = BridgeMessageContract.error("当前无会话")
+
+    /** 停止生成的默认降级：测试/预览宿主无生成状态，空操作 */
+    fun stopGeneration() = Unit
+
+    /** substituteParams 的默认降级：无宏上下文宿主原样返回 */
+    fun substituteParams(input: String): String = input
 }

@@ -179,6 +179,8 @@ dependencies {
 
     // 单元测试（本地 JVM）
     testImplementation "junit:junit:4.13.2"
+    // 流链路复现/验证（ChatEventPushChainTest）：与主源集 coroutines 1.7.3 同版本
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3"
 
     // Room 迁移测试（instrumented）
     androidTestImplementation "androidx.room:room-testing:$roomVersion"

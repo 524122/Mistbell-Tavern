@@ -186,59 +186,28 @@ class ChatRepository(private val context: Context) {
                 )
             }
 
-            // 3. Try to get AI response via LLM
-            var insertedAssistantId: String? = null
+            // 3. Try to get AI response via LLM（共享生成路径：requestAndPersistReply）
             // 会话三元组收拢（owner + 主角色 + 会话）：落库/取消路径共用，避免私有 API 参数爆炸
             val scope = SessionScope(ownerId, characterId, sessionId)
-            // 群聊上下文作用域覆盖 try/catch：取消路径也需据此做归属解析（群聊部分回复剥前缀）
-            var effectiveGroupContext: GroupChatContext? = null
             // 流式累计缓冲，作用域覆盖整个 try，取消时据此判断是否已有部分回复
             val sb = StringBuilder()
-            // GenerationStarted/Ended 严格配对：started 发射后才置位，finally 据此补 ended
-            var generationActive = false
+            // 群聊上下文作用域覆盖 try/catch：取消路径也需据此做归属解析（群聊部分回复剥前缀）
+            var effectiveGroupContext: GroupChatContext? = null
             try {
-                val llmConfig = loadLlmConfig(sessionId)
-                if (llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
-                    // 群聊模式：优先用 VM 传入的 groupContext；未传时按会话 mode/参与者兜底构建
-                    effectiveGroupContext = groupContext ?: loadGroupContext(ownerId, characterId, sessionId)
-                    // 参与者空名单兜底（minor 修复）：VM 首帧竞态可能传入 speakerNames 为空 map 的
-                    // groupContext（参与者尚未加载完成），此时按会话重建一次，防止整轮群聊退化为
-                    // 无说话方表（历史无前缀、回复无法归属）
-                    if (effectiveGroupContext?.speakerNames?.isEmpty() == true) {
-                        effectiveGroupContext =
-                            loadGroupContext(ownerId, characterId, sessionId) ?: effectiveGroupContext
-                    }
-                    val promptMessages =
-                        PromptBuilder.buildPrompt(
-                            db,
-                            PromptBuilder.PromptRequest(
-                                ownerId = ownerId,
-                                characterId = characterId,
-                                sessionId = sessionId,
-                                userMessage = message,
-                                currentMessageId = msgId,
-                                groupContext = effectiveGroupContext,
-                                contextTokenLimitOverride = llmConfig.contextTokenLimit,
-                            ),
-                        )
-                    TavernEventBus.emit(TavernEvent.GenerationStarted(sessionId))
-                    generationActive = true
-                    collectReply(llmConfig, promptMessages, sb, onPartial)
-                    // 公共尾部：群聊归属解析 + 落库 + 向量化 + 计数回写 + 记忆提取
-                    // （classic 时 speakerNames 为 null，归属/内容与改动前逐字节一致）
-                    val assistantMsg =
-                        persistAssistantReply(
-                            fullReply = sb.toString(),
-                            scope = scope,
-                            speakerNames = effectiveGroupContext?.speakerNames,
-                            mode = ReplyTailMode.Append(userMessageForMemory = message, userMessageId = msgId),
-                        )
-                    insertedAssistantId = assistantMsg.id
-
-                    return@withContext assistantMsg
-                } else {
-                    throw Exception("LLM 未配置：请在设置中配置 API 密钥")
-                }
+                effectiveGroupContext = resolveGroupContext(ownerId, characterId, sessionId, groupContext)
+                requestAndPersistReply(
+                    request =
+                        GenerationRequest(
+                            ownerId = ownerId,
+                            characterId = characterId,
+                            sessionId = sessionId,
+                            userMessage = message,
+                            userMessageId = msgId,
+                            groupContext = effectiveGroupContext,
+                        ),
+                    sb = sb,
+                    onPartial = onPartial,
+                )
             } catch (e: CancellationException) {
                 // 用户主动停止生成：不同于网络失败，不回滚用户消息。
                 // 已收到部分回复则落库并回写计数，然后向上抛出取消。
@@ -257,8 +226,10 @@ class ChatRepository(private val context: Context) {
                 }
                 throw e
             } catch (e: Exception) {
-                // LLM 调用或收尾失败：事务内回滚本条消息（用户消息，若已插入还包括回复），
-                // 计数按真实行数重算（自愈，不依赖增量加减），再抛出异常让 UI 显示错误。
+                // LLM 调用或收尾失败：事务内回滚本条用户消息，计数按真实行数重算（自愈，
+                // 不依赖增量加减），再抛出异常让 UI 显示错误。
+                // 助手回复只在共享路径成功返回后才存在（其后 try 内无其他语句），异常路径恒无
+                // 已落库回复可删——原实现此处对助手 id 的删除在异常路径上即为不可达，随之移除。
                 // 已知残留：已异步写入的向量无法按消息清理（无对应接口，见 ROADMAP 向量双写一致性）
                 //
                 // 回滚的 Room 删除放进会话锁：与抽取保存的版本复核 + 落库临界区互斥——
@@ -267,7 +238,6 @@ class ChatRepository(private val context: Context) {
                 SessionMutationLocks.withSessionLock(sessionId) {
                     db.withTransaction {
                         db.messageDao().deleteById(msgId)
-                        insertedAssistantId?.let { db.messageDao().deleteById(it) }
                         val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
                         if (sessionForRollback != null) {
                             db.sessionDao().upsert(
@@ -280,16 +250,141 @@ class ChatRepository(private val context: Context) {
                     }
                 }
                 deleteMessageVectors(msgId)
-                insertedAssistantId?.let { deleteMessageVectors(it) }
                 throw e
-            } finally {
-                // 成功/失败/取消统一在此收尾，与 GenerationStarted 严格配对
-                if (generationActive) {
-                    TavernEventBus.emit(TavernEvent.GenerationEnded(sessionId))
-                }
             }
         }
     }
+
+    /**
+     * 一次共享生成请求的全部定位参数（sendMessage / generateReply 各自构造，与 SessionScope
+     * 同思路收对象治 LongParameterList）。
+     */
+    private data class GenerationRequest(
+        val ownerId: String,
+        val characterId: String,
+        val sessionId: String,
+        val userMessage: String,
+        val userMessageId: String?,
+        val groupContext: GroupChatContext?,
+    )
+
+    /**
+     * 「请求 LLM + 落库回复」共享生成路径（sendMessage 与 generateReply 复用，纯提取重构）：
+     * LLM 配置校验（未配置抛错——与提取前一致，调用方会回滚已落库的用户消息）→
+     * 提示词装配 → GenerationStarted/Ended 严格配对发射 → collectReply 流式收集 →
+     * persistAssistantReply 公共尾部（Append 语义：计数 +1 + 记忆提取）。
+     *
+     * 配对语义与提取前一致：Started 发出后，collectReply/persistAssistantReply 成功、失败
+     * 或取消都在 finally 补发 Ended（酒馆助手 generate 契约要求失败也成对发射）。
+     * 取消/异常向上抛出，由调用方按各自语义处理（sendMessage 回滚用户消息并落库部分回复；
+     * generateReply 落库部分回复、无消息可回滚）。
+     */
+    private suspend fun requestAndPersistReply(
+        request: GenerationRequest,
+        sb: StringBuilder,
+        onPartial: ((String) -> Unit)?,
+    ): Message {
+        val llmConfig = loadLlmConfig(request.sessionId)
+        if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
+            throw Exception("LLM 未配置：请在设置中配置 API 密钥")
+        }
+        val promptMessages =
+            PromptBuilder.buildPrompt(
+                db,
+                PromptBuilder.PromptRequest(
+                    ownerId = request.ownerId,
+                    characterId = request.characterId,
+                    sessionId = request.sessionId,
+                    userMessage = request.userMessage,
+                    currentMessageId = request.userMessageId,
+                    groupContext = request.groupContext,
+                    contextTokenLimitOverride = llmConfig.contextTokenLimit,
+                ),
+            )
+        TavernEventBus.emit(TavernEvent.GenerationStarted(request.sessionId))
+        try {
+            collectReply(llmConfig, promptMessages, sb, onPartial)
+            // 公共尾部：群聊归属解析 + 落库 + 向量化 + 计数回写 + 记忆提取
+            // （classic 时 speakerNames 为 null，归属/内容与改动前逐字节一致）
+            return persistAssistantReply(
+                fullReply = sb.toString(),
+                scope = SessionScope(request.ownerId, request.characterId, request.sessionId),
+                speakerNames = request.groupContext?.speakerNames,
+                mode =
+                    ReplyTailMode.Append(
+                        userMessageForMemory = request.userMessage,
+                        userMessageId = request.userMessageId,
+                    ),
+            )
+        } finally {
+            // 成功/失败/取消统一在此收尾，与 GenerationStarted 严格配对
+            TavernEventBus.emit(TavernEvent.GenerationEnded(request.sessionId))
+        }
+    }
+
+    // 群聊上下文解析（sendMessage / generateReply 共用）：VM 已传 groupContext 时直接使用；
+    // 未传时按会话 mode + 参与者列表查角色名。参与者空名单兜底（minor 修复）：VM 首帧竞态
+    // 可能传入 speakerNames 为空 map 的 groupContext（参与者尚未加载完成），此时按会话重建
+    // 一次，防止整轮群聊退化为无说话方表（历史无前缀、回复无法归属）。
+    private suspend fun resolveGroupContext(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        groupContext: GroupChatContext?,
+    ): GroupChatContext? {
+        var effective = groupContext ?: loadGroupContext(ownerId, characterId, sessionId)
+        if (effective?.speakerNames?.isEmpty() == true) {
+            effective = loadGroupContext(ownerId, characterId, sessionId) ?: effective
+        }
+        return effective
+    }
+
+    /**
+     * 酒馆助手 generate 兼容入口（TavernHelper.generate()）：不插入用户消息、不改会话标题，
+     * 直接以当前会话历史请求一次 LLM 回复并经共享路径落库（自动推进类玩法的核心）。
+     * 与 sendMessage 共用 [requestAndPersistReply]：GenerationStarted/Ended 严格配对——
+     * 离线或失败同样成对发射（失败在异常抛出前补 Ended），脚本可据此复位"生成中"状态。
+     * 记忆提取走 Append 尾部但无用户消息参与（与 continueGroupChat 同语义）。
+     * 取消语义与 continueGroupChat 一致：已收到的部分回复仍落库后上抛取消。
+     */
+    suspend fun generateReply(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        onPartial: ((String) -> Unit)? = null,
+        groupContext: GroupChatContext? = null,
+    ): Message =
+        withContext(Dispatchers.IO) {
+            val scope = SessionScope(ownerId, characterId, sessionId)
+            val effectiveGroupContext = resolveGroupContext(ownerId, characterId, sessionId, groupContext)
+            val sb = StringBuilder()
+            try {
+                requestAndPersistReply(
+                    request =
+                        GenerationRequest(
+                            ownerId = ownerId,
+                            characterId = characterId,
+                            sessionId = sessionId,
+                            // 无新用户消息：PromptBuilder 对空白 userMessage 不追加「当前消息」段
+                            userMessage = "",
+                            userMessageId = null,
+                            groupContext = effectiveGroupContext,
+                        ),
+                    sb = sb,
+                    onPartial = onPartial,
+                )
+            } catch (e: CancellationException) {
+                // 与 continueGroupChat 同语义：用户停止生成时已收到的部分回复仍落库（无回滚链）
+                if (sb.isNotEmpty()) {
+                    persistPartialReplyOnCancel(
+                        partialReply = sb.toString(),
+                        scope = scope,
+                        speakerNames = effectiveGroupContext?.speakerNames,
+                    )
+                }
+                throw e
+            }
+        }
 
     /**
      * 群聊推动（跨代理契约 4）：不插入用户消息，注入系统级推动语让最合适的下一位角色接话。
@@ -1739,4 +1834,87 @@ class ChatRepository(private val context: Context) {
             null
         }
     }
+
+    // ---- 酒馆助手桥：消息直写 API（display/游戏层楼层操作，不经 LLM 与回滚链） ----
+
+    /**
+     * 桥更新消息正文（可选思维链）；id 不存在返回 false。
+     * 不触碰 swipes/向量（孤儿向量由启动对账兜底收敛），不发事件（酒馆亦无编辑事件）。
+     */
+    suspend fun bridgeUpdateMessage(
+        messageId: String,
+        content: String,
+        thinking: String?,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            val entity = db.messageDao().getAnyById(messageId) ?: return@withContext false
+            db.messageDao().upsert(entity.copy(content = content, thinking = thinking ?: entity.thinking))
+            true
+        }
+
+    /**
+     * 桥在会话末尾追加一条消息；返回新消息 id，会话不存在返回 null。
+     * 与正常落库路径同构：发 MessageSent/Received 事件 + 会话计数同步；
+     * 向量/记忆抽取不接（桥消息多为 UI 产物，召回价值低，避免离线向量任务堆积）。
+     */
+    suspend fun bridgeAppendMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        role: String,
+        content: String,
+    ): String? =
+        withContext(Dispatchers.IO) {
+            val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@withContext null
+            val msgId = UUID.randomUUID().toString()
+            val now = java.time.Instant.now().toString()
+            db.messageDao().upsert(
+                MessageEntity(
+                    id = msgId,
+                    sessionId = sessionId,
+                    ownerId = ownerId,
+                    characterId = characterId,
+                    role = role,
+                    content = content,
+                    thinking = null,
+                    createdAt = now,
+                    memoryIdsJson = "",
+                    swipesJson = "",
+                    swipeIndex = 0,
+                    thinkingSwipesJson = "",
+                ),
+            )
+            if (role == "user") {
+                TavernEventBus.emit(TavernEvent.MessageSent(ownerId, characterId, sessionId, msgId))
+            } else {
+                TavernEventBus.emit(TavernEvent.MessageReceived(ownerId, characterId, sessionId, msgId))
+            }
+            db.sessionDao().upsert(session.copy(messageCount = session.messageCount + 1, updatedAt = now))
+            msgId
+        }
+
+    /** 桥按 id 批量删除消息；返回实际删除条数，会话计数同步扣减（不为负）。 */
+    suspend fun bridgeDeleteMessages(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageIds: List<String>,
+    ): Int =
+        withContext(Dispatchers.IO) {
+            var deleted = 0
+            messageIds.forEach { id ->
+                if (db.messageDao().getAnyById(id) != null) {
+                    db.messageDao().deleteById(id)
+                    deleted++
+                }
+            }
+            if (deleted > 0) {
+                db.sessionDao().get(sessionId, ownerId, characterId)?.let { session ->
+                    db.sessionDao().upsert(
+                        session.copy(messageCount = (session.messageCount - deleted).coerceAtLeast(0)),
+                    )
+                }
+            }
+            deleted
+        }
 }

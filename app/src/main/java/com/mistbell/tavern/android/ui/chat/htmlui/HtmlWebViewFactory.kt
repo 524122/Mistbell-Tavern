@@ -114,6 +114,16 @@ internal object HtmlWebViewFactory {
           registerMvuSchema: (schema) => window.TavernBridge.log("registerMvuSchema 占位（v1 不做 schema 校验）"),
           triggerSlash: (cmd) => window.TavernBridge.triggerSlash(String(cmd)),
           getTavernRegexes: () => Promise.resolve(JSON.parse(window.TavernBridge.getTavernRegexes())),
+          getLastMessageId: () => window.TavernBridge.getLastMessageId(),
+          setChatMessages: (list) => Promise.resolve(JSON.parse(window.TavernBridge.setChatMessages(JSON.stringify(list ?? [])))),
+          createChatMessage: (msg) => Promise.resolve(JSON.parse(window.TavernBridge.createChatMessage(JSON.stringify(msg ?? {})))),
+          deleteChatMessages: (ids) => Promise.resolve(JSON.parse(window.TavernBridge.deleteChatMessages(JSON.stringify(ids ?? [])))),
+          // 生成控制：generate 不插入用户消息直接生成一条回复（{started:true} 或 {error:...}）；
+          // stopGeneration 与输入框「停止生成」同一通道
+          generate: () => Promise.resolve(JSON.parse(window.TavernBridge.triggerGenerate())),
+          stopGeneration: () => window.TavernBridge.stopGeneration(),
+          // 宏替换：{{char}}/{{user}} 等宏按当前角色与用户名渲染（超长输入原样返回）
+          substituteParams: (s) => window.TavernBridge.substituteParams(String(s)),
         };
         window.Mvu = {
           events: {

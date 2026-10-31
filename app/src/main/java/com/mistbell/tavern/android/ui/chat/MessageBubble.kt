@@ -60,6 +60,8 @@ fun MessageBubble(
     regexDepth: Int? = null,
     /** MVU 变量版本（>0 且变化时 HtmlBubble 向页面推送变量更新） */
     variablesVersion: Long = 0,
+    /** 当前会话聊天事件的有界队列（HtmlBubble 按 version 游标补推酒馆助手事件） */
+    chatEvents: List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.HtmlChatEvent> = emptyList(),
     /** HTML 界面展开状态（宿主按会话持久化；默认折叠） */
     htmlExpanded: Boolean = false,
     onHtmlExpandedChange: (Boolean) -> Unit = {},
@@ -252,6 +254,7 @@ fun MessageBubble(
                                                 expanded = htmlExpanded,
                                                 onExpandedChange = onHtmlExpandedChange,
                                                 variablesVersion = variablesVersion,
+                                                chatEvents = chatEvents,
                                                 narrative = part.narrative,
                                             )
                                         }

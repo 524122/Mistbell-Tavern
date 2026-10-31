@@ -1395,6 +1395,10 @@ object PromptBuilder {
                 messages.addSegment("system", groupNudge, "群聊推动语")
                 return
             }
+            // generate 兼容场景（酒馆助手 generate()）：无新用户消息且无推动语时不再追加
+            // 空的「当前消息」段——直接以既有历史生成。真实发送路径消息恒非空（发送侧有
+            // isBlank 拦截），此分支不影响 sendMessage；仅 generate 与"无用户消息的预览"触达
+            if (request.userMessage.isBlank()) return
             val promptUserMessage =
                 CardRegexEngine.applyToPrompt(
                     content = request.userMessage,

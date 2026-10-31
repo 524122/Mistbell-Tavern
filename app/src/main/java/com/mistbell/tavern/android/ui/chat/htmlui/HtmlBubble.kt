@@ -56,6 +56,8 @@ fun HtmlBubble(
     modifier: Modifier = Modifier,
     /** MVU 变量版本：变化时向页面推送 mvu_variable_update_ended（携带最新 stat_data） */
     variablesVersion: Long = 0,
+    /** 当前会话聊天事件的有界队列：按 version 游标补推 __tavernEmit（酒馆助手事件名） */
+    chatEvents: List<HtmlFacadeContract.HtmlChatEvent> = emptyList(),
     /** 叙事行内 HTML：始终展开、高度封顶 85% 屏高（长内容内滚），不显示全屏/收起入口 */
     narrative: Boolean = false,
 ) {
@@ -120,6 +122,17 @@ fun HtmlBubble(
                 null,
             )
         }
+    }
+
+    // 聊天事件推送（与上方 MVU 推送旁挂同一机制）：chatEvents 是宿主常驻收集的有界队列
+    // （不随订阅启停，生成事件的成对快速发射不会在订阅窗口内丢失）。游标挂载时对齐队列
+    // 末尾（旧事件不重放），队列增长/WebView 重建时按序补推、序号守卫不重不漏。
+    val chatEventLastPushedSeq =
+        remember(messageId) {
+            androidx.compose.runtime.mutableLongStateOf(chatEvents.lastOrNull()?.version ?: Long.MIN_VALUE)
+        }
+    LaunchedEffect(chatEvents, messageId) {
+        drainChatEvents(chatEvents, webViewRef[0], chatEventLastPushedSeq)
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -202,6 +215,7 @@ fun HtmlBubble(
             scripts = scripts,
             host = host,
             variablesVersion = variablesVersion,
+            chatEvents = chatEvents,
             onDismiss = { showFullscreen = false },
         )
     }

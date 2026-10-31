@@ -20,6 +20,7 @@ import com.mistbell.tavern.android.extension.TavernEvent
 import com.mistbell.tavern.android.extension.TavernEventBus
 import com.mistbell.tavern.android.extension.slash.SlashCommandDispatcher
 import com.mistbell.tavern.android.extension.slash.SlashCommandParser
+import com.mistbell.tavern.android.ui.chat.htmlui.BridgeMessageContract
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -212,6 +213,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             .filterNotNull()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
+    // 聊天事件推送版本号（随发射序单调递增，兼作页面侧推送游标序号）
+    private var chatEventVersion = 0L
+
+    // 当前会话聊天事件的有界队列：页面（气泡/宿主层/全屏层）按 version 游标补推，
+    // 重组合并多条事件时逐条各推一次，不再被"最新单值"并帧吞掉
+    private val _htmlChatEvents =
+        MutableStateFlow<List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.HtmlChatEvent>>(
+            emptyList(),
+        )
+    val htmlChatEvents: StateFlow<List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.HtmlChatEvent>> =
+        _htmlChatEvents.asStateFlow()
+
     /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离） */
     @Suppress("TooManyFunctions") // 桥宿主即白名单契约，逐个方法对应一类受控能力（桥侧同注释）
     val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost =
@@ -237,11 +250,125 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _messages.value.takeLast(limit).forEach { msg ->
                     array.put(
                         org.json.JSONObject()
+                            .put("id", msg.id)
                             .put("role", msg.role)
                             .put("content", msg.content),
                     )
                 }
                 return array.toString()
+            }
+
+            override fun getLastMessageId(): String = _messages.value.lastOrNull()?.id.orEmpty()
+
+            // ---- 生成控制（酒馆助手 generate / stopGeneration） ----
+
+            // generate：有会话则走与 sendChatMessage 相同的 launchGeneration 状态机
+            // （isTyping/streaming 节流/错误上报全部一致）；群聊上下文与 sendChatMessage 同构
+            // （classic 传 null）。存入 generationJob，与输入框停止共用同一通道
+            override fun triggerGenerateJson(): String {
+                val character = _currentCharacter.value
+                val sessionId = _activeSessionId.value
+                if (character == null || sessionId.isBlank()) {
+                    return BridgeMessageContract.error("当前无会话")
+                }
+                val groupContext =
+                    if (groupMode.value) {
+                        GroupChatContext(speakerNames = _participantCharacters.value.associate { it.id to it.name })
+                    } else {
+                        null
+                    }
+                launchGeneration("生成失败") {
+                    repo.generateReply(
+                        ownerId = ownerId,
+                        characterId = character.id,
+                        sessionId = sessionId,
+                        onPartial = ::emitStreamingTextThrottled,
+                        groupContext = groupContext,
+                    )
+                }
+                return com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.okStarted()
+            }
+
+            // stopGeneration：与输入框「停止生成」同一通道——取消当前 generationJob（若有）
+            override fun stopGeneration() {
+                this@ChatViewModel.stopGeneration()
+            }
+
+            // substituteParams：最小宏上下文——char=当前角色名、user=全局用户名（与
+            // greetingOptions 的 mctx 同一解析器），其余字段空串；输入超限原样返回（纯函数契约）
+            override fun substituteParams(input: String): String =
+                com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.substituteParamsLimited(input) { text ->
+                    val userName =
+                        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                            db.settingsDao().getValue(ChatSettingsResolver.KEY_USER_NAME)
+                        }
+                    val mctx =
+                        com.mistbell.tavern.android.util.MacroContext(
+                            char = _currentCharacter.value?.name ?: "",
+                            user = ChatSettingsResolver.userName(userName),
+                        )
+                    com.mistbell.tavern.android.util.MacroEngine.render(text, mctx)
+                }
+
+            // 桥跑在 WebView 私有线程：契约解析纯函数即时执行，落库统一 runBlocking IO（与 getVar 同模式）
+            override fun setChatMessagesJson(payloadJson: String): String {
+                val patches =
+                    when (val parsed = BridgeMessageContract.parsePatches(payloadJson)) {
+                        is BridgeMessageContract.Parsed.Ok -> parsed.value
+                        is BridgeMessageContract.Parsed.Err ->
+                            return BridgeMessageContract.error(parsed.reason)
+                    }
+                var updated = 0
+                kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    patches.forEach { patch ->
+                        if (repo.bridgeUpdateMessage(patch.id, patch.content, patch.thinking)) updated++
+                    }
+                }
+                return BridgeMessageContract.okUpdated(updated)
+            }
+
+            // 桥契约天然三处出口各返回一种响应 JSON（负载错误/无会话/写入结果），ReturnCount 抑制
+            @Suppress("ReturnCount")
+            override fun createChatMessageJson(payloadJson: String): String {
+                val message =
+                    when (val parsed = BridgeMessageContract.parseNewMessage(payloadJson)) {
+                        is BridgeMessageContract.Parsed.Ok -> parsed.value
+                        is BridgeMessageContract.Parsed.Err ->
+                            return BridgeMessageContract.error(parsed.reason)
+                    }
+                val sessionId = _activeSessionId.value
+                val characterId = _currentCharacter.value?.id
+                if (sessionId.isBlank() || characterId == null) {
+                    return BridgeMessageContract.error("当前无会话")
+                }
+                return kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    val id = repo.bridgeAppendMessage(ownerId, characterId, sessionId, message.role, message.content)
+                    if (id == null) {
+                        BridgeMessageContract.error("会话不存在")
+                    } else {
+                        BridgeMessageContract.okCreated(id)
+                    }
+                }
+            }
+
+            @Suppress("ReturnCount")
+            override fun deleteChatMessagesJson(idsJson: String): String {
+                val ids =
+                    when (val parsed = BridgeMessageContract.parseIds(idsJson)) {
+                        is BridgeMessageContract.Parsed.Ok -> parsed.value
+                        is BridgeMessageContract.Parsed.Err ->
+                            return BridgeMessageContract.error(parsed.reason)
+                    }
+                val sessionId = _activeSessionId.value
+                val characterId = _currentCharacter.value?.id
+                if (sessionId.isBlank() || characterId == null) {
+                    return BridgeMessageContract.error("当前无会话")
+                }
+                val deleted =
+                    kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                        repo.bridgeDeleteMessages(ownerId, characterId, sessionId, ids)
+                    }
+                return BridgeMessageContract.okDeleted(deleted)
             }
 
             override fun sendMessage(text: String) = this@ChatViewModel.sendMessage(text)
@@ -639,6 +766,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // HTML 界面展开状态跟随会话切换重载（按会话隔离持久化）
         viewModelScope.launch {
             _activeSessionId.collect { reloadHtmlExpanded(it) }
+        }
+
+        // HTML 聊天事件常驻收集（修复推送断裂）：TavernEventBus 是 replay=0 的 SharedFlow，
+        // 事件在"无订阅者 / WhileSubscribed 5s 停止窗口 / 共享协程启动竞速"期间发射会被
+        // 静默丢弃且永久丢失（ChatEventPushChainTest 同构管线复现）。生成事件恰恰是
+        // started/ended 毫秒级成对发射，不能依赖消费方订阅时机——改为与 VM 同生命周期的
+        // 常驻收集进有界队列，页面按 version 游标补推，成对快速发射也逐条送达。
+        viewModelScope.launch {
+            TavernEventBus.events.collect { event ->
+                chatEventVersion += 1
+                val pushed =
+                    com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract
+                        .toHtmlChatEvent(event, _activeSessionId.value, chatEventVersion)
+                if (pushed != null) {
+                    _htmlChatEvents.update { current ->
+                        (current + pushed).takeLast(
+                            com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.MAX_BUFFERED_CHAT_EVENTS,
+                        )
+                    }
+                }
+            }
         }
 
         // 移除自动同步 - 安卓和Web数据完全隔离，本地优先
