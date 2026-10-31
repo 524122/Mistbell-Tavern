@@ -326,6 +326,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.7-beta",
+                versionCode = 18,
+                releaseDate = "2026-10-31",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "酒馆助手消息写 API：HTML 界面与卡片脚本可批量增改删会话消息，状态栏/界面产物直写落库",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "生成控制桥：generate 直接以当前会话历史生成回复，stopGeneration 与输入框停止同一通道",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "聊天事件推送：message_sent/received、generation_started/ended、chat_changed 五类事件实时推送给已挂载页面，eventOn 直通订阅",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "improvement",
+                            "substituteParams 宏替换：按当前角色名与用户名渲染 {{char}}/{{user}} 等宏，与提示词同一宏引擎",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.6-beta",
                 versionCode = 17,
                 releaseDate = "2026-10-29",

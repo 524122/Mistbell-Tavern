@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [0.9.7-beta] - 2026-10-31
+
 ### Added
 - 酒馆助手生成控制、聊天事件推送与宏替换（HTML 门面补齐三项，净室契约对齐酒馆助手）：`TavernHelper.generate()` 不插入用户消息、直接以当前会话历史生成一条回复（自动推进类玩法的核心；返回 {started:true} 或 {error:"当前无会话"}，流式渲染/错误提示/停止通道与输入框发送完全一致，generation_started/generation_ended 离线或失败也严格成对发射）、`TavernHelper.stopGeneration()` 与输入框「停止生成」同一通道（取消当前生成，部分回复照常落库）、`TavernHelper.substituteParams(str)` 按当前角色名与用户名渲染 {{char}}/{{user}} 等宏（与提示词同一宏引擎，输入上限 20000 字符超限原样返回）；聊天事件推送——当前会话的 message_sent/message_received/generation_started/generation_ended/chat_changed 五类事件实时推送给已挂载的 HTML 页面（载荷含 sessionId、消息类另含 messageId；事件是通知而非状态，页面挂载前的旧事件不重放），卡片脚本 `TavernHelper.eventOn` 直通订阅；实现上把 sendMessage 的「请求 LLM + 落库回复」提取为共享路径（正常发送行为不变），事件名映射/emitJs/超限判定收敛为纯函数 `HtmlFacadeContract`（JVM 单测 14 例），桥默认降级补 TavernJsBridgeTest 3 例，文档见 docs/SCRIPTING.md「HTML 界面门面（TavernHelper）」。
 - 酒馆助手消息写 API（净室，契约对齐酒馆助手 setChatMessages/createChatMessage/deleteChatMessages/getLastMessageId）：HTML 页面与卡片脚本可不经 LLM 直写会话消息——批量改写正文（可选思维链，不存在的 id 不计入）、会话末尾追加（role 白名单 user/assistant，与正常落库同构：发 MessageSent/Received 事件、同步会话计数）、按 id 批量删除（不存在的 id 不计入，计数扣减不为负）；契约差异：按消息 id 寻址而非酒馆的楼层序号——本应用消息列表是「最新 200 条窗口 + 上滚补页」，全局序号在长会话中不稳定，id 由 getChatMessages 返回（每条新增 id 字段，向后兼容）并与 getLastMessageId 配套；上限防护正文 20000 字符、批量 50 条、id 1..64 字符，超限或负载非法整单拒绝（部分写入会让页面侧状态与预期错位，宁可整单失败让脚本重试）；语义边界：写操作不经回滚链，桥写入的消息不进向量索引与记忆抽取（多为界面产物，避免离线向量任务堆积）；解析与响应构造收敛为纯函数 `BridgeMessageContract`（JVM 可单测，BridgeMessageContractTest 15 例），无会话宿主默认降级为错误 JSON/空串（TavernJsBridgeTest 降级 4 例），文档见 docs/SCRIPTING.md「HTML 界面门面（TavernHelper）」。
