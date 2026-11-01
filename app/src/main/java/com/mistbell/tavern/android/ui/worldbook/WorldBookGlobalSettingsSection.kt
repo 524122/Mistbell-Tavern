@@ -1,7 +1,5 @@
 package com.mistbell.tavern.android.ui.worldbook
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -10,84 +8,130 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntity
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.ui.common.ModernDivider
-import com.mistbell.tavern.android.ui.common.ModernSettingsGroup
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
+import kotlinx.coroutines.launch
+
+/** 弹层内容列的屏高占比上限（约 85%，留出顶栏/状态条余量；内容不足时弹层更矮） */
+private const val SHEET_MAX_HEIGHT_FRACTION = 0.85f
 
 /**
- * 世界书 Tab 的全局设置分组（原「设置」页「📚 世界书」区整体迁移而来，纯 UI 迁移）：
- * 扫描深度、Token 预算 (%)、预算上限、深度插入进历史、递归扫描、最小激活数、
- * 加深扫描上限、扫描带名字前缀、分组按匹配分选拔、全局世界书多选、
- * Persona 世界书绑定与插入策略——控件集合与设置键均与迁移前完全一致。
+ * 世界书 Tab 的全局参数底部弹层（顶栏齿轮图标唤起）：
+ * 原设置页「📚 世界书」区先整体迁入 Tab 头部（组卡形态），本版改为「顶栏齿轮 + 底部弹层」——
+ * Tab 主视区完全归还书卡列表，参数面板仅在需要时唤起，不再常驻占用列表位置。
  *
- * 设置读写继续走 [SettingsViewModel] 既有流与方法（本文件不含任何新逻辑）；
+ * 弹层承载 12 项控件：扫描深度、Token 预算 (%)、预算上限 (token)、深度插入进历史、递归扫描、
+ * 最小激活数、加深扫描上限、扫描带名字前缀、分组按匹配分选拔、全局世界书多选、
+ * Persona 世界书绑定与插入策略——控件集合、文案与设置键均与迁移前完全一致。
+ *
+ * 结构约定：
+ * - 弹层头部（标题/副标题/关闭按钮）固定不滚，关闭按钮始终可点；
+ * - 滚动只发生在内容列：[androidx.compose.foundation.verticalScroll] 承载全部 12 项，
+ *   弹层内没有 LazyColumn，不存在同向嵌套滚动；
+ * - 高度自适应内容、[Modifier.heightIn] 封顶约 85% 屏高；
+ * - 键盘与手势条避让由 material3 1.3.1 的 ModalBottomSheet 内建处理（对话框根 Box 统一
+ *   imePadding、contentWindowInsets 默认含底部 safeDrawing），内容内不再叠加 insets 修饰符，
+ *   避免双重空隙；数字输入框获焦时整层抬到键盘上方，字段经 BringIntoView 滚入可视区；
+ * - 下滑拖拽关闭与遮罩点击关闭是 ModalBottomSheet 默认行为；X 关闭先播收起动画再移除组合。
+ *
+ * 设置读写继续走 [SettingsViewModel] 既有流与方法（逐键静默保存语义不变，本文件不含任何新逻辑）；
  * ViewModel 由调用方（MainScreen 世界书 Tab，与设置 Tab 同一 factory）提供。
- * 分组默认收起、点「世界书全局参数」行展开，避免把书籍列表挤出首屏。
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorldBookGlobalSettingsSection(
+fun WorldBookGlobalSettingsSheet(
+    onDismiss: () -> Unit,
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
 ) {
-    // 默认收起：Tab 主角是书卡列表，点折叠行才展开参数面板
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    ModernSettingsGroup(title = "⚙️ 全局设置", modifier = modifier) {
-        // 折叠行只留一行标题 + chevron：组名「⚙️ 全局设置」已是分组头，不再叠一层大标题/副标题
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "世界书全局参数",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        AnimatedVisibility(visible = expanded) {
-            Column {
+    // skipPartiallyExpanded：内容约 2.4 屏高，直接展开到内容高度（封顶 85% 屏高），
+    // 不经过 50% 中间档，保证首屏即可见尽可能多的参数项
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    // X 关闭：先播放收起动画再移除组合，与下滑/遮罩关闭观感一致（onDismiss 由调用方置 false）
+    val dismissAnimated: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // 弹层头部固定：标题一行 + 副标题 + 关闭按钮（默认拖拽把手由 ModalBottomSheet 自带）
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "世界书全局参数",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "扫描深度、token 预算与多来源合并",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = dismissAnimated) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "关闭")
+                }
+            }
+            ModernDivider()
+            // 弹层内容整体滚动：仅此一层 Column 滚动，内不含 LazyColumn（无同向嵌套滚动问题）
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = (LocalConfiguration.current.screenHeightDp * SHEET_MAX_HEIGHT_FRACTION).dp)
+                        .verticalScroll(rememberScrollState()),
+            ) {
                 WorldBookScanBudgetRows(viewModel)
                 ModernDivider()
                 WorldBookAdvancedRows(viewModel)
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }

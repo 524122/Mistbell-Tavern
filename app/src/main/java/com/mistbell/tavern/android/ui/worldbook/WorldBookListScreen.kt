@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,10 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** 书籍列表 LazyColumn 里全局设置分组 item 的稳定 key（书卡 key 是 UUID，恒不冲突） */
-private const val GLOBAL_SETTINGS_ITEM_KEY = "global_settings"
-
-/** 书籍列表 LazyColumn 里空态 item 的稳定 key（同上，避免与 UUID 书卡 key 冲突） */
+/** 书籍列表 LazyColumn 里空态 item 的稳定 key（避免与 UUID 书卡 key 冲突） */
 private const val EMPTY_STATE_ITEM_KEY = "empty_state"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,9 +51,9 @@ fun WorldBookListScreen(
     onBookClick: ((String) -> Unit)? = null,
     viewModel: WorldBookEditorViewModel = viewModel(),
     showBackButton: Boolean = true,
-    // 非 null 时在书籍列表上方显示全局设置分组（主界面「世界书」Tab 场景：原设置页世界书区迁入，
-    // 由 MainScreen 以与设置 Tab 相同的 factory 提供实例）；默认 null——独立路由（AppNavigation）
-    // 行为不变，也不必凭空创建设置 ViewModel。
+    // 非 null 时顶栏显示齿轮入口、唤起世界书全局参数底部弹层（主界面「世界书」Tab 场景：
+    // 原设置页世界书区迁入，由 MainScreen 以与设置 Tab 相同的 factory 提供实例）；
+    // 默认 null——独立路由（AppNavigation）不显示齿轮、行为不变，也不必凭空创建设置 ViewModel。
     settingsViewModel: SettingsViewModel? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -71,6 +69,8 @@ fun WorldBookListScreen(
     var newBookName by remember { mutableStateOf("") }
     var showDeleteBookDialog by remember { mutableStateOf<String?>(null) }
     var showDeleteEntryDialog by remember { mutableStateOf<String?>(null) }
+    // 世界书全局参数弹层：顶栏齿轮唤起（仅 Tab 场景传入 settingsViewModel 时显示齿轮）
+    var showGlobalSettings by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // 导入世界书：SAF 选 JSON → WorldBookParser 解析 → 落库（参照角色导入的提示风格）
@@ -183,6 +183,13 @@ fun WorldBookListScreen(
                             ) {
                                 Icon(Icons.Default.FileUpload, contentDescription = "导入世界书")
                             }
+                            // 世界书全局参数入口（仅 Tab 场景）：顶栏齿轮唤起底部弹层，
+                            // Tab 主视区不再常驻参数分组，完全归还书卡列表
+                            if (settingsViewModel != null) {
+                                IconButton(onClick = { showGlobalSettings = true }) {
+                                    Icon(Icons.Default.Settings, contentDescription = "世界书全局参数")
+                                }
+                            }
                         }
                         // Refresh button
                         IconButton(onClick = { viewModel.loadFromServer() }, modifier = Modifier.size(32.dp)) {
@@ -220,27 +227,15 @@ fun WorldBookListScreen(
             modifier = Modifier.fillMaxSize().padding(paddingValues).imePadding(),
         ) {
             if (selectedBookId == null) {
-                // Book list view：单一 LazyColumn 承载「全局设置分组 + 书卡」，整页随内容滚动。
-                // 不能外层 Column + verticalScroll——会与本列表同向嵌套滚动直接抛异常；
-                // 也不能「设置区固有高度 + 列表 weight(1f)」——设置组约 2.4 屏高，会把列表
-                // 压为 0 高、令折叠线以下控件不可达（E2E 回归）。
+                // Book list view：单一 LazyColumn 承载书卡（或占满视口的居中空态），整页随内容滚动。
+                // 全局参数已移入顶栏齿轮唤起的 ModalBottomSheet，主视区不再有任何常驻头部 item，
+                // 不存在「超高 header 挤压列表」问题；也不能外层 Column + verticalScroll——
+                // 会与本列表同向嵌套滚动直接抛异常。
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding =
-                        PaddingValues(
-                            top = if (settingsViewModel != null) 8.dp else 16.dp,
-                            bottom = 16.dp,
-                        ),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    // 全局设置分组（仅 Tab 场景传入 ViewModel 时显示）：原设置页「📚 世界书」区整体迁入。
-                    // 整组为一个 item，组内保持非 lazy 布局；显式稳定 key 使折叠态（rememberSaveable）
-                    // 滚出视口或书列表增删后仍能恢复，且与书卡的 UUID key 恒不冲突。
-                    settingsViewModel?.let { settings ->
-                        item(key = GLOBAL_SETTINGS_ITEM_KEY) {
-                            WorldBookGlobalSettingsSection(viewModel = settings)
-                        }
-                    }
                     if (worldBooks.isEmpty()) {
                         // Empty state - centered（fillParentMaxSize：视觉等同迁移前占满剩余视口的居中空态）
                         item(key = EMPTY_STATE_ITEM_KEY) {
@@ -545,6 +540,16 @@ fun WorldBookListScreen(
                 }
             }
         }
+    }
+
+    // 世界书全局参数弹层：顶栏齿轮唤起（仅 Tab 场景传入 settingsViewModel 时可用）。
+    // 放在 Scaffold 组合之外：开/关弹层不重组 Scaffold 内容，弹层又渲染在独立对话框窗口，
+    // 底下书卡列表的滚动位置与状态原样保持。
+    if (settingsViewModel != null && showGlobalSettings) {
+        WorldBookGlobalSettingsSheet(
+            onDismiss = { showGlobalSettings = false },
+            viewModel = settingsViewModel,
+        )
     }
 
     // New world book dialog

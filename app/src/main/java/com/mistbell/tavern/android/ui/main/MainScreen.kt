@@ -152,7 +152,7 @@ fun MainScreen(
                     modifier = contentModifier,
                 )
             2 -> {
-                // 世界书 Tab 内嵌原设置页的世界书全局设置区：与设置 Tab 同一 factory 获取 SettingsViewModel
+                // 世界书 Tab：顶栏齿轮唤起「世界书全局参数」底部弹层（与设置 Tab 同一 factory 获取 SettingsViewModel）
                 val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
                 WorldBookListScreen(
                     showBackButton = false,
