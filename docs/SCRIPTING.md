@@ -151,6 +151,9 @@ TavernHelper.eventOn("generation_ended", function (p) { … });    // 生成流�
 TavernHelper.eventOn("chat_changed", function (p) { … });        // 会话切换
 // 边界：事件是通知而非状态——页面挂载前发生的事件不重放；只推送当前会话的事件；
 // MVU 变量更新仍走 mvu_variable_update_ended 专属推送（载荷为整棵变量树）
+// 已知限制（2026-11-01 装机实测）：chat_changed 目前不可实时触达——会话切换必然重建
+// WebView（新页面对齐队尾、旧事件按设计不重放），且应用当前无「不重建页面切会话」的
+// UI 路径；依赖它做联动脚本的作者请知悉，待宿主层支持会话热切换后解除
 ```
 
 #### 生成控制与宏替换
