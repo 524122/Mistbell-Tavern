@@ -11,6 +11,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- 停止生成时「部分回复落库」从未生效：`persistPartialReplyOnCancel` 在已取消的协程内直接执行，首个挂起点（会话锁 Mutex / Room DAO）立即再抛 CancellationException，四个调用路径（发送 / generate / 群聊推动 / 重试）全部静默失效——表现为慢流中点「停止」后已流出的文字直接消失而非落库为一条助手消息。现整体包 `NonCancellable` 执行落库（归属解析/事务/计数回写语义不变，2026-11-01 装机实测暴露后修复并复验）。
+
 ## [0.9.7-beta] - 2026-10-31
 
 ### Added

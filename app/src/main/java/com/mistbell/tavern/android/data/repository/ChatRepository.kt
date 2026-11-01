@@ -17,6 +17,7 @@ import com.mistbell.tavern.android.extension.TavernEventBus
 import com.mistbell.tavern.android.service.MemoryExtractionService
 import com.mistbell.tavern.android.util.parseGroupSpeaker
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1233,6 +1234,22 @@ class ChatRepository(private val context: Context) {
      */
     @Suppress("LongMethod")
     private suspend fun persistPartialReplyOnCancel(
+        partialReply: String,
+        scope: SessionScope,
+        speakerNames: Map<String, String>?,
+        replaceFromMessageId: String? = null,
+    ) {
+        // 调用方全部位于 catch(CancellationException) 内，协程已处于 cancelled 状态：
+        // 不切 NonCancellable 的话，函数体内首个挂起点（会话锁 Mutex / Room DAO）会立即
+        // 再抛 CancellationException，"部分回复落库"静默失效（2026-11-01 装机实测证实——
+        // 慢流中停止生成，已流出的文字既不落库也不消失于 DB，仅 UI 消失）。
+        withContext(NonCancellable) {
+            persistPartialReplyOnCancelLocked(partialReply, scope, speakerNames, replaceFromMessageId)
+        }
+    }
+
+    @Suppress("LongMethod")
+    private suspend fun persistPartialReplyOnCancelLocked(
         partialReply: String,
         scope: SessionScope,
         speakerNames: Map<String, String>?,
