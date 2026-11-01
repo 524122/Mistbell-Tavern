@@ -1,0 +1,13 @@
+{
+ "spec": "chara_card_v2",
+ "spec_version": "2.0",
+ "name": "ProbeP3",
+ "description": "P3 网络白名单探测卡（fetch example.com + parse-time 打点）",
+ "first_mes": "```html\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"></head>\n<body>\n<p>P3 fetch probe</p>\n<button id=\"fb\" onclick=\"doFetch()\">FETCH</button>\n<pre id=\"out\"></pre>\n<script>\nwindow.TavernBridge.log('P2 parse-time: TavernHelper=' + typeof window.TavernHelper +\n  ' __tavernEmit=' + typeof window.__tavernEmit);\nfunction doFetch(){\n  fetch('https://example.com/x').then(function(r){\n    document.getElementById('out').textContent = 'fetch status=' + r.status;\n    window.TavernBridge.log('P3 fetch resolved status=' + r.status);\n  }).catch(function(e){\n    document.getElementById('out').textContent = 'fetch error=' + e;\n    window.TavernBridge.log('P3 fetch rejected: ' + e);\n  });\n}\ndoFetch();\n</script>\n</body>\n</html>\n```\n",
+ "data": {
+  "name": "ProbeP3",
+  "description": "P3 网络白名单探测卡",
+  "first_mes": "```html\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"></head>\n<body>\n<p>P3 fetch probe</p>\n<button id=\"fb\" onclick=\"doFetch()\">FETCH</button>\n<pre id=\"out\"></pre>\n<script>\nwindow.TavernBridge.log('P2 parse-time: TavernHelper=' + typeof window.TavernHelper +\n  ' __tavernEmit=' + typeof window.__tavernEmit);\nfunction doFetch(){\n  fetch('https://example.com/x').then(function(r){\n    document.getElementById('out').textContent = 'fetch status=' + r.status;\n    window.TavernBridge.log('P3 fetch resolved status=' + r.status);\n  }).catch(function(e){\n    document.getElementById('out').textContent = 'fetch error=' + e;\n    window.TavernBridge.log('P3 fetch rejected: ' + e);\n  });\n}\ndoFetch();\n</script>\n</body>\n</html>\n```\n",
+  "extensions": {}
+ }
+}

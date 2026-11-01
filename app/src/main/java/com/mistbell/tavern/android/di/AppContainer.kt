@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.mistbell.tavern.android.data.extensionpack.BuiltinPackSeeder
 import com.mistbell.tavern.android.data.extensionpack.ExtensionPreloadProvider
+import com.mistbell.tavern.android.data.extensionpack.NetworkAllowlistProvider
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.repository.EnabledRulePacksCache
 import com.mistbell.tavern.android.data.repository.ExtensionPackRepository
@@ -29,6 +30,8 @@ import com.mistbell.tavern.android.extension.builtin.HelpCommand
 import com.mistbell.tavern.android.extension.builtin.MvuExtension
 import com.mistbell.tavern.android.extension.builtin.NoteCommand
 import com.mistbell.tavern.android.extension.builtin.RulePackExtension
+import com.mistbell.tavern.android.extension.scripting.ExtensionHookExtension
+import com.mistbell.tavern.android.extension.scripting.ExtensionHookRuntimeManager
 import com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
 import com.mistbell.tavern.android.extension.scripting.ScriptedPackExtension
 import com.mistbell.tavern.android.util.SecureStore
@@ -245,6 +248,24 @@ class AppContainer(private val appContext: Context) {
     }
 
     /**
+     * 扩展包宿主钩子运行时（P3）：观察启用中且声明 hostHooks 的扩展包，按
+     * PermissionBroker 授权清单裁剪 tavern 宿主对象；会话能力（消息/生成/MVU）经
+     * ActiveChatHookBridge 取当前聊天页的桥宿主（ChatViewModel 挂载，无页面时降级）。
+     */
+    val extensionHookRuntimeManager: ExtensionHookRuntimeManager by lazy {
+        ExtensionHookRuntimeManager(
+            daoProvider = { database.extensionPackDao() },
+            filesRoot = appContext.filesDir,
+            settingsDaoProvider = { database.settingsDao() },
+            capabilityHostProvider = { com.mistbell.tavern.android.extension.scripting.ActiveChatHookBridge.host },
+            scope =
+                kotlinx.coroutines.CoroutineScope(
+                    kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+                ),
+        )
+    }
+
+    /**
      * 注册内置扩展（幂等，ExtensionRegistry 按 id 去重）。
      *
      * 放 AppContainer 而非 TavernApplication：与"所有服务的唯一装配入口"职责一致；
@@ -257,8 +278,11 @@ class AppContainer(private val appContext: Context) {
         // 触碰 rulePackCache 即预热缓存（注册期开始收集 Room Flow），与 awaitPacks 共同消除冷启动竞态
         ExtensionRegistry.register(RulePackExtension(rulePackCache))
         ExtensionRegistry.register(ScriptedPackExtension(scriptRuntimeManager))
+        ExtensionRegistry.register(ExtensionHookExtension(extensionHookRuntimeManager))
         ExtensionRegistry.register(MvuExtension())
         scriptRuntimeManager.start()
+        // P3 扩展包宿主钩子：观察启用中且声明 hostHooks 的扩展包（启停/覆盖安装即装卸）
+        extensionHookRuntimeManager.start()
         // 宏桥：MacroEngine（util 层）不反向依赖 extension 包，注册表查询经此 lambda 注入
         com.mistbell.tavern.android.util.MacroEngine.registerMacroProvider { name, ctx ->
             ExtensionRegistry.macroProviders.firstNotNullOfOrNull { it.resolve(name, ctx) }
@@ -269,6 +293,9 @@ class AppContainer(private val appContext: Context) {
             filesRoot = appContext.filesDir,
             daoProvider = { database.extensionPackDao() },
         )
+        // P3 网络白名单数据驱动：预热扩展包授权网络域快照（WebView 装配的 CSP 拼装与
+        // shouldAllowHttps 拦截判定同步读快照，主线程只读内存）。
+        NetworkAllowlistProvider.start(daoProvider = { database.extensionPackDao() })
     }
 
     /**

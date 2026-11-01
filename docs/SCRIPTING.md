@@ -74,6 +74,52 @@ tavern.on("generation:ended", function (payloadJson) {
 - 包**禁用/删除**时拆除运行时：动态命令、宏、事件处理全部失效
 - 覆盖安装同 id 包且脚本变化时自动重载
 
+## 扩展包宿主钩子（P3，type:"extension" 的 hostHooks）
+
+扩展包（`manifest.json` 声明 `"type": "extension"` 与 `"hostHooks": "hook.js"`）的宿主钩子
+同样跑在 Rhino 沙箱（安全边界与上文完全一致：无文件/网络/Java 互操作、每包独立作用域、
+50 万初始化 / 20 万单次调用指令预算、3 秒墙钟、异常/超时按「该钩子无产出」降级），
+但 `tavern` 对象**按 manifest.permissions 逐方法裁剪**——未声明能力的方法在对象上
+**不存在**（`typeof tavern.setChatMessages === "undefined"`，调用直接 TypeError），
+而不是存在但运行时报错（VS Code 命名空间供给模式；映射实现在
+`PermissionBroker.grantedMethods`，纯函数单测锁定）。日志 TAG 为 `JSEXT·<packId>`
+（规则包脚本为 `JS·<packId>`）。
+
+### 权限 → 方法对照
+
+| manifest.permissions 声明 | tavern 上可用的方法 |
+|---|---|
+| （恒可用） | `tavern.log(msg)` |
+| `prompt:inject` | `tavern.onPrompt(fn(ctxJson))` |
+| `reply:process` | `tavern.onReply(fn(text, ctxJson))` |
+| `events:subscribe` | `tavern.on(event, fn(payloadJson))`（六事件白名单同规则包） |
+| `variables` | `tavern.getVar(key)` / `tavern.setVar(key, value)`（包级 `ext.<packId>.<key>`）+ `tavern.getVariables()` / `tavern.insertOrAssignVariables(json)`（当前会话 MVU 变量树） |
+| `messages:read` | `tavern.getChatMessages(limit)`（≤50，返回 `[{id, role, content}]` JSON 串）/ `tavern.getLastMessageId()` |
+| `messages:write` | `tavern.setChatMessages(payloadJson)` / `tavern.createChatMessage(payloadJson)` / `tavern.deleteChatMessages(idsJson)`（契约与上限与 HTML 门面同名方法一致：正文 20000 字符、批量 50 条、id 1..64 字符，超限整单拒绝返回 `{error:...}`） |
+| `generation:control` | `tavern.triggerGenerate()`（`{started:true}` 或 `{error:...}`）/ `tavern.stopGeneration()` |
+| `network:<host>` | 不是 tavern 方法——WebView CSP connect-src / 拦截白名单放行该域（对页面侧真实收效的唯一网络权限） |
+
+与规则包脚本的差异：
+
+- **返回值已归一为 JS 字符串**：宿主方法的返回值在代理层 `String()` 转换，脚本不必再做
+  Java 字符串拆包（规则包侧需自行 `String(tavern.getVar(...))`）；入参仍一律 JSON 文本
+- **会话能力的生命周期**：消息读写/生成控制/MVU 走当前聊天页的桥宿主（与 WebView 桥同一份
+  实现）——聊天页不在场时读侧降级为空数据（`[]` / `""` / `{}`）、写侧降级为
+  `{error:"当前无会话"}`；钩子链路只在生成/会话活跃期被调用，正常情况宿主恒在场
+- **没有** `registerCommand` / `registerMacro`（扩展包钩子不开放动态命令与宏；声明了也无此方法）
+- **注册即需权限**：脚本顶层调用未授权的 `tavern.onPrompt(...)` 会因方法不存在而抛错，
+  整个包加载失败降级为无产出——不会部分生效
+
+生命周期（与规则包一致）：包启用时评估 hook.js；禁用/删除时其 prompt 注入、回复处理、
+事件订阅全部失效；覆盖安装（zip hash 变化 → hook.js 重写）自动重载。官方内置包
+tavernhelper-compat 无 hostHooks，不进入钩子运行时。
+
+**preload 信任边界**：扩展包的 `webviewPreload` 门面 JS 与卡片脚本同处 WebView 一个 JS
+上下文，桥无法按调用来源归因——permissions 对页面侧 preload **不构成运行时隔离**
+（安装时知情同意语义）；网络域（`network:<host>`）是唯一对页面侧真实收效的权限。
+详见 docs/EXTENSION_PLATFORM_DESIGN.md §4.1。示例包：samples/hosthook-demo/
+（声明 messages:read + events:subscribe + prompt:inject，含未授权方法探针注释）。
+
 ## 限制
 
 - Rhino 1.8 的 ES6 子集（let/const、箭头函数、模板字符串大多可用；无 ES Module、无 async/await）

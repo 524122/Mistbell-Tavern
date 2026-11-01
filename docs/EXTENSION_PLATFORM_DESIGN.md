@@ -1,7 +1,8 @@
 # 扩展平台设计：兼容层插件化
 
-> 状态：P1/P2 已实施（P1 制品与生命周期 4b1c4a5、P2 预注入与门面迁出 2950430，均经模拟器 E2E）；
-> P3/P4 未实施。实施与设计的偏差以代码与 CHANGELOG 为准（两处值得一提：权限「扩权回退」的
+> 状态：P1/P2/P3 已实施（P1 制品与生命周期 4b1c4a5、P2 预注入与门面迁出 2950430、
+> P3 权限代理与宿主钩子执行 + 网络白名单数据驱动，P1/P2 均经模拟器 E2E）；
+> P4 未实施。实施与设计的偏差以代码与 CHANGELOG 为准（两处值得一提：权限「扩权回退」的
 > UI 路径例外见 P1 提交；extension_packs 最终为 v38 而非 v37 就地改——「未发布 schema 也不可
 > 原地改」的教训见迁移对齐测试）。
 > 设计稿（2026-10-31，基于代码盘点 + 上游先例调研）
@@ -124,6 +125,32 @@ zip 制品，`manifest.json` 在规则包字段基础上扩展（解析复用 `R
 「基础集 ∪ 已启用扩展的已授权 `network:` 域」，CSP 在 WebView 装配时动态拼装
 （HtmlUiSandbox 注入点不变，只是常量变查询）。
 
+### 4.1 P3 实施状态与信任边界（2026-11-01 补记）
+
+**已实施**：注入侧裁剪（第 2 层）与网络白名单数据驱动；第 3 层 optional 运行时请求未做
+（标记为可选，需求未证实）。执行面有且只有两处，能力面对照：
+
+- **宿主钩子（Rhino 沙箱，真隔离）**：`hostHooks` 经 `ExtensionHookRuntimeManager`
+  接线到既有 Rhino 机器（生命周期/预算/墙钟/独立 scope 全部复用规则包语义）；
+  `tavern` 宿主对象由 `PermissionBroker.grantedMethods(permissions)` 纯函数产出方法清单，
+  经 `RhinoSandbox` 的 tavern-broker 引导片逐方法装配——未授权方法在对象上不存在
+  （`typeof tavern.setChatMessages === 'undefined'`，调用即 TypeError）。prompt 注入
+  与规则包同型落 `CustomPromptExtension.applyCustomPrompts` 五档 position，包间顺序 =
+  loadingOrder；MVU/消息/生成能力走 `HookCapabilityHost`（ChatViewModel htmlBridgeHost
+  同一份实现，经 ActiveChatHookBridge 随聊天页挂载，无页面时按既有默认降级）。
+- **WebView 网络（文档级）**：`NetworkAllowlistProvider` 以 Flow 收集 + 快照只读内存
+  产出已启用包的授权域；`HtmlUiSandbox.buildCsp/effectiveConnectHosts` 纯函数拼装，
+  CSP meta 与 `shouldAllowHttps` 拦截判定消费同一快照（主线程永不阻塞）。
+
+**preload 的 permissions 语义 = 安装时知情同意，非技术隔离（如实文档化）**：
+WebView 页面内扩展 preload 与卡片脚本同处一个 JS 上下文（共享 window），桥
+（TavernBridge）无法按调用来源归因——对 preload 做按权限真隔离在技术上不可能；
+且卡片本就全权使用桥，这是既有产品决策。因此 manifest 声明的 `messages:write`、
+`generation:control` 等权限对 preload 页面侧**不构成运行时限制**（卡片能调的它都能调），
+权限清单确认的意义在于：告知用户该包携带的页面代码将使用哪些能力、以及为宿主钩子
+（真裁剪处）开通对应通道。网络域是唯一对页面侧真实收效的权限（CSP/拦截白名单）。
+不做假裁剪——对象上摆一个运行时抛权限错的假方法只会制造兼容性谎言。
+
 ---
 
 ## 5. 门面预注入机制
@@ -200,7 +227,7 @@ zip 制品，`manifest.json` 在规则包字段基础上扩展（解析复用 `R
 |---|---|---|
 | P1 制品与生命周期 | `type: extension` 包格式、导入/启停/删除/覆盖重载（复用规则包管线）、权限清单确认 UI、filesDir 存储 | 导入含权限声明的扩展包可启停；未确认权限的包不激活 |
 | P2 预注入机制 | 注入串改造（§5.1）、FACADE_JS 拆分为 bootstrap 桥 + 官方 tavernhelper-compat 扩展包、提供者互斥 | 卡片内联脚本解析期可见 TavernHelper；卸载扩展包后门面消失；模拟器实测回归既有卡片 |
-| P3 能力代理完备 | PermissionBroker、按扩展裁剪宿主 API、网络白名单数据驱动、（可选）optional 运行时请求 | 声明了 messages:write 的扩展可经宿主钩子改消息；未声明者代理层无此方法 |
+| P3 能力代理完备 | PermissionBroker、按扩展裁剪宿主 API（hostHooks 执行接线）、网络白名单数据驱动、（可选）optional 运行时请求——optional 未做，preload 信任边界见 §4.1 | 声明了 messages:write 的扩展可经宿主钩子改消息；未声明者 tavern 对象上无此方法 |
 | P4（可选） | QuickJS 宿主运行时 | async 脚本可跑，安全预算等价 |
 
 每阶段按既有惯例：单测 + 模拟器实测后提交。

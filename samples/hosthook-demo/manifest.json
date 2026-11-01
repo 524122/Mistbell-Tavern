@@ -1,0 +1,15 @@
+{
+  "id": "hosthook-demo",
+  "name": "宿主钩子示例",
+  "author": "Mistbell",
+  "version": "1.0.0",
+  "description": "演示扩展包宿主钩子（P3）：onPrompt 注入 + 消息读取 + 事件订阅，tavern 对象按 manifest.permissions 裁剪",
+  "loadingOrder": 100,
+  "type": "extension",
+  "permissions": [
+    "messages:read",
+    "events:subscribe",
+    "prompt:inject"
+  ],
+  "hostHooks": "hook.js"
+}

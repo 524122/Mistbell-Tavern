@@ -6,6 +6,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.mistbell.tavern.android.data.extensionpack.NetworkAllowlistProvider
 import java.io.ByteArrayInputStream
 
 /**
@@ -13,29 +14,60 @@ import java.io.ByteArrayInputStream
  *
  * - 文档经 loadDataWithBaseURL(tavern.local) 加载；后续请求一律拦截：
  *   放行 https 被动资源（图片/样式/字体/音频/视频——楼层界面的图标字体与 BGM 需求），
- *   工坊接口只放行明确列出的 HTTPS 域名，任意外链脚本与导航仍阻断
+ *   工坊接口只放行明确列出的 HTTPS 域名（P3 起含已启用扩展包授权的 network:<host> 域，
+ *   数据驱动见 NetworkAllowlistProvider），任意外链脚本与导航仍阻断
  * - 内联脚本允许（楼层界面的本质），DOM storage / 文件访问 / 地理位置 / 下载 / 多窗口全禁
- * - CSP meta 注入作为第二道防线（拦截器是第一道）
+ * - CSP meta 注入作为第二道防线（拦截器是第一道）；两道防线消费同一份连接域快照
  */
 object HtmlUiSandbox {
     const val BASE_URL = "https://tavern.local/"
 
-    private val ALLOWED_CONNECT_HOSTS =
+    /**
+     * 基础连接域（编译期不变，产品功能自用：苍玄界工坊/论坛接口）。
+     * P3 起生效域 = 本基础集 ∪ 已启用扩展包声明且已授权的 `network:<host>`
+     * （[NetworkAllowlistProvider] 数据驱动，随包启停/覆盖安装即时生效）。
+     */
+    internal val BASE_CONNECT_HOSTS =
         setOf(
             "cangxuan-workshop.cangxuanjie.workers.dev",
             "cangxuan-forum.cangxuanjie.workers.dev",
         )
 
-    private const val CSP =
+    private const val CSP_PREFIX =
         "default-src 'none'; " +
             "script-src 'unsafe-inline' https://tavern.local https://cdn.tailwindcss.com; " +
             "style-src 'unsafe-inline' https:; " +
             "img-src https: data:; " +
             "font-src https: data:; " +
-            "media-src https:; " +
-            "connect-src https://cangxuan-workshop.cangxuanjie.workers.dev " +
-            "https://cangxuan-forum.cangxuanjie.workers.dev; " +
-            "frame-src 'none'; object-src 'none';"
+            "media-src https:; "
+
+    private const val CSP_SUFFIX = "frame-src 'none'; object-src 'none';"
+
+    /**
+     * CSP 拼装（纯函数，JVM 单测锁定）：connect-src 逐域 `https://` 前缀拼接；
+     * 域集为空时 connect-src 为空列表（仍保留指令——默认全拒语义不变）。
+     */
+    internal fun buildCsp(connectHosts: Collection<String>): String =
+        CSP_PREFIX +
+            "connect-src " + connectHosts.joinToString(" ") { "https://$it" } + "; " +
+            CSP_SUFFIX
+
+    /**
+     * 生效连接域（纯函数）：基础集在前、扩展域按字典序追加（LinkedHashSet 保序去重，
+     * CSP 串跨装配稳定）；host 小写归一（与拦截比较同一把尺子）。
+     */
+    internal fun effectiveConnectHosts(extensionHosts: Collection<String>): Set<String> {
+        val hosts = LinkedHashSet<String>(BASE_CONNECT_HOSTS)
+        extensionHosts
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+            .sorted()
+            .forEach { hosts.add(it) }
+        return hosts
+    }
+
+    /** 当前生效连接域：基础集 + 扩展包授权域快照（volatile 只读，主线程装配可安全调用） */
+    private fun allowedConnectHosts(): Set<String> = effectiveConnectHosts(NetworkAllowlistProvider.extensionHosts())
 
     private const val BLOCKED_STATUS = 204
 
@@ -80,6 +112,7 @@ object HtmlUiSandbox {
     /**
      * 拦截判定（纯函数，便于单测）：HTTPS 被动资源、无扩展名样式表及白名单接口放行；
      * 任意外链脚本、未知接口和明文请求仍阻断（外链脚本另受 CSP 限制）。
+     * 连接域白名单 = 基础集 ∪ 扩展包授权域快照（与 CSP connect-src 消费同一数据源）。
      */
     internal fun shouldAllowHttps(
         url: String,
@@ -96,7 +129,7 @@ object HtmlUiSandbox {
             (
                 extension in PASSIVE_EXTENSIONS ||
                     acceptHeader?.contains("text/css") == true ||
-                    uri?.host?.lowercase() in ALLOWED_CONNECT_HOSTS
+                    uri?.host?.lowercase() in allowedConnectHosts()
             )
     }
 
@@ -104,7 +137,7 @@ object HtmlUiSandbox {
     fun injectCsp(html: String): String {
         val meta =
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-                "<meta http-equiv=\"Content-Security-Policy\" content=\"$CSP\">"
+                "<meta http-equiv=\"Content-Security-Policy\" content=\"${buildCsp(allowedConnectHosts())}\">"
         val headMatch = Regex("<head[^>]*>", RegexOption.IGNORE_CASE).find(html)
         return if (headMatch != null) {
             html.replaceRange(headMatch.range.last + 1, headMatch.range.last + 1, "\n$meta")

@@ -3,7 +3,7 @@
   "name": "示例扩展包",
   "author": "Mistbell",
   "version": "1.0.0",
-  "description": "演示扩展包制品格式：权限声明 + 门面/钩子 JS 制品（P1 管理平面，脚本不执行）",
+  "description": "演示扩展包制品格式：权限声明 + 门面/钩子 JS 制品（门面 P2 预注入，宿主钩子 P3 起执行）",
   "loadingOrder": 100,
   "type": "extension",
   "permissions": [

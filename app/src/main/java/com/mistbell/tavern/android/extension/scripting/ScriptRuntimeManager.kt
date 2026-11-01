@@ -159,32 +159,11 @@ class ScriptRuntimeManager(
     // ---- 事件转发 ----
 
     private fun dispatchEvent(event: TavernEvent) {
-        val (eventName, payload) =
-            when (event) {
-                is TavernEvent.MessageSent -> "message:sent" to eventPayload(event.sessionId)
-                is TavernEvent.MessageReceived -> "message:received" to eventPayload(event.sessionId)
-                is TavernEvent.GenerationStarted -> "generation:started" to eventPayload(event.sessionId)
-                is TavernEvent.GenerationEnded -> "generation:ended" to eventPayload(event.sessionId)
-                is TavernEvent.ChatChanged -> "chat:changed" to eventPayload(event.sessionId, event.characterId)
-                is TavernEvent.VariablesUpdated ->
-                    "variables:updated" to "{\"sessionId\":${jsonString(event.sessionId)},\"version\":${event.version}}"
-            }
-        packsWithHook(TavernHostApi.REG_EVENT + eventName).forEach { (packId, _) ->
-            sandbox.callRegistered(packId, TavernHostApi.REG_EVENT + eventName, arrayOf(payload))
+        val registration = TavernHostApi.REG_EVENT + TavernEventWire.nameOf(event)
+        packsWithHook(registration).forEach { (packId, _) ->
+            sandbox.callRegistered(packId, registration, arrayOf(TavernEventWire.payloadOf(event)))
         }
     }
-
-    private fun eventPayload(
-        sessionId: String,
-        characterId: String? = null,
-    ): String =
-        buildString {
-            append("{\"sessionId\":").append(jsonString(sessionId))
-            if (characterId != null) {
-                append(",\"characterId\":").append(jsonString(characterId))
-            }
-            append("}")
-        }
 
     private fun packsWithHook(registration: String): List<Pair<String, String>> =
         loadedScripts.keys

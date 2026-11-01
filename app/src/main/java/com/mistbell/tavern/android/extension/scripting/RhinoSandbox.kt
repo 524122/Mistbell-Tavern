@@ -88,14 +88,7 @@ class RhinoSandbox {
                         // 仅放行宿主对象自身与不可变值包装类（NativeJavaObject 包装需 ClassShutter 批准）；
                         // 其余 Java 类一律不可见——Packages/java/反射/JavaAdapter 对脚本全部失效
                         cx.setClassShutter(
-                            ClassShutter { className ->
-                                className == "com.mistbell.tavern.android.extension.scripting.TavernHostApi" ||
-                                    className == "java.lang.String" ||
-                                    className == "java.lang.Integer" ||
-                                    className == "java.lang.Long" ||
-                                    className == "java.lang.Double" ||
-                                    className == "java.lang.Boolean"
-                            },
+                            ClassShutter { className -> className in ALLOWED_HOST_CLASSES },
                         )
                         // 指令计数中止失控脚本：解释器开计数 + 越阈回调（factory 内 throw）
                         cx.isGenerateObserverCount = true
@@ -126,18 +119,40 @@ class RhinoSandbox {
         return global
     }
 
-    /** 初始化包运行时：建立 scope、注入 hostObject 与 JSON 桥函数、评估脚本源码。 */
+    /**
+     * 初始化包运行时：建立 scope、注入 hostObject 与 JSON 桥函数、评估脚本源码。
+     *
+     * [grantedMethods] 非空时走 PermissionBroker 装配（扩展包宿主钩子）：宿主对象不直接
+     * 绑定为 `tavern`，而是经 [TAVERN_BROKER_SOURCE] 引导片只把授权方法绑进 `tavern`
+     * 对象——未授权方法在对象上不存在（VS Code 命名空间供给模式，调用即 TypeError）。
+     * null（规则包脚本包）保持原行为：整个宿主对象可见（其类本身只含无能力面的注册 API）。
+     */
     fun loadPack(
         packId: String,
         scriptSource: String,
         hostObject: Any,
+        grantedMethods: List<String>? = null,
     ): SandboxResult<PackRuntime> {
         val result =
             submit(INIT_INSTRUCTION_BUDGET) { cx ->
                 val global = ensureGlobal(cx)
                 val scope = cx.newObject(global) as ScriptableObject
                 scope.prototype = global
-                ScriptableObject.putProperty(scope, "tavern", Context.javaToJS(hostObject, scope))
+                if (grantedMethods == null) {
+                    ScriptableObject.putProperty(scope, "tavern", Context.javaToJS(hostObject, scope))
+                } else {
+                    ScriptableObject.putProperty(scope, HOST_SLOT, Context.javaToJS(hostObject, scope))
+                    ScriptableObject.putProperty(scope, GRANTED_SLOT, grantedMethodsJson(grantedMethods))
+                    // 引导片是 IIFE 表达式：参数在调用期捕获进闭包的活动作用域，
+                    // 评估完即从包 scope 删掉槽位——脚本再无路径摸到裸宿主对象
+                    val tavern = cx.evaluateString(scope, TAVERN_BROKER_SOURCE, "tavern-broker.js", 1, null)
+                    ScriptableObject.deleteProperty(scope, HOST_SLOT)
+                    ScriptableObject.deleteProperty(scope, GRANTED_SLOT)
+                    if (tavern == null || tavern == org.mozilla.javascript.UniqueTag.NOT_FOUND) {
+                        error("tavern 引导片未产出宿主对象")
+                    }
+                    ScriptableObject.putProperty(scope, "tavern", tavern)
+                }
                 val runtime = PackRuntime(packId, scope)
                 runtimes[packId] = runtime
                 // JSON 桥：脚本返回值经此函数 stringify（宿主导出参统一 JSON 文本）
@@ -230,5 +245,59 @@ class RhinoSandbox {
         /** 单次钩子调用的指令预算 */
         private const val CALL_INSTRUCTION_BUDGET = 200_000
         private const val WALL_CLOCK_TIMEOUT_MS = 3_000L
+
+        /** ClassShutter 白名单：宿主对象类 + 不可变值包装类；其余 Java 类对脚本不可见 */
+        private val ALLOWED_HOST_CLASSES =
+            setOf(
+                "com.mistbell.tavern.android.extension.scripting.TavernHostApi",
+                "com.mistbell.tavern.android.extension.scripting.ExtensionHookApi",
+                "java.lang.String",
+                "java.lang.Integer",
+                "java.lang.Long",
+                "java.lang.Double",
+                "java.lang.Boolean",
+            )
+
+        /** broker 装配期宿主对象 / 授权清单在包 scope 里的临时槽位名（评估后即删） */
+        private const val HOST_SLOT = "__tavernHost"
+        private const val GRANTED_SLOT = "__tavernGranted"
+
+        private fun grantedMethodsJson(methods: List<String>): String =
+            methods.joinToString(",", "[", "]") { method ->
+                ScriptRuntimeManager.jsonString(method)
+            }
+
+        /**
+         * PermissionBroker 引导片（扩展包宿主钩子专用，P3）：
+         * 输入 = 裸宿主对象 + 授权方法名 JSON 数组；输出 = 只含已授权方法的 `tavern` 对象。
+         * - `log` 恒可用（无能力面）；其余方法逐个按授权清单条件装配——未授权方法不在对象上，
+         *   `typeof tavern.x === 'undefined'`、调用即 TypeError
+         * - 返回值统一 `String()` 归一为 JS 字符串（脚本不必再做 Java 字符串拆包）
+         * - 入参出参一律 JSON 文本，与规则包脚本契约一致
+         */
+        private val TAVERN_BROKER_SOURCE =
+            """
+            (function (host, grantedJson) {
+              var granted = JSON.parse(grantedJson);
+              var has = function (name) { return granted.indexOf(name) >= 0; };
+              var t = {};
+              t.log = function (m) { host.log(m === null || m === undefined ? null : String(m)); };
+              if (has('onPrompt')) t.onPrompt = function (fn) { host.onPrompt(fn); };
+              if (has('onReply')) t.onReply = function (fn) { host.onReply(fn); };
+              if (has('on')) t.on = function (event, fn) { host.on(String(event), fn); };
+              if (has('getVar')) t.getVar = function (key) { return String(host.getVar(String(key))); };
+              if (has('setVar')) t.setVar = function (key, value) { host.setVar(String(key), value === null || value === undefined ? '' : String(value)); };
+              if (has('getVariables')) t.getVariables = function () { return String(host.getVariables()); };
+              if (has('insertOrAssignVariables')) t.insertOrAssignVariables = function (json) { host.insertOrAssignVariables(String(json)); };
+              if (has('getChatMessages')) t.getChatMessages = function (limit) { return String(host.getChatMessages(Number(limit) > 0 ? Math.floor(Number(limit)) : 1)); };
+              if (has('getLastMessageId')) t.getLastMessageId = function () { return String(host.getLastMessageId()); };
+              if (has('setChatMessages')) t.setChatMessages = function (payloadJson) { return String(host.setChatMessages(String(payloadJson))); };
+              if (has('createChatMessage')) t.createChatMessage = function (payloadJson) { return String(host.createChatMessage(String(payloadJson))); };
+              if (has('deleteChatMessages')) t.deleteChatMessages = function (idsJson) { return String(host.deleteChatMessages(String(idsJson))); };
+              if (has('triggerGenerate')) t.triggerGenerate = function () { return String(host.triggerGenerate()); };
+              if (has('stopGeneration')) t.stopGeneration = function () { host.stopGeneration(); };
+              return t;
+            })(__tavernHost, __tavernGranted);
+            """.trimIndent()
     }
 }

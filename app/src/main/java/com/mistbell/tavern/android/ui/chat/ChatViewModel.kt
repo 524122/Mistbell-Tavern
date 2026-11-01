@@ -225,10 +225,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val htmlChatEvents: StateFlow<List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlFacadeContract.HtmlChatEvent>> =
         _htmlChatEvents.asStateFlow()
 
-    /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离） */
+    /** HTML 界面桥宿主：数据与动作的受控出口（变量会话级隔离）。
+     * P3 起本体同时实现扩展宿主钩子的能力面（HookCapabilityHost）——消息/生成/MVU 出口
+     * 与 WebView 桥同一份实现（上限契约零重复），经 ActiveChatHookBridge 挂载给钩子运行时 */
+    val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost
+        get() = hookCapableBridgeHost
+
     @Suppress("TooManyFunctions") // 桥宿主即白名单契约，逐个方法对应一类受控能力（桥侧同注释）
-    val htmlBridgeHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost =
-        object : com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost {
+    private val hookCapableBridgeHost =
+        object :
+            com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost,
+            com.mistbell.tavern.android.extension.scripting.HookCapabilityHost {
             override fun getVar(key: String): String =
                 kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
                     db.settingsDao().getValue(huiVarKey(key)) ?: ""
@@ -762,6 +769,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     init {
         networkMonitor.start()
         // 不在 init 中调用 loadLocalState()，等待显式的 loadSession() 调用
+
+        // P3 扩展宿主钩子：把本页桥宿主挂载为会话能力出口（消息/生成/MVU），
+        // onCleared 摘除——钩子运行时是应用级单例，能力面跟随当前聊天页生命周期
+        com.mistbell.tavern.android.extension.scripting.ActiveChatHookBridge.host = hookCapableBridgeHost
 
         // HTML 界面展开状态跟随会话切换重载（按会话隔离持久化）
         viewModelScope.launch {
@@ -1390,6 +1401,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // 退出聊天页（CHAT 出栈）：抽掉不足一批的记忆抽取尾巴。
         // flush 走 ChatRepository 独立 backgroundScope，VM 销毁后抽取仍会继续
         repo.flushPendingMemoryExtractions()
+        // P3：摘除扩展宿主钩子的会话能力出口（此后钩子内消息/生成/MVU 走降级出口）
+        if (com.mistbell.tavern.android.extension.scripting.ActiveChatHookBridge.host == hookCapableBridgeHost) {
+            com.mistbell.tavern.android.extension.scripting.ActiveChatHookBridge.host = null
+        }
         super.onCleared()
         networkMonitor.stop()
     }
