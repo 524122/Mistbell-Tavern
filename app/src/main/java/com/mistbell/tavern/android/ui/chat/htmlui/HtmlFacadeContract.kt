@@ -75,8 +75,10 @@ object HtmlFacadeContract {
         }
     }
 
-    // __tavernEmit 调用前缀（事件名为白名单常量、payload 为 kotlinx 序列化产物，均无注入面）
-    private const val EMIT_JS_PREFIX = "window.__tavernEmit && window.__tavernEmit('"
+    // __tavernEmit 调用前缀（事件名为白名单常量、payload 为 kotlinx 序列化产物，均无注入面）。
+    // P2 起事件管道 __tavernEmit 仍由原生段（EVENT_BUS_JS）提供，但门面制品可能被用户停用
+    // ——守卫形态保证包被禁用/未挂载时原生推送静默跳过不报错（宿主不得因扩展启停而崩）。
+    private const val EMIT_JS_PREFIX = "if(window.__tavernEmit)window.__tavernEmit('"
 
     /**
      * 生成向页面广播聊天事件的 evaluateJavascript 语句。payloadJson 必须以【JS 字符串字面量】

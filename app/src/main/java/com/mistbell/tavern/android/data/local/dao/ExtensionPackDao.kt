@@ -18,6 +18,10 @@ interface ExtensionPackDao {
     @Query("SELECT * FROM extension_packs WHERE enabled = 1 ORDER BY loading_order ASC, installed_at ASC")
     fun observeEnabled(): Flow<List<ExtensionPackEntity>>
 
+    /** 启用中的扩展包（一次性查询）：提供者互斥在同一事务内计算待停用名单时使用 */
+    @Query("SELECT * FROM extension_packs WHERE enabled = 1 ORDER BY loading_order ASC, installed_at ASC")
+    suspend fun getEnabled(): List<ExtensionPackEntity>
+
     @Upsert
     suspend fun upsert(pack: ExtensionPackEntity)
 

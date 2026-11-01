@@ -657,33 +657,43 @@ class ChatRepository(private val context: Context) {
                 userMessages
                     .dropWhile { it.id != messageId }
                     .map { it.id }
+            // 生成事件配对补齐（P2）：regenerate 直接 collectReply 不经 requestAndPersistReply，
+            // 全程不发射 generation_started/ended——页面脚本与脚本包监听收不到。对齐共享路径
+            // 语义：进入收集前 Started；成功/失败/取消（finally）Ended 严格成对（含落库，
+            // ended 监听方读到的是已落库的新回复）；取消时部分回复落库的既有逻辑不动。
+            TavernEventBus.emit(TavernEvent.GenerationStarted(sessionId))
             try {
-                collectReply(llmConfig, prompt, sb, onPartial)
-            } catch (e: CancellationException) {
-                // 用户主动停止重新生成：不触发失败回滚。
-                // 已收到部分回复则按替换事务落库（群聊先做与成功路径一致的归属解析，
-                // 复用 persistPartialReplyOnCancel，勿复制粘贴）；空则直接上抛取消。
-                if (sb.isNotEmpty()) {
-                    persistPartialReplyOnCancel(
-                        partialReply = sb.toString(),
-                        scope = scope,
-                        speakerNames = groupContext?.speakerNames,
-                        replaceFromMessageId = messageId,
-                    )
+                try {
+                    collectReply(llmConfig, prompt, sb, onPartial)
+                } catch (e: CancellationException) {
+                    // 用户主动停止重新生成：不触发失败回滚。
+                    // 已收到部分回复则按替换事务落库（群聊先做与成功路径一致的归属解析，
+                    // 复用 persistPartialReplyOnCancel，勿复制粘贴）；空则直接上抛取消。
+                    if (sb.isNotEmpty()) {
+                        persistPartialReplyOnCancel(
+                            partialReply = sb.toString(),
+                            scope = scope,
+                            speakerNames = groupContext?.speakerNames,
+                            replaceFromMessageId = messageId,
+                        )
+                    }
+                    throw e
                 }
-                throw e
-            }
 
-            // 成功拿到新回复：落库复用 persistAssistantReply 公共尾部（跨代理契约 4）——
-            // 归属解析 + 替换事务（删目标及其后、落新消息、按真实行数回写计数）+ 向量化。
-            // 已知残留：被替换的旧消息向量没有按消息删除的接口，暂无法清理（见 ROADMAP 向量双写一致性问题）
-            persistAssistantReply(
-                fullReply = sb.toString(),
-                scope = scope,
-                speakerNames = groupContext?.speakerNames,
-                mode = ReplyTailMode.Replace(fromMessageId = messageId),
-            )
-            replacedMessageIds.forEach { deleteMessageVectors(it) }
+                // 成功拿到新回复：落库复用 persistAssistantReply 公共尾部（跨代理契约 4）——
+                // 归属解析 + 替换事务（删目标及其后、落新消息、按真实行数回写计数）+ 向量化。
+                // 已知残留：被替换的旧消息向量没有按消息删除的接口，暂无法清理（见 ROADMAP 向量双写一致性问题）
+                persistAssistantReply(
+                    fullReply = sb.toString(),
+                    scope = scope,
+                    speakerNames = groupContext?.speakerNames,
+                    mode = ReplyTailMode.Replace(fromMessageId = messageId),
+                )
+                replacedMessageIds.forEach { deleteMessageVectors(it) }
+            } finally {
+                // 成功/失败/取消统一在此收尾，与 GenerationStarted 严格成对
+                TavernEventBus.emit(TavernEvent.GenerationEnded(sessionId))
+            }
         }
     }
 

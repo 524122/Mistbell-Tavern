@@ -30,7 +30,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         GlobalRegexRuleEntity::class,
         ExtensionPackEntity::class,
     ],
-    version = 37,
+    version = 38,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -864,6 +864,26 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v37→v38：P2 门面预注入（EXTENSION_PLATFORM_DESIGN.md §5）。extension_packs 追加
+        // provides_json（提供者互斥声明）与 is_builtin（官方内置包种子标记）两列。
+        // 必须走迁移而非就地改 37：「未发布可就地改」只对从未在任何设备跑过的 schema 成立——
+        // P1 构建已装机（旧 37 identityHash），同版本号改表 Room 校验
+        // "Room cannot verify the data integrity" 直接崩（T1 实测）。纯加列迁移，
+        // 列默认值对齐实体 Kotlin 默认值（实体未声明 @ColumnInfo(defaultValue)，Room 容忍库侧默认值）
+        internal val MIGRATION_37_38_SQL: List<String> =
+            listOf(
+                "ALTER TABLE extension_packs ADD COLUMN provides_json TEXT NOT NULL DEFAULT '[]'",
+                "ALTER TABLE extension_packs ADD COLUMN is_builtin INTEGER NOT NULL DEFAULT 0",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_37_38 =
+            object : Migration(MIGRATION_36_37.endVersion, MIGRATION_36_37.endVersion + 1) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_37_38_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -913,6 +933,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_34_35,
                         MIGRATION_35_36,
                         MIGRATION_36_37,
+                        MIGRATION_37_38,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

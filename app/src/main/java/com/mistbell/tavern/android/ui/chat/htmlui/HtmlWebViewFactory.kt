@@ -3,10 +3,15 @@ package com.mistbell.tavern.android.ui.chat.htmlui
 import android.annotation.SuppressLint
 import android.view.ViewGroup
 import android.webkit.WebView
+import com.mistbell.tavern.android.data.extensionpack.ExtensionPreloadProvider
 
 /**
  * 楼层 HTML 界面 WebView 的统一创建：沙箱配置、桥、门面与卡片脚本注入。
  * 内嵌气泡（HtmlBubble）与全屏沉浸层（HtmlFullscreenDialog）共用，保证两处行为一致。
+ *
+ * P2 门面预注入：门面（TavernHelper 组装）不再硬编码于此，由官方扩展包
+ * tavernhelper-compat 的 facade.js 随注入链进 <head>（ExtensionPreloadProvider 快照）；
+ * 引擎原生段（桥/事件总线/高度回报/CSP）保留在宿主。
  */
 internal object HtmlWebViewFactory {
     @Suppress("LongParameterList") // 参数即 WebView 装配契约
@@ -56,10 +61,13 @@ internal object HtmlWebViewFactory {
                 ),
                 "TavernBridge",
             )
-            // 桥/门面/卡片脚本的注入必须在页面加载完成后进行——
-            // 过早注入会被新文档覆盖（此前高度回报与桥失效即由此而来）
+            // 桥/门面/卡片脚本的注入时序（P2 门面预注入改造）：
+            // - 门面（TavernHelper 组装）已迁出为官方扩展包 tavernhelper-compat 的 facade.js，
+            //   随注入链在文档组装期进 <head>——卡片自身内联脚本解析期即可见（与酒馆助手上游
+            //   predefine 行为对齐），onPageFinished 后不再 evaluateJavascript 门面
+            // - 事件总线（__tavernListeners/__tavernEmit）是引擎原生段（EVENT_BUS_JS），同样在
+            //   组装期注入——原生推事件（ChatEventPush/MVU 推送）不依赖任何扩展制品启停
             HtmlUiSandbox.configure(this, onExternalBlocked) { webView ->
-                webView.evaluateJavascript(FACADE_JS, null)
                 webView.evaluateJavascript(HEIGHT_REPORT_JS, null)
                 // 卡片脚本以 <script type="module"> 注入（ES Module 语义，支持顶层 import 语法——
                 // 外链 import 被沙箱拦截，单脚本失败不影响其他；evaluateJavascript 的 classic
@@ -76,21 +84,32 @@ internal object HtmlWebViewFactory {
                             android.util.Log.w("HtmlWebViewFactory", "脚本「${script.name}」注入失败：${it.message}")
                         }
                 }
+                // 脚本注入后再报一次高度（模块渲染异步，MutationObserver 兜底后续变化）
                 webView.evaluateJavascript(HEIGHT_REPORT_JS, null)
             }
             loadDataWithBaseURL(
                 HtmlUiSandbox.BASE_URL,
-                // 先注入前置库（jQuery/lodash 垫片），再注 CSP——meta 落在前置脚本之前，
-                // 保证 CSP 先于一切资源生效；卡片文档自身脚本解析期即有 $ / _ 可用
-                HtmlUiSandbox.injectCsp(HtmlPrereqs.inject(context, html)),
+                // 注入链（<head> 内最终顺序）：CSP meta（最前，治理其后一切脚本）
+                // → 基础垫片（jQuery/lodash 垫片）→ 原生事件总线段
+                // → 已启用扩展包 webviewPreload（loadingOrder 升序，同序按 id 稳定）
+                // → 卡片自身内容。CSP/meta 与垫片的先后由既有插 head 首位实现保证，
+                //   扩展 preload 同样处于 CSP 之后（受治理），解析期先于卡片脚本可用
+                HtmlUiSandbox.injectCsp(
+                    HtmlPrereqs.inject(context, html, EVENT_BUS_JS, ExtensionPreloadProvider.snapshot()),
+                ),
                 "text/html",
                 "utf-8",
                 null,
             )
         }
 
-    /** 注入页面的 JS 门面：把桥包装成楼层界面熟悉的 API 形态（TavernHelper + Mvu 兼容层）。 */
-    internal val FACADE_JS =
+    /**
+     * 原生事件总线段（引擎一部分，不随扩展包启停）：__tavernListeners/__tavernEmit 事件管道。
+     * 原生侧主动推送（ChatEventPush.drainChatEvents 聊天事件、HtmlBubble/HtmlHostLayer 的
+     * MVU 变量推送）以此接收端为依赖——必须独立于任何扩展制品存在，故从 FACADE_JS 拆出
+     * 进预注入链；门面（TavernHelper/eventOn 别名）缺失时推送语句自带守卫静默跳过。
+     */
+    internal val EVENT_BUS_JS: String =
         """
         window.__tavernListeners = {};
         window.__tavernEmit = function (name, payloadJson) {
@@ -98,50 +117,6 @@ internal object HtmlWebViewFactory {
             try { fn(JSON.parse(payloadJson)); } catch (e) { console.error(e); }
           });
         };
-        window.TavernHelper = {
-          getVar: (k) => window.TavernBridge.getVar(k),
-          setVar: (k, v) => window.TavernBridge.setVar(k, String(v)),
-          getChatMessages: (n) => Promise.resolve(JSON.parse(window.TavernBridge.getChatMessages(n || 20))),
-          sendMessage: (t) => window.TavernBridge.sendMessage(String(t)),
-          eventEmit: (t, p) => window.TavernBridge.eventEmit(String(t), JSON.stringify(p ?? null)),
-          eventOn: (name, fn) => {
-            const key = String(name);
-            (window.__tavernListeners[key] = window.__tavernListeners[key] || []).push(fn);
-          },
-          log: (m) => window.TavernBridge.log(String(m)),
-          getVariables: () => Promise.resolve(JSON.parse(window.TavernBridge.getMvuVariables())),
-          insertOrAssignVariables: (obj) => Promise.resolve(window.TavernBridge.insertMvuVariables(JSON.stringify(obj ?? {}))),
-          registerMvuSchema: (schema) => window.TavernBridge.log("registerMvuSchema 占位（v1 不做 schema 校验）"),
-          triggerSlash: (cmd) => window.TavernBridge.triggerSlash(String(cmd)),
-          getTavernRegexes: () => Promise.resolve(JSON.parse(window.TavernBridge.getTavernRegexes())),
-          getLastMessageId: () => window.TavernBridge.getLastMessageId(),
-          setChatMessages: (list) => Promise.resolve(JSON.parse(window.TavernBridge.setChatMessages(JSON.stringify(list ?? [])))),
-          createChatMessage: (msg) => Promise.resolve(JSON.parse(window.TavernBridge.createChatMessage(JSON.stringify(msg ?? {})))),
-          deleteChatMessages: (ids) => Promise.resolve(JSON.parse(window.TavernBridge.deleteChatMessages(JSON.stringify(ids ?? [])))),
-          // 生成控制：generate 不插入用户消息直接生成一条回复（{started:true} 或 {error:...}）；
-          // stopGeneration 与输入框「停止生成」同一通道
-          generate: () => Promise.resolve(JSON.parse(window.TavernBridge.triggerGenerate())),
-          stopGeneration: () => window.TavernBridge.stopGeneration(),
-          // 宏替换：{{char}}/{{user}} 等宏按当前角色与用户名渲染（超长输入原样返回）
-          substituteParams: (s) => window.TavernBridge.substituteParams(String(s)),
-        };
-        window.Mvu = {
-          events: {
-            COMMAND_PARSED: "mvu_command_parsed",
-            VARIABLE_UPDATE_ENDED: "mvu_variable_update_ended",
-          },
-          on: (event, fn) => window.TavernHelper.eventOn(event, fn),
-        };
-        // 酒馆助手同名全局函数别名（部分卡片直接用裸 eventOn）
-        window.eventOn = window.TavernHelper.eventOn;
-        // 悬浮控件拖动兼容：pointer 事件的 preventDefault 不影响 WebView 原生滚动，
-        // 手势会被原生滚动抢走（pointercancel）。在首次 touchmove 取消后原生滚动不再启动，
-        // 拖动全程交给卡片的 Pointer Events 实现；touchstart 不动，点击开面板不受影响。
-        document.addEventListener('touchmove', function (ev) {
-          if (ev.target.closest && ev.target.closest('#cx-floating-status-toggle, #cx-workshop-cf-button')) {
-            ev.preventDefault();
-          }
-        }, { passive: false, capture: true });
         """.trimIndent()
 
     /** 高度回报：即时 + 延迟补报（onPageFinished 时布局/字体未稳定，scrollHeight 偏小）+ DOM 变化持续回报。 */

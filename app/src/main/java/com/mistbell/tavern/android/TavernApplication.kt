@@ -53,8 +53,21 @@ class TavernApplication : Application() {
         // 移除同步初始化，改为完全延迟加载
         Log.d(TAG, "TavernApplication created (services will be initialized on demand)")
 
-        // 注册内置扩展（幂等）：Prompt 拦截器等钩子链路自此对装配可见
+        // 注册内置扩展（幂等）：Prompt 拦截器等钩子链路自此对装配可见；
+        // 同时启动扩展包 preload 快照预热（P2 门面预注入，WebView 装配同步消费）
         container.registerBuiltinExtensions()
+
+        // 官方内置扩展包种子（后台、静默，不阻塞启动）：tavernhelper-compat 门面制品——
+        // 无行/hash 变化才落库；删除后重启重播种；失败仅记日志
+        appScope.launch {
+            try {
+                container.seedBuiltinExtensionPacks()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "内置扩展包种子失败：${e.message}", e)
+            }
+        }
 
         // 启动对账（后台、尽力而为，不阻塞启动）：内存里的删除意图会随进程结束丢失，
         // 磁盘上却留着"已删会话"的向量，重启后它们照样能被召回——跨会话召回还会放大影响。

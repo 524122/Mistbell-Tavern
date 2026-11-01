@@ -15,21 +15,66 @@ internal object HtmlPrereqs {
     @Volatile
     private var jqueryCache: String? = null
 
-    /** 把 jQuery、lodash、存储、fetch/toastr 与初始化兼容垫片注入 <head>（无 <head> 则前置）。 */
+    /**
+     * 把兼容垫片、原生头段（事件总线）与已启用扩展包的 preload JS 注入 <head>（无 <head> 则前置）。
+     *
+     * P2 注入链（HtmlWebViewFactory.create 消费，最终 <head> 内顺序）：
+     * CSP meta（HtmlUiSandbox.injectCsp 在最外层插 head 首位，治理其后一切脚本）
+     * → 基础垫片（本函数，现状不动）→ 原生事件总线段 → 扩展 preload（按 loadingOrder）
+     * → 卡片内容。
+     *
+     * iframe srcdoc 补丁同步覆盖原生头段与扩展 preload（先例保持一致：卡片动态创建的
+     * iframe 里解析期同样可见垫片与门面）。
+     */
     fun inject(
         context: Context,
         html: String,
+        nativeHeadJs: String = "",
+        preloadScripts: List<String> = emptyList(),
     ): String =
         injectWithPrereq(
             html,
-            "<script>${loadJquery(context)}</script>\n" +
-                "<script>$LODASH_SHIM</script>\n" +
-                "<script>$LOCALSTORAGE_SHIM</script>\n" +
-                "<script>$FETCH_SHIM</script>\n" +
-                "<script>$TOASTR_SHIM</script>\n" +
-                "<script>$WAIT_GLOBAL_SHIM</script>\n" +
-                "<script>${iframePatchJs(context)}</script>",
+            headBlock(loadJquery(context), nativeHeadJs, preloadScripts),
         )
+
+    /** 注入块组装（纯函数，便于单测）：垫片 script 串 → iframe 补丁 → 原生段 → preload 块 */
+    internal fun headBlock(
+        jquery: String,
+        nativeHeadJs: String,
+        preloadScripts: List<String>,
+    ): String =
+        "<script>$jquery</script>\n" +
+            "<script>$LODASH_SHIM</script>\n" +
+            "<script>$LOCALSTORAGE_SHIM</script>\n" +
+            "<script>$FETCH_SHIM</script>\n" +
+            "<script>$TOASTR_SHIM</script>\n" +
+            "<script>$WAIT_GLOBAL_SHIM</script>\n" +
+            "<script>${iframePatchJs(iframeShimCode(jquery, nativeHeadJs, preloadScripts))}</script>\n" +
+            (if (nativeHeadJs.isBlank()) "" else "<script>$nativeHeadJs</script>\n") +
+            preloadScripts.joinToString("") { js -> "<script>${escapeInlineScript(js)}</script>\n" }
+
+    /** iframe srcdoc 补丁所需的垫片串：基础垫片 + 原生头段 + 扩展 preload（与主文档同序） */
+    internal fun iframeShimCode(
+        jquery: String,
+        nativeHeadJs: String,
+        preloadScripts: List<String>,
+    ): String =
+        jquery + LODASH_SHIM + LOCALSTORAGE_SHIM + FETCH_SHIM + TOASTR_SHIM + WAIT_GLOBAL_SHIM +
+            (if (nativeHeadJs.isBlank()) "" else nativeHeadJs) +
+            preloadScripts.joinToString("") { js -> escapeInlineScript(js) }
+
+    /**
+     * 内联 <script> 安全转义：JS 源码中的 `</script` 序列（字符串字面量里）会让 HTML 解析器
+     * 提前闭合脚本标签、截断其后内容。替换为 `<\/script`——JS 字符串中 `\/` 即 `/`，语义不变；
+     * 出现在代码位置的 `</script` 本身就是语法错误，替换只会更好不会更坏。
+     * 用 lambda 形态的 Regex.replace：字符串形态的替换串会吃掉反斜杠（`\/`→`/`）。
+     */
+    internal fun escapeInlineScript(js: String): String = SCRIPT_CLOSE_REGEX.replace(js) { SCRIPT_CLOSE_ESCAPED }
+
+    /** 替换产物为 `<` + `\` + `/script` 共 9 字符（JS 字符串里 `\/` 即 `/`）；lambda 替换原样落盘 */
+    private const val SCRIPT_CLOSE_ESCAPED = "<" + "\\" + "/script"
+
+    private val SCRIPT_CLOSE_REGEX = Regex("</script", RegexOption.IGNORE_CASE)
 
     /** 注入结构（纯函数，便于单测）：<head> 内紧跟插入；无 <head> 则前置。 */
     internal fun injectWithPrereq(
@@ -198,11 +243,9 @@ internal object HtmlPrereqs {
     private const val WAIT_GLOBAL_SHIM =
         "window.waitGlobalInitialized = window.waitGlobalInitialized || function () { return Promise.resolve(); };"
 
-    /** 给卡片动态创建的 iframe srcdoc 打补丁：写入时把兼容垫片插到 <head>（无则前置），保证 waitGlobalInitialized 等在 iframe 脚本解析前存在。 */
-    private fun iframePatchJs(context: Context): String {
+    /** 给卡片动态创建的 iframe srcdoc 打补丁：写入时把垫片/原生段/扩展 preload 插到 <head>（无则前置）。 */
+    private fun iframePatchJs(shimCode: String): String {
         // 注入串用 '</scr'+'ipt>' 拼闭合标签，避免外层补丁脚本被提前闭合
-        val shimCode =
-            loadJquery(context) + LODASH_SHIM + LOCALSTORAGE_SHIM + FETCH_SHIM + TOASTR_SHIM + WAIT_GLOBAL_SHIM
         val shimJson = com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager.jsonString(shimCode)
         return """
             (function () {

@@ -33,6 +33,9 @@ object RulePackParser {
 
     private val ID_PATTERN = Regex("^[A-Za-z0-9_-]{1,64}$")
 
+    /** provides 元素格式（EXTENSION_PLATFORM_DESIGN.md §5.3）：小写字母/数字/冒号/点/下划线/连字符 */
+    val PROVIDES_PATTERN = Regex("^[a-z0-9:._-]{1,64}$")
+
     private val json =
         Json {
             ignoreUnknownKeys = true
@@ -68,6 +71,7 @@ object RulePackParser {
                 ?: invalid("规则包无效：缺少 manifest.json")
         validateType(manifest)
         validatePermissions(manifest)
+        validateProvides(manifest)
 
         val prompts = parseList<RulePackPrompt>(files[PROMPTS_FILE], PROMPTS_FILE, warnings)
         val regex =
@@ -246,6 +250,16 @@ object RulePackParser {
     private fun validatePermissions(manifest: RulePackManifest) {
         if (manifest.permissions.isEmpty()) return
         PermissionCatalog.resolveAll(manifest.permissions)
+    }
+
+    /** provides 元素格式校验（§5.3）：非法元素直接拒整包；不声明则不参与提供者互斥 */
+    private fun validateProvides(manifest: RulePackManifest) {
+        manifest.provides.forEach { name ->
+            require(PROVIDES_PATTERN.matches(name)) {
+                "扩展包非法：manifest.provides 声明了非法元素「$name」" +
+                    "（格式：^[a-z0-9:._-]{1,64}$，如 facade:tavernhelper）"
+            }
+        }
     }
 
     /** 解析可选内容文件；文件不存在返回空表，解析失败记 warning 并按空表处理 */

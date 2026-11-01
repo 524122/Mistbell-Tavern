@@ -21,6 +21,8 @@ data class ExtensionPackEntity(
     @ColumnInfo(name = "loading_order") val loadingOrder: Int = 100,
     /** 权限声明 JSON 数组（manifest.permissions 原样，PermissionCatalog 可解析回中文元数据） */
     @ColumnInfo(name = "permissions_json") val permissionsJson: String = "[]",
+    /** provides 提供者声明 JSON 数组（manifest.provides 原样；同名互斥语义见 ExtensionPackStore） */
+    @ColumnInfo(name = "provides_json") val providesJson: String = "[]",
     /** manifest.webviewPreload 是否声明（文件本体在 filesDir，表里只留布尔供列表徽标） */
     @ColumnInfo(name = "has_preload") val hasPreload: Boolean = false,
     /** manifest.hostHooks 是否声明 */
@@ -35,6 +37,12 @@ data class ExtensionPackEntity(
      * 扩大且未再确认则复位）。false 时 UI 禁用启停开关并显示「未授权」。
      */
     @ColumnInfo(name = "permissions_confirmed") val permissionsConfirmed: Boolean = false,
+    /**
+     * 官方内置包标记：随产品发布由启动种子落库（is_builtin=1 且初始 enabled/confirmed=true——
+     * 官方包随产品发布等同用户已同意；第三方包绝不走此路径，恒为 false）。
+     * 用户可停用/删除内置包：删除后下次启动重播种（它是产品功能），停用态保留。
+     */
+    @ColumnInfo(name = "is_builtin") val isBuiltin: Boolean = false,
     /** zip 字节 SHA-256 十六进制：覆盖安装比对（同 id 同 hash 仅刷新元数据，不重解压） */
     @ColumnInfo(name = "content_hash") val contentHash: String,
     @ColumnInfo(name = "installed_at") val installedAt: String,

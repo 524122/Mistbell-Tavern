@@ -35,12 +35,23 @@ object ExtensionPackStore {
     fun contentHash(zipBytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(zipBytes).joinToString("") { "%02x".format(it) }
 
-    // ---- permissionsJson 编解码 ----
+    // ---- permissionsJson / providesJson 编解码 ----
 
-    fun encodePermissions(perms: List<String>): String = json.encodeToString(ListSerializer(String.serializer()), perms)
+    fun encodePermissions(perms: List<String>): String = encodeStringList(perms)
 
-    fun decodePermissions(permissionsJson: String): List<String> =
-        runCatching { json.decodeFromString(ListSerializer(String.serializer()), permissionsJson) }
+    fun decodePermissions(permissionsJson: String): List<String> = decodeStringList(permissionsJson)
+
+    /** provides 提供者声明编解码（与 permissions 同构 JSON 数组） */
+    fun encodeProvides(provides: List<String>): String = encodeStringList(provides)
+
+    fun decodeProvides(providesJson: String): List<String> = decodeStringList(providesJson)
+
+    private fun encodeStringList(values: List<String>): String {
+        return json.encodeToString(ListSerializer(String.serializer()), values)
+    }
+
+    private fun decodeStringList(jsonText: String): List<String> =
+        runCatching { json.decodeFromString(ListSerializer(String.serializer()), jsonText) }
             .getOrDefault(emptyList())
 
     // ---- 落库计划（覆盖安装语义）----
@@ -95,6 +106,7 @@ object ExtensionPackStore {
                     version = manifest.version,
                     loadingOrder = manifest.loadingOrder,
                     permissionsJson = encodePermissions(manifest.permissions),
+                    providesJson = encodeProvides(manifest.provides),
                     hasPreload = manifest.webviewPreload != null,
                     hasHooks = manifest.hostHooks != null,
                     enabled = confirmedByUser,
@@ -143,11 +155,15 @@ object ExtensionPackStore {
                     version = manifest.version,
                     loadingOrder = manifest.loadingOrder,
                     permissionsJson = encodePermissions(manifest.permissions),
+                    providesJson = encodeProvides(manifest.provides),
                     hasPreload = manifest.webviewPreload != null,
                     hasHooks = manifest.hostHooks != null,
                     enabled = if (unconfirmedExpansion) false else old.enabled,
                     permissionsConfirmed =
                         if (unconfirmedExpansion) false else confirmedNow || old.permissionsConfirmed,
+                    // is_builtin 是「槽位」属性而非内容属性：官方槽被第三方覆盖安装时标记不降级，
+                    // 下次启动种子按 hash 变化刷新回官方内容
+                    isBuiltin = old.isBuiltin,
                     contentHash = contentHash,
                     installedAt = now,
                 ),
@@ -217,6 +233,24 @@ object ExtensionPackStore {
         check(entity.permissionsConfirmed) {
             "扩展包「${entity.name}」尚未确认权限清单，不能启用（请重新导入并确认权限）"
         }
+    }
+
+    // ---- 提供者互斥（EXTENSION_PLATFORM_DESIGN.md §5.3）----
+
+    /**
+     * 计算启用 [incoming] 时应被自动停用的包（纯函数）：与 incoming 声明了任一相同 provides 名
+     * 的启用包。provides 不声明则不参与互斥（返回空列表）。仓库层在启用/导入/种子落库的
+     * 同一事务内逐个停用，并把被停用包名单上报 UI（「已停用提供相同能力的扩展：X」）。
+     */
+    fun competingProviders(
+        incoming: ExtensionPackEntity,
+        otherEnabled: List<ExtensionPackEntity>,
+    ): List<ExtensionPackEntity> {
+        val provides = decodeProvides(incoming.providesJson)
+        if (provides.isEmpty()) return emptyList()
+        return otherEnabled
+            .filterNot { it.id == incoming.id }
+            .filter { other -> decodeProvides(other.providesJson).any(provides::contains) }
     }
 
     // ---- 预览辅助 ----

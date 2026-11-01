@@ -1,0 +1,13 @@
+{
+ "spec": "chara_card_v2",
+ "spec_version": "2.0",
+ "name": "ProbeP2",
+ "description": "P2 解析期可见性专用卡（无脚本，避免宿主层遮挡）",
+ "first_mes": "```html\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"></head>\n<body>\n<p id=\"p2line\">P2 parse-time probe</p>\n<script>\nwindow.TavernBridge.log('P2 parse-time: TavernHelper=' + typeof window.TavernHelper +\n  ' __tavernEmit=' + typeof window.__tavernEmit + ' bridge=' + typeof window.TavernBridge);\ndocument.getElementById('p2line').textContent =\n  'parse-time TavernHelper=' + typeof window.TavernHelper + ' __tavernEmit=' + typeof window.__tavernEmit;\n</script>\n</body>\n</html>\n```\n",
+ "data": {
+  "name": "ProbeP2",
+  "description": "P2 解析期可见性专用卡",
+  "first_mes": "```html\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"></head>\n<body>\n<p id=\"p2line\">P2 parse-time probe</p>\n<script>\nwindow.TavernBridge.log('P2 parse-time: TavernHelper=' + typeof window.TavernHelper +\n  ' __tavernEmit=' + typeof window.__tavernEmit + ' bridge=' + typeof window.TavernBridge);\ndocument.getElementById('p2line').textContent =\n  'parse-time TavernHelper=' + typeof window.TavernHelper + ' __tavernEmit=' + typeof window.__tavernEmit;\n</script>\n</body>\n</html>\n```\n",
+  "extensions": {}
+ }
+}

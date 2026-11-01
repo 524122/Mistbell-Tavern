@@ -153,14 +153,14 @@ fun HtmlHostLayer(
         }
     }
 
-    // MVU 变量推送（与内嵌气泡同一契约）
+    // MVU 变量推送（与内嵌气泡同一契约，if 守卫：门面包禁用时静默跳过）
     LaunchedEffect(variablesVersion, webViewRef.value) {
         if (variablesVersion > 0) {
             val varsJson =
                 com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
                     .jsonString(host.getMvuVariablesJson())
             webViewRef.value?.evaluateJavascript(
-                "window.__tavernEmit && window.__tavernEmit('mvu_variable_update_ended', $varsJson)",
+                "if(window.__tavernEmit)window.__tavernEmit('mvu_variable_update_ended', $varsJson)",
                 null,
             )
         }

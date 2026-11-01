@@ -111,14 +111,15 @@ fun HtmlBubble(
         onDispose { webViewRef[0]?.destroy() }
     }
 
-    // 变量更新推送：版本变化时向页面广播 mvu_variable_update_ended（携带最新 stat_data）
+    // 变量更新推送：版本变化时向页面广播 mvu_variable_update_ended（携带最新 stat_data）。
+    // if 守卫：门面扩展包被禁用时 __tavernEmit 缺失，静默跳过（宿主推送不依赖制品启停）
     LaunchedEffect(variablesVersion, messageId) {
         if (variablesVersion > 0) {
             val varsJson =
                 com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
                     .jsonString(host.getMvuVariablesJson())
             webViewRef[0]?.evaluateJavascript(
-                "window.__tavernEmit && window.__tavernEmit('mvu_variable_update_ended', $varsJson)",
+                "if(window.__tavernEmit)window.__tavernEmit('mvu_variable_update_ended', $varsJson)",
                 null,
             )
         }

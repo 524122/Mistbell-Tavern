@@ -1,5 +1,6 @@
 package com.mistbell.tavern.android.data.repository
 
+import com.mistbell.tavern.android.data.extensionpack.BuiltinPackSeeder
 import com.mistbell.tavern.android.data.extensionpack.ExtensionPackStore
 import com.mistbell.tavern.android.data.local.dao.ExtensionPackDao
 import com.mistbell.tavern.android.data.local.entity.ExtensionPackEntity
@@ -38,6 +39,8 @@ class ExtensionPackRepositoryTest {
         override suspend fun getById(id: String): ExtensionPackEntity? = rows.value.firstOrNull { it.id == id }
 
         override fun observeEnabled(): Flow<List<ExtensionPackEntity>> = rows.map { list -> list.filter { it.enabled } }
+
+        override suspend fun getEnabled(): List<ExtensionPackEntity> = rows.value.filter { it.enabled }
 
         override suspend fun upsert(pack: ExtensionPackEntity) {
             rows.value = rows.value.filterNot { it.id == pack.id } + pack
@@ -266,5 +269,164 @@ class ExtensionPackRepositoryTest {
             repo.deletePack("demo-ext")
             assertFalse(dir.exists())
             assertEquals(emptyList<ExtensionPackEntity>(), dao.rows.value)
+        }
+
+    // ---- 提供者互斥（P2）----
+
+    /** 声明同一 provides 名的两个门面包（A/B）与不声明 provides 的旁观包（providesJson 为 JSON 数组原文） */
+    private fun providerZip(
+        id: String,
+        providesJson: String,
+    ): ByteArray =
+        zipBytes(
+            mapOf(
+                "manifest.json" to
+                    """{"id":"$id","name":"门面包$id","author":"Mistbell","version":"1.0.0",""" +
+                    """"type":"extension","provides":$providesJson,"permissions":["messages:read"],""" +
+                    """"webviewPreload":"facade.js"}""",
+                "facade.js" to "window.TavernHelper = { id: '$id' };",
+            ),
+        )
+
+    private val facadeProvides: String = """["facade:tavernhelper"]"""
+
+    @Test
+    fun `启用声明同 provides 名的包自动停用已启用竞争包并上报名单`() =
+        runBlocking {
+            val repo = repo()
+            repo.persist(previewOf(providerZip("facade-a", facadeProvides)), confirmedByUser = true)
+            assertTrue(dao.getById("facade-a")!!.enabled)
+
+            // 导入即启用 B：同一事务内 A 被自动停用，名单上报 UI
+            val result =
+                repo.persist(previewOf(providerZip("facade-b", facadeProvides)), confirmedByUser = true)
+            assertTrue(dao.getById("facade-b")!!.enabled)
+            assertFalse(dao.getById("facade-a")!!.enabled)
+            assertEquals(listOf("门面包facade-a"), result.disabledCompetitors)
+        }
+
+    @Test
+    fun `手动启用走同一互斥返回被停用包名`() =
+        runBlocking {
+            val repo = repo()
+            repo.persist(previewOf(providerZip("facade-a", facadeProvides)), confirmedByUser = true)
+            repo.persist(previewOf(providerZip("facade-b", facadeProvides)), confirmedByUser = true)
+            // 此时 A 已被 B 互斥停用：重新启用 A 应反向停用 B
+            val disabledNames = repo.setEnabled("facade-a", true)
+            assertTrue(dao.getById("facade-a")!!.enabled)
+            assertFalse(dao.getById("facade-b")!!.enabled)
+            assertEquals(listOf("门面包facade-b"), disabledNames)
+        }
+
+    @Test
+    fun `未声明 provides 的包不参与互斥`() =
+        runBlocking {
+            val repo = repo()
+            repo.persist(previewOf(providerZip("facade-a", facadeProvides)), confirmedByUser = true)
+            val result = repo.persist(previewOf(v1Zip), confirmedByUser = true)
+            assertTrue(dao.getById("facade-a")!!.enabled)
+            assertTrue(result.disabledCompetitors.isEmpty())
+        }
+
+    @Test
+    fun `禁用操作不触发互斥`() =
+        runBlocking {
+            val repo = repo()
+            repo.persist(previewOf(providerZip("facade-a", facadeProvides)), confirmedByUser = true)
+            repo.persist(previewOf(providerZip("facade-b", facadeProvides)), confirmedByUser = true)
+            val disabledNames = repo.setEnabled("facade-b", false)
+            assertTrue(disabledNames.isEmpty())
+            assertFalse(dao.getById("facade-a")!!.enabled)
+        }
+
+    // ---- 内置包种子（P2）----
+
+    /** 内置 tavernhelper-compat 包的 assets 文件组（镜像真实制品形态） */
+    private fun builtinFiles(facade: String = "window.TavernHelper = {};"): Map<String, String> =
+        mapOf(
+            "manifest.json" to
+                """{"id":"tavernhelper-compat","name":"TavernHelper 兼容层","author":"Mistbell",""" +
+                """"version":"1.0.0","type":"extension","provides":["facade:tavernhelper"],""" +
+                """"permissions":["messages:read","messages:write","generation:control","variables",""" +
+                """"events:subscribe","prompt:inject","reply:process"],"webviewPreload":"facade.js"}""",
+            "facade.js" to facade,
+        )
+
+    private suspend fun seed(files: Map<String, String> = builtinFiles()): ExtensionPackRepository.ImportResult? {
+        return repo().seedBuiltinPack(BuiltinPackSeeder.zipOf(files))
+    }
+
+    @Test
+    fun `种子新装落库落盘且为启用已确认的内置包`() =
+        runBlocking {
+            val result = seed()
+            assertNotNull(result)
+            val row = dao.getById("tavernhelper-compat")
+            assertNotNull(row)
+            assertTrue(row!!.isBuiltin)
+            assertTrue(row.enabled)
+            assertTrue(row.permissionsConfirmed)
+            assertTrue(File(ExtensionPackStore.packDir(filesDir, "tavernhelper-compat"), "facade.js").exists())
+        }
+
+    @Test
+    fun `种子同 hash 已存在则跳过并保留用户停用态`() =
+        runBlocking {
+            seed()
+            // 用户停用内置包
+            repo().setEnabled("tavernhelper-compat", false)
+            // 同 hash 再种子：SKIP，停用态保留
+            val result = seed()
+            assertEquals(null, result)
+            assertFalse(dao.getById("tavernhelper-compat")!!.enabled)
+            assertTrue(dao.getById("tavernhelper-compat")!!.isBuiltin)
+        }
+
+    @Test
+    fun `种子 hash 变化刷新内容且保留停用态`() =
+        runBlocking {
+            seed()
+            repo().setEnabled("tavernhelper-compat", false)
+
+            val result = seed(builtinFiles(facade = "window.TavernHelper = { v: 2 };"))
+            assertNotNull(result)
+            assertEquals(ExtensionPackStore.PersistMode.UPDATE_CONTENT, result!!.mode)
+            val row = dao.getById("tavernhelper-compat")!!
+            assertFalse("用户停用态保留", row.enabled)
+            assertTrue(row.isBuiltin)
+            assertTrue(
+                File(ExtensionPackStore.packDir(filesDir, "tavernhelper-compat"), "facade.js")
+                    .readText()
+                    .contains("v: 2"),
+            )
+        }
+
+    @Test
+    fun `删除内置包后下次启动种子重播种`() =
+        runBlocking {
+            seed()
+            repo().deletePack("tavernhelper-compat")
+            assertEquals(emptyList<ExtensionPackEntity>(), dao.rows.value)
+
+            val result = seed()
+            assertNotNull(result)
+            val row = dao.getById("tavernhelper-compat")
+            assertNotNull(row)
+            assertTrue(row!!.isBuiltin)
+            assertTrue(row.enabled)
+        }
+
+    @Test
+    fun `内置包种子触发提供者互斥停用竞争第三方包`() =
+        runBlocking {
+            val repo = repo()
+            // 用户先装了第三方门面（同 provides 名）并启用
+            repo.persist(previewOf(providerZip("facade-3rd", facadeProvides)), confirmedByUser = true)
+            assertTrue(dao.getById("facade-3rd")!!.enabled)
+
+            // 内置包种子（启用态）→ 第三方被互斥停用
+            seed()
+            assertTrue(dao.getById("tavernhelper-compat")!!.enabled)
+            assertFalse(dao.getById("facade-3rd")!!.enabled)
         }
 }

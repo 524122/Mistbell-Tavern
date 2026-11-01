@@ -106,6 +106,13 @@ tavern.on("generation:ended", function (payloadJson) {
 
 ### HTML 界面门面（TavernHelper）
 
+> 门面来源（P2 起）：`window.TavernHelper` 的组装不再硬编码于应用，而是官方内置扩展包
+> **tavernhelper-compat** 的门面制品（`assets/extensions/tavernhelper-compat/facade.js`），
+> 在「设置 → 高级设置 → 提示词管理 → 扩展包」可启停/删除（删除后下次启动自动恢复，
+> 停用态跨重启保留）。注入时机为文档组装期（`<head>` 内、先于卡片自身脚本解析）——卡内联
+> 脚本解析期即可见 TavernHelper，与酒馆助手上游 predefine 行为对齐；禁用后门面全局消失
+> （卡片自身脚本报错属预期，宿主不受影响），原生事件管道 `__tavernEmit` 与高度回报仍由引擎提供。
+
 ```js
 // 读整棵变量树（JSON 字符串）
 var vars = JSON.parse(TavernHelper.getVariables() || "{}");

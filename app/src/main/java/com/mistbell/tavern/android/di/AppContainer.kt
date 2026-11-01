@@ -2,8 +2,11 @@ package com.mistbell.tavern.android.di
 
 import android.content.Context
 import android.util.Log
+import com.mistbell.tavern.android.data.extensionpack.BuiltinPackSeeder
+import com.mistbell.tavern.android.data.extensionpack.ExtensionPreloadProvider
 import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.repository.EnabledRulePacksCache
+import com.mistbell.tavern.android.data.repository.ExtensionPackRepository
 import com.mistbell.tavern.android.data.repository.MemoryResetPendingException
 import com.mistbell.tavern.android.data.repository.PendingExtractionStore
 import com.mistbell.tavern.android.data.repository.SessionMemoryReset
@@ -259,6 +262,36 @@ class AppContainer(private val appContext: Context) {
         // 宏桥：MacroEngine（util 层）不反向依赖 extension 包，注册表查询经此 lambda 注入
         com.mistbell.tavern.android.util.MacroEngine.registerMacroProvider { name, ctx ->
             ExtensionRegistry.macroProviders.firstNotNullOfOrNull { it.resolve(name, ctx) }
+        }
+        // P2 门面预注入：预热扩展包 preload 快照（观察启用扩展包 Room Flow，包启停/覆盖安装
+        // 即失效重算）。WebView 装配（HtmlWebViewFactory.create）同步取快照——必须尽早启动。
+        ExtensionPreloadProvider.start(
+            filesRoot = appContext.filesDir,
+            daoProvider = { database.extensionPackDao() },
+        )
+    }
+
+    /**
+     * 官方内置扩展包种子（启动期后台静默执行）：无行/hash 变化才落库落盘
+     * （is_builtin=1、enabled=true、permissions_confirmed=true），同 hash 跳过保留启停态，
+     * 删除后下次启动重播种。assets 读取 + 确定性 zip + P1 解析管线全程复用；
+     * 失败仅记日志（种子是增强路径，绝不阻塞启动）。
+     */
+    suspend fun seedBuiltinExtensionPacks() {
+        val repo = ExtensionPackRepository.forApplication(appContext.filesDir)
+        for (source in BuiltinPackSeeder.SOURCES) {
+            runCatching {
+                val files = BuiltinPackSeeder.readAssets(appContext, source.assetDir)
+                if (files.isEmpty()) error("assets 目录为空：${source.assetDir}")
+                val zip = BuiltinPackSeeder.zipOf(files)
+                repo.seedBuiltinPack(zip)
+            }.onSuccess { result ->
+                if (result != null) {
+                    Log.i(TAG, "内置扩展包「${source.id}」已种子（${result.mode}）")
+                }
+            }.onFailure {
+                Log.w(TAG, "内置扩展包「${source.id}」种子失败：${it.message}")
+            }
         }
     }
 

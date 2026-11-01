@@ -1,0 +1,20 @@
+{
+  "id": "tavernhelper-compat",
+  "name": "TavernHelper 兼容层",
+  "author": "Mistbell",
+  "version": "1.0.0",
+  "description": "官方内置门面扩展：把引擎桥组装为酒馆助手契约的 window.TavernHelper / window.Mvu / window.eventOn，随扩展包启停生效",
+  "loadingOrder": 100,
+  "type": "extension",
+  "provides": ["facade:tavernhelper"],
+  "permissions": [
+    "messages:read",
+    "messages:write",
+    "generation:control",
+    "variables",
+    "events:subscribe",
+    "prompt:inject",
+    "reply:process"
+  ],
+  "webviewPreload": "facade.js"
+}

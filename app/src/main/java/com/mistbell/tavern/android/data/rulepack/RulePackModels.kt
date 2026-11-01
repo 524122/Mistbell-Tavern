@@ -28,6 +28,12 @@ data class RulePackManifest(
     val type: String = RulePackManifest.TYPE_RULEPACK,
     /** 权限声明：严格白名单 + network:<host> 动态形态（PermissionCatalog 校验，目录外导入失败） */
     val permissions: List<String> = emptyList(),
+    /**
+     * 门面提供者声明（可选字符串数组，元素格式 ^[a-z0-9:._-]{1,64}$，非法导入拒）：
+     * 同一 provides 名同时至多一个启用中的扩展包——启用某包时自动停用其他声明同名的
+     * 启用包（提供者互斥，EXTENSION_PLATFORM_DESIGN.md §5.3；不声明则不参与互斥）。
+     */
+    val provides: List<String> = emptyList(),
     /** 可选：zip 内 WebView 预注入 JS 文件名（≤64KB；P1 仅存在性/大小校验 + 落盘，不解析不执行） */
     val webviewPreload: String? = null,
     /** 可选：zip 内宿主钩子 JS 文件名（≤256KB，沿用 MAX_SCRIPT_BYTES；P1 仅校验 + 落盘） */

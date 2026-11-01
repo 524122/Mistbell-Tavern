@@ -316,4 +316,69 @@ class ExtensionPackStoreTest {
         assertEquals(perms, ExtensionPackStore.decodePermissions(ExtensionPackStore.encodePermissions(perms)))
         assertEquals(emptyList<String>(), ExtensionPackStore.decodePermissions("不是 JSON"))
     }
+
+    // ---- provides（P2 提供者互斥数据面）----
+
+    @Test
+    fun `providesJson 编解码往返且坏 JSON 兜底为空`() {
+        val provides = listOf("facade:tavernhelper")
+        assertEquals(provides, ExtensionPackStore.decodeProvides(ExtensionPackStore.encodeProvides(provides)))
+        assertEquals(emptyList<String>(), ExtensionPackStore.decodeProvides("坏 JSON"))
+    }
+
+    @Test
+    fun `计划实体携带 provides 且覆盖安装保留内置标记`() {
+        val plan =
+            ExtensionPackStore.planPersist(
+                old = null,
+                manifest = manifest().copy(provides = listOf("facade:tavernhelper")),
+                contentHash = "h",
+                confirmedByUser = true,
+                now = "t",
+            )
+        assertEquals(listOf("facade:tavernhelper"), ExtensionPackStore.decodeProvides(plan.entity.providesJson))
+        assertFalse(plan.entity.isBuiltin)
+
+        // hash 变化覆盖：is_builtin 是槽位属性，从旧行保留
+        val old = entity(id = "demo-ext", hash = "hash-a").copy(isBuiltin = true)
+        val updated =
+            ExtensionPackStore.planPersist(
+                old = old,
+                manifest = manifest().copy(provides = listOf("facade:tavernhelper")),
+                contentHash = "hash-b",
+                confirmedByUser = true,
+                now = "t2",
+            )
+        assertTrue(updated.entity.isBuiltin)
+    }
+
+    @Test
+    fun `competingProviders 只命中声明同名 provides 的启用包`() {
+        fun packWithProvides(
+            id: String,
+            provides: List<String>,
+        ): ExtensionPackEntity = entity(id = id).copy(providesJson = ExtensionPackStore.encodeProvides(provides))
+
+        val incoming = packWithProvides("facade-new", listOf("facade:tavernhelper"))
+        val competitor = packWithProvides("facade-old", listOf("facade:tavernhelper"))
+        val otherName = packWithProvides("other", listOf("facade:other"))
+        val noProvides = packWithProvides("plain", emptyList())
+
+        assertEquals(
+            listOf("facade-old"),
+            ExtensionPackStore.competingProviders(incoming, listOf(competitor, otherName, noProvides)).map { it.id },
+        )
+        // 自身排除（事务内 getEnabled 可能已含本包）
+        assertTrue(ExtensionPackStore.competingProviders(incoming, listOf(incoming)).isEmpty())
+    }
+
+    @Test
+    fun `不声明 provides 的包不参与互斥`() {
+        val incoming = entity(id = "plain-in")
+        val enabledOther =
+            entity(id = "facade-old").copy(
+                providesJson = ExtensionPackStore.encodeProvides(listOf("facade:tavernhelper")),
+            )
+        assertTrue(ExtensionPackStore.competingProviders(incoming, listOf(enabledOther)).isEmpty())
+    }
 }

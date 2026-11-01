@@ -4,6 +4,7 @@ import com.mistbell.tavern.android.extension.TavernEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -115,9 +116,17 @@ class HtmlFacadeContractTest {
         val event =
             HtmlFacadeContract.HtmlChatEvent(version = 1, name = "message_received", payloadJson = """{"a":1}""")
         val expected =
-            "window.__tavernEmit && window.__tavernEmit(" +
+            "if(window.__tavernEmit)window.__tavernEmit(" +
                 "'message_received', \"{\\\"a\\\":1}\")"
         assertEquals(expected, HtmlFacadeContract.emitJs(event))
+    }
+
+    @Test
+    fun `emitJs 带 __tavernEmit 存在性守卫（门面包禁用时静默跳过不报错）`() {
+        val event = HtmlFacadeContract.HtmlChatEvent(version = 1, name = "chat_changed", payloadJson = "{}")
+        val js = HtmlFacadeContract.emitJs(event)
+        assertTrue("语句应以 if(window.__tavernEmit) 守卫开头", js.startsWith("if(window.__tavernEmit)"))
+        assertFalse(js.contains("window.__tavernEmit &&"))
     }
 
     // ---- okStarted ----

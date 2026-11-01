@@ -7,12 +7,14 @@ import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.data.extensionpack.ExtensionPackStore
 import com.mistbell.tavern.android.data.local.entity.ExtensionPackEntity
 import com.mistbell.tavern.android.data.repository.ExtensionPackRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Suppress("TooGenericExceptionCaught") // 界面层统一兜住异常转用户可读消息，与 RulePackManagerViewModel 同形态
 class ExtensionPackManagerViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,14 +31,21 @@ class ExtensionPackManagerViewModel(application: Application) : AndroidViewModel
     private val _pendingImport = MutableStateFlow<ExtensionPackRepository.ExtensionPreview?>(null)
     val pendingImport: StateFlow<ExtensionPackRepository.ExtensionPreview?> = _pendingImport.asStateFlow()
 
-    /** 两段式导入第一段：读 zip 字节 → 解析校验；需要确认则挂起等用户，否则直接落库 */
+    /**
+     * 两段式导入第一段：读 zip 字节 → 解析校验；需要确认则挂起等用户，否则直接落库。
+     * SAF 流读取 + zip 解压 + SHA-256 全部在 IO——管理页 ANR 防御收敛：viewModelScope
+     * 默认 Main，此前 readBytes/previewFromBytes 在主线程跑（大 zip/慢云盘源即可拖死主线程）。
+     */
     fun importPack(uri: Uri) {
         viewModelScope.launch {
             try {
-                val bytes =
-                    getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: throw IllegalArgumentException("扩展包导入失败：无法打开所选文件")
-                val preview = repo.previewFromBytes(bytes)
+                val preview =
+                    withContext(Dispatchers.IO) {
+                        val bytes =
+                            getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                                ?: throw IllegalArgumentException("扩展包导入失败：无法打开所选文件")
+                        repo.previewFromBytes(bytes)
+                    }
                 if (preview.needsConfirmation) {
                     _pendingImport.value = preview
                 } else {
@@ -75,22 +84,34 @@ class ExtensionPackManagerViewModel(application: Application) : AndroidViewModel
                 ExtensionPackStore.PersistMode.REFRESH_METADATA -> "已刷新元数据（内容未变化）："
                 ExtensionPackStore.PersistMode.FRESH -> "已导入并启用："
             } + result.name
-        _message.value =
+        val warnings =
             if (result.warnings.isEmpty()) {
-                prefix
+                ""
             } else {
-                "$prefix（${result.warnings.size} 条警告：${result.warnings.first()}）"
+                "（${result.warnings.size} 条警告：${result.warnings.first()}）"
             }
+        _message.value = prefix + warnings + competitorNote(result.disabledCompetitors)
     }
 
-    /** 启停切换：未确认权限的包仓库层拒绝（UI 同时禁开关），异常转提示 */
+    /** 提供者互斥的 Snackbar 说明（未发生互斥时返回空串，不打扰普通启停/导入） */
+    private fun competitorNote(disabledNames: List<String>): String =
+        if (disabledNames.isEmpty()) {
+            ""
+        } else {
+            "；已停用提供相同能力的扩展：${disabledNames.joinToString("、")}"
+        }
+
+    /** 启停切换：未确认权限的包仓库层拒绝（UI 同时禁开关），异常转提示；启用发生互斥时 Snackbar 说明 */
     fun setEnabled(
         id: String,
         enabled: Boolean,
     ) {
         viewModelScope.launch {
             try {
-                repo.setEnabled(id, enabled)
+                val disabledNames = repo.setEnabled(id, enabled)
+                if (enabled && disabledNames.isNotEmpty()) {
+                    _message.value = "已启用；已停用提供相同能力的扩展：${disabledNames.joinToString("、")}"
+                }
             } catch (e: Exception) {
                 _message.value = "切换启用状态失败: ${e.message}"
             }

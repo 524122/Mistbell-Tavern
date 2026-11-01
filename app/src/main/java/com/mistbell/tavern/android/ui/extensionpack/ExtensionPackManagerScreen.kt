@@ -53,11 +53,11 @@ import com.mistbell.tavern.android.ui.components.ConfirmDeleteDialog
 import com.mistbell.tavern.android.ui.components.EmptyStateView
 
 /**
- * 扩展包管理（P1 管理平面）：导入 zip / 权限清单确认 / 启停 / 删除 / 覆盖安装重载。
+ * 扩展包管理（P1 管理平面 + P2 运行时接线）：导入 zip / 权限清单确认 / 启停 / 删除 / 覆盖安装重载。
  *
- * P1 交付的是管理平面：扩展包能被导入、看到权限清单、确认后激活、启停、删除、覆盖安装。
- * 无运行时效果（WebView 预注入、宿主钩子执行在 P2/P3 接线），页面顶部说明文案避免用户
- * 误以为已生效。未确认权限的包开关禁用并显示「未授权」态；启用状态落 Room 跨重启持久。
+ * P2 起启用包的 webviewPreload（门面脚本）注入每个卡片 WebView——官方内置的
+ * tavernhelper-compat 即经此页启停；宿主钩子执行仍在 P3。未确认权限的包开关禁用并显示
+ * 「未授权」态；启用状态落 Room 跨重启持久；同 provides 名互斥（启用自动停用竞争包）。
  */
 @Suppress("FunctionNaming", "LongMethod") // Compose 屏幕级组件的既有形态
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,7 +119,7 @@ fun ExtensionPackManagerScreen(
                 title = "暂无扩展包",
                 subtitle =
                     "点击右下角按钮导入 .zip 扩展包\n（带权限声明与门面/钩子脚本的可安装制品）\n\n" +
-                        "当前为管理平面：导入与授权流程可用，运行时能力将在后续版本启用",
+                        "官方内置包随应用分发并在启动时自动恢复；\n导入扩展包的权限确认与启停立即影响卡片界面",
                 modifier =
                     Modifier
                         .fillMaxSize()
@@ -174,7 +174,7 @@ fun ExtensionPackManagerScreen(
     }
 }
 
-/** P1 说明文案：管理平面已可用，运行时（预注入/宿主钩子）未接线 */
+/** 运行时说明文案（P2 起门面预注入已生效）：启用包的 webviewPreload 注入每个卡片 WebView */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 private fun RuntimeNoticeCard() {
@@ -191,8 +191,8 @@ private fun RuntimeNoticeCard() {
     ) {
         Text(
             text =
-                "扩展包的运行时能力（WebView 预注入、宿主钩子执行）将在后续版本启用；" +
-                    "当前导入的扩展包不会影响生成与界面行为。",
+                "启用扩展包的门面脚本（WebView 预注入）已随启停生效——停用内置的「TavernHelper 兼容层」" +
+                    "后卡片门面消失、部分卡片界面将不工作；宿主钩子执行将在后续版本启用。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -247,7 +247,7 @@ private fun ExtensionPackRow(
     }
 }
 
-/** 行副标题：作者/版本/顺序 + 状态后缀；未授权态整行标红 */
+/** 行副标题：作者/版本/顺序 + 状态后缀；未授权态整行标红，内置包带「内置」标记 */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 private fun RowSubtitle(pack: ExtensionPackEntity) {
@@ -257,8 +257,9 @@ private fun RowSubtitle(pack: ExtensionPackEntity) {
             !pack.enabled -> " · 已禁用"
             else -> ""
         }
+    val builtin = if (pack.isBuiltin) " · 内置" else ""
     Text(
-        text = "${pack.author} · v${pack.version} · 顺序 ${pack.loadingOrder}$suffix",
+        text = "${pack.author} · v${pack.version} · 顺序 ${pack.loadingOrder}$builtin$suffix",
         style = MaterialTheme.typography.bodySmall,
         color =
             if (!pack.permissionsConfirmed) {
@@ -310,7 +311,7 @@ private fun ScriptIndicatorsText(pack: ExtensionPackEntity) {
             "钩子脚本".takeIf { pack.hasHooks },
         )
     Text(
-        text = labels.joinToString(" / ") + "（随包安装，运行时于后续版本启用）",
+        text = labels.joinToString(" / ") + "（门面脚本随启停生效；宿主钩子执行在后续版本启用）",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         modifier = Modifier.padding(top = 2.dp),
@@ -392,9 +393,8 @@ private fun ScriptArtifactsText(pack: ExtensionPackEntity) {
         text =
             buildString {
                 append("携带脚本制品：")
-                if (pack.hasPreload) append("WebView 预注入门面 JS；")
-                if (pack.hasHooks) append("宿主钩子 JS；")
-                append("内容已随包安装，执行接线将在后续版本启用。")
+                if (pack.hasPreload) append("WebView 预注入门面 JS（启用时注入每个卡片界面）；")
+                if (pack.hasHooks) append("宿主钩子 JS（执行接线在后续版本启用）；")
             },
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

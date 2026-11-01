@@ -35,13 +35,15 @@ const server = http.createServer((req, res) => {
       } catch (e) { /* ignore */ }
       console.log(`[${ts()}] REQ#${reqCount} url=${req.url} stream=${stream} model=${model} messages=${msgCount} roles=[${roles}] lastUser="${lastUser}" lastMsg="${lastMsg}"`);
 
-      // 步骤序列：先 thinking 一段，再 content 若干段
+      // 步骤序列：先 thinking 一段，再 content 若干段（长文本：让回复气泡足够高，露出面板下缘供长按）
+      const filler = '这是长回复段落，用于端到端实测中让气泡高度超过面板下缘，包含足够多的字符来占据多行显示区域。';
       const steps = [
         { kind: 'think', text: '这是慢速mock的思维链，取消时若已闭合应进 thinking 字段。' },
-        { kind: 'content', text: '你好' },
-        { kind: 'content', text: '，这是' },
-        { kind: 'content', text: '来自慢速mock' },
-        { kind: 'content', text: '的流式回复。' },
+        { kind: 'content', text: '你好，这是长回复的开头。' },
+        { kind: 'content', text: filler },
+        { kind: 'content', text: filler },
+        { kind: 'content', text: filler },
+        { kind: 'content', text: '以上是长回复的结尾。' },
       ];
       if (stream) {
         res.writeHead(200, {

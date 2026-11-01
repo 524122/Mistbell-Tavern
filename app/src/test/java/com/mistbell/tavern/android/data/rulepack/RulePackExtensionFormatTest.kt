@@ -198,4 +198,45 @@ class RulePackExtensionFormatTest {
         assertEquals("plain", bundle.manifest.id)
         assertTrue(PermissionCatalog.resolveAll(bundle.manifest.permissions).isEmpty())
     }
+
+    // ---- provides 提供者声明（P2 互斥的数据面）----
+
+    private fun providesManifest(provides: String): String {
+        return """{"id":"demo-ext","name":"演示扩展","type":"extension","provides":$provides}"""
+    }
+
+    @Test
+    fun `provides 合法声明解析通过`() {
+        val bundle =
+            RulePackParser.parseZip(
+                zipOf(mapOf("manifest.json" to providesManifest("""["facade:tavernhelper","v2.contract_x"]"""))),
+            )
+        assertEquals(listOf("facade:tavernhelper", "v2.contract_x"), bundle.manifest.provides)
+    }
+
+    @Test
+    fun `provides 缺省为空数组（不参与互斥）`() {
+        val bundle =
+            RulePackParser.parseZip(zipOf(mapOf("manifest.json" to providesManifest("[]"))))
+        assertEquals(emptyList<String>(), bundle.manifest.provides)
+    }
+
+    @Test
+    fun `provides 非法元素拒绝且消息指明该元素`() {
+        val invalidCases =
+            listOf(
+                """["含大写"]""" to "大写字母",
+                """["has space"]""" to "空格",
+                """["a/b"]""" to "斜杠",
+                """[""]""" to "空串",
+                """["${"x".repeat(65)}"]""" to "超长",
+            )
+        invalidCases.forEach { (provides, why) ->
+            val ex =
+                assertThrows("provides=$why 应被拒", IllegalArgumentException::class.java) {
+                    RulePackParser.parseZip(zipOf(mapOf("manifest.json" to providesManifest(provides))))
+                }
+            assertTrue("消息应提及 provides（why=$why）", ex.message!!.contains("provides"))
+        }
+    }
 }
