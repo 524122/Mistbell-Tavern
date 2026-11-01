@@ -1,6 +1,10 @@
 # 扩展平台设计：兼容层插件化
 
-> 状态：设计稿（2026-10-31，基于代码盘点 + 上游先例调研）
+> 状态：P1/P2 已实施（P1 制品与生命周期 4b1c4a5、P2 预注入与门面迁出 2950430，均经模拟器 E2E）；
+> P3/P4 未实施。实施与设计的偏差以代码与 CHANGELOG 为准（两处值得一提：权限「扩权回退」的
+> UI 路径例外见 P1 提交；extension_packs 最终为 v38 而非 v37 就地改——「未发布 schema 也不可
+> 原地改」的教训见迁移对齐测试）。
+> 设计稿（2026-10-31，基于代码盘点 + 上游先例调研）
 > 决策背景：酒馆助手类兼容层后续不能再靠内置硬编码随发版追赶（FACADE_JS/桥写死在
 > `HtmlWebViewFactory`/`ChatViewModel` 里）。方向已定：**引擎保持原生，门面层做成可安装制品**。
 > 配合 [SCRIPTING.md](SCRIPTING.md)（现有门面契约）与 [WEB_CONTENT_RUNTIME_DESIGN.md](WEB_CONTENT_RUNTIME_DESIGN.md)（沙箱边界）阅读。
