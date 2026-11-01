@@ -341,7 +341,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                         ),
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "feature",
-                            "聊天事件推送：message_sent/received、generation_started/ended、chat_changed 五类事件实时推送给已挂载页面，eventOn 直通订阅",
+                            "聊天事件推送：message_sent/received、generation_started/ended、chat_changed " +
+                                "五类事件实时推送给已挂载页面，eventOn 直通订阅",
                         ),
                         com.mistbell.tavern.android.data.model.ChangeItem(
                             "improvement",
