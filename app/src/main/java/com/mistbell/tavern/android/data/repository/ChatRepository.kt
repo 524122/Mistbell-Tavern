@@ -226,30 +226,10 @@ class ChatRepository(private val context: Context) {
                 }
                 throw e
             } catch (e: Exception) {
-                // LLM 调用或收尾失败：事务内回滚本条用户消息，计数按真实行数重算（自愈，
-                // 不依赖增量加减），再抛出异常让 UI 显示错误。
-                // 助手回复只在共享路径成功返回后才存在（其后 try 内无其他语句），异常路径恒无
-                // 已落库回复可删——原实现此处对助手 id 的删除在异常路径上即为不可达，随之移除。
-                // 已知残留：已异步写入的向量无法按消息清理（无对应接口，见 ROADMAP 向量双写一致性）
-                //
-                // 回滚的 Room 删除放进会话锁：与抽取保存的版本复核 + 落库临界区互斥——
-                // 否则"复查通过 → 回滚删消息 → 保存引用已删轮次的记忆"的窗口仍在。
-                // 向量删除留在锁外（删除意图机制本身就是提交时校验）。
-                SessionMutationLocks.withSessionLock(sessionId) {
-                    db.withTransaction {
-                        db.messageDao().deleteById(msgId)
-                        val sessionForRollback = db.sessionDao().get(sessionId, ownerId, characterId)
-                        if (sessionForRollback != null) {
-                            db.sessionDao().upsert(
-                                sessionForRollback.copy(
-                                    messageCount = db.messageDao().getBySession(sessionId, ownerId).first().size,
-                                    title = if (sessionForRollback.title == message.take(26)) "" else sessionForRollback.title,
-                                ),
-                            )
-                        }
-                    }
-                }
-                deleteMessageVectors(msgId)
+                // LLM 调用/收尾失败：保留已落库的用户消息（本地写入已成功，用户重发即可重试），
+                // 不把"远端生成失败"当"本地写入失败"回滚。会话计数/标题已随用户消息落库，
+                // 保留后天然一致；已异步写入的向量因消息仍在而保持有效。
+                android.util.Log.e("ChatRepository", "sendMessage generation failed, user message kept: $msgId", e)
                 throw e
             }
         }
@@ -270,14 +250,14 @@ class ChatRepository(private val context: Context) {
 
     /**
      * 「请求 LLM + 落库回复」共享生成路径（sendMessage 与 generateReply 复用，纯提取重构）：
-     * LLM 配置校验（未配置抛错——与提取前一致，调用方会回滚已落库的用户消息）→
+     * LLM 配置校验（未配置抛错——与提取前一致，由调用方上报错误并保留已落库的用户消息）→
      * 提示词装配 → GenerationStarted/Ended 严格配对发射 → collectReply 流式收集 →
      * persistAssistantReply 公共尾部（Append 语义：计数 +1 + 记忆提取）。
      *
      * 配对语义与提取前一致：Started 发出后，collectReply/persistAssistantReply 成功、失败
      * 或取消都在 finally 补发 Ended（酒馆助手 generate 契约要求失败也成对发射）。
-     * 取消/异常向上抛出，由调用方按各自语义处理（sendMessage 回滚用户消息并落库部分回复；
-     * generateReply 落库部分回复、无消息可回滚）。
+     * 取消/异常向上抛出，由调用方按各自语义处理（sendMessage 保留用户消息、取消时落库部分
+     * 回复；generateReply 落库部分回复、无用户消息可保留）。
      */
     private suspend fun requestAndPersistReply(
         request: GenerationRequest,
@@ -519,6 +499,105 @@ class ChatRepository(private val context: Context) {
                 messages.drop(idx + 1).forEach { deleteMessageVectors(it.id) }
                 prunePendingExtractionTurns(sessionId, messages.take(idx + 1).mapTo(HashSet()) { it.id })
             }
+        }
+    }
+
+    /**
+     * 编辑任意一条消息的主文本（长按菜单「编辑」）：只改 content，保留 id/role/createdAt/
+     * swipes/thinking 等其余字段（读出实体后 copy）；行数不变，会话 messageCount 不回写。
+     *
+     * 同 id 内容变更的落库与换 swipe/续写同构：Room upsert 放进会话锁，与抽取保存的
+     * 版本复核互斥（编辑后签名失配的轮次会在保存时被整轮作废）；锁内复查会话与目标消息
+     * 仍在——已删则放弃。向量一致性留锁外：先 deleteMessageVectors 清旧向量（登记删除
+     * 意图兜底在途 embedding），再后台重建新向量——user/assistant 两类消息都有对应的
+     * 恢复入口（storeUserMessageVector / storeAssistantMessageVector，恢复器统一以 Room
+     * 当前版本为正文来源），因此编辑后两个角色都重建向量，不做"仅清理"的降级。
+     */
+    suspend fun editMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageId: String,
+        newContent: String,
+    ) {
+        withContext(Dispatchers.IO) {
+            val edited =
+                SessionMutationLocks.withSessionLock(sessionId) {
+                    val session = db.sessionDao().getById(sessionId)
+                    if (session == null || session.ownerId != ownerId) return@withSessionLock null
+                    val entity =
+                        db.messageDao().getById(messageId, sessionId, ownerId)
+                            ?: return@withSessionLock null
+                    db.messageDao().upsert(entity.copy(content = newContent))
+                    entity.copy(content = newContent)
+                } ?: return@withContext
+            deleteMessageVectors(messageId)
+            backgroundScope.launch {
+                if (edited.role == "user") {
+                    storeUserMessageVector(
+                        content = newContent,
+                        ownerId = ownerId,
+                        characterId = edited.characterId.ifBlank { characterId },
+                        sessionId = sessionId,
+                        messageId = messageId,
+                    )
+                } else {
+                    storeAssistantMessageVector(
+                        content = newContent,
+                        ownerId = ownerId,
+                        characterId = edited.characterId.ifBlank { characterId },
+                        sessionId = sessionId,
+                        messageId = messageId,
+                        // 同一条消息正文被覆盖，属替换而非新增：不解除删除意图的话新向量会被压住
+                        replacePrevious = true,
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 删除任意单条消息（长按菜单「删除」）：与「撤回」（仅末条 user）、「回溯到这里」
+     * （删目标之后全部）并存的第三种删除粒度。
+     *
+     * 事务保证单条删除与计数自愈回写原子完成（计数按真实行数重算，不依赖增量加减，
+     * 同 persistAssistantReply 的 Replace 尾部）；放进会话锁（同 undoLastMessage 的理由）。
+     * 向量删除留在锁外——删除意图机制（addIfAllowed 提交时闸门）兜底在途写入；
+     * 待抽取缓冲同步修剪：引用了已删消息的轮次整轮剔除。
+     */
+    suspend fun deleteMessage(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageId: String,
+    ) {
+        withContext(Dispatchers.IO) {
+            val deleted =
+                SessionMutationLocks.withSessionLock(sessionId) {
+                    db.withTransaction {
+                        val target = db.messageDao().getById(messageId, sessionId, ownerId)
+                        if (target == null) {
+                            false
+                        } else {
+                            db.messageDao().deleteById(messageId)
+                            val session = db.sessionDao().get(sessionId, ownerId, characterId)
+                            if (session != null) {
+                                db.sessionDao().upsert(
+                                    session.copy(
+                                        messageCount =
+                                            db.messageDao().getBySession(sessionId, ownerId).first().size,
+                                    ),
+                                )
+                            }
+                            true
+                        }
+                    }
+                }
+            if (!deleted) return@withContext
+            deleteMessageVectors(messageId)
+            val remainingIds =
+                db.messageDao().getBySession(sessionId, ownerId).first().mapTo(HashSet()) { it.id }
+            prunePendingExtractionTurns(sessionId, remainingIds)
         }
     }
 

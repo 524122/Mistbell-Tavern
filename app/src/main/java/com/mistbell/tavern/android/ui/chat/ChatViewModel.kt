@@ -1076,7 +1076,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 // hasMoreOlder=false 永久锁死上滚加载。观察窗口重发后 mergeMessageWindow 的
                 // 复合边界过滤 + id 去重会自然处理窗口与 prepend 缓存的重叠。
             } catch (e: Exception) {
-                _error.value = "撤销失败: ${e.message}"
+                _error.value = "撤回失败: ${e.message}"
             }
         }
     }
@@ -1089,7 +1089,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 // 修复2：同 undoLastMessage——deleteAfter 只删目标消息之后的窗口内近期消息，
                 // 已 prepend 的更旧历史不受影响；保留分页状态，上滚仍能继续找回更早历史
             } catch (e: Exception) {
-                _error.value = "回退失败: ${e.message}"
+                _error.value = "回溯失败: ${e.message}"
             }
         }
     }
@@ -1110,6 +1110,88 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // 编辑任意一条消息的主文本（长按菜单「编辑」）：仅改 content，thinking/swipes 不动。
+    // guard：生成中拒绝——编辑流式目标会与在途落库竞争（同 id upsert 会覆盖流式产物）；
+    // 空白正文放弃——空气泡无意义（对话框的保存按钮同步禁用，这里兜底）。
+    // 单一 when 出口收敛 detekt ReturnCount（≤2）
+    fun editMessage(
+        messageId: String,
+        newContent: String,
+    ) {
+        val char = _currentCharacter.value
+        when {
+            _isTyping.value -> _toast.value = "正在生成回复，请稍后再编辑"
+            char == null || newContent.isBlank() -> Unit
+            else ->
+                viewModelScope.launch {
+                    try {
+                        repo.editMessage(ownerId, char.id, _activeSessionId.value, messageId, newContent)
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChatViewModel", "editMessage failed", e)
+                        _error.value = "编辑失败: ${e.message ?: e.javaClass.simpleName}"
+                    }
+                }
+        }
+    }
+
+    // 删除任意单条消息（长按菜单「删除」，无确认对话框，与「撤销」同轻量语义）。
+    // guard：生成中拒绝——删除流式目标会与在途落库/替换事务竞争
+    fun deleteMessage(messageId: String) {
+        val char = _currentCharacter.value ?: return
+        if (_isTyping.value) {
+            _toast.value = "正在生成回复，请稍后再删除"
+            return
+        }
+        viewModelScope.launch {
+            try {
+                repo.deleteMessage(ownerId, char.id, _activeSessionId.value, messageId)
+                // 单条删除只影响窗口内一条，prependedOlder 与分页状态不受影响
+                // （观察流重发后 mergeMessageWindow 按 id 去重自然收敛）
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "deleteMessage failed", e)
+                _error.value = "删除失败: ${e.message ?: e.javaClass.simpleName}"
+            }
+        }
+    }
+
+    // 发送失败后的持久横幅「重试」入口（替换一次性 Toast 的后续动作）：
+    // sendMessage 失败保留已落库的用户消息，重试 = 为该 user 消息补生成回复而不重复插入
+    // ——末条是 user → repo.generateReply（不插用户消息、以会话末尾上下文生成，与
+    // sendMessage 同一条 requestAndPersistReply 共享路径）；末条是 assistant → 失败来自
+    // regenerate/continue 等替换型生成，走 regenerateMessage 替换该回复。
+    // 发起重试即清除旧错误（横幅消失；再次失败会由 launchGeneration 重新写入 _error）。
+    // 单一 when 出口收敛 detekt ReturnCount（≤2）：生成中不可重试；角色未就绪/无消息放弃
+    fun retryLastGeneration() {
+        val char = _currentCharacter.value
+        val last = _messages.value.lastOrNull()
+        when {
+            _isTyping.value || char == null || last == null -> Unit
+            else -> {
+                _error.value = null
+                // 群聊上下文与 sendChatMessage 同构（classic 传 null；空参与者由仓库端兜底重建）
+                val groupContext =
+                    if (groupMode.value) {
+                        GroupChatContext(speakerNames = _participantCharacters.value.associate { it.id to it.name })
+                    } else {
+                        null
+                    }
+                when (last.role) {
+                    "user" ->
+                        launchGeneration("重试失败") {
+                            repo.generateReply(
+                                ownerId = ownerId,
+                                characterId = char.id,
+                                sessionId = _activeSessionId.value,
+                                onPartial = ::emitStreamingTextThrottled,
+                                groupContext = groupContext,
+                            )
+                        }
+                    "assistant" -> regenerateMessage(last.id)
+                }
+            }
+        }
+    }
+
     // 统一的生成状态机包装：isTyping/streamingText 状态、停止生成支持（generationJob 可取消）、
     // 错误上报收敛到一处，sendMessage/regenerateMessage/continueGroupChat 复用，避免复制
     private fun launchGeneration(
@@ -1126,7 +1208,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     // 用户主动停止不是错误：直接上抛，不写 _error
                     throw e
                 } catch (e: Exception) {
-                    _error.value = "$errorPrefix: ${e.message}"
+                    android.util.Log.e("ChatViewModel", "generation failed: $errorPrefix", e)
+                    // 横幅面向用户：常见网络故障翻译成人话，其余异常只报类别不暴露原始消息
+                    // （原始异常已完整进 logcat，排查靠日志不靠横幅）
+                    _error.value =
+                        when {
+                            e.message?.contains("Failed to connect", ignoreCase = true) == true ||
+                                e.cause is java.net.ConnectException ||
+                                e.cause is java.net.UnknownHostException ->
+                                "$errorPrefix：无法连接到 AI 服务，请检查网络与 API 地址"
+                            e.message?.contains("timeout", ignoreCase = true) == true ->
+                                "$errorPrefix：连接超时，请稍后重试"
+                            e.message?.contains("401") == true || e.message?.contains("403") == true ->
+                                "$errorPrefix：API 密钥无效或无权限"
+                            e.message?.contains("429") == true ->
+                                "$errorPrefix：请求过于频繁，请稍后重试"
+                            else -> "$errorPrefix：${e.javaClass.simpleName}"
+                        }
                 } finally {
                     _isTyping.value = false
                     _streamingText.value = null
@@ -1140,7 +1238,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun continueGroupChat() {
         if (!groupMode.value || _isTyping.value) return
         val char = _currentCharacter.value ?: return
-        launchGeneration("继续失败") {
+        launchGeneration("续写失败") {
             repo.continueGroupChat(
                 ownerId = ownerId,
                 characterId = char.id,
@@ -1152,7 +1250,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun continueMessage() {
         val char = _currentCharacter.value ?: return
-        launchGeneration("继续失败") {
+        launchGeneration("续写失败") {
             repo.continueMessage(ownerId, char.id, _activeSessionId.value, onPartial = ::emitStreamingTextThrottled)
         }
     }
@@ -1162,7 +1260,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         direction: String,
     ) {
         val char = _currentCharacter.value ?: return
-        launchGeneration("切换失败") {
+        launchGeneration("切换回复失败") {
             repo.swipeMessage(
                 ownerId,
                 char.id,
