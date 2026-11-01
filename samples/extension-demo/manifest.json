@@ -1,0 +1,18 @@
+{
+  "id": "extension-demo",
+  "name": "示例扩展包",
+  "author": "Mistbell",
+  "version": "1.0.0",
+  "description": "演示扩展包制品格式：权限声明 + 门面/钩子 JS 制品（P1 管理平面，脚本不执行）",
+  "loadingOrder": 100,
+  "type": "extension",
+  "permissions": [
+    "prompt:inject",
+    "reply:process",
+    "events:subscribe",
+    "messages:read",
+    "network:cangxuan-forum.cangxuanjie.workers.dev"
+  ],
+  "webviewPreload": "facade.js",
+  "hostHooks": "hook.js"
+}

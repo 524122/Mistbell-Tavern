@@ -51,6 +51,7 @@ object Routes {
     const val ABOUT = "about"
     const val PROMPT_MANAGEMENT = "prompt_management"
     const val RULE_PACKS = "rule_packs"
+    const val EXTENSION_PACKS = "extension_packs"
     const val QUICK_REPLIES = "quick_replies"
     const val MODEL_PARAMS = "model_params"
 
@@ -232,6 +233,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     },
                     onNavigateToRulePacks = {
                         navController.navigate(Routes.RULE_PACKS)
+                    },
+                    onNavigateToExtensionPacks = {
+                        navController.navigate(Routes.EXTENSION_PACKS)
                     },
                     onNavigateToQuickReplies = {
                         navController.navigate(Routes.QUICK_REPLIES)
@@ -444,6 +448,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     onNavigateToRulePacks = {
                         navController.navigate(Routes.RULE_PACKS)
                     },
+                    onNavigateToExtensionPacks = {
+                        navController.navigate(Routes.EXTENSION_PACKS)
+                    },
                     onNavigateToQuickReplies = {
                         navController.navigate(Routes.QUICK_REPLIES)
                     },
@@ -601,6 +608,19 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) {
                 com.mistbell.tavern.android.ui.rulepack.RulePackManagerScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // 扩展包管理（P1 管理平面）
+            composable(
+                route = Routes.EXTENSION_PACKS,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.extensionpack.ExtensionPackManagerScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

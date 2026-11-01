@@ -17,9 +17,9 @@ import com.mistbell.tavern.android.extension.TavernEventBus
 import com.mistbell.tavern.android.service.MemoryExtractionService
 import com.mistbell.tavern.android.util.parseGroupSpeaker
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged

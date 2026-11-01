@@ -11,6 +11,9 @@
 
 ## [Unreleased]
 
+### Added
+- 扩展包制品格式与生命周期（扩展平台第一阶段 P1 管理平面，EXTENSION_PLATFORM_DESIGN.md §3/§4）：设置 → 高级设置 → 提示词管理新增「扩展包」管理页——导入 zip 制品（manifest.json 在规则包字段上新增 type:"extension"/permissions/webviewPreload/hostHooks，缺省 type=规则包向后兼容、同一 RulePackParser 解析骨架扩展）、逐条权限清单确认对话框（严格白名单：7 个固定权限 + network:&lt;host&gt; 动态形态，host 仅小写字母/数字/点/连字符、禁通配符与端口；声明目录外权限导入直接失败并给出明确原因；中文权限描述集中 PermissionCatalog）、确认后激活、启停开关（未确认权限的包开关禁用并显示「未授权」态，数据层同守卫）、删除（DB 行 + filesDir/extensions/&lt;id&gt;/ 目录一并清理）、同 id 覆盖安装按 zip SHA-256 比对（同 hash 仅刷新元数据不重解压；hash 变化先写暂存再换名落盘更新内容；权限集扩大未经再确认强制回未授权禁用态）；元数据与启停状态落新表 extension_packs（数据库升级到 v37，启用状态跨重启持久），JS 制品仅做存在性/大小校验（preload ≤64KB、hooks 沿用 256KB）并落盘存储，P1 不解析不执行——管理页顶部说明文案明示运行时能力将在后续版本启用；解析器/权限目录/落库计划/仓库（假 DAO + 临时目录）JVM 单测 43 例 + 迁移对齐 3 例；示例包 samples/extension-demo/；导入失败类反馈用 10s 长时 Snackbar（实测短时 4s 极易错过拒绝原因）。
+
 ### Fixed
 - 停止生成时「部分回复落库」从未生效：`persistPartialReplyOnCancel` 在已取消的协程内直接执行，首个挂起点（会话锁 Mutex / Room DAO）立即再抛 CancellationException，四个调用路径（发送 / generate / 群聊推动 / 重试）全部静默失效——表现为慢流中点「停止」后已流出的文字直接消失而非落库为一条助手消息。现整体包 `NonCancellable` 执行落库（归属解析/事务/计数回写语义不变，2026-11-01 装机实测暴露后修复并复验）。
 

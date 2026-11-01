@@ -28,8 +28,9 @@ import com.mistbell.tavern.android.data.local.entity.*
         RulePackEntity::class,
         QuickReplyEntity::class,
         GlobalRegexRuleEntity::class,
+        ExtensionPackEntity::class,
     ],
-    version = 36,
+    version = 37,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -64,6 +65,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun quickReplyDao(): QuickReplyDao
 
     abstract fun globalRegexDao(): GlobalRegexDao
+
+    abstract fun extensionPackDao(): ExtensionPackDao
 
     companion object {
         @Volatile
@@ -831,6 +834,36 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v36→v37：扩展包管理平面（EXTENSION_PLATFORM_DESIGN.md P1）。新建 extension_packs 表
+        // 存 manifest 元数据 + 权限确认/启停状态（内容文件落 filesDir，不入库）。
+        // 列默认值与 GlobalRegexRuleEntity v36 同型：实体 Kotlin 默认值不写 @ColumnInfo(defaultValue)，
+        // Room 校验容忍库侧默认值（rule_packs/global_regex_rules 先例），DDL 默认值仅为手工排查便利
+        internal val MIGRATION_36_37_SQL: List<String> =
+            listOf(
+                "CREATE TABLE IF NOT EXISTS `extension_packs` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`author` TEXT NOT NULL, " +
+                    "`version` TEXT NOT NULL, " +
+                    "`loading_order` INTEGER NOT NULL DEFAULT 100, " +
+                    "`permissions_json` TEXT NOT NULL DEFAULT '[]', " +
+                    "`has_preload` INTEGER NOT NULL DEFAULT 0, " +
+                    "`has_hooks` INTEGER NOT NULL DEFAULT 0, " +
+                    "`enabled` INTEGER NOT NULL DEFAULT 0, " +
+                    "`permissions_confirmed` INTEGER NOT NULL DEFAULT 0, " +
+                    "`content_hash` TEXT NOT NULL DEFAULT '', " +
+                    "`installed_at` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`id`))",
+            )
+
+        @Suppress("MagicNumber") // 起止版本号即迁移语义本体，与 MIGRATION_35_36 等既往迁移同型
+        internal val MIGRATION_36_37 =
+            object : Migration(MIGRATION_35_36.endVersion, MIGRATION_35_36.endVersion + 1) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_36_37_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -879,6 +912,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_33_34,
                         MIGRATION_34_35,
                         MIGRATION_35_36,
+                        MIGRATION_36_37,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

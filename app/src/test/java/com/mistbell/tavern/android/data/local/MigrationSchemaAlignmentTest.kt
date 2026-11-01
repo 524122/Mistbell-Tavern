@@ -638,4 +638,76 @@ class MigrationSchemaAlignmentTest {
             },
         )
     }
+
+    @Test
+    fun `v36 to v37 creates extension_packs table`() {
+        // 扩展包管理平面（EXTENSION_PLATFORM_DESIGN.md P1）：列默认值与 v36 同型，
+        // enabled/permissions_confirmed 默认 0（未确认权限的包绝不默认激活）
+        val sql = AppDatabase.MIGRATION_36_37_SQL
+        assertEquals(1, sql.size)
+        val ddl = sql.single()
+        assertTrue(ddl.contains("CREATE TABLE IF NOT EXISTS `extension_packs`"))
+        assertTrue(ddl.contains("`loading_order` INTEGER NOT NULL DEFAULT 100"))
+        assertTrue(ddl.contains("`permissions_json` TEXT NOT NULL DEFAULT '[]'"))
+        assertTrue(ddl.contains("`enabled` INTEGER NOT NULL DEFAULT 0"))
+        assertTrue(ddl.contains("`permissions_confirmed` INTEGER NOT NULL DEFAULT 0"))
+        assertTrue(ddl.contains("`content_hash` TEXT NOT NULL DEFAULT ''"))
+        assertTrue(ddl.contains("PRIMARY KEY(`id`)"))
+    }
+
+    @Test
+    fun `v37 迁移真实 DDL 的列集合与 ExtensionPackEntity 逐列对齐`() {
+        val ddl = AppDatabase.MIGRATION_36_37_SQL.single()
+        val body = ddl.substringAfter('(').substringBeforeLast(')')
+        val columns =
+            body.split(',')
+                .map { it.trim().substringBefore(' ').trim('`') }
+                .filter {
+                    it.isNotEmpty() &&
+                        !it.equals("PRIMARY", ignoreCase = true) &&
+                        !it.equals("UNIQUE", ignoreCase = true)
+                }
+                .toSet()
+        assertEquals(
+            "extension_packs 列集合应与 ExtensionPackEntity 完全一致",
+            setOf(
+                "id",
+                "name",
+                "author",
+                "version",
+                "loading_order",
+                "permissions_json",
+                "has_preload",
+                "has_hooks",
+                "enabled",
+                "permissions_confirmed",
+                "content_hash",
+                "installed_at",
+            ),
+            columns,
+        )
+        assertFalse("installed_at 不应有 DEFAULT", body.contains("`installed_at` TEXT NOT NULL DEFAULT"))
+    }
+
+    @Test
+    fun `v37 迁移仅新建表不触碰既有数据`() {
+        // 防呆（v36 同型）：纯建表迁移，只允许触碰 extension_packs，不删除任何数据
+        val tableRefRegex = Regex("""(?:TABLE|INTO)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        val referenced =
+            AppDatabase.MIGRATION_36_37_SQL
+                .map { sql -> sql.replace("`", "") }
+                .flatMap { sql -> tableRefRegex.findAll(sql).map { it.groupValues[1] } }
+                .toSet()
+        assertEquals(
+            "v37 迁移只允许触碰 extension_packs",
+            setOf("extension_packs"),
+            referenced,
+        )
+        assertFalse(
+            "v37 迁移不应包含 DELETE/DROP",
+            AppDatabase.MIGRATION_36_37_SQL.any {
+                it.contains("DELETE FROM", ignoreCase = true) || it.contains("DROP TABLE", ignoreCase = true)
+            },
+        )
+    }
 }

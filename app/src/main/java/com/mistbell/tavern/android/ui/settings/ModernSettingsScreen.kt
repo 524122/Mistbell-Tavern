@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
@@ -76,6 +77,7 @@ fun ModernSettingsScreen(
     onNavigateToThemeManager: () -> Unit,
     onNavigateToPromptManagement: () -> Unit,
     onNavigateToRulePacks: () -> Unit = {},
+    onNavigateToExtensionPacks: () -> Unit = {},
     onNavigateToQuickReplies: () -> Unit = {},
     onNavigateToModelParams: () -> Unit = {},
     onNavigateToVersionChangelog: () -> Unit = {},
@@ -174,7 +176,12 @@ fun ModernSettingsScreen(
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PromptSettingsSection(onNavigateToPromptManagement, onNavigateToRulePacks, onNavigateToQuickReplies)
+                    PromptSettingsSection(
+                        onNavigateToPromptManagement,
+                        onNavigateToRulePacks,
+                        onNavigateToExtensionPacks,
+                        onNavigateToQuickReplies,
+                    )
 
                     ModelParamsEntrySection(onNavigateToModelParams)
 
@@ -592,6 +599,7 @@ private fun WorldBookNumberRow(
 private fun PromptSettingsSection(
     onNavigateToPromptManagement: () -> Unit,
     onNavigateToRulePacks: () -> Unit = {},
+    onNavigateToExtensionPacks: () -> Unit = {},
     onNavigateToQuickReplies: () -> Unit = {},
 ) {
     val promptViewModel: CustomPromptViewModel = viewModel()
@@ -609,6 +617,12 @@ private fun PromptSettingsSection(
             subtitle = "导入/分享规则包：提示词块、输出正则、自定义宏",
             icon = Icons.Default.Edit,
             onClick = onNavigateToRulePacks,
+        )
+        ModernSettingsItem(
+            title = "扩展包",
+            subtitle = "导入/管理扩展包：权限清单确认、启停、覆盖安装",
+            icon = Icons.Default.Extension,
+            onClick = onNavigateToExtensionPacks,
         )
         ModernSettingsItem(
             title = "快捷回复",

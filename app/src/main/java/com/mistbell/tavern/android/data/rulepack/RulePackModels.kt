@@ -20,7 +20,24 @@ data class RulePackManifest(
     val loadingOrder: Int = 100,
     /** 可选：zip 内 JS 脚本文件名（声明即视为"脚本包"，导入需用户确认代码执行风险） */
     val script: String? = null,
-)
+    /**
+     * ---- 扩展包新增字段（EXTENSION_PLATFORM_DESIGN.md §3）；缺省即规则包，向后兼容 ----
+     * 包类型："extension" = 扩展包（P1 管理平面：权限清单确认 + filesDir 落盘存储），
+     * 缺省 / "rulepack" = 规则包。同一解析器骨架，按类型走差异校验而非另起炉灶。
+     */
+    val type: String = RulePackManifest.TYPE_RULEPACK,
+    /** 权限声明：严格白名单 + network:<host> 动态形态（PermissionCatalog 校验，目录外导入失败） */
+    val permissions: List<String> = emptyList(),
+    /** 可选：zip 内 WebView 预注入 JS 文件名（≤64KB；P1 仅存在性/大小校验 + 落盘，不解析不执行） */
+    val webviewPreload: String? = null,
+    /** 可选：zip 内宿主钩子 JS 文件名（≤256KB，沿用 MAX_SCRIPT_BYTES；P1 仅校验 + 落盘） */
+    val hostHooks: String? = null,
+) {
+    companion object {
+        const val TYPE_RULEPACK = "rulepack"
+        const val TYPE_EXTENSION = "extension"
+    }
+}
 
 /** 提示词块：position 复用自定义提示词五值（SYSTEM_START/SYSTEM_END/USER_PREFIX/USER_SUFFIX/ASSISTANT_PREFIX） */
 @Serializable
@@ -69,4 +86,11 @@ data class RulePackContent(
     val quickReplies: List<RulePackQuickReply> = emptyList(),
     /** manifest.script 声明的脚本源码（null=非脚本包）；随 contentJson 存储，零额外迁移 */
     val scriptSource: String? = null,
+    /**
+     * manifest.webviewPreload 声明的预注入 JS 源码（null=未声明）。
+     * P1 仅校验+随扩展包落盘存储；注入接线是 P2，此字段对规则包恒为 null。
+     */
+    val webviewPreloadSource: String? = null,
+    /** manifest.hostHooks 声明的宿主钩子 JS 源码（null=未声明）；P1 同上，不解析不执行 */
+    val hostHooksSource: String? = null,
 )
