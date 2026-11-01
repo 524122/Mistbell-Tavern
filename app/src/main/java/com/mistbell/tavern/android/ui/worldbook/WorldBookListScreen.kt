@@ -27,13 +27,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.components.*
+import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
 import com.mistbell.tavern.android.util.WorldBookParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** 书籍列表 LazyColumn 里全局设置分组 item 的稳定 key（书卡 key 是 UUID，恒不冲突） */
+private const val GLOBAL_SETTINGS_ITEM_KEY = "global_settings"
+
+/** 书籍列表 LazyColumn 里空态 item 的稳定 key（同上，避免与 UUID 书卡 key 冲突） */
+private const val EMPTY_STATE_ITEM_KEY = "empty_state"
+
 @OptIn(ExperimentalMaterial3Api::class)
+// 屏幕级 Compose 组件的既有形态（原由 detekt 基线吸收；新增 settingsViewModel 参数后签名变化，
+// 基线指纹不再匹配，改为与 ModernSettingsScreen 同款就地抑制）
+@Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod")
 @Composable
 fun WorldBookListScreen(
     onBack: () -> Unit = {},
@@ -43,6 +53,10 @@ fun WorldBookListScreen(
     onBookClick: ((String) -> Unit)? = null,
     viewModel: WorldBookEditorViewModel = viewModel(),
     showBackButton: Boolean = true,
+    // 非 null 时在书籍列表上方显示全局设置分组（主界面「世界书」Tab 场景：原设置页世界书区迁入，
+    // 由 MainScreen 以与设置 Tab 相同的 factory 提供实例）；默认 null——独立路由（AppNavigation）
+    // 行为不变，也不必凭空创建设置 ViewModel。
+    settingsViewModel: SettingsViewModel? = null,
     modifier: Modifier = Modifier,
 ) {
     val worldBooks by viewModel.worldBooks.collectAsState()
@@ -206,31 +220,52 @@ fun WorldBookListScreen(
             modifier = Modifier.fillMaxSize().padding(paddingValues).imePadding(),
         ) {
             if (selectedBookId == null) {
-                // Book list view
-                if (worldBooks.isEmpty()) {
-                    // Empty state - centered
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        EmptyStateView("📖", "暂无世界书", "点击右下角 + 创建")
+                // Book list view：单一 LazyColumn 承载「全局设置分组 + 书卡」，整页随内容滚动。
+                // 不能外层 Column + verticalScroll——会与本列表同向嵌套滚动直接抛异常；
+                // 也不能「设置区固有高度 + 列表 weight(1f)」——设置组约 2.4 屏高，会把列表
+                // 压为 0 高、令折叠线以下控件不可达（E2E 回归）。
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding =
+                        PaddingValues(
+                            top = if (settingsViewModel != null) 8.dp else 16.dp,
+                            bottom = 16.dp,
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // 全局设置分组（仅 Tab 场景传入 ViewModel 时显示）：原设置页「📚 世界书」区整体迁入。
+                    // 整组为一个 item，组内保持非 lazy 布局；显式稳定 key 使折叠态（rememberSaveable）
+                    // 滚出视口或书列表增删后仍能恢复，且与书卡的 UUID key 恒不冲突。
+                    settingsViewModel?.let { settings ->
+                        item(key = GLOBAL_SETTINGS_ITEM_KEY) {
+                            WorldBookGlobalSettingsSection(viewModel = settings)
+                        }
                     }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
+                    if (worldBooks.isEmpty()) {
+                        // Empty state - centered（fillParentMaxSize：视觉等同迁移前占满剩余视口的居中空态）
+                        item(key = EMPTY_STATE_ITEM_KEY) {
+                            Box(
+                                modifier = Modifier.fillParentMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                EmptyStateView("📖", "暂无世界书", "点击右下角 + 创建")
+                            }
+                        }
+                    } else {
                         items(worldBooks, key = { it.id }) { book ->
                             Card(
                                 modifier =
-                                    Modifier.fillMaxWidth().clickable {
-                                        val cb = onBookClick
-                                        if (cb != null) {
-                                            cb(book.id)
-                                        } else {
-                                            viewModel.selectBook(book.id)
-                                        }
-                                    },
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp) // 原 contentPadding 的水平内边距移到卡片上
+                                        .clickable {
+                                            val cb = onBookClick
+                                            if (cb != null) {
+                                                cb(book.id)
+                                            } else {
+                                                viewModel.selectBook(book.id)
+                                            }
+                                        },
                                 shape = MaterialTheme.shapes.medium,
                                 colors =
                                     CardDefaults.cardColors(

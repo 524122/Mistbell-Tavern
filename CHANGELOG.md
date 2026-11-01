@@ -9,6 +9,11 @@
 
 ---
 
+## [Unreleased]
+
+### Changed
+- 「设置」Tab 的世界书全局设置区整体迁移至「世界书」Tab：书籍列表上方新增「⚙️ 全局设置」分组（默认展开、可点按收起，仅底部导航 Tab 场景显示）。扫描深度、Token 预算 (%)、预算上限 (token)、深度插入进历史、递归扫描、最小激活数、加深扫描上限、扫描带名字前缀、分组按匹配分选拔、全局世界书多选、Persona 世界书绑定与插入策略全部原样迁入，继续绑定同一 SettingsViewModel（MainScreen 世界书 Tab 与设置 Tab 用同一 factory 取同一实例）——纯 UI 迁移，功能、控件与设置键（world_info_*）均不变；设置页删除该分组及全部专属行组件，不留副本；全局书 id 集合解析从 Composable 内联抽为纯函数 parseGlobalBookIds（JVM 单测 6 例）。导航图中遗留的独立 WORLD_BOOK_LIST 路由默认不显示该分组，行为不变。
+
 ## [0.9.8-beta] - 2026-11-01
 
 ### Added
