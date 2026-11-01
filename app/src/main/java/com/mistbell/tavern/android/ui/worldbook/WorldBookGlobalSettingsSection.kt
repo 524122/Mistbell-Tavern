@@ -4,9 +4,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
@@ -46,7 +51,7 @@ import com.mistbell.tavern.android.ui.settings.SettingsViewModel
  *
  * 设置读写继续走 [SettingsViewModel] 既有流与方法（本文件不含任何新逻辑）；
  * ViewModel 由调用方（MainScreen 世界书 Tab，与设置 Tab 同一 factory）提供。
- * 分组默认展开、可收起，避免把书籍列表挤出首屏。
+ * 分组默认收起、点「世界书全局参数」行展开，避免把书籍列表挤出首屏。
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
@@ -54,8 +59,10 @@ fun WorldBookGlobalSettingsSection(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by rememberSaveable { mutableStateOf(true) }
+    // 默认收起：Tab 主角是书卡列表，点折叠行才展开参数面板
+    var expanded by rememberSaveable { mutableStateOf(false) }
     ModernSettingsGroup(title = "⚙️ 全局设置", modifier = modifier) {
+        // 折叠行只留一行标题 + chevron：组名「⚙️ 全局设置」已是分组头，不再叠一层大标题/副标题
         Row(
             modifier =
                 Modifier
@@ -64,18 +71,12 @@ fun WorldBookGlobalSettingsSection(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "世界书全局参数",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = "扫描深度、token 预算与多来源合并（对齐酒馆 World Info）",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = "世界书全局参数",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = null,
@@ -92,7 +93,7 @@ fun WorldBookGlobalSettingsSection(
     }
 }
 
-/** 扫描与预算基础行：扫描深度、Token 预算 (%)、预算上限、@D 落点与递归扫描（文案沿用设置页原文） */
+/** 扫描与预算基础行：扫描深度、Token 预算 (%)、预算上限、@D 落点与递归扫描（纯用户语义文案） */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
@@ -101,7 +102,7 @@ private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
 
     WorldBookNumberRow(
         title = "扫描深度",
-        subtitle = "关键词匹配扫描最近 N 条消息（默认 2，对齐酒馆）",
+        subtitle = "关键词匹配扫描最近 N 条消息（默认 2）",
         value = scanDepth,
         placeholder = "2",
         onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_SCAN_DEPTH, it) },
@@ -109,7 +110,7 @@ private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
     ModernDivider()
     WorldBookNumberRow(
         title = "Token 预算 (%)",
-        subtitle = "世界书内容占上下文预算的百分比，0 = 不裁剪（默认 25，对齐酒馆）",
+        subtitle = "世界书内容占上下文预算的百分比，0 = 不裁剪（默认 25）",
         value = budgetPercent,
         placeholder = "25",
         onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_PERCENT, it) },
@@ -117,7 +118,7 @@ private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
     ModernDivider()
     WorldBookNumberRow(
         title = "预算上限 (token)",
-        subtitle = "世界书 token 预算的绝对上限，0 = 只按百分比（对齐酒馆 budget_cap）",
+        subtitle = "世界书 token 预算的绝对上限，0 = 只按百分比",
         value = viewModel.worldInfoBudgetCapSetting.collectAsState().value,
         placeholder = "0",
         onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_BUDGET_CAP, it) },
@@ -126,7 +127,7 @@ private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
     // @D 落点开关：开=插进历史内部（酒馆一致）；关=尾部注入（省 token，前缀缓存更长）
     WorldBookSwitchRow(
         title = "深度插入进历史",
-        subtitle = "开 = 与酒馆一致（@D 插进历史倒数第 N 条）；关 = 注入历史之后，省 token",
+        subtitle = "开 = @D 插进历史倒数第 N 条；关 = 注入历史之后，省 token",
         checked = viewModel.worldInfoInHistorySetting.collectAsState().value,
         onToggle = {
             viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_IN_HISTORY, if (it) "1" else "0")
@@ -136,7 +137,7 @@ private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
     // 递归扫描开关：开=本轮已激活条目内容参与后续轮匹配（酒馆默认关）
     WorldBookSwitchRow(
         title = "递归扫描",
-        subtitle = "开 = 已激活条目的内容会继续触发其他条目（最多 3 轮，对齐酒馆）",
+        subtitle = "开 = 已激活条目的内容会继续触发其他条目（最多 3 轮）",
         checked = viewModel.worldInfoRecursiveSetting.collectAsState().value,
         onToggle = {
             viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_RECURSIVE, if (it) "1" else "0")
@@ -150,7 +151,7 @@ private fun WorldBookScanBudgetRows(viewModel: SettingsViewModel) {
 private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
     WorldBookNumberRow(
         title = "最小激活数",
-        subtitle = "激活条目不足 N 条时逐轮加深扫描（酒馆 min_activations，0=关闭）",
+        subtitle = "激活条目不足 N 条时逐轮加深扫描（0=关闭）",
         value = viewModel.worldInfoMinActivationsSetting.collectAsState().value,
         placeholder = "0",
         onSave = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_MIN_ACTIVATIONS, it) },
@@ -168,7 +169,7 @@ private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
     ModernDivider()
     WorldBookSwitchRow(
         title = "扫描带名字前缀",
-        subtitle = "开 = 扫描文本形如「名字: 内容」，名字也可命中关键词（酒馆默认开）",
+        subtitle = "开 = 扫描文本形如「名字: 内容」，名字也可命中关键词",
         checked = viewModel.worldInfoIncludeNamesSetting.collectAsState().value,
         onToggle = {
             viewModel.saveTextSettingQuietly(
@@ -180,7 +181,7 @@ private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
     ModernDivider()
     WorldBookSwitchRow(
         title = "分组按匹配分选拔",
-        subtitle = "开 = 同组保留命中关键词最多者（酒馆 group scoring）；关 = 按权重加权随机",
+        subtitle = "开 = 同组保留命中关键词最多者；关 = 按权重加权随机",
         checked = viewModel.worldInfoUseGroupScoringSetting.collectAsState().value,
         onToggle = {
             viewModel.saveTextSettingQuietly(
@@ -193,7 +194,7 @@ private fun WorldBookAdvancedRows(viewModel: SettingsViewModel) {
     WorldBookSourcesRows(viewModel)
 }
 
-/** 多来源合并（对齐酒馆四源 + 插入策略）：全局书多选、persona 绑定、排序策略 */
+/** 多来源合并（四源合并 + 插入策略）：全局书多选、persona 绑定、排序策略 */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 private fun WorldBookSourcesRows(viewModel: SettingsViewModel) {
@@ -207,7 +208,7 @@ private fun WorldBookSourcesRows(viewModel: SettingsViewModel) {
         Column {
             Text("全局世界书（可多选）", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Text(
-                "酒馆 global lore；全不选时使用内置 main 兜底",
+                "全不选时使用内置 main 兜底",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -228,7 +229,7 @@ private fun WorldBookSourcesRows(viewModel: SettingsViewModel) {
     ModernDivider()
     WorldBookBookPickerRow(
         title = "Persona 世界书",
-        subtitle = "酒馆 persona lore：与「用户人设」绑定的书（不选=不启用）",
+        subtitle = "与「用户人设」绑定的书（不选=不启用）",
         books = books,
         selectedId = viewModel.worldInfoPersonaBookIdSetting.collectAsState().value,
         onSelect = { viewModel.saveTextSettingQuietly(ChatSettingsResolver.KEY_WORLD_INFO_PERSONA_BOOK_ID, it) },
@@ -293,16 +294,17 @@ private fun WorldBookBookPickerRow(
     }
 }
 
-/** 插入策略三档（酒馆 world_info_insertion_strategy） */
+/** 插入策略三档（角色书优先/混排/全局书优先，存储值不变）；FlowRow 保证窄屏自动换行不挤压 */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorldBookStrategyRow(viewModel: SettingsViewModel) {
     val strategyRaw by viewModel.worldInfoCharacterStrategySetting.collectAsState()
     val strategy = ChatSettingsResolver.worldInfoCharacterStrategy(strategyRaw)
     val options =
         listOf(
-            ChatSettingsResolver.STRATEGY_CHARACTER_FIRST to "角色书优先（默认）",
-            ChatSettingsResolver.STRATEGY_EVENLY to "混排（evenly）",
+            ChatSettingsResolver.STRATEGY_CHARACTER_FIRST to "角色书优先",
+            ChatSettingsResolver.STRATEGY_EVENLY to "混排",
             ChatSettingsResolver.STRATEGY_GLOBAL_FIRST to "全局书优先",
         )
     Column(
@@ -312,12 +314,15 @@ private fun WorldBookStrategyRow(viewModel: SettingsViewModel) {
         Column {
             Text("插入策略", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Text(
-                "多来源条目同位置时的排序（对齐酒馆 world_info_character_strategy）",
+                "多来源条目同位置时的排序",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             options.forEach { (value, label) ->
                 FilterChip(
                     selected = strategy == value,
@@ -359,7 +364,10 @@ private fun WorldBookSwitchRow(
     }
 }
 
-/** 数字设置行：仅接受整数或空（空=恢复默认）；合法即逐键静默保存 */
+/**
+ * 数字设置行（紧凑单行形态）：左侧标题 + 说明、右侧 80dp 行内小输入框（48dp 触达高度，singleLine）。
+ * 仅接受整数或空（空=恢复默认）；合法即逐键静默保存——校验与保存语义与全宽版完全一致。
+ */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 private fun WorldBookNumberRow(
@@ -371,14 +379,14 @@ private fun WorldBookNumberRow(
 ) {
     // 以存储值为准重置本地草稿：备份恢复/他处修改后输入框同步
     var text by remember(value) { mutableStateOf(value) }
-    Column(
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Text(
                 text = subtitle,
@@ -386,6 +394,7 @@ private fun WorldBookNumberRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Spacer(modifier = Modifier.width(12.dp))
         OutlinedTextField(
             value = text,
             onValueChange = { input ->
@@ -394,10 +403,11 @@ private fun WorldBookNumberRow(
                     onSave(input)
                 }
             },
-            placeholder = { Text(placeholder) },
+            placeholder = { Text(placeholder, style = MaterialTheme.typography.bodySmall) },
+            textStyle = MaterialTheme.typography.bodySmall,
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.width(80.dp).height(48.dp),
         )
     }
 }
