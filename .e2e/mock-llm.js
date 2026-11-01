@@ -65,10 +65,8 @@ const server = http.createServer((req, res) => {
         });
         const timer = setInterval(() => {
           if (i < steps.length) {
-            send(chunkOf(steps[i]));
-            i++;
+            // thinking（立即首步）已发、下一内容步未发：长停顿模拟"取消停在 think 段内"
             if (i === 1 && THINK_HOLD_MS > 0) {
-              // thinking 后长停顿：模拟"取消停在 think 段内"的场景
               clearInterval(timer);
               setTimeout(() => {
                 const t2 = setInterval(() => {
@@ -76,7 +74,10 @@ const server = http.createServer((req, res) => {
                   else { finish(); clearInterval(t2); }
                 }, CHUNK_MS);
               }, THINK_HOLD_MS);
+              return;
             }
+            send(chunkOf(steps[i]));
+            i++;
           } else {
             finish();
             clearInterval(timer);
