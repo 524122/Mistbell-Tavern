@@ -326,6 +326,34 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun getDefaultChangelog(): List<com.mistbell.tavern.android.data.model.VersionInfo> {
         return listOf(
             com.mistbell.tavern.android.data.model.VersionInfo(
+                version = "0.9.8-beta",
+                versionCode = 19,
+                releaseDate = "2026-11-01",
+                changes =
+                    listOf(
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "扩展包系统：zip 制品导入、权限清单确认、启停/删除/覆盖安装（设置 → 高级设置 → 提示词管理 → 扩展包）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "TavernHelper 兼容层成为官方内置扩展包：可在扩展包管理启停，卡片内联脚本解析期即可用门面；跟进生态契约不再依赖应用发版",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "扩展宿主钩子：声明 hostHooks 的扩展可注入提示词、处理回复、订阅事件，能力按权限清单真裁剪（未授权方法不存在）",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "feature",
+                            "网络白名单数据驱动：扩展声明并经确认的网络域接入页面 CSP/拦截白名单，随包启停即时生效",
+                        ),
+                        com.mistbell.tavern.android.data.model.ChangeItem(
+                            "fix",
+                            "停止生成时已流出的部分回复现正确落库保留（此前静默丢失）；重新生成路径补发成对的生成事件",
+                        ),
+                    ),
+            ),
+            com.mistbell.tavern.android.data.model.VersionInfo(
                 version = "0.9.7-beta",
                 versionCode = 18,
                 releaseDate = "2026-10-31",
