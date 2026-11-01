@@ -40,3 +40,7 @@ RELEASE_DESCRIPTION_*.md
 _research_*/
 /app/debug/
 .zcode/
+
+# E2E 实测取证产物不入库（基建本身入库，用法见 .e2e/README.md）
+.e2e/*shot*.png
+.e2e/ui.xml
