@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -161,6 +163,61 @@ private fun ChatFadeOverlay(surfaceHeight: Dp) {
     }
 }
 
+/**
+ * 输入栏上方的持久错误横幅（替换一次性 Toast）：发送/生成失败后 error 一直显示，
+ * 点关闭才 clearError()，不再自动消失。
+ * - 左侧：错误文本（最多两行省略）；
+ * - 右侧：「重试」文字按钮（canRetry 门控——生成中隐藏、无消息可重试时隐藏）+ 关闭图标。
+ * 配色用 MaterialTheme error 容器色（errorContainer/onErrorContainer），跟随深浅色主题。
+ * 渲染位置在 Compose 层输入栏正上方——系统 Toast/snackbar 都会被 HTML 原生覆盖层遮挡。
+ */
+@Composable
+private fun ChatErrorBanner(
+    message: String,
+    canRetry: Boolean,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (canRetry) {
+                TextButton(onClick = onRetry) {
+                    Text("重试")
+                }
+            }
+            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "关闭错误提示",
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -199,6 +256,25 @@ fun ChatScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+
+    // —— 长按动作 pill（微信式横排图标浮层，Popup 独立窗口绘制）——
+    // 开关提升到本层：列表滚动即关、任意时刻至多一个气泡的 pill 打开需要屏幕级状态
+    // 协调；「点 pill 外即关」由 Popup 自身的 onDismissRequest 处理（focusable=false
+    // 时外点不消费、照常落到下层），不再需要屏幕级透明点击层
+    var actionsBubbleId by remember { mutableStateOf<String?>(null) }
+    val dismissActionsPill =
+        remember {
+            {
+                actionsBubbleId = null
+            }
+        }
+
+    // 列表开始滚动（手势拖拽、惯性或流式跟随）即收起 pill
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.collect { scrolling ->
+            if (scrolling) dismissActionsPill()
+        }
+    }
     val displayCharacters =
         participantCharacters.ifEmpty {
             currentCharacter?.let { listOf(it) } ?: emptyList()
@@ -360,12 +436,9 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(error) {
-        error?.let {
-            android.widget.Toast.makeText(appContext, it, android.widget.Toast.LENGTH_LONG).show()
-            viewModel.clearError()
-        }
-    }
+    // 生成错误不再走一次性 Toast：error 持久显示在输入栏上方的内嵌横幅（见输入区
+    // ChatErrorBanner），点关闭才 clearError()，并可就地「重试」补生成
+    // （系统 Toast/snackbar 都会被 HTML 原生覆盖层遮挡，故不用）
 
     val toast by viewModel.toast.collectAsStateWithLifecycle()
     LaunchedEffect(toast) {
@@ -542,6 +615,20 @@ fun ChatScreen(
                                     remember(message.id) { { viewModel.regenerateMessage(message.id) } }
                                 val onContinue =
                                     remember(message.id) { { viewModel.continueMessage() } }
+                                val onEdit =
+                                    remember(message.id) {
+                                        { newContent: String -> viewModel.editMessage(message.id, newContent) }
+                                    }
+                                val onDelete =
+                                    remember(message.id) { { viewModel.deleteMessage(message.id) } }
+                                // pill 开关（状态提升见 actionsBubbleId）：打开本气泡的 pill；
+                                // 关闭路径（点外/滚动/动作执行/横滑）统一走 onActionsDismiss
+                                val onActionsOpen =
+                                    remember(message.id) {
+                                        {
+                                            actionsBubbleId = message.id
+                                        }
+                                    }
                                 val onSwipeLeft =
                                     remember(message.id) { { viewModel.swipeMessage(message.id, "left") } }
                                 val onSwipeRight =
@@ -574,6 +661,11 @@ fun ChatScreen(
                                                 onBacktrack = onBacktrack,
                                                 onRegenerate = onRegenerate,
                                                 onContinue = onContinue,
+                                                onEdit = onEdit,
+                                                onDelete = onDelete,
+                                                actionsVisible = actionsBubbleId == message.id,
+                                                onActionsOpen = onActionsOpen,
+                                                onActionsDismiss = dismissActionsPill,
                                                 onSwipeLeft = onSwipeLeft,
                                                 onSwipeRight = onSwipeRight,
                                                 htmlHost = viewModel.htmlBridgeHost,
@@ -619,6 +711,11 @@ fun ChatScreen(
                                             onBacktrack = onBacktrack,
                                             onRegenerate = onRegenerate,
                                             onContinue = onContinue,
+                                            onEdit = onEdit,
+                                            onDelete = onDelete,
+                                            actionsVisible = actionsBubbleId == message.id,
+                                            onActionsOpen = onActionsOpen,
+                                            onActionsDismiss = dismissActionsPill,
                                             onSwipeLeft = onSwipeLeft,
                                             onSwipeRight = onSwipeRight,
                                             htmlHost = viewModel.htmlBridgeHost,
@@ -786,6 +883,17 @@ fun ChatScreen(
                                     enabled = !isTyping,
                                     onClick = { viewModel.executeQuickReply(it) },
                                 )
+                                // 持久错误横幅：紧贴 MessageInput 上沿、在 Compose 层内渲染
+                                // （系统 Toast/snackbar 都会被 HTML 原生覆盖层遮挡）。error 非空即
+                                // 一直显示，点关闭才 clearError()；「重试」在生成中/无消息可重试时隐藏
+                                if (error != null) {
+                                    ChatErrorBanner(
+                                        message = error.orEmpty(),
+                                        canRetry = !isTyping && messages.isNotEmpty(),
+                                        onRetry = { viewModel.retryLastGeneration() },
+                                        onDismiss = { viewModel.clearError() },
+                                    )
+                                }
                                 MessageInput(
                                     callbacks =
                                         MessageInputCallbacks(

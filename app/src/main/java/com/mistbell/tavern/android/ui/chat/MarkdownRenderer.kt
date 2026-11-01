@@ -49,61 +49,96 @@ private val ACTION_PATTERN = Regex("""(?<!\])\(([^)]+?)\)|（([^）]+?)）""")
 // 行内代码背景（半透明黑，深浅色共用，保持原行为）
 private val INLINE_CODE_BACKGROUND = Color(0x1A000000)
 
-@Suppress("FunctionNaming")
+@Suppress("FunctionNaming", "LongParameterList")
 @Composable
 fun MarkdownRenderer(
     content: String,
-    // 深浅色必须由调用方显式传入（应用内三态 darkModeSetting 算出的结果），
+    // 深浅色必须由调用方显式传入（应用内三态 darkModeSetting 算出的结果）
     // 本组件不再自行读取 isSystemInDarkTheme()：系统深色 ≠ 应用内选择的深色
     dark: Boolean,
     // 气泡背景可能是角色主题色；传入后让括号高亮与当前气泡保持足够对比度。
     highlightColor: Color? = null,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier,
+    // false = 不挂 SelectionContainer。消息气泡的"长按弹出上下文菜单"与
+    // SelectionContainer 的"长按选择文本"共用同一次长按手势：菜单弹出的同时
+    // foundation 也在气泡内启动了文本选择，抬指后系统浮动文本工具条
+    // （FloatingActionMode，独立于菜单窗口的 framework 弹窗）会叠加到菜单窗口
+    // 上层——菜单贴屏幕底部时工具条恰好盖住靠下的菜单项（如"撤销"），吞掉其
+    // 点击。调用方在菜单打开期间传 false 即整体卸载选择容器，根除该冲突。
+    selectable: Boolean = true,
 ) {
     // 记忆化：同一 content 只解析一次，重组/流式增量时避免重复解析整篇
     val segments = remember(content) { parseMarkdown(content) }
-    SelectionContainer(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            segments.forEach { segment ->
-                when (segment) {
-                    is MdSegment.CodeBlock -> CodeBlock(segment.code, segment.language)
-                    is MdSegment.Header ->
-                        Text(
-                            text = segment.text,
-                            style =
-                                MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize =
-                                        if (segment.level == 1) {
-                                            18.sp
-                                        } else if (segment.level == 2) {
-                                            16.sp
-                                        } else {
-                                            14.sp
-                                        },
-                                ),
-                        )
-                    is MdSegment.ListItem ->
-                        Text(
-                            text = "• ${segment.text}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = (segment.depth * 12).dp),
-                        )
-                    is MdSegment.Paragraph -> {
-                        // 主题颜色在组合期读取后作为参数传入 remember 块，
-                        // 避免 remember 内读取 snapshot state 把首次颜色固化
-                        val linkColor = MaterialTheme.colorScheme.primary
-                        val resolvedHighlightColor = highlightColor ?: MaterialTheme.colorScheme.tertiary
-                        // 记忆化：同一文本 + 同一主题状态只构建一次 AnnotatedString
-                        val annotated =
-                            remember(segment.text, dark, linkColor, resolvedHighlightColor) {
-                                buildAnnotatedString {
-                                    appendInlineMarkdown(segment.text, dark, linkColor, resolvedHighlightColor)
-                                }
+    if (selectable) {
+        SelectionContainer(modifier = modifier) {
+            MarkdownBody(
+                segments = segments,
+                dark = dark,
+                textColor = textColor,
+                highlightColor = highlightColor,
+            )
+        }
+    } else {
+        // 与 SelectionContainer 的 SimpleLayout 等价的普通容器，切换时不产生视觉跳动
+        Box(modifier = modifier) {
+            MarkdownBody(
+                segments = segments,
+                dark = dark,
+                textColor = textColor,
+                highlightColor = highlightColor,
+            )
+        }
+    }
+}
+
+/** Markdown 渲染主体（文本块列表），由可选中的 SelectionContainer 或普通 Box 承载。 */
+@Composable
+private fun MarkdownBody(
+    segments: List<MdSegment>,
+    dark: Boolean,
+    textColor: Color,
+    highlightColor: Color?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        segments.forEach { segment ->
+            when (segment) {
+                is MdSegment.CodeBlock -> CodeBlock(segment.code, segment.language)
+                is MdSegment.Header ->
+                    Text(
+                        text = segment.text,
+                        style =
+                            MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize =
+                                    if (segment.level == 1) {
+                                        18.sp
+                                    } else if (segment.level == 2) {
+                                        16.sp
+                                    } else {
+                                        14.sp
+                                    },
+                            ),
+                    )
+                is MdSegment.ListItem ->
+                    Text(
+                        text = "• ${segment.text}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = (segment.depth * 12).dp),
+                    )
+                is MdSegment.Paragraph -> {
+                    // 主题颜色在组合期读取后作为参数传入 remember 块，
+                    // 避免 remember 内读取 snapshot state 把首次颜色固化
+                    val linkColor = MaterialTheme.colorScheme.primary
+                    val resolvedHighlightColor = highlightColor ?: MaterialTheme.colorScheme.tertiary
+                    // 记忆化：同一文本 + 主题状态只构建一次 AnnotatedString
+                    val annotated =
+                        remember(segment.text, dark, linkColor, resolvedHighlightColor) {
+                            buildAnnotatedString {
+                                appendInlineMarkdown(segment.text, dark, linkColor, resolvedHighlightColor)
                             }
-                        Text(text = annotated, style = MaterialTheme.typography.bodyMedium, color = textColor)
-                    }
+                        }
+                    Text(text = annotated, style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
         }
