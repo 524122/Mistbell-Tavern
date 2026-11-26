@@ -30,6 +30,8 @@ android {
         targetSdk 37
         versionCode 19
         versionName "0.9.8-beta"
+        // androidTest 运行器：connected / 托管设备任务默认调用它（此前未显式声明，靠 am instrument 手动指定）
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
                 arguments "-DLITEHTML_BUILD_TESTING=OFF"
@@ -121,6 +123,19 @@ android {
     testOptions {
         unitTests {
             returnDefaultValues = true
+        }
+
+        // CI 托管设备（.github/workflows/ci.yml 的 androidTest job）：API 34 的 aosp x86_64 镜像是
+        // 4K 页，避开 16K 页镜像对三方 .so 的兼容告警；minSdk 26，覆盖面足够
+        managedDevices {
+            localDevices {
+                ciPixel6Api34 {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp"
+                    testedAbi = "x86_64"
+                }
+            }
         }
     }
 }

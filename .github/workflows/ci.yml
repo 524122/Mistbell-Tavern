@@ -5,10 +5,17 @@ on:
     branches: [ feature, main, master ]
   pull_request:
 
+# Android SDK 组件直接用 runner 自带的 sdkmanager 分步安装（licenses → platform → NDK/CMake）。
+# 2026-10-01 起 android-actions/setup-android@v3 在"Set up Android SDK"步骤内失败、Gradle 尚未开始，
+# 连续 18 次运行全红；拆成独立步骤后，哪一步失败从运行页的步骤结论就能定位，不必翻日志。
+# 版本与 app/build.gradle 对齐：compileSdk 37、ndkVersion 28.2.13676358、CMake 3.22.1。
+# build-tools 由 AGP 按自身默认版本自动补装（licenses 已接受）。
+
 jobs:
   verify:
     name: Build & Verify (F0 质量门)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,8 +26,23 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK（固定版本，避免 runner 镜像漂移）
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licenses
+        shell: bash
+        # `yes` 被对端关闭管道时以 SIGPIPE 退出，在 pipefail 下会让步骤误判失败，故兜底为 true；
+        # 许可没真正接受的话，后面两步安装会明确失败
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Install Android platform 37
+        shell: bash
+        run: sdkmanager "platforms;android-37"
+
+      - name: Install NDK 28.2.13676358 and CMake 3.22.1
+        shell: bash
+        run: sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
+
+      - name: List installed Android SDK packages
+        shell: bash
+        run: sdkmanager --list_installed | tail -n 30
 
       - name: Set up Gradle（缓存与校验）
         uses: gradle/actions/setup-gradle@v4
@@ -28,9 +50,19 @@ jobs:
       - name: Ensure gradlew executable（防御 Windows 提交丢失可执行位）
         run: chmod +x gradlew
 
-      - name: Build & Verify
-        # 与本地 `gradlew checkAll` 等价：构建 + 单测 + detekt + ktlint + 许可证红线
-        run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:detekt :app:ktlintCheck licenseGuard --continue
+      # 与本地 `gradlew checkAll` 等价的五个检查，拆成独立步骤：日志需要登录才能看，
+      # 步骤级结论匿名可读，哪一步失败从运行页就能定位
+      - name: assembleDebug
+        run: ./gradlew :app:assembleDebug --console=plain
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --console=plain
+
+      - name: detekt and ktlint
+        run: ./gradlew :app:detekt :app:ktlintCheck --console=plain
+
+      - name: licenseGuard
+        run: ./gradlew licenseGuard --console=plain
 
       - name: Upload reports (on failure)
         if: failure()
@@ -41,3 +73,59 @@ jobs:
             app/build/reports/**
             build/reports/**
           if-no-files-found: ignore
+
+  instrumented:
+    name: androidTest (Gradle Managed Device)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    # 观察期（docs/ROADMAP.md 重新设计规划 P0 第 2 项）：本 job 只报告、不拦截推送与合并。
+    # 连续 7 次绿之后去掉这一行，改为必须通过。不做自动重试——重试会把不稳定藏起来。
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Install Android platform 37, NDK, CMake and the managed device image
+        shell: bash
+        # 托管设备镜像与 app/build.gradle 的 testOptions.managedDevices.ciPixel6Api34 对应
+        run: sdkmanager "platforms;android-37" "ndk;28.2.13676358" "cmake;3.22.1" "system-images;android-34;aosp;x86_64"
+
+      - name: Enable KVM
+        # 托管设备依赖 /dev/kvm；runner 镜像默认只允许 kvm 组访问
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Set up Gradle（缓存与校验）
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Ensure gradlew executable
+        run: chmod +x gradlew
+
+      - name: Run androidTest on the managed device
+        # 82 例 instrumented 测试：Room 迁移数据完整性、向量/记忆契约、渲染冒烟
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:ciPixel6Api34DebugAndroidTest --console=plain
+
+      - name: Upload androidTest reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidtest-reports
+          path: |
+            app/build/outputs/androidTest/**
+            app/build/reports/androidTests/**
+          if-no-files-found: ignore
+          retention-days: 7
