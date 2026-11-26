@@ -165,8 +165,14 @@ object MemoryEvalReport {
         lines += "- 生成时间（UTC）：${TIMESTAMP.format(Instant.now())}"
         lines += "- 运行：${input.runLabel.ifBlank { input.mode.label }}"
         input.recordingModel?.let { lines += "- 录制模型：$it" }
-        lines += "- 召回通道：${input.recallChannel}（MockEmbeddingService 为确定性词法回退，向量路不参与注入；" +
-            "向量召回由设备侧「真 ONNX」证据单独测）"
+        lines +=
+            if (input.origin == MemoryEvalMetrics.DEFAULT_ORIGIN) {
+                "- 召回通道：${input.recallChannel}（MockEmbeddingService 为确定性词法回退，向量路不参与注入；" +
+                    "向量召回由设备侧「真 ONNX」证据单独测）"
+            } else {
+                "- 召回通道：${input.recallChannel}（设备侧真栈：真 Room + 本地 ONNX embedding + sqlite-vec，" +
+                    "向量同步按生产时序排空 outbox）"
+            }
         input.replays.firstOrNull()?.let { first ->
             lines += "- 夹具预算=${first.fixture.contextTokenLimit}，运行预算=${first.replay.contextTokenLimit}" +
                 "（驱动器一律读夹具/覆盖参数，不写死）"
@@ -218,9 +224,17 @@ object MemoryEvalReport {
         lines += "## 来源标签"
         lines += ""
         lines += "每个数字标注来源：**$label**。三种证据各证各的——"
-        lines += "- 回放夹具（本报告）：抽取、去重、召回、注入**管线还在**；JVM 上 embedding 为确定性 Mock，召回走词法回退。"
-        lines += "- 真 ONNX（设备侧 androidTest，后续任务）：向量召回的真实命中率/过期注入/噪声。"
-        lines += "- 真实探针（发版时 20 条）：抽取的真实水平（RECORDED 模式以录制数据在 JVM 预演）。"
+        if (input.origin == MemoryEvalMetrics.DEFAULT_ORIGIN) {
+            lines += "- 回放夹具（本报告）：抽取、去重、召回、注入**管线还在**；JVM 上 embedding 为确定性 Mock，召回走词法回退。"
+            lines += "- 真 ONNX（设备侧 androidTest，后续任务）：向量召回的真实命中率/过期注入/噪声。"
+            lines += "- 真实探针（发版时 20 条）：抽取的真实水平（RECORDED 模式以录制数据在 JVM 预演）。"
+        } else {
+            lines += "- 真 ONNX（本报告，设备侧 androidTest）：真 Room + 本地 ONNX embedding + sqlite-vec，" +
+                "向量同步按生产时序（触发器 → outbox → recoverSource/recoverDue 排空）执行；" +
+                "向量召回的真实命中率/过期注入/噪声。"
+            lines += "- 词法回退（JVM 侧单测）：抽取、去重、注入**管线还在**；embedding 为确定性 Mock，召回走词法回退。"
+            lines += "- 真实探针（发版时 20 条）：抽取的真实水平（RECORDED 模式以录制数据在 JVM 预演）。"
+        }
         lines += ""
         appendOraclePolicy(lines, input)
         appendImportanceDistribution(lines, input)

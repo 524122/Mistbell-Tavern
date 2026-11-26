@@ -7,6 +7,7 @@ import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
+import com.mistbell.tavern.android.data.prompt.RecallDiagnostics
 import com.mistbell.tavern.android.data.repository.PendingExtractionStore
 import com.mistbell.tavern.android.data.repository.PendingExtractionTurn
 import com.mistbell.tavern.android.data.repository.StructuredMemoryRepository
@@ -154,6 +155,11 @@ data class ProbeRecord(
     val contextTokenLimit: Int,
     /** 结构化块里实际注入的记忆类型（观察各楼注入面） */
     val structuredTypes: List<String> = emptyList(),
+    /**
+     * 本轮召回诊断原样保留（设备侧真 ONNX 证据断言用：lexicalOnly / vectorAvailable /
+     * vectorCandidates）。JVM 指标与报告不消费它；默认 null 保持既有构造兼容。
+     */
+    val recallDiagnostics: RecallDiagnostics? = null,
 )
 
 /** 一个会话的回放结果 */
@@ -484,6 +490,7 @@ class MemoryEvalDriver(
                 structuredTypes = structuredTypesOf(rows),
                 injectedMemoryTokens = injectedMemoryTokens,
                 contextTokenLimit = budget,
+                recallDiagnostics = trace.recallDiagnostics,
             )
         }
 

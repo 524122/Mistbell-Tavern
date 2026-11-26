@@ -216,6 +216,12 @@ data class EvalInput(
     /** 运行标签（如 "默认预算" / "预算覆盖 1024" / "退化·清空抽取输出"） */
     val runLabel: String = "",
     val recordingModel: String? = null,
+    /**
+     * 证据来源（三种证据分开看）：默认 JVM 侧；设备侧真栈运行传
+     * "设备侧 / 真 ONNX·sqlite-vec"。只影响来源标签与报告里 JVM 专有的措辞，
+     * 不影响任何指标计算。
+     */
+    val origin: String = MemoryEvalMetrics.DEFAULT_ORIGIN,
 )
 
 /**
@@ -224,8 +230,11 @@ data class EvalInput(
  */
 @Suppress("TooManyFunctions")
 object MemoryEvalMetrics {
-    /** 来源标签：三种证据里的「JVM / 回放夹具」，召回通道如实标注（Mock embedding → 词法回退） */
-    fun sourceLabel(input: EvalInput): String = "JVM / 回放夹具 / ${input.mode.label}·${input.recallChannel}"
+    /** 证据来源的默认值（JVM 侧）；设备侧真栈运行覆写（见 [EvalInput.origin]） */
+    const val DEFAULT_ORIGIN = "JVM / 回放夹具"
+
+    /** 来源标签：三种证据各证各的（JVM / 设备侧真 ONNX），召回通道如实标注 */
+    fun sourceLabel(input: EvalInput): String = "${input.origin} / ${input.mode.label}·${input.recallChannel}"
 
     private fun fixtureOf(
         input: EvalInput,

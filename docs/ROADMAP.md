@@ -185,8 +185,8 @@
 
 - 进度（2026-11-27）：
   - 第 1 项夹具已完成：12 个骨架、确定性拼装与校验脚本、12 个会话夹具（`a7db7d9`、`a80cb5c`）。骨架做过一轮独立人工语义审计，修掉 57 处探针视角写反与一批重述改了取值的问题；校验器补了「探针视角」「重述保住取值词」两条规则。
-  - 第 2 项的 JVM 侧驱动器已完成：评测核心放在 `app/src/sharedTest`（test 与 androidTest 共用），ORACLE / RECORDED 两种抽取来源、各指标与报告落 `build/reports/memory-eval/`，三种人为退化都能让指标如实变差。RECORDED 录制与设备侧真 ONNX 待做。
-  - 第 3 项闸门：JVM / ORACLE 的注入命中率 27.5%，低于 50%，闸门触发。修哪一轮管线错误，等设备侧与 RECORDED 两类证据到齐再定。数字、读数与评测自身的修正记录见 `docs/MEMORY_EVAL.md`。
+  - 第 2 项的驱动器已完成：评测核心放在 `app/src/sharedTest`（test 与 androidTest 共用），ORACLE / RECORDED 两种抽取来源、各指标与报告落 `build/reports/memory-eval/`，三种人为退化都能让指标如实变差。JVM 侧（词法回退）与设备侧真栈（真 Room + 本地 ONNX + 真 sqlite-vec，测试自带「确实走到向量路」的证据断言，默认不在 CI 跑）两类证据都已产出；RECORDED 录制待做。
+  - 第 3 项闸门：ORACLE 抽取下注入命中率 JVM 27.5%、设备侧 30.1%，都低于 50%，闸门触发。修哪一轮管线错误，等 RECORDED 与一个向量检索排名的诊断到齐再定。数字、读数与评测自身的修正记录见 `docs/MEMORY_EVAL.md`。
   - 第 4 项未开始。
 
 ### P3 门面：执行边界与导入层（8–10 天，支线）

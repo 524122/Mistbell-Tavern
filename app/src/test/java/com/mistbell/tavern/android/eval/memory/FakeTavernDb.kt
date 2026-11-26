@@ -90,9 +90,16 @@ class FakeTavernDb {
         return content.contains(term, ignoreCase = true)
     }
 
+    /**
+     * 与生产 DAO 的 ORDER BY importance DESC, created_at DESC 同序。时间戳并列时按 id **降序**定序，
+     * 方向与「新的在前」一致：记忆的 createdAt 由生产代码取 Instant.now()，同一批里先后保存的两条
+     * 只隔几微秒，而这台机器上 Instant.now() 约十几微秒才变一次，两条偶尔会拿到完全相同的时间戳。
+     * 并列时若不定序（或反向定序），排在入选边界上的那一条会在两次运行之间翻转，评测数字不可复现。
+     */
     private fun importanceOrder() =
         compareByDescending<StructuredMemoryEntity> { it.importance }
             .thenByDescending { it.createdAt }
+            .thenByDescending { it.id }
 
     private fun messagesFor(
         sessionId: String,
