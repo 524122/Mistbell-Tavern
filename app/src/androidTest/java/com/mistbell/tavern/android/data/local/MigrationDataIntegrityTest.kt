@@ -326,44 +326,15 @@ class MigrationDataIntegrityTest {
         raw.close()
     }
 
-    /** 打开数据库并执行迁移（用生产同款迁移链，直达当前版本 35） */
+    /**
+     * 打开数据库并执行迁移——用生产同款的唯一迁移清单 [AppDatabase.ALL_MIGRATIONS]，直达当前版本。
+     * 不要在这里另抄迁移列表：此前手抄的清单停在 35→36 之前，数据库升到 39 后全部用例报
+     * "A migration from 11 to 39 was required but not found"。
+     */
     private fun openWithRoom(): AppDatabase {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         return Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-            .addMigrations(
-                AppDatabase.Companion.MIGRATION_3_4,
-                AppDatabase.Companion.MIGRATION_4_5,
-                AppDatabase.Companion.MIGRATION_5_6,
-                AppDatabase.Companion.MIGRATION_6_7,
-                AppDatabase.Companion.MIGRATION_7_8,
-                AppDatabase.Companion.MIGRATION_8_9,
-                AppDatabase.Companion.MIGRATION_9_10,
-                AppDatabase.Companion.MIGRATION_10_11,
-                AppDatabase.Companion.MIGRATION_11_12,
-                AppDatabase.Companion.MIGRATION_12_13,
-                AppDatabase.Companion.MIGRATION_13_14,
-                AppDatabase.Companion.MIGRATION_14_15,
-                AppDatabase.Companion.MIGRATION_15_16,
-                AppDatabase.Companion.MIGRATION_16_17,
-                AppDatabase.Companion.MIGRATION_17_18,
-                AppDatabase.Companion.MIGRATION_18_19,
-                AppDatabase.Companion.MIGRATION_19_20,
-                AppDatabase.Companion.MIGRATION_20_21,
-                AppDatabase.Companion.MIGRATION_21_22,
-                AppDatabase.Companion.MIGRATION_22_23,
-                AppDatabase.Companion.MIGRATION_23_24,
-                AppDatabase.Companion.MIGRATION_24_25,
-                AppDatabase.Companion.MIGRATION_25_26,
-                AppDatabase.Companion.MIGRATION_26_27,
-                AppDatabase.Companion.MIGRATION_27_28,
-                AppDatabase.Companion.MIGRATION_28_29,
-                AppDatabase.Companion.MIGRATION_29_30,
-                AppDatabase.Companion.MIGRATION_30_31,
-                AppDatabase.Companion.MIGRATION_31_32,
-                AppDatabase.Companion.MIGRATION_32_33,
-                AppDatabase.Companion.MIGRATION_33_34,
-                AppDatabase.Companion.MIGRATION_34_35,
-            )
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
             .addCallback(AppDatabase.vectorSyncCallback)
             .allowMainThreadQueries()
             .build()

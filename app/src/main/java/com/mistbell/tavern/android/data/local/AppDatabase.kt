@@ -903,6 +903,54 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        /**
+         * 全部已登记的迁移，按版本升序——生产库（[getInstance]）与迁移测试共用的唯一清单。
+         *
+         * 只往末尾追加：不移除既有迁移（存量用户可能停在任意旧版本），测试也不要另抄一份。
+         * 前车之鉴：MigrationDataIntegrityTest 曾手抄到 35→36 为止，之后四版没补，测试连续数周
+         * 失败而无人发现（当时 CI 没跑 androidTest）。链的连续性与终点版本由 JVM 单测
+         * MigrationChainContinuityTest 断言。
+         */
+        internal val ALL_MIGRATIONS: Array<Migration> =
+            arrayOf(
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+                MIGRATION_8_9,
+                MIGRATION_9_10,
+                MIGRATION_10_11,
+                MIGRATION_11_12,
+                MIGRATION_12_13,
+                MIGRATION_13_14,
+                MIGRATION_14_15,
+                MIGRATION_15_16,
+                MIGRATION_16_17,
+                MIGRATION_17_18,
+                MIGRATION_18_19,
+                MIGRATION_19_20,
+                MIGRATION_20_21,
+                MIGRATION_21_22,
+                MIGRATION_22_23,
+                MIGRATION_23_24,
+                MIGRATION_24_25,
+                MIGRATION_25_26,
+                MIGRATION_26_27,
+                MIGRATION_27_28,
+                MIGRATION_28_29,
+                MIGRATION_29_30,
+                MIGRATION_30_31,
+                MIGRATION_31_32,
+                MIGRATION_32_33,
+                MIGRATION_33_34,
+                MIGRATION_34_35,
+                MIGRATION_35_36,
+                MIGRATION_36_37,
+                MIGRATION_37_38,
+                MIGRATION_38_39,
+            )
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -910,6 +958,7 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        @Suppress("SpreadOperator") // Room 的 addMigrations 是 vararg，清单只在库打开时展开一次
         fun getInstance(context: Context): AppDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -917,44 +966,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tavern.db",
                 )
-                    .addMigrations(
-                        MIGRATION_3_4,
-                        MIGRATION_4_5,
-                        MIGRATION_5_6,
-                        MIGRATION_6_7,
-                        MIGRATION_7_8,
-                        MIGRATION_8_9,
-                        MIGRATION_9_10,
-                        MIGRATION_10_11,
-                        MIGRATION_11_12,
-                        MIGRATION_12_13,
-                        MIGRATION_13_14,
-                        MIGRATION_14_15,
-                        MIGRATION_15_16,
-                        MIGRATION_16_17,
-                        MIGRATION_17_18,
-                        MIGRATION_18_19,
-                        MIGRATION_19_20,
-                        MIGRATION_20_21,
-                        MIGRATION_21_22,
-                        MIGRATION_22_23,
-                        MIGRATION_23_24,
-                        MIGRATION_24_25,
-                        MIGRATION_25_26,
-                        MIGRATION_26_27,
-                        MIGRATION_27_28,
-                        MIGRATION_28_29,
-                        MIGRATION_29_30,
-                        MIGRATION_30_31,
-                        MIGRATION_31_32,
-                        MIGRATION_32_33,
-                        MIGRATION_33_34,
-                        MIGRATION_34_35,
-                        MIGRATION_35_36,
-                        MIGRATION_36_37,
-                        MIGRATION_37_38,
-                        MIGRATION_38_39,
-                    )
+                    .addMigrations(*ALL_MIGRATIONS)
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：
                     // 遇到未覆盖的版本 Room 会直接抛 IllegalStateException（明确失败），
