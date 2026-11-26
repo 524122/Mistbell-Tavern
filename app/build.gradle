@@ -277,6 +277,14 @@ tasks.withType(com.android.build.gradle.tasks.MergeSourceSetFolders).configureEa
     }
 }
 
+// 会话记忆评测核心（P2）：与环境无关的评测代码与夹具资源放 sharedTest，
+// 同时进 test（JVM 回放）与 androidTest（设备侧真 ONNX/sqlite-vec/Room 复用）两个源集；
+// JVM 专有实现（数据库替身、录制/回放测试）仍在 src/test。
+android.sourceSets.getByName("test").java.srcDir("src/sharedTest/java")
+android.sourceSets.getByName("androidTest").java.srcDir("src/sharedTest/java")
+android.sourceSets.getByName("test").resources.srcDir("src/sharedTest/resources")
+android.sourceSets.getByName("androidTest").resources.srcDir("src/sharedTest/resources")
+
 // ---- F0 质量门配置（见 docs/FOUNDATION.md）----
 
 detekt {
@@ -285,6 +293,8 @@ detekt {
     config = files("$rootDir/config/detekt/detekt.yml")
     // 基线吸收存量告警，新代码零容忍；基线文件入库，随修复逐步清空
     baseline = file("$rootDir/config/detekt/baseline.xml")
+    // 显式声明扫描面：sharedTest（评测核心，test/androidTest 共用）也纳入静态检查
+    source.setFrom(files("src/main/java", "src/main/kotlin", "src/test/java", "src/test/kotlin", "src/sharedTest/java"))
     reports {
         html { required.set(true) }
         xml { required.set(false) }
