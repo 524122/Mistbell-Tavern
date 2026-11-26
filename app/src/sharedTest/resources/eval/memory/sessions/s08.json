@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s08",
+  "title": "海岛慢时光",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "回来啦？灶上还温着绿豆汤，先喝一碗再上楼。今儿风软，院里的三角梅晒得正香。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "今天乌云压得低，要下雨？"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "西边还亮着，这雨下不大。海岛的云喜怒无常，你看那道亮缝，天要收了，晾的鱼干再挂一会儿。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "昨晚梦里全是海浪的声音。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "听惯了就长进骨头里，回头回城，安静得反而睡不着。许多客人都说这毛病，我把浪声录一段给你带走。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "你家冰柜那盒杨梅冰，我一天一盒雷打不动。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "行，这话我记下了。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "昨晚灶膛里的火星子溅出来了。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "烧松柴就是这样，火星欢。我给灶前换了块新铁皮挡着，你夜里路过灶间，离灶口两步，安全的规矩不能省。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "你们洗的床单雪白，怎么洗的？"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "皂角水先泡，大锅煮一遍，太阳再接力。漂白剂省了，海风和日头就是最好的药剂，还带香气。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "你从前是做什么的呀？"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "秋葵那股黏劲儿我享不了，我家灶头从不进这东西。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "你们后院的柴垛码得真整齐。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "一层横一层竖，风吹不倒。码柴是老辈传的功课，急不得，码柴能磨性子，脾气急的人干不了这活。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "院里种的那畦小葱能掐吗？"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "掐，越掐越发。做汤撒一把，香气完全两样。这一畦小葱是我的调味库，客人们谁用谁摘，方便。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "每天下午我都得来一份你家的椰子冻。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "嗯，心里有数了。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "今天风大，晾的床单拍得响。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "大风天晒的床单最松软，太阳味混着咸味。晚上你睡进去，能梦见自己趴在浪背上，信我。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "院里那堆贝壳是干什么用的？"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "给孩子们做手工的，穿风铃。风一响叮叮当当，客人走时我送一串，声音留在屋里，人走了响动还在。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "这岛上的日子过习惯了吗？"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "堂屋那座船木座钟是我曾祖母留下的，走了快一百年。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "下午茶点里我点名要的那口酸甜，你还有印象吗？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "哎，灶上汤还炖着，容我去看看再来。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "我靠画插画吃饭，一台电脑一支笔走天下。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "好嘞，就这么办。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "冰柜里的杨梅冰我天天都要来一盒。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "哟，还有这一说。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "屋里的除湿盒换得勤吗？"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "一月一换，海岛的湿气钻骨头。被褥我逢晴就晒，你睡的房间昨儿刚晒过，钻被窝有一股太阳香。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "昨夜落了点雨，凉快多了。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "夜雨来得快去得快，瓦都还没湿透。今晨的空气最清，你早点起来，那两个钟头是一天里的头等舱。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "讲讲你年轻时候的事呗。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "我年轻时在远洋货轮上干过八年水手长。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "你们晾的毛巾总有海风味。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "洗净晾在朝阳那面，风一过全留下味。客人走时我塞一条在包里，说是念想，其实是私心，让你想岛。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "你家里人都在哪儿呢？"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "我是这岛土生土长的，渔村小学念到三年级。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "昨晚的月亮升起来真晚。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "十五前月亮都贪睡，后半夜才露脸。你想看月出海，明晚守到十一点，那景象一辈子忘不掉。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "最近有什么开心事吗？"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "堂屋那口老座钟，船木的壳子，曾祖母传到我这辈。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "岛上你都跟谁熟络啊？"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "我抽屉里压着一本旧潮汐手账，记了二十多年。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "昨晚后半夜近海有灯，一亮一亮。"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "那是灯捕的船在诱鱼，一夜亮到天明。你若起得来，去堤上看一眼，整片海像撒了碎金，那才是海岛的心脏在跳。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "绿莹莹切段发黏的那样菜，你说啥都不进货？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "这会儿晾晒的正忙，回头细说。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "开民宿是你一直的心愿吗？"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "跑远洋那几年，我当到水手长，一干八年。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "你们前院的秋千是谁扎的？"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "我用旧船缆和木板扎的，结实得很。大人小孩都爱荡，荡高了能看见院墙外的海，秋千就是短途旅行。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "我护照上盖着十一个国家的入境章。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "明白，往后我留神。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "昨夜大风把院门吹开了。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "门闩松了，我今早换了根硬木的。海岛的夜风有劲，门要闩牢，窗要扣紧，跟船上一套道理。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "你平常一天都忙些什么？"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "去年冬天那场台风掀了凉亭的顶，捡了三天瓦。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "这阵子睡得踏实吗？"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "那本潮汐手账我收了二十多年，纸都翻毛了。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "今晨的雾好大，渡船晚点了。"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "春雾不隔潮，雾散船就到。赶时间的客别急，我这儿有热粥，坐着等，雾气一收船就靠岸。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "今天海滩上的脚印一排排。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "清晨的滩最干净，谁走过都留着。我散步不看海，看脚印，能猜出谁赶早、谁失眠、谁带着孩子，有意思。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "我上岛那天赶得巧，拎着行李先逛了一圈早渔市。"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "中，亏你提个醒。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "你们的餐桌布是蓝染的。"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "镇上老作坊染的，一缸蓝用三代。蓝布配白瓷碗，饭都香三分，老手艺摆在那儿就是讲究。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "往后你有什么打算？"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "今年端午我陪村里划龙船，拿了第二名。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "今天外海的浪花白得晃眼。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "那是阳光在碎玻璃上跳。拍岸的力道看涨潮几分开，你下滩踩水，听我一句，卷裤腿再往前。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "午后甜口我必点的那样白嫩嫩的是什么，你想起来没？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "嘿，你这一问把我问住了，容我转转脑子。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "你从前是做什么的呀？"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "我出海都搭隔壁老陈的船，三十年的老交情。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "这岛上的日子过习惯了吗？"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "台风把凉亭顶掀飞那回，我捡瓦捡了三天。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "小卖部的秀阿婆跟我处得像忘年交，天天给我留热包子。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "好，这事我上心了。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "讲讲你年轻时候的事呗。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "我闺女原本在省城读初中，爷俩一年见不上几面。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "我有偏头痛的旧账，一累就单边疼。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "嗯呐，都听你的。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "你家里人都在哪儿呢？"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "我这鼻子一换季就喷嚏连天，纸不离手。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "最近有什么开心事吗？"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "我那条蓝白漆的渔船跟了我十一年。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "岛上你都跟谁熟络啊？"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "我一直想把顶楼腾出来改成观星台。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "我想在离开前把自由潜学会，预算都留好了。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "好家伙，长见识了。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "我跟我妈还顶着呢，一周说不上一句话。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "唉，听你这么说我放心了。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "我想凑一组环岛写生，满三十张就印成小册子。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "成，我心里有底了。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "大堂里报时最响的那件老家什，年纪多大你记得吗？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "先喝口凉茶，这事咱缓缓再说。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "我老家在山城，来岛上之前没见过这么平的海平线。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "这话在理，收下了。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "我那只旧木画箱跟了我六年，锁扣都磨亮了。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "好嘛，回头我跟大伙说。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "偏头痛的老根儿还在，累狠了单边跳着疼。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "得嘞，都按你说的来。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "开民宿是你一直的心愿吗？"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "我这换季的鼻子，犯起来半包纸都不够用。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "你平常一天都忙些什么？"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "前厅那台旧卡座只放渔歌老磁带，住客嫌土我也照放。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "这阵子睡得踏实吗？"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "咱这渔市逢五逢十开市，风雨无阻。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "往后你有什么打算？"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "出海回回坐老陈那条船，交情三十年了。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "环岛的写生我攒着呢，画满三十张就装订成册。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "嗯，这日子有奔头。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "去年中秋沙滩篝火那晚，大家伙儿烤棉花糖到半夜。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "妥，就这么定了。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "昨晚睡前那碗姜汤真暖。"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "老姜拍裂煮透，加两粒枣。淋了雨的人我必煮一碗，海岛上的规矩，寒气不等人，先下手为强。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "你们晾衣服用竹竿还是铁架？"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "竹竿，海风一吹轻便。铁架受盐气，两年就锈成渣。海岛上过日子，木头和竹子比铁器经用，这是经验。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "我一坐船就晕，吐得昏天黑地。"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "行，这话我记下了。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "我在岛上还照常开工的那门手艺是什么，记得吗？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "我得先去收晒场的被子，这话题押后。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "你们种的木瓜熟了一茬。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "头茬最甜，我摘了两个冰着。饭后一人一半，籽刮干净，木瓜这东西看着朴实，甜起来一点不含糊。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "你们家的老木门吱呀响。"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "老合页，我上回油就轻。响也有响的道理，夜里一听就知道谁回来了，海岛上的门铃全靠它。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "你从前是做什么的呀？"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "渔船上个月出手了，出海都租老陈的。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "我那辆二手山地车是刚上岛时置办的。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "嗯，心里有数了。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "我还住三零二那间海景房，推窗就是码头。"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "好嘞，就这么办。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "中秋那通电话后我俩和好了，如今天天视频。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "哟，还有这一说。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "开放水域的证上个月拿到了，能下八米。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "明白，往后我留神。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "这岛上的日子过习惯了吗？"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "上礼拜木地板铺完，观星台开放给住客了。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "讲讲你年轻时候的事呗。"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "她转回岛上中学了，放学就在前厅写作业。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "换了枕头又天天散步，一个多月没犯了。"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "中，亏你提个醒。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "你家里人都在哪儿呢？"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "入了秋喷剂用上，鼻子总算消停了。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "我上船就脸色发青的毛病，你有印象吗？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "岛上的规矩，急事慢慢说，咱不赶这一时。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "你们这儿晚上会停电吗？"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "大风天偶尔停，蜡烛和应急灯都备着。停电的夜反而热闹，客人聚到院里聊天，星光比灯亮。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "你们煮饭用柴火还是煤气？"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "两口灶都开，柴火炖汤煤气炒菜。各干各的拿手活，人尽其才，灶台也讲这个，凑合不出好饭。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "这岛上看到的星星真多。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "没有光害，银河清清楚楚。你仰头看十分钟，脖子酸了躺竹椅上接着看，城里欠你的夜空，这儿都还你。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "你们收的贝壳都摆哪儿了？"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "前厅玻璃罐里攒着，客人捡的、我捡的混在一罐。谁来了都翻一翻，认出自己那枚的，眼睛都在发光。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "今天的海水涨到石阶第二级。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "大潮，涨得张狂。石阶缝里的小鱼虾全搬了家，明天退潮你又多一片滩，海的账算得比谁都清。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "你们晾的鱼干引来了猫。"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "是隔壁那只狸花，惯犯。我给它备了小半碗鱼杂，它吃饱了就不偷嘴，这叫先礼后兵，海岛上通行。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "院角那株仙人掌开花了。"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "十年才开这一茬，黄花带刺。开花那天我拍张照给老客人寄去，都惦记这株倔家伙，算是老朋友了。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "你们腌的萝卜干脆得很。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "粗盐揉透，压上石块晾七天。脆是因为没偷工，早一天的都不成。配粥一绝，走时装一包给你。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "今天海鸥在屋顶扎堆吵。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "它们在分地盘，吵归吵不动手。海鸥记仇也记恩，你喂过一回，它天天来点名，比客人还准时。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "跟你出海几回后好多了，如今全程站着看浪都不晃。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "好，这事我上心了。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "今天的云像堆起来的棉花。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "那是积雨云，傍晚多半有阵头。晾的东西我先收了，出门带把伞，海岛的雨说来就来，脾气直。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "你们晒的紫菜一整片一整片。"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "头水紫菜，圆薄透亮。煮汤撕一小角就满锅鲜，这东西贵在头茬，跟春茶一个理，早贵晚贱。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "我头年在岛上添置的那台两个轮子的家当，还记得吗？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "你先帮我看着火，这话说来话长。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "今天渡船挤满了回岛的岛民。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "周末，回来吃家里的饭。岛就是这样，走的人多，回来的人更多，船票两头都是牵挂，这很海岛。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "今早屋外的鸟叫得特别早。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "白头翁催太阳呢，它们比闹钟准。你顺着叫声看，屋脊上站一排，全在梳羽毛，比什么风景都精神。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "你们养的母鸡下蛋有规矩。"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "只在草窝下，从不乱窝。我每天晌午收一回，新鲜的蛋煮溏心，客人吃了都问怎么买鸡，我笑而不答。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "链条断了修不划算，我换了辆白色小电驴。"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "嗯呐，都听你的。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "昨晚蚊子凶，我点了半盘蚊香。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "岛上的蚊子认月份，谷雨后最凶。我把纱窗补了两块，再给你挂顶蚊帐，睡前拿艾草熏一熏，管三天。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "院里那丛三角梅开疯了。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "它皮实，越晒越艳，旱一点反而花多。我从不伺候它，它倒年年给我撑门面，草木也有脾性。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "前厅的吊扇转起来有响声。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "老物件了，响是轴承干了。我上点油就静，别小看这扇，夏夜里它比冷气还招人待见。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "你们防大风的木板备好了？"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "备着，一年用一两回。板子编了号，哪扇窗配哪块，风来前两小时装完。海岛人不赌天气，只做准备。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "昨夜有两只猫在屋顶打架。"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "开春了，都急着成家。吵归吵，天亮各自散伙，岛上的猫过得比人洒脱，从不记隔夜的仇。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "今天这片海是薄荷色的。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "那是天的蓝掺了沙的黄，光学把戏。傍晚变成蜜色，你蹲礁石上看半小时，胜过十场电影。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "院里的跷跷板是你做的？"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "旧船板锯的，支点垫的是磨盘。孩子们排队玩，大人偷偷也玩，我逮到过好几回，都装作没看见。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "我落脚的那间房门牌号是多少，你记得吗？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "哟，这我可不敢随口应，容我想想。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "你们门口挂的渔网是装饰？"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "半装饰半实用，网眼大的那张真能用。客人好奇，我教两手打结，学会的人临走都留一句，这手艺值。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "你们饭桌上的咸鲹鱼真下饭。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "自家腌的，粗盐抹透晾三天。咸鱼的魂在于下饭，配一碗热粥，海岛的滋味就全在这一口里。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "你们大锅泡的凉茶真解暑。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "老盐柑加薄荷，大锅煮开晾凉。暑天里客人一进门先灌一碗，汗一收，话匣子就打开了。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "上个月挪去五零一的院景房了，清净不少。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "好家伙，长见识了。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "院里的菠萝蜜熟了没有？"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "还差些火候，壳缝没裂。裂了它会自己掉，咚一声，捡起来就能开。急不得，果子有自己的钟点。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "你们那台收音机还在用吗？"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "用，中午放戏，傍晚报潮时。老人们围着听，年轻人嫌吵，可这台老嗓子一响，屋里就有了人气。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "你们烧的开水有股甜味。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "山泉引下来的，带一点矿味。客人头一喝不惯，三天后回城喝自来水，倒觉得寡淡，人被惯坏了。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "今夜月色好，院子里亮堂。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "月光落在瓦片上像撒了盐。搬张躺椅到院心，听虫叫听浪响，城里人的奢侈，在这儿不值钱。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "昨晚田里蛙声一片，吵吗？"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "稻田那头传来的，吵是吵，听着踏实。蛙声密说明年虫害少，庄稼人的耳朵里，吵闹就是丰收的前奏。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "今早退潮，滩上全是小蟹洞。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "退潮后的滩涂最热闹，你踩着礁石走，别踩青苔那面。晌午涨回来，这一片又还给你一汪蓝。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "今晚后山的萤火虫出来了。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "谷雨后的头一批，在后山竹林里。我提你一盏小灯，去看要轻手轻脚，别惊了它们提灯赶集。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "明天想去对面的小岛转转。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "有班船，上午九点一趟。带上草帽和水，那边滩陡，穿防滑的鞋。晌午前回来，下午的雨追不上你。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "我和我妈眼下处得怎么样了？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "潮水快涨了，我得去关院门，回头聊。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "门口那棵老榕树多少岁了？"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "我祖父小时候就在树下乘凉，算下来一百好几十年。它气根落地就成新干，一棵树长成一片荫。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "雨后院里的石阶有点滑。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "我撒了粗砂，你走外侧那道。青苔滑起来不留情，摔一跤假期能少一半，谨慎是海岛的礼貌。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "你们备的驱蚊草有用吗？"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "香茅和薄荷，窗台一排。味道顶半个蚊香，掐一片搓手上，蚊子绕道走，纯天然的驱虫水。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "今天渡口的告示牌换了新字。"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "船期调整，下午多加一班。岛上的告示就是命令，字写得再糙，大伙儿一看就明白，比什么广播都灵。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "你们的拖鞋都是同款的。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "蓝条纹，好认，混不了。客人穿出去走一圈，我远远一看就知道是自家的，跟放羊认羊一个道理。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "今早那只狸花又蹲在墙头。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "它等早饭呢，比我守时。喂熟了的猫赶不走，索性编进作息表，客人来得多了，它倒成了迎宾。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "今天集市上买到什么好货？"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "一筐刚上岸的小海虾，红得透亮。晌午白灼一盘，蘸点姜醋，鲜味能从舌头一路窜到天灵盖。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "你们窗台的绿萝长得疯。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "海岛的绿植不讲道理，浇点淘米水就窜。绿萝掐一枝插瓶里，你屋里也养一盆，好养活，看着静心。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "今早的日出被云挡了，可惜。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "不亏，云缝里漏出来的那道光叫开天门，比整轮日出金贵。你运气不差，许多人守一年都碰不上。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "你们院里的草帽怎么都一个款？"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "我统一编的，宽檐细辫，晒不透脖子。客人戴着走一圈，回来一挂一排，看着像同一支队伍，整齐。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "今早在滩上捡到一只大海螺。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "贴耳朵听听，有海声。老人们说那是浪的回音存在壳里，你带回去，想岛了就听一听，比照片管用。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "我那门水下功夫眼下练到哪一步了？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "这话题今儿先搁着，晚上围炉再讲。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "你们腌的咸鸭蛋个个流油。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "红泥加了盐卤腌足四十天，个个冒油。配白粥绝了，这是岛上祖传的方子，我娘传给我的。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "你们家的柴火灶还在用？"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "在，炖鱼炖汤全靠它。柴火出的味道煤气给不了，火苗舔着锅底，那股焦香是老祖宗的专利。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "院子里那口大水缸养着什么？"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "两尾锦鲤，一条叫大黑一条叫花背，负责吃蚊子幼虫。缸水绿了它们就肥，肥了就替我值班，两全。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "你们的咸菜坛子摆一排。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "每坛腌的日子不同，贴着纸条。老坛里的年头最久，捞一碟配饭，时间是看得见的滋味，骗不了舌头。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "昨晚涨潮淹了下水的小滩。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "潮水有它的账本，大潮十五一小潮初一。你赶海前先问我潮时，海岛上守规矩的人，才捡得到好东西。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "你们的吊床挂在两棵树间。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "榕树与苦楝，间距正好。晃得不能急，急了头昏，慢晃才出滋味，吊床教人的第一课就是放下着急。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "昨晚咱们在院子里剥毛豆。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "剥豆配闲话，才是海岛的夜。明儿我把它炒了给你带饭，日子就是这样，一颗一颗剥出来的香。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "昨晚隔壁客人弹吉他到十一点。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "弹得不赖，我没拦。十一点后我上去递了杯温水，笑着提醒，他立刻收了。分寸这东西，一句玩笑就够了。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "今天的浪声比前几天大。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "起了南风，浪从远海推过来，声音传得远。夜里听着浪睡，是一味不要钱的安神药，你试试。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "院里那口水井还出水吗？"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "出，清冽得很，夏天镇西瓜全靠它。老井通着泉眼，旱年也没干过，这口井比这屋子岁数都大。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "今早码头上卸货好热闹。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "银色的带鱼一筐筐过秤，海鸥围着讨食。你要看新鲜的海获，明早五点半来，那才是真正的早市。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "早上路过的礁石上有白鹭。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "它守着退潮的水洼等鱼，比人有耐心。你慢慢走近十步它不飞，再近才起，那是它的安全线，也是规矩。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "你如今那老毛病还一天到晚闹吗？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "别急，我先给客人送钥匙，回来细聊。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "昨晚听见海豚叫了没有？"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "你耳朵灵，清晨船头常带它们进湾。运气好还能看见翻身的银背，那一下值整趟旅程。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "你们凉席睡上去沙沙响。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "新席子都这样，睡几天就服帖。头一晚响，第三晚香，老席子睡出来的劲，凉席可听不懂。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "昨晚风扇开一夜，早上喉咙干。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "我给你换成摇头档，别对人吹。夜里风邪最钻空子，睡熟了不觉得，醒来嗓子先抗议，这个得防。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "屋檐下那窝燕子还在吗？"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "在，蛋都孵出来了，吵得很。燕子进家是福，我不挪也不轰，它们吃飞虫，等于给我站夜岗。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "你们屋后的香蕉刚砍一串。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "倒挂起来晾熟，甜得匀。摘青的香蕉放三天正好，急不得，果子催不得，人也催不得，一个道理。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "你们门口的石阶被磨得溜光。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "几十年客人踩出来的，一步一块亮。这石阶比我资历老，我不换新，磨亮的才是招牌，机器做不出这光泽。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "院子里那盘石磨还能转。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "转着呢，磨米浆全靠它。电动的快，可磨出的浆没有魂，过年打年糕，全村都来借这盘磨。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "下午想找个阴凉处看书。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "廊下的竹椅最抢手，藤萝爬了半架。你占住那张矮几，凉茶我给你续，看书就图个不慌不忙。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "昨晚下雨，屋檐滴水到天亮。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "老瓦房就是这样，雨声催眠。你若嫌吵，我把廊灯调暗些，听着听着就惯了，许多人回城后倒想这声音。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "你们屋后的竹林好凉快。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "竹林里的温度低三度，风穿过来都带着青味。晌午困了去竹椅上眯一刻，比什么午休房都灵。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "屋后那条小路能通到灯塔吗？"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "能，走二十分钟，沿途有两丛野莲雾。傍晚去最好，灯塔亮头一盏的时候，整条海岸线都软了。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "你那处看星星的新地方如今启用了吗？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "温以宁",
+      "relation": "craves",
+      "object": "杨梅冰",
+      "speaker": "user",
+      "statement": "你家冰柜那盒杨梅冰，我一天一盒雷打不动。",
+      "statementFloor": 6,
+      "restatement": "冰柜里的杨梅冰我天天都要来一盒。",
+      "restatementFloor": 30,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "柯远帆",
+      "relation": "never_cooks",
+      "object": "秋葵",
+      "speaker": "character",
+      "statement": "秋葵那股黏劲儿我享不了，我家灶头从不进这东西。",
+      "statementFloor": 13,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "preference",
+      "subject": "温以宁",
+      "relation": "orders_daily",
+      "object": "椰子冻",
+      "speaker": "user",
+      "statement": "每天下午我都得来一份你家的椰子冻。",
+      "statementFloor": 18,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "item",
+      "subject": "柯远帆",
+      "relation": "keeps",
+      "object": "曾祖母的船木座钟",
+      "speaker": "character",
+      "statement": "堂屋那座船木座钟是我曾祖母留下的，走了快一百年。",
+      "statementFloor": 25,
+      "restatement": "堂屋那口老座钟，船木的壳子，曾祖母传到我这辈。",
+      "restatementFloor": 45,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f05",
+      "memoryType": "identity",
+      "subject": "温以宁",
+      "relation": "works_as",
+      "object": "自由插画师",
+      "speaker": "user",
+      "statement": "我靠画插画吃饭，一台电脑一支笔走天下。",
+      "statementFloor": 28,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f06",
+      "memoryType": "identity",
+      "subject": "柯远帆",
+      "relation": "formerly_worked_as",
+      "object": "远洋货轮水手长",
+      "speaker": "character",
+      "statement": "我年轻时在远洋货轮上干过八年水手长。",
+      "statementFloor": 37,
+      "restatement": "跑远洋那几年，我当到水手长，一干八年。",
+      "restatementFloor": 53,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f07",
+      "memoryType": "fact",
+      "subject": "柯远帆",
+      "relation": "grew_up_on",
+      "object": "本岛渔村",
+      "speaker": "character",
+      "statement": "我是这岛土生土长的，渔村小学念到三年级。",
+      "statementFloor": 41,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f08",
+      "memoryType": "fact",
+      "subject": "柯远帆",
+      "relation": "keeps",
+      "object": "旧潮汐手账",
+      "speaker": "character",
+      "statement": "我抽屉里压着一本旧潮汐手账，记了二十多年。",
+      "statementFloor": 47,
+      "restatement": "那本潮汐手账我收了二十多年，纸都翻毛了。",
+      "restatementFloor": 63,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f09",
+      "memoryType": "fact",
+      "subject": "温以宁",
+      "relation": "has_stamps_from",
+      "object": "十一个国家的入境章",
+      "speaker": "user",
+      "statement": "我护照上盖着十一个国家的入境章。",
+      "statementFloor": 56,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f10",
+      "memoryType": "event",
+      "subject": "柯远帆",
+      "relation": "repaired_after",
+      "object": "去年冬天的台风",
+      "speaker": "character",
+      "statement": "去年冬天那场台风掀了凉亭的顶，捡了三天瓦。",
+      "statementFloor": 61,
+      "restatement": "台风把凉亭顶掀飞那回，我捡瓦捡了三天。",
+      "restatementFloor": 81,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f11",
+      "memoryType": "event",
+      "subject": "温以宁",
+      "relation": "arrived_during",
+      "object": "上岛那天的早渔市",
+      "speaker": "user",
+      "statement": "我上岛那天赶得巧，拎着行李先逛了一圈早渔市。",
+      "statementFloor": 68,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f12",
+      "memoryType": "event",
+      "subject": "柯远帆",
+      "relation": "rowed_in",
+      "object": "端午龙舟赛",
+      "speaker": "character",
+      "statement": "今年端午我陪村里划龙船，拿了第二名。",
+      "statementFloor": 73,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "relationship",
+      "subject": "柯远帆",
+      "relation": "sails_with",
+      "object": "隔壁船老陈",
+      "speaker": "character",
+      "statement": "我出海都搭隔壁老陈的船，三十年的老交情。",
+      "statementFloor": 79,
+      "restatement": "出海回回坐老陈那条船，交情三十年了。",
+      "restatementFloor": 115,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "relationship",
+      "subject": "温以宁",
+      "relation": "close_to",
+      "object": "秀阿婆",
+      "speaker": "user",
+      "statement": "小卖部的秀阿婆跟我处得像忘年交，天天给我留热包子。",
+      "statementFloor": 82,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "goal",
+      "subject": "温以宁",
+      "relation": "compiling",
+      "object": "环岛写生集",
+      "speaker": "user",
+      "statement": "我想凑一组环岛写生，满三十张就印成小册子。",
+      "statementFloor": 98,
+      "restatement": "环岛的写生我攒着呢，画满三十张就装订成册。",
+      "restatementFloor": 116,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "location",
+      "subject": "温以宁",
+      "relation": "hometown_is",
+      "object": "山城老家",
+      "speaker": "user",
+      "statement": "我老家在山城，来岛上之前没见过这么平的海平线。",
+      "statementFloor": 102,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f17",
+      "memoryType": "item",
+      "subject": "温以宁",
+      "relation": "owns",
+      "object": "旧木质画箱",
+      "speaker": "user",
+      "statement": "我那只旧木画箱跟了我六年，锁扣都磨亮了。",
+      "statementFloor": 104,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f18",
+      "memoryType": "preference",
+      "subject": "柯远帆",
+      "relation": "only_plays",
+      "object": "老渔歌磁带",
+      "speaker": "character",
+      "statement": "前厅那台旧卡座只放渔歌老磁带，住客嫌土我也照放。",
+      "statementFloor": 111,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "fact",
+      "subject": "柯远帆",
+      "relation": "market_opens",
+      "object": "逢五逢十开市",
+      "speaker": "character",
+      "statement": "咱这渔市逢五逢十开市，风雨无阻。",
+      "statementFloor": 113,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f20",
+      "memoryType": "event",
+      "subject": "温以宁",
+      "relation": "attended",
+      "object": "中秋沙滩篝火",
+      "speaker": "user",
+      "statement": "去年中秋沙滩篝火那晚，大家伙儿烤棉花糖到半夜。",
+      "statementFloor": 118,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "health",
+      "subject": "温以宁",
+      "relation": "gets_seasick",
+      "object": "晕船",
+      "speaker": "user",
+      "statement": "我一坐船就晕，吐得昏天黑地。",
+      "statementFloor": 124,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "跟你出海几回后好多了，如今全程站着看浪都不晃。",
+        "probe": "我这晕的毛病眼下是不是轻多了？"
+      },
+      "updateFloor": 170
+    },
+    {
+      "id": "f22",
+      "memoryType": "item",
+      "subject": "温以宁",
+      "relation": "rides",
+      "object": "二手山地车",
+      "speaker": "user",
+      "statement": "我那辆二手山地车是刚上岛时置办的。",
+      "statementFloor": 134,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "链条断了修不划算，我换了辆白色小电驴。",
+        "probe": "我如今代步骑的是啥车，有数吗？"
+      },
+      "updateFloor": 184
+    },
+    {
+      "id": "f23",
+      "memoryType": "location",
+      "subject": "温以宁",
+      "relation": "stays_in",
+      "object": "三零二海景房",
+      "speaker": "user",
+      "statement": "我还住三零二那间海景房，推窗就是码头。",
+      "statementFloor": 136,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "上个月挪去五零一的院景房了，清净不少。",
+        "probe": "我如今睡的那间房对着什么景？"
+      },
+      "updateFloor": 208
+    },
+    {
+      "id": "f24",
+      "memoryType": "relationship",
+      "subject": "温以宁",
+      "relation": "was_estranged_from",
+      "object": "催婚的母亲",
+      "speaker": "user",
+      "statement": "我跟我妈还顶着呢，一周说不上一句话。",
+      "statementFloor": 96,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "中秋那通电话后我俩和好了，如今天天视频。",
+        "probe": "我和我妈眼下处得怎么样了？"
+      },
+      "updateFloor": 138
+    },
+    {
+      "id": "f25",
+      "memoryType": "goal",
+      "subject": "温以宁",
+      "relation": "learning",
+      "object": "自由潜",
+      "speaker": "user",
+      "statement": "我想在离开前把自由潜学会，预算都留好了。",
+      "statementFloor": 94,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "开放水域的证上个月拿到了，能下八米。",
+        "probe": "我那门水下功夫眼下练到哪一步了？"
+      },
+      "updateFloor": 140
+    },
+    {
+      "id": "f26",
+      "memoryType": "health",
+      "subject": "柯远帆",
+      "relation": "has",
+      "object": "过敏性鼻炎",
+      "speaker": "character",
+      "statement": "我这鼻子一换季就喷嚏连天，纸不离手。",
+      "statementFloor": 89,
+      "restatement": "我这换季的鼻子，犯起来半包纸都不够用。",
+      "restatementFloor": 109,
+      "update": {
+        "statement": "入了秋喷剂用上，鼻子总算消停了。",
+        "probe": "你如今那老毛病还一天到晚闹吗？"
+      },
+      "updateFloor": 149
+    },
+    {
+      "id": "f27",
+      "memoryType": "goal",
+      "subject": "柯远帆",
+      "relation": "building",
+      "object": "顶楼观星台",
+      "speaker": "character",
+      "statement": "我一直想把顶楼腾出来改成观星台。",
+      "statementFloor": 93,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "上礼拜木地板铺完，观星台开放给住客了。",
+        "probe": "你那处看星星的新地方如今启用了吗？"
+      },
+      "updateFloor": 143
+    },
+    {
+      "id": "f28",
+      "memoryType": "item",
+      "subject": "柯远帆",
+      "relation": "owned",
+      "object": "蓝白渔船",
+      "speaker": "character",
+      "statement": "我那条蓝白漆的渔船跟了我十一年。",
+      "statementFloor": 91,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "渔船上个月出手了，出海都租老陈的。",
+        "probe": "你自己那条船如今还在手里吗？"
+      },
+      "updateFloor": 133
+    },
+    {
+      "id": "f29",
+      "memoryType": "relationship",
+      "subject": "柯远帆",
+      "relation": "reunited_with",
+      "object": "转回岛上的女儿",
+      "speaker": "character",
+      "statement": "我闺女原本在省城读初中，爷俩一年见不上几面。",
+      "statementFloor": 85,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "她转回岛上中学了，放学就在前厅写作业。",
+        "probe": "你家娃如今在哪处上学，还记得吗？"
+      },
+      "updateFloor": 145
+    },
+    {
+      "id": "f30",
+      "memoryType": "health",
+      "subject": "温以宁",
+      "relation": "suffers",
+      "object": "偏头痛",
+      "speaker": "user",
+      "statement": "我有偏头痛的旧账，一累就单边疼。",
+      "statementFloor": 86,
+      "restatement": "偏头痛的老根儿还在，累狠了单边跳着疼。",
+      "restatementFloor": 106,
+      "update": {
+        "statement": "换了枕头又天天散步，一个多月没犯了。",
+        "probe": "我那半个脑袋眼下还闹吗？"
+      },
+      "updateFloor": 146
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "下午茶点里我点名要的那口酸甜，你还有印象吗？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "绿莹莹切段发黏的那样菜，你说啥都不进货？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "午后甜口我必点的那样白嫩嫩的是什么，你想起来没？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "大堂里报时最响的那件老家什，年纪多大你记得吗？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我在岛上还照常开工的那门手艺是什么，记得吗？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f21",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我上船就脸色发青的毛病，你有印象吗？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f22",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我头年在岛上添置的那台两个轮子的家当，还记得吗？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f23",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我落脚的那间房门牌号是多少，你记得吗？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f24",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f24"
+      ],
+      "text": "我和我妈眼下处得怎么样了？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f25",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f25"
+      ],
+      "text": "我那门水下功夫眼下练到哪一步了？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f26",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f26"
+      ],
+      "text": "你如今那老毛病还一天到晚闹吗？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f27",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f27"
+      ],
+      "text": "你那处看星星的新地方如今启用了吗？"
+    }
+  ]
+}

@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s05",
+  "title": "存仁堂的学徒时光",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "来了？先把手洗干净再上柜台。梅雨天铺子里潮得很，我这把老骨头就指着你搭把手了。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "隔壁绸缎庄在甩卖，门口挤满了人。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "他们季季清仓，招数比咱老派做法活络。咱们不学这个，药材认的是回头客的信任。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "米行今天粮价又涨了两文。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "粮价一动，人心就跟着浮动。咱们药价稳住不动，老主顾自然觉得存仁堂厚道。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "县里来的先生在祠堂讲新学问。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "新学问是好东西，你有空去听听。铺子里的日子长，识文断字多一分，路就宽一分。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "镇口张婆的桂花糖粥，我能一口气吃两碗不带停的。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "这个我记下了。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "夜里的星星密得像撒了把碎米。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "星象看天，明天多半晴。晴了把积压的药材晒晒，账房的窗也敞敞，霉气散散。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "师父，说说你年轻时候的事吧。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "烟酒两样我一辈子不沾，闻见就皱眉头。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "文墨铺的掌柜送来新制的信笺。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "他的纸品细腻，写起方子清爽。回礼备两包上好的茶叶，人情往来要周转开。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "巷子里的桂花树打苞了。"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "等花一开，满镇都是甜香。到时候收些净花来阴干，配茶配点心都是好东西。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "邮差的自行车铃一路响到家门口。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "远道的信难得，念给不识字的老街坊听听，也是积攒人情。铺子靠的就是人情。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "闲下来了，讲讲你自己呗。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "我这身炮制功夫是跟顾山先生学的，当徒六年才出师。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "雨天路滑，来抓药的老太太差点跌一跤。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "在门口铺条麻袋防滑，雨天就摆出来。老主顾摔在咱们门口，传出去名声难听。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "进铺子前我念过三年私塾，笔画还算周正。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "这话在理得很。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "街口那碗甜口的稀吃食，为啥我总惦记，还记得么？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "正抓药呢，回头再说这个。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "我想听听你怎么开的这爿铺子。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "存仁堂在河埠头西首，进门要迈两级青石台阶。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "张婆那锅糖粥撒桂花的，我回回都要盛两碗。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "嗯，是这个道理。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "井台边的大婶们边洗边聊，笑声不断。"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "井台是镇上的消息集散地。听听无妨，别跟着去传话，铺子做的是长久生意。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "镇东的私塾散学，孩童念书声一路。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "书声是镇子的底气。你每天抄方之余也要念出声，口到手到心到，记得才牢。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "对了，你家里都有什么人？"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "师承顾山先生这条路，我整整磨了六年才出道。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "讲讲镇上从前的老故事吧。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "柜上那杆小铜戥子是我太爷手上传下来的，称细料才动它。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "你一天到晚都在忙些什么？"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "一入梅雨我的咳嗽老毛病就犯，得煮川贝梨水压着。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "晚饭后的街面安静，狗都不叫。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "安生日子最养人。铺子打烊后你把门闩检查两遍，钥匙贴身收，这是老规矩。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "你有啥心头好的物件，说来听听。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "铺子面朝河埠头西首那头，青石台阶有两级。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "家里替我定了门亲，姑娘是邻镇教书周先生家的。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "记下了，不敢忘。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "对岸的戏班靠岸卸箱，锣鼓声一路。"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "戏班卸箱最忌人围观，挡道不说还嫌乱。咱们在铺门口听个响就好，别去挤。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "席面上递过来的应酬东西，师父为啥一概不接？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "账还没盘完，改日再细讲。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "街尾的面馆换了掌勺，汤头变了。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "老汤一断，老客就散。做咱们这行的都明白，招牌是手艺撑的，不是幌子糊的。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "说说你平时歇晌怎么打发？"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "太爷传下来的那杆戥子，我只在称细料时才请出来。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "我憋着一股劲，明年春上要通过出师考核。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "嗯，这话有点意思。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "清明前我跟师父去杭州采买药材，头一回坐了火车。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "好嘞，记牢靠了。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "屋顶又渗水了，滴在药仓门边。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "得趁雨歇的空档请瓦匠来看看。漏点若找不到根，补再多次也是白费工钱。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "码头挑夫歇脚，问咱们讨口水喝。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "水缸就搁在门外，让他们自便。挑夫力气大脾气直，一碗水换来的口碑传得最远。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "巷口的井台修好了，打水的人排起队。"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "公用的井台修得宽敞，是镇上的福分。咱们后院那口井也该淘一淘了，入冬前办妥。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "河里的水量小了，船工们抱怨搁浅。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "枯水期船载得轻，运费就上浮。咱们备货要趁早，拖到枯水期，脚钱都得多掏。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "你的手艺是打哪儿学来的？"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "民国八年镇上闹时疫，我在铺子里熬了四十天大锅药。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "往后这铺子你有啥盘算？"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "这爿铺子传到我手里是第三代，光绪年间就立起来了。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "留声机铺子搬走了，铺面空着。"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "空铺面迟早有新行当进来。咱们只管自己这摊，门口干净、药斗满、秤头准，就够了。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "那年清明去杭州办药，我还是头一次乘火车。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "嗯，都记心里了。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "你那手看家本领的开山老师，名号还记得么？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "梅雨天潮气重，这话搁一搁。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "明知道黄连水是良药，我端起碗还是发怵。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "这话我信得过。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "后院的橘树结了青果，个头不小。"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "青果入冬才转色，急不得。橘子皮陈三年才是好药材，这批留到后年，价值翻番。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "我睡铺子后进的阁楼，跟药仓就隔一层木板。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "嗯，有年头的故事。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "我攒了三十六张药方抄本，收在枕头底下的木匣里。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "好，往后细学着。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "师父，说说你年轻时候的事吧。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "贵重药柜安在账房背后那间小仓里，钥匙只此一把。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "摇药碾的时候我爱哼几句滩簧，被师父撞见过好几回。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "记下了，不外传。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "我自小血亏，蹲得久了一起身眼前就发黑。"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "嗯，这话受教了。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "我在攒钱翻修南塘村的老屋，账都记在小本子上。"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "这话听着暖心。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "闲下来了，讲讲你自己呗。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "账桌上方挂的金字匾是光绪三十年的老物件，擦得锃亮。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "我想听听你怎么开的这爿铺子。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "我独子在省城念新式学堂，寒暑假也未必回来。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "青溪镇逢五逢十开市集，河埠头能泊二十几条船。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "嗯，慢慢都懂了。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "我小时候读书的那段底子，你还有数么？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "柜上有人候着，先顾生意。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "对了，你家里都有什么人？"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "从光绪年间算起，存仁堂到我手上已传了三代。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "夜里我歇在后面那间小阁楼上，隔壁堆的全是药材。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "好，就这么办妥。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "讲讲镇上从前的老故事吧。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "我喝茶只认本地炒青，金贵茶叶反倒喝不惯。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "碾药时我嘴里总哼着本地小调滩簧，常挨师父的白眼。"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "嗯，难得你肯讲。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "河面起薄雾了，夜渔的船点起灯。"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "夜渔灯点得早，收成心切。咱们晚上巡铺要多看一眼水门，雾天进出的人杂。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "后院晒药的竹匾被风吹翻了一个。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "晒药最怕这个，翻了就得重拣。往后风大的日子，匾底下压两根竹条，省心不少。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "镇上的更夫换了人，梆子声准了。"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "打更打得准，夜里的街坊心里踏实。跟更夫处好关系，急症夜里叩门也省事。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "船班的班次改了，隔日才有一班。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "那进货的日子得重排，赶早不赶晚。我在账上把日子标红，咱们按新班次备货。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "后院的石榴裂了嘴，红籽都露了。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "摘下来给柜台当摆设，客人看着喜庆。石榴皮别扔，那是正经的药材，晒干收好。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "晚上书场有评弹，去听听？"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "去是想去，柜台离不得人。你早去半个时辰，回来给我说上一段，也算听过了。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "巷子深处有人家办喜事，唢呐声欢。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "喜事讨吉利，路过铺子前也撒喜糖。咱们回一份薄礼，远亲不如近邻，礼数到了就好。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "你一天到晚都在忙些什么？"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "我想把祖上手抄的方册补全，缺的方子都誊齐。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "称贵重细货用的那杆老秤，来头你还记得么？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "天色不早了，明儿再叙吧。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "今天收账回来晚，鞋底沾了一路泥。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "泥路难走，账目却要紧。鞋刷净晾着，明早换双干爽的，湿鞋捂一天要生脚病。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "你有啥心头好的物件，说来听听。"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "贵重药柜挪了窝，如今锁进柜台底下的矮柜里。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "老屋不修了，叔父把那笔钱挪去还了债，我从头再攒。"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "这个我记下了。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "前街的钟表铺挂出新招牌了。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "字号配好墨才立得住，他家那块请的是城里先生。咱们的旧匾不求花哨，认字就行。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "说说你平时歇晌怎么打发？"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "老匾去年遭了白蚁，换成新做的招牌了。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "铺子后墙的爬山虎红了一半。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "爬山虎红得早，秋凉来得也早。秋寒前的进补药材该备了，这是节令的规矩。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "掌柜说我火候还欠，考核推迟到后年再讲。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "这话在理得很。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "你的手艺是打哪儿学来的？"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "儿子来信说毕业后进省城电报局，不回来接铺子了。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "往后这铺子你有啥盘算？"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "孟大夫逢三、六、九来后堂坐诊，风雨无阻。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "吃了一冬的膏方调养，如今蹲再久眼前也不黑了。"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "嗯，是这个道理。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "挨了一顿训之后，药碾子跟前我再也哼不出口了。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "记下了，不敢忘。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "咱们这爿店面临水的方位，你讲得出来么？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "这个话题长，得慢慢讲才周全。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "师父，说说你年轻时候的事吧。"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "祖上传的那本方册，我盘算着把缺页全补齐。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "当铺朝奉换了人，规矩也变了。"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "换人如换刀，往后的估价说不准。咱们跟药材行打交道的旧例不变，稳字当头。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "剃头挑子的铜盆擦得锃亮。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "手艺人爱惜家伙，走到哪儿都体面。咱们柜台的家什也日日擦拭，一个道理。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "闲下来了，讲讲你自己呗。"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "我在镇商会里挂个理事名衔，月底要碰一回头。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "我想听听你怎么开的这爿铺子。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "开春翻修铺面，大门挪去东边，青石台阶垫成了三级。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "对了，你家里都有什么人？"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "每逢三六九的日子，孟大夫准时到后堂应诊。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "讲讲镇上从前的老故事吧。"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "前年秋天省城药帮下来收货，我守秤三天没合眼。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "修伞的匠人在巷口摆摊，生意不错。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "雨季过后修伞的生意自然就好。手艺人靠天吃饭，咱们靠节令吃饭，一个理。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "那年端午我跟龙船队敲了一程锣，手心磨出两个泡。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "嗯，这话有点意思。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "井水这几日浑了，煮出来的水有土味。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "雨季地下水位涨了，井底翻了浆。吃的水去对岸王家挑，井水留着洗涮便好。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "我那把油纸伞是娘留下的，伞骨断了一根也修着用。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "好嘞，记牢靠了。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "磨刀人担子进巷，磨剪子戗菜刀。"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "磨刀的来了，把切药的铡刀也请他磨磨。刀口利落，切出的饮片才匀净好看。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "一变天就缠上喉咙的那桩老病根，还记得么？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "手上这剂药要紧，容我忙完。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "铺子发我的月钱是一块半银元，满师才肯涨。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "嗯，都记心里了。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "晚上庙前空地有人耍把式卖艺。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "围观看热闹可以，铜钱看紧些。耍把式的膏药别买，那玩意见效全凭嘴皮子。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "祠堂翻修，木料堆了半条巷子。"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "修祠堂是全镇的体面，绕着走别磕碰。工期里粉尘大，药材柜多蒙一层纱布。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "你一天到晚都在忙些什么？"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "入秋后那场咳嗽竟断了根，川贝梨水也停了。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "端午划龙船那阵，我在船头敲锣敲得满手起泡。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "这话我信得过。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "今天有挑担货郎摇鼓，卖针头线脑。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "货郎的东西小而杂，价钱灵活。姑娘媳妇们爱围着他转，咱们门口倒清净了。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "今早的炊烟比往常淡，家家省着烧。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "柴价涨了，家家都掐着烧。咱们煎药的炉火可省不得，该用的柴一样不能缺。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "今天河埠头卸货的号子响了一上午。"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "卸的是北边的杂粮，听调子就有劲。咱们进货也认熟头熟脸的船家，卸货稳妥。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "今日出伏，早晚的风凉快了。"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "出伏后药材好存，潮气退了大半。趁天时把药仓大整理一回，账目也顺一遍。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "药仓的木架靠墙那侧长了霉斑。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "霉斑要趁小铲掉，再刷上一遍桐油。架子离墙空出两指，潮气就爬不上来了。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "渡口的老船工换了新桨，桨叶刷了桐油。"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "桐油刷桨，泡了水也不腐。咱们药柜也该上桐油了，梅雨前擦一遍，木头就稳当。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "长辈替我相中的那户人家，姓氏你还记得么？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "里屋还晒着东西，改天说。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "巷口的猫把晒药的匾当窝了。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "猫图的是那一点暖和气。给它旧藤垫挪到墙根去，两边相安无事，药材也干净。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "染坊排水把河段染蓝了半边。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "染坊的污水坏水脉，鱼都躲着走。咱们煎药的水要认准上游那口井，别图近。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "黄酒坊送来新酿，香气飘了半条街。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "这味道霸道，闻着就上头。给账房先生捎一壶去，年底对账还指望他细心些。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "今晚多敲了两下梆子，说是镇西火警。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "火警最吓人，铺子里水缸沙袋都要备齐。明日起你每晚检查灶膛，余火必灭。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "中秋的月饼模子借来了，枣泥馅的。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "自家打月饼，馅料实在。蒸笼借糕点铺的用上一晚，回头送两块尝，礼数周全。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "周家上月把亲事退了，姑娘一家迁去了上海。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "嗯，有年头的故事。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "夜里的萤火虫比前几年多了。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "水田多的年头萤火虫就旺。这是丰年兆头，秋后收成好，镇上的日子也宽裕些。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "米行的伙计来送新米，米粒饱满。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "新米进仓，账上记好斤两。病家来配调养粥米的，从这批里拣，颗颗饱满看得见诚心。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "晾在绳上的布鞋干得快，天放晴了。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "晴了就把该晒的都搬出去，竹匾甘草陈皮都见见日头。趁着好天，把潮气全赶跑。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "镇公所贴了告示，要修东街的石板路。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "修路是好事，就是工期里灰大。药材柜那几日多擦上两遍，纱布蒙上更稳妥。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "隔壁的糕点铺蒸桂花糕，香气过来了。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "香归香，可别贪嘴。回头买上两块尝尝鲜，给账房先生也捎一块，人情不断线。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "学堂放学前，孩子们从门口跑过。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "小皮猴子们撞了碰了都往咱们这儿送。柜台角垫块棉布，省得磕破他们脑门。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "满师那桩事，如今往后挪到了哪一年？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "先吃口热饭，回头再聊这个。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "今日白露，早晚温差见大了。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "白露后咳嗽的病家多起来了。润肺的药材提前备足，柜面摆到顺手的位置。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "书院的先生来配安神的方子。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "先生熬夜批文章，心火旺。你抓药时把剂量复核两遍，教书人的身子金贵，经不起差错。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "河边的芦苇白了头，絮子满天飞。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "芦絮飞进药仓最麻烦，纱窗要蒙起来。这个季节防絮，跟梅雨防潮一样要紧。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "打铁铺这几天叮当声没停过。"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "定是赶制秋收的农具。咱们秋前也要备好药，砍伤烫伤的药材用量会翻倍。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "今晚月亮圆得像面镜子。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "月圆夜抓药的人少，正好盘账。把当月的进出理清爽，月底结算心里就有底了。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "夜里有猫叫春，叫得瘆人。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "猫的事顺其自然，开春就消停。你睡觉把窗掩好，夜里声响杂，睡不沉也别多想。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "今天的日头毒，晒得青石板烫脚。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "大暑天的日头就是这样。晒药正好，翻动的次数加勤些，别把薄片晒卷了边。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "账本上的墨迹洇开了，笔也涩。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "黄梅天连墨都懒。你研墨时滴两滴烧酒，字就利落了，账页晾干再合上，省得粘连。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "今天有人来兜售偏方，说得天花乱坠。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "偏方听着玄乎，疗效凭嘴说。咱们守的是正经方子，来路不明的药一概不收。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "后院的井边长了青苔，滑得很。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "青苔要趁早刮掉，井台边摔一跤可不是小事。撒层炉渣再垫块粗麻布，妥当。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "南货铺新到了一批花布，颜色鲜亮。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "花布给姑娘们做袄最合适。咱们男人家看看就好，柜台后面还是素净些庄重。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "这份家业往后托给谁，如今定了么？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "外头雨声大，听不清，改日吧。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "铺子门口的灯笼被雨水泡褪色了。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "换一对新的，红纸的就好。灯笼暗了，夜里抓药的人就摸不着门面，这是大事。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "缝穷的婆婆在铺檐下躲雨，我端了碗热水。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "做善事不在大小，一碗热水也是情分。给她一块干的门板坐，别叫她受潮气。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "茶馆的说书先生讲到武松打虎。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "说到紧要处就卖关子，明儿还得再去听。咱们听完回来就打烊，别耽误正事。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "今天风大，幌子和晾衣绳一起跳舞。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "大风天收幌子，绳头松的先紧一紧。风物要看紧，吹落的物件砸了人就是祸事。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "今天有人拿银器来问价，说是急用钱。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "急用钱的人心最慌，你报实价就好。铺里的规矩是药材归药材，金银的事不掺和。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "街口新开了家照相馆，玻璃橱窗亮堂。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "照相比请画师便宜多了。往后铺子的旧照也有地方拍，这买卖做的是长久人心。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "布庄的裁缝上门量衣裳，说秋装该做了。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "秋衣要早备，冷风说来就来。你那件夹里也添新棉花吧，别省这个钱，学徒也要穿暖。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "集上的鸡蛋涨价了，婆婆们直摇头。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "蛋价跟着鸡瘟走，摇头也没用。咱们的药价按老规矩，涨跌都不跟风，稳字值钱。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "药仓的老鼠夹昨夜夹了一只。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "老鼠进药仓是大事，夹了先别声张。查漏补洞，米袋离地半尺，洞眼用铁屑水泥堵死。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "隔壁木匠给镇公所打文件柜，刨花香飘过来。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "木匠的手艺看着就踏实。回头请他把咱们的药斗检修一遍，卡壳的几格早就该弄了。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "傍晚蜻蜓贴着河面飞，要变天。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "蜻蜓低飞雨就到，今晚收好晾晒的物件。明日进货的船家若来避雨，热水管够。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "夜航的货船在河里鸣笛，声音闷闷的。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "夜航船赶的是潮水，笛声是报信的。咱们睡觉前把窗关严，河风后半夜最凉。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "从前干活时挂在嘴边的消遣，如今还剩多少？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "账房里还有事，容我先去一趟。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "镇上的邮筒重新刷了绿漆。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "绿漆新刷，寄信的人也多了起来。给老主顾的药函趁便寄，月底的药单别拖。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "这几日梅雨下个不停，柜台都返潮了。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "潮气是药材的大敌，生石灰坛子今天就换。你把临窗那几格药材再挪深些，别叫水汽沾了边。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "夜里霜降，瓦檐上白了一层。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "霜降后煎药的火候要调，汤剂熬得足一些。你早晚添衣，学徒的身子是本钱。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "今晚的河风带着水汽，被褥发潮。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "潮气重的晚上，被褥白天多晒上一刻。睡前把窗关半扇，通点风又不进潮气。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "年底了，铺子里要大扫除。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "扫除从药仓开始，高处够不着的地段你负责。账册入柜上锁，琐碎物件归置到位。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "酱油坊的伙计来收赊账，态度倒客气。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "赊账要勤对，拖久了伤和气。咱们柜上的赊账簿你每旬理一遍，该提醒的婉转提醒。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "听说下月镇东头庙会有戏台。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "那几日铺子最忙，人人看完戏都要捎点东西。咱们提前把常用药备足，柜面摆齐整些。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "早市的鱼贩子嗓门一个比一个大。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "嗓门大是行规，喊的是新鲜二字。咱们卖药的讲究低声细语，病家听着安心。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "昨夜雷声大，我把窗纸都检查了一遍。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "细心是好事。糊窗的浆子里头掺些明矾，纸就韧了，雨点砸上去也不容易破。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "河里的渡船加了篷，雨天也肯开。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "这是好事，两岸走动就勤了。对岸的乡下客来抓药，往后不用再看天脸色了。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "镇上来了卖艺的猴子，孩子们围着看。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "猴戏热闹归热闹，别叫孩子们误了学。放学再看，功课要紧，先生那里交代不过去。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "悬在头顶的那块旧匾额，如今是何光景？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "杜蘅",
+      "relation": "likes",
+      "object": "桂花糖粥",
+      "speaker": "user",
+      "statement": "镇口张婆的桂花糖粥，我能一口气吃两碗不带停的。",
+      "statementFloor": 8,
+      "restatement": "张婆那锅糖粥撒桂花的，我回回都要盛两碗。",
+      "restatementFloor": 30,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "宋敬堂",
+      "relation": "dislikes",
+      "object": "烟酒",
+      "speaker": "character",
+      "statement": "烟酒两样我一辈子不沾，闻见就皱眉头。",
+      "statementFloor": 13,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "identity",
+      "subject": "宋敬堂",
+      "relation": "apprenticed_to",
+      "object": "顾山先生",
+      "speaker": "character",
+      "statement": "我这身炮制功夫是跟顾山先生学的，当徒六年才出师。",
+      "statementFloor": 21,
+      "restatement": "师承顾山先生这条路，我整整磨了六年才出道。",
+      "restatementFloor": 37,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "identity",
+      "subject": "杜蘅",
+      "relation": "studied_at",
+      "object": "三年私塾",
+      "speaker": "user",
+      "statement": "进铺子前我念过三年私塾，笔画还算周正。",
+      "statementFloor": 24,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f05",
+      "memoryType": "location",
+      "subject": "存仁堂",
+      "relation": "located_at",
+      "object": "河埠头西首",
+      "speaker": "character",
+      "statement": "存仁堂在河埠头西首，进门要迈两级青石台阶。",
+      "statementFloor": 29,
+      "restatement": "铺子面朝河埠头西首那头，青石台阶有两级。",
+      "restatementFloor": 45,
+      "update": {
+        "statement": "开春翻修铺面，大门挪去东边，青石台阶垫成了三级。",
+        "probe": "上门槛要抬几回脚，还有数么？"
+      },
+      "updateFloor": 161
+    },
+    {
+      "id": "f06",
+      "memoryType": "item",
+      "subject": "宋敬堂",
+      "relation": "keeps",
+      "object": "铜戥子",
+      "speaker": "character",
+      "statement": "柜上那杆小铜戥子是我太爷手上传下来的，称细料才动它。",
+      "statementFloor": 39,
+      "restatement": "太爷传下来的那杆戥子，我只在称细料时才请出来。",
+      "restatementFloor": 55,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f07",
+      "memoryType": "health",
+      "subject": "宋敬堂",
+      "relation": "has",
+      "object": "支气管炎",
+      "speaker": "character",
+      "statement": "一入梅雨我的咳嗽老毛病就犯，得煮川贝梨水压着。",
+      "statementFloor": 41,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "入秋后那场咳嗽竟断了根，川贝梨水也停了。",
+        "probe": "那口缠人的老病根，如今还来么？"
+      },
+      "updateFloor": 185
+    },
+    {
+      "id": "f08",
+      "memoryType": "relationship",
+      "subject": "杜蘅",
+      "relation": "engaged_to",
+      "object": "周家姑娘",
+      "speaker": "user",
+      "statement": "家里替我定了门亲，姑娘是邻镇教书周先生家的。",
+      "statementFloor": 46,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "周家上月把亲事退了，姑娘一家迁去了上海。",
+        "probe": "打小定下的那桩婚约，末了怎么收的场？"
+      },
+      "updateFloor": 212
+    },
+    {
+      "id": "f09",
+      "memoryType": "goal",
+      "subject": "杜蘅",
+      "relation": "aims_at",
+      "object": "出师考核",
+      "speaker": "user",
+      "statement": "我憋着一股劲，明年春上要通过出师考核。",
+      "statementFloor": 56,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "掌柜说我火候还欠，考核推迟到后年再讲。",
+        "probe": "满师那桩事，如今往后挪到了哪一年？"
+      },
+      "updateFloor": 140
+    },
+    {
+      "id": "f10",
+      "memoryType": "event",
+      "subject": "杜蘅",
+      "relation": "went_for",
+      "object": "杭州采买",
+      "speaker": "user",
+      "statement": "清明前我跟师父去杭州采买药材，头一回坐了火车。",
+      "statementFloor": 58,
+      "restatement": "那年清明去杭州办药，我还是头一次乘火车。",
+      "restatementFloor": 74,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f11",
+      "memoryType": "event",
+      "subject": "宋敬堂",
+      "relation": "lived_through",
+      "object": "民国八年时疫",
+      "speaker": "character",
+      "statement": "民国八年镇上闹时疫，我在铺子里熬了四十天大锅药。",
+      "statementFloor": 69,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f12",
+      "memoryType": "fact",
+      "subject": "存仁堂",
+      "relation": "passed_down",
+      "object": "第三代",
+      "speaker": "character",
+      "statement": "这爿铺子传到我手里是第三代，光绪年间就立起来了。",
+      "statementFloor": 71,
+      "restatement": "从光绪年间算起，存仁堂到我手上已传了三代。",
+      "restatementFloor": 103,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "preference",
+      "subject": "杜蘅",
+      "relation": "fears",
+      "object": "黄连水",
+      "speaker": "user",
+      "statement": "明知道黄连水是良药，我端起碗还是发怵。",
+      "statementFloor": 78,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "item",
+      "subject": "杜蘅",
+      "relation": "collects",
+      "object": "三十六张药方抄本",
+      "speaker": "user",
+      "statement": "我攒了三十六张药方抄本，收在枕头底下的木匣里。",
+      "statementFloor": 84,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "location",
+      "subject": "杜蘅",
+      "relation": "sleeps_in",
+      "object": "后进阁楼",
+      "speaker": "user",
+      "statement": "我睡铺子后进的阁楼，跟药仓就隔一层木板。",
+      "statementFloor": 82,
+      "restatement": "夜里我歇在后面那间小阁楼上，隔壁堆的全是药材。",
+      "restatementFloor": 104,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "fact",
+      "subject": "青溪镇",
+      "relation": "holds_market_on",
+      "object": "逢五逢十",
+      "speaker": "user",
+      "statement": "青溪镇逢五逢十开市集，河埠头能泊二十几条船。",
+      "statementFloor": 98,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f17",
+      "memoryType": "relationship",
+      "subject": "宋敬堂",
+      "relation": "father_of",
+      "object": "独子",
+      "speaker": "character",
+      "statement": "我独子在省城念新式学堂，寒暑假也未必回来。",
+      "statementFloor": 97,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "儿子来信说毕业后进省城电报局，不回来接铺子了。",
+        "probe": "这份家业往后托给谁，如今定了么？"
+      },
+      "updateFloor": 143
+    },
+    {
+      "id": "f18",
+      "memoryType": "preference",
+      "subject": "宋敬堂",
+      "relation": "prefers",
+      "object": "炒青",
+      "speaker": "character",
+      "statement": "我喝茶只认本地炒青，金贵茶叶反倒喝不惯。",
+      "statementFloor": 107,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "preference",
+      "subject": "杜蘅",
+      "relation": "hums",
+      "object": "滩簧",
+      "speaker": "user",
+      "statement": "摇药碾的时候我爱哼几句滩簧，被师父撞见过好几回。",
+      "statementFloor": 88,
+      "restatement": "碾药时我嘴里总哼着本地小调滩簧，常挨师父的白眼。",
+      "restatementFloor": 108,
+      "update": {
+        "statement": "挨了一顿训之后，药碾子跟前我再也哼不出口了。",
+        "probe": "从前干活时挂在嘴边的消遣，如今还剩多少？"
+      },
+      "updateFloor": 148
+    },
+    {
+      "id": "f20",
+      "memoryType": "item",
+      "subject": "宋敬堂",
+      "relation": "keeps",
+      "object": "金字匾",
+      "speaker": "character",
+      "statement": "账桌上方挂的金字匾是光绪三十年的老物件，擦得锃亮。",
+      "statementFloor": 95,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "老匾去年遭了白蚁，换成新做的招牌了。",
+        "probe": "悬在头顶的那块旧匾额，如今是何光景？"
+      },
+      "updateFloor": 137
+    },
+    {
+      "id": "f21",
+      "memoryType": "goal",
+      "subject": "宋敬堂",
+      "relation": "completing",
+      "object": "手抄方册",
+      "speaker": "character",
+      "statement": "我想把祖上手抄的方册补全，缺的方子都誊齐。",
+      "statementFloor": 125,
+      "restatement": "祖上传的那本方册，我盘算着把缺页全补齐。",
+      "restatementFloor": 153,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f22",
+      "memoryType": "goal",
+      "subject": "杜蘅",
+      "relation": "saving_for",
+      "object": "翻修老屋",
+      "speaker": "user",
+      "statement": "我在攒钱翻修南塘村的老屋，账都记在小本子上。",
+      "statementFloor": 92,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "老屋不修了，叔父把那笔钱挪去还了债，我从头再攒。",
+        "probe": "原先那笔积蓄的用途，如今落定了么？"
+      },
+      "updateFloor": 132
+    },
+    {
+      "id": "f23",
+      "memoryType": "health",
+      "subject": "杜蘅",
+      "relation": "has",
+      "object": "血亏",
+      "speaker": "user",
+      "statement": "我自小血亏，蹲得久了一起身眼前就发黑。",
+      "statementFloor": 90,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "吃了一冬的膏方调养，如今蹲再久眼前也不黑了。",
+        "probe": "从前头一晕、天旋地转的旧症候，还缠人么？"
+      },
+      "updateFloor": 146
+    },
+    {
+      "id": "f24",
+      "memoryType": "fact",
+      "subject": "孟大夫",
+      "relation": "visits_on",
+      "object": "逢三六九",
+      "speaker": "character",
+      "statement": "孟大夫逢三、六、九来后堂坐诊，风雨无阻。",
+      "statementFloor": 145,
+      "restatement": "每逢三六九的日子，孟大夫准时到后堂应诊。",
+      "restatementFloor": 163,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f25",
+      "memoryType": "location",
+      "subject": "宋敬堂",
+      "relation": "stores_in",
+      "object": "账房后小仓",
+      "speaker": "character",
+      "statement": "贵重药柜安在账房背后那间小仓里，钥匙只此一把。",
+      "statementFloor": 87,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "贵重药柜挪了窝，如今锁进柜台底下的矮柜里。",
+        "probe": "那些金贵药材的新藏处，你还摸得着门道么？"
+      },
+      "updateFloor": 131
+    },
+    {
+      "id": "f26",
+      "memoryType": "identity",
+      "subject": "宋敬堂",
+      "relation": "serves_as",
+      "object": "商会理事",
+      "speaker": "character",
+      "statement": "我在镇商会里挂个理事名衔，月底要碰一回头。",
+      "statementFloor": 159,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f27",
+      "memoryType": "event",
+      "subject": "宋敬堂",
+      "relation": "worked_through",
+      "object": "省城药帮收货",
+      "speaker": "character",
+      "statement": "前年秋天省城药帮下来收货，我守秤三天没合眼。",
+      "statementFloor": 165,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f28",
+      "memoryType": "event",
+      "subject": "杜蘅",
+      "relation": "joined",
+      "object": "端午敲锣",
+      "speaker": "user",
+      "statement": "那年端午我跟龙船队敲了一程锣，手心磨出两个泡。",
+      "statementFloor": 168,
+      "restatement": "端午划龙船那阵，我在船头敲锣敲得满手起泡。",
+      "restatementFloor": 186,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "item",
+      "subject": "杜蘅",
+      "relation": "keeps",
+      "object": "油纸伞",
+      "speaker": "user",
+      "statement": "我那把油纸伞是娘留下的，伞骨断了一根也修着用。",
+      "statementFloor": 172,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "fact",
+      "subject": "杜蘅",
+      "relation": "earns",
+      "object": "月钱一块半",
+      "speaker": "user",
+      "statement": "铺子发我的月钱是一块半银元，满师才肯涨。",
+      "statementFloor": 178,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "街口那碗甜口的稀吃食，为啥我总惦记，还记得么？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "席面上递过来的应酬东西，师父为啥一概不接？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "你那手看家本领的开山老师，名号还记得么？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我小时候读书的那段底子，你还有数么？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f06",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "称贵重细货用的那杆老秤，来头你还记得么？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "咱们这爿店面临水的方位，你讲得出来么？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f07",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "一变天就缠上喉咙的那桩老病根，还记得么？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f08",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "长辈替我相中的那户人家，姓氏你还记得么？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f09",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f09"
+      ],
+      "text": "满师那桩事，如今往后挪到了哪一年？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f17",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f17"
+      ],
+      "text": "这份家业往后托给谁，如今定了么？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f19",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f19"
+      ],
+      "text": "从前干活时挂在嘴边的消遣，如今还剩多少？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f20",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f20"
+      ],
+      "text": "悬在头顶的那块旧匾额，如今是何光景？"
+    }
+  ]
+}

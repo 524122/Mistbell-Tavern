@@ -54,3 +54,6 @@ screenshots/*
 # 示例主题包的打包产物与编辑器工具配置不入库
 samples/*.zip
 .cursor/
+
+# Python 字节码缓存（评测夹具脚本运行时产生，见 .e2e/eval/memory/README.md）
+__pycache__/

@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s04",
+  "title": "溯洄号上的漫长航次",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "新来的？舷窗边坐。这船出了港，日子就剩三样：仪器、饭点和我的医务室，习惯了就好。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "盐雾把窗户糊了一层，擦完又蒙上。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "干布先擦一遍，湿布只会越擦越花。想彻底点就用清水冲，别用洗涤剂，留印子。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "借了本旧词典，纸页都发黄了。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "船上图书就那么几架子，能翻的都翻烂了。你看完登记一下借阅卡，后面还有人排着。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "我这条命是冰美式续的，一天两杯才算活过来。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "这个我记下了。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "盥洗室的龙头出水发黄，不敢喝。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "那是管路里的陈水，放半分钟就清亮。烧开了泡茶没问题，直接喝确实膈应。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "说说你自己吧，我对你还不熟。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "船上厨子爱放味精，我沾一点就头疼半天。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "后甲板的插销松了，风一大就哐当。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "拿木片先楔上应急，正式的销子备件周二到。在那之前，路过的人受点惊吓忍忍吧。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "上午全体跟着广播做操，场面滑稽。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "在晃的甲板上伸展，那叫动态平衡训练。坚持下来的人，靠港后腰板都直一些。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "图书角那台老收音机只出一个台。"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "天线短了一截，声音飘忽也算正常。晚上转个方向试试，说不定能捞到外海的气象播报。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "我老家在杭州，从小闻着潮腥味长大。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "嗯，算你有两下子。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "下午风暴预警演习，全员点名。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "演习当真事来走流程才有用。你负责的舱段门锁检查完记得签名字，别空着交差。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "我睡0317舱，靠舷那侧，浪大时水声吵得很。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "明白，放心好了。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "说真的，一天不灌足两杯冰美式，我整个人就是废的。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "好，都听你的安排。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "还记得为啥那勺提鲜的白粉你从来不碰么？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "仪器那头还跑着数，回头再聊。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "空调出风口老滴水，滴得人心烦。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "接水盘堵了，拿细铁丝通一通就好。通之前垫块抹布，不然一股冷凝水全洒床边。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "闲着也是闲着，讲讲你以前的事。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "我这脑袋对味精没辙，汤里多放一星半点都疼。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "海上日子长，聊聊你怎么入的这行？"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "我留着一台苏制老血压计，量起来比船上新设备还准。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "难得的大晴天，被褥都抱出去晒了。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "紫外线是最好的除味剂，晒到下午三点收。收早了潮气回渗，等于白忙一场。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "杭州生杭州长，海腥味就是我的家乡味。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "行，就这么定下来。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "我对青霉素过敏，皮试一碰就起满身风团。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "有意思，你接着说。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "我妻子叫苏晚，婚都结到第四个年头了。"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "难得你肯讲这些。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "下午全船停电演习，摸黑十分钟。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "演习比真停电从容多了，至少有口令。摸黑走路记得侧身，撞角的人年年有。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "今天浪比昨天大，走路都得扶着墙。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "低气压过来了，晚间还会更晃。睡前把桌上玻璃杯都收进抽屉，免得半夜听见连环响。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "航次靠港我就去考潜水证，深潜采样用得上。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "这话我爱听着呢。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "对了，你平时不上班的时候都干嘛？"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "那台苏联时代的老血压计是我的宝贝，比新仪器靠谱。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "我户口簿上印的原籍，你还记得是座什么城么？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "等我把这班值完，改日细说。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "垃圾分类今天检查，厨余分错了两袋。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "远洋的规矩比城里还严，查到一次通报一次。回头我把分类图打印出来贴在桶边。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "船还要开俩月，讲讲你的老家？"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "轮班把我的觉睡颠倒了，得吞褪黑素才睡得沉。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "青霉素这药我碰不得，沾上就浑身起疹块。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "嗯，这我能理解。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "隔壁舱的老王打呼，隔两道门都听得见。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "让他侧睡试试，仰躺最响。实在不行给他支个招，耳塞我抽屉里还有一副新的。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "上个月过台风外围，我在甲板摔了一跤，左腕缝了四针。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "记住了，不说出去。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "仪器面板上一堆缩写，我猜了半天。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "别硬猜，面板下的英文对照表就在抽屉里。抄一份贴自己桌上，一周就记全了。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "你说说，家里人知道你在哪吗？"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "三年前我跑的那条船起过机舱火灾，打那以后闻不得烟味。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "海图室的灯坏了两盏，修灯的在排队。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "让电工顺手把备用的也换了，省得再跑一趟。那屋子暗，看图最容易看岔比例尺。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "邮件附件半天拉不下来，急死个人。"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "带宽就那么点，全船抢着用。大文件挑后半夜传，那时候网速快得像换了条船。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "夜里风大，你们夜班怎么排？"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "溯洄号这趟要在海上漂满九十天，十月底才靠港。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "空调滤网拆出来全是灰絮。"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "冲一冲晒一晒还能用两轮。装回去的时候注意方向，装反了风声比噪音还大。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "卫星云图显示东边有个热带扰动。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "和航线擦边，未必追得上咱们。不过防台预案照例先过一遍，物资盘点别偷懒。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "半夜要寻我，报哪个门牌号准能逮着人？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "风浪一大我就没心思讲话，容我缓缓。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "系缆的缆绳起毛了，得换一段。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "起毛的位置用记号笔圈出来，换的时候省得去找。旧绳别扔，改拖把绳正好使。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "收拾样品我必放摇滚乐，声音大得舱壁都嗡嗡响。"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "好嘞，回头我留意。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "前阵子躲台风摔在甲板上，左手腕挨了四针。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "行吧，这回依你。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "我戴的机械表是父亲留下的，防水壳裂了也没舍得换。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "这话在理得很。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "聊聊船上的规矩和忌讳吧。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "医务室在主甲板右舷，门口贴着个红十字牌。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "我的实验台在二号湿实验室最里侧，窗边那格归我。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "嗯，船上日子就是这样。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "舱室湿冷，我的老腰一到夜里就僵，贴膏药才顶得住。"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "记下了，改天验证。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "你包里那些家当，有什么讲究？"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "我给自己定了数，靠港前体脂要降到百分之十八。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "到港之前，你有什么打算？"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "我的保温杯里永远是浓茶，一天三泡才够劲。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "说说你自己吧，我对你还不熟。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "我闺女跟姥姥住在青岛，每次靠港都要视频两小时。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "闲着也是闲着，讲讲你以前的事。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "溯洄号满载排水量五千二百吨，是这条线上最大的。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "你箱底那台量压的旧家伙，来历还记得么？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "医务室有人候诊，先失陪。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "海上日子长，聊聊你怎么入的这行？"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "这一航次满打满算九十天，靠港得等到十月底。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "洗的帆布鞋两天了还是潮的。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "塞报纸放机舱口烘，两天准干。不过报纸油墨会蹭上去，穿出去就当迷彩了。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "值班日志边角上有人画了小海鸥。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "字里行间的小涂鸦，看着比正页有意思。这习惯别制止，枯燥日子里全靠这点趣味。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "活动桌角裂了，用胶水粘住了。"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "白乳胶干得慢，压上一晚上才结实。粘好前贴张纸条，免得有人一压一手胶。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "新来的实习生晕浪晕得脸都白了。"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "头一个星期都这样，让他多在船中段待着，那里晃得轻。再不行就让他躺着别硬撑。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "轮到发罐头我专挑毛病，菠萝的那个碰都不碰。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "成，那就不打扰。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "对了，你平时不上班的时候都干嘛？"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "满载排水五千二百吨，这条船在同类里算大家伙。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "船尾飞鱼群跃出水面，银光闪闪。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "这个季节它们躲金枪鱼，跃出来逃命。甲板灯关掉还能多看一会儿，别惊了它们。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "带我入行的导师叫程叙，我俩到如今每月还通一封邮件。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "这个我记下了。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "午睡刚睡着，隔壁就传来电钻声。"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "机修挑的这个点确实欠考虑。你去委婉提一句，让他们挪到两点以后，大家都落个好。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "半夜饿得慌，泡面都成了奢侈品。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "夜宵柜就锁在配餐间，登记就能拿。泡面配不上热菜，倒上一勺辣酱也算改善伙食。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "船还要开俩月，讲讲你的老家？"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "下次靠港前我想学会基础手语，跟失聪船员问诊省劲。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "打针前我得先跟你交代哪桩要命的事，你还记得么？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "饭点到了，吃完再叙这个。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "二号湿实验室改成了备用药房，我的摊子挪去了三层。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "嗯，算你有两下子。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "昨晚出去看星星，银河清楚得吓人。"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "离岸越远越亮，这是海上的福利。不过后半夜露水重，看归看，记得回舱前把鞋底擦干。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "无线电房半夜一直有杂音，沙沙的。"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "太阳活动这段时间频繁，短波就是这样的。忍几天吧，实在影响记录就换个频点。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "你说说，家里人知道你在哪吗？"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "胃镜查出浅表性胃炎，如今只喝得下淡得没味的茶。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "夜里风大，你们夜班怎么排？"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "闺女去年跟了她妈去新西兰，视频从每周改成每月。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "聊聊船上的规矩和忌讳吧。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "航次过半体脂不降反升，目标改成先戒夜宵。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "跟着医务室的康复操做了三周，腰总算不闹了。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "明白，放心好了。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "你包里那些家当，有什么讲究？"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "我手背有片干性湿疹，碰消毒酒精就刺得钻心。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "那块表上月检修时掉进海里，捞不回来了。"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "好，都听你的安排。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "到港之前，你有什么打算？"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "近来不用药也能睡整宿，身体总算认了船的钟点。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "说说你自己吧，我对你还不熟。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "我盘算着趁航次把基础手语拿下，问诊聋哑船员方便。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "熬夜值班的命，是靠哪种苦水吊着的，还记得么？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "这话头太长，得挑个晴天慢慢讲。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "我攒下七枚港口徽章，全钉在床铺的软木板上。"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "行，就这么定下来。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "机房的说明书全是俄文，没人看得懂。"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "找老轮机长，他当年在北方港口干过。实在不行就拍照发给岸上，来回也就半天。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "今天有群海鸟跟着船飞了好久。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "跟着船省力气，它们聪明得很。听说有人在船尾看见过信天翁，翅膀张开快两米，想想都壮观。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "除锈膏的味道呛人，熏得眼睛疼。"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "那玩意儿酸性大，手套眼镜一样不能少。弄完的抹布单独洗，别跟擦桌子的混。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "心脏查出毛病以后，我只敢喝低因的，浓的一口不敢碰。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "有意思，你接着说。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "休息室的国际象棋盘缺了一枚白兵。"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "拿硬币顶上，大家都心照不宣。规则照旧，谁也别拿这事赖棋，传出去要笑一阵。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "闲着也是闲着，讲讲你以前的事。"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "前年我跟过一趟跨洋医疗转运，三天没合眼把病人送到岸。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "队长早会上又强调安全帽的事。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "甲板作业不戴帽子，通报栏上见。这规矩唠叨归唠叨，真出了事谁都后悔莫及。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "海上日子长，聊聊你怎么入的这行？"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "我的编制挂在总局的海事医疗中心，档案都在岸上。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "靠一次港收一枚，我这儿已钉了七枚徽章。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "难得你肯讲这些。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "开船前一晚我在码头吃了碗馄饨，算是跟陆地道别。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "这话我爱听着呢。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "舱门的合页吱呀响了半个月。"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "缝纫机油点两滴就好，别用食用油，招蟑螂。点完多开合几次，让油走匀才管用。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "结婚证上另一半的名字，你还记得么？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "试验正到关口，容我盯完这一炉。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "口香糖在船上成了硬通货。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "饭后一片，比烟酒都体面。你囤的那几板藏着点，换东西的时候能派上用场。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "九月九号那天我满三十岁，生日正好落在航次中间。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "嗯，这我能理解。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "打牌三缺一，你来不来凑一手？"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "我这边刚交完班，坐下可以，输赢别记账。牌品见人品，咱们就图个消磨时间。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "对了，你平时不上班的时候都干嘛？"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "那年护送危重病人横渡大洋，我连轴转了三天没合眼。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "苏晚上个月查出怀孕，我要当爹了。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "记住了，不说出去。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "拿糖水罐头煮了锅甜汤，反响不错。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "厨子尝了一口说可以进菜单。就是糖别下猛了，晚上血糖高的人睡不踏实。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "隔壁舱的兄弟整夜翻身，床板咯吱响。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "让他垫张毛毯试试，硬床板在晃的船上最硌人。实在不行把他俩床位对调，避开机器那侧。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "晾在甲板的衣服今天又被浪打湿了。"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "这几天湿度太高，晾三天也干不透。要么挂机舱口烘着，要么就认命穿半潮的。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "食堂中午的炖菜有点咸，你尝了吗？"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "尝了，咸得我多灌了两杯水。回头我跟厨子提一句，让他下盐前先想着航海出汗少。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "水培的绿豆芽出芽了，绿油油的。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "芽菜在船上金贵，掐尖的时候要留根。再养出一茬就够全组打一次蛋汤，物尽其用。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "对着望远镜看久了，头晕眼花。"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "看三十秒歇一歇，别一口气盯着。头晕就扶稳再松手，甲板上摔跤比晕本身麻烦。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "我惦记着要考的那本下潜资格执照，还记得么？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "先帮我把舱门关上，回头再说。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "淡水配额又收紧了，洗澡限时五分钟。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "造水机负荷有限，只能这么抠着用。你洗快些，冲完顺手把阀门拧紧，滴漏最浪费。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "淋浴间的水压今天低得可怜。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "上层用水高峰都压在这个点。你改到十点以后去，那时候管子里的水又急又热。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "健身房跑步机又排队，我等了十分钟。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "反正船上地方小，大家只能挤那几台器械。要不你改跳绳，甲板尾端风小，地方也够。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "公共活动室有人拼一幅两千块的拼图。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "拼图在晃动的船上玩，纯粹是修心。前几天他们拼丢了三块，最后在地漏旁边找着的。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "洗澡要排队，热水就供到八点。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "晚八点前是高峰，水压顶不住的。你改清晨再去，那时候水温稳，也不用排队。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "耳压检测没过关，潜水证这计划黄了，认了。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "好嘞，回头我留意。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "船钟敲六下，我问了半天什么意思。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "六下就是三点半，两下一组这么算。船上时间以钟声为准，手表反倒是参考。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "航海日志今天轮到我写，有点紧张。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "照实写就行，天气、航速、见闻，三段够用。写错了别涂改，划一道在旁边补注就行。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "舱室除湿机的噪音吵得人头疼。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "把它垫块橡胶垫能好些，共振会小一半。再不行就睡前关掉，闷一晚也比吵一晚强。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "邮件日到了，家里来信足足攒了六封。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "一次性读容易鼻酸，你分两天读吧。回信趁早写，下一班通讯窗口说不好什么时候开。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "报架上的报纸还是三个月前的。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "远洋就这样，新闻到手里全是旧闻。你当历史读物看，反而读得心平气和些。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "换班表贴出来了，我这周全是后半夜。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "后半夜凉，多带件外套。交接的时候记得把日志本翻到新页，别总叫白班的人替你补记录。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "现在夜里那觉质量，还需要外援么？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "夜航铃响了，改天再讲这个。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "十点的加餐是热麦片，排队的人不少。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "麦片管饱不顶馋，加一勺果酱就升华了。你排在队尾也别急，锅底的反而更稠。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "栏杆下头又起锈了，得找人打磨。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "盐雾最啃铁，涂了漆也扛不住几个月。周五检修日我搭把手，打磨完记得补一层底漆。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "锚链舱今天除锈，锈末子飞得满天。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "干活的人裹得只剩眼睛，围观的也别凑太近。锈末吸进鼻子，半天都咳不出来。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "晚饭后甲板上有人打排球，网都拉好了。"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "球网一拉，风一吹就往一边偏，打起来全靠运气。输赢别太认真，摔了可没地方养伤。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "我的拖鞋只剩一只，另一只失踪了。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "八成被浪卷进下水道格栅了。先借双备用的应急，洗漱间标配，别赤脚乱跑。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "纪念邮戳的事登记了吗？靠港才盖。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "登记了，名单在事务长那儿。轮到你拿包裹那天顺便问一嘴，别错过截止时间。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "借了本旧小说，结局居然是悬案。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "那套书缺了最后一册，悬念永远挂着。你就当作者故意留白，省得气得睡不着。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "交班的时候日志差点写串了页。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "交接最忌讳这个，白班夜班各一栏。以后下笔前先核对日期，写串了就整页重抄。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "一只不知名的海蟹爬上了甲板。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "夜里灯光引上来的，钳子别小看。拿扫帚请它下船就行，徒手抓的人都在医务室悔过。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "风速计的叶片被海鸟撞歪了一根。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "小伙子们拿胶带缠了一下先凑合。备件在导航柜第三层，登记领一支换上就是。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "事务长在统计大家的鞋码订新胶鞋。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "登记的时候写大半码，远洋脚会胀。新鞋上船前先磨合，不然第一天就磨出泡。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "我手上原来那件传家的时计，如今还在么？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "这会儿晕浪，改日再细聊。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "望远镜里看云层，像有人打翻的棉花。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "积云堆成塔，多半午后有阵雨。拍摄的时候擦净镜头，盐雾一层就能糊成毛玻璃。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "配发的汽水一人一周一瓶。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "含糖配给就是紧，谁也别抱怨。留到周五晚上开，配电影刚刚好，仪式感也足。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "借工具箱忘登记，被事务长念叨了。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "他那张登记表就是他的命。道歉认错最省事，下回先签字再拿东西，一句多余的话都没有。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "有人教打绳结，我学了个平结。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "平结好解但容易滑，受力大的地方得用双套结。多练几次手就熟，绳结这东西全凭肌肉记。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "天线上的盐霜结得像一层白霜糖。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "盐霜厚了影响收发，浪小就得擦。擦的时候两人一组，安全带互相检查再上去。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "卫星电话这几天的信号时好时坏。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "天线罩子结盐了，信号就发飘得很。等浪小了让机务上去擦一擦，能稳当不少。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "舵机转起来有点异响，咔哒咔哒的。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "报机务了，多半是液压里有气泡。这种小毛病拖不得，等它闹大了就是大修。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "明天甲板要补漆，让大家绕着走。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "油漆味在密闭空间里最呛人。你绕行的时候留意脚下，湿漆面踩一脚，鞋就报废了。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "船尾吸烟区今晚人多，聊得热闹。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "他们把烟头按进罐子里这点倒是自觉。风往下舱灌的晚上，还是少待在那儿为好。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "早上的白粥咸得像汤，大家都笑了。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "厨子把盐罐当糖罐了，算他手滑。笑归笑，中午的粥他必定补救，淡得能照镜子。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "信号灯测试，红绿光在雾里打转。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "雾天灯光散射得厉害，看着跟萤火虫似的。测试完把遮光板复位，夜里晃眼睛。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "今天轮到我们组值厨房，得切一上午菜。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "切菜按纹理来，省力还好看。回头人多手杂，记得有人专门看着灶上的汤锅。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "远在海外那孩子的近况，如今多久才联络一回？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "甲板上还要晾东西，先忙。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "厨房冰箱该除冰了，冻得门都关不严。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "冰层超过一指厚就得上手。断电化冰趁人少的时候弄，化完的水记得分桶接走。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "今天换床单，全楼道都是洗衣粉味。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "床品统一高温洗，晒不到太阳只能烘干。领新的记得数枕套，缺件要自己写说明。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "舷窗贴了层防爆膜，光线暗了些。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "暴晒的舱贴膜确实凉快。就是晚上看星星隔着膜，跟蒙了纱似的，取舍罢了。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "厨师说今晚试做咖喱，让我们捧场。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "他那手咖喱配米饭倒是拿手，就是辣度看心情。你去捧场没错，记得提前占座，晚了就剩锅底。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "傍晚的云是橘子色的，拍了好几张。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "海上晚霞比陆地上泼辣，没遮没拦的。存下来吧，靠港以后这些都是拿不出门的好东西。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "带的一包薯片，压成了一袋碎片。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "深海的气压不背这锅，是你把它压在箱底了。碎就碎吧，泡在酸奶里口感还挺新鲜。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "淡水里一股铁锈味，泡茶都发涩。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "管路老化的老毛病，烧开了问题不大。实在介意就装一壶晾半天，味道会轻些。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "拖地的人刚走，走廊滑得像冰面。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "那层蜡没干之前最坑人。你走两侧，扶着扶手慢慢挪，摔一下可不是闹着玩的。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "周五加餐有炸鱼，人人都在念叨。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "冷冻舱里最后一批鱼获，吃完就得等补给船了。到时候一人一份，别指望添第二筷子。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "老照片分享会定在周日晚上。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "每人带三张，讲台摆在大餐厅。这种场合容易拖堂，主持人得准备个响铃提醒。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "今天船侧跟着一群海豚，追了好久。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "船头破浪的气泡最招它们喜欢。想让它们多待会儿，就让船速稳着，别忽快忽慢。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "你那只杯子的滋味，还像从前那样霸道么？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "沈昭",
+      "relation": "likes",
+      "object": "冰美式",
+      "speaker": "user",
+      "statement": "我这条命是冰美式续的，一天两杯才算活过来。",
+      "statementFloor": 6,
+      "restatement": "说真的，一天不灌足两杯冰美式，我整个人就是废的。",
+      "restatementFloor": 24,
+      "update": {
+        "statement": "心脏查出毛病以后，我只敢喝低因的，浓的一口不敢碰。",
+        "probe": "现在让你碰带劲儿的咖啡还行么？"
+      },
+      "updateFloor": 160
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "顾一苇",
+      "relation": "dislikes",
+      "object": "味精",
+      "speaker": "character",
+      "statement": "船上厨子爱放味精，我沾一点就头疼半天。",
+      "statementFloor": 11,
+      "restatement": "我这脑袋对味精没辙，汤里多放一星半点都疼。",
+      "restatementFloor": 31,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "identity",
+      "subject": "沈昭",
+      "relation": "hails_from",
+      "object": "杭州",
+      "speaker": "user",
+      "statement": "我老家在杭州，从小闻着潮腥味长大。",
+      "statementFloor": 18,
+      "restatement": "杭州生杭州长，海腥味就是我的家乡味。",
+      "restatementFloor": 36,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "location",
+      "subject": "沈昭",
+      "relation": "sleeps_in",
+      "object": "0317舱",
+      "speaker": "user",
+      "statement": "我睡0317舱，靠舷那侧，浪大时水声吵得很。",
+      "statementFloor": 22,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f05",
+      "memoryType": "item",
+      "subject": "顾一苇",
+      "relation": "keeps",
+      "object": "苏制老血压计",
+      "speaker": "character",
+      "statement": "我留着一台苏制老血压计，量起来比船上新设备还准。",
+      "statementFloor": 33,
+      "restatement": "那台苏联时代的老血压计是我的宝贝，比新仪器靠谱。",
+      "restatementFloor": 49,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f06",
+      "memoryType": "health",
+      "subject": "沈昭",
+      "relation": "allergic_to",
+      "object": "青霉素",
+      "speaker": "user",
+      "statement": "我对青霉素过敏，皮试一碰就起满身风团。",
+      "statementFloor": 38,
+      "restatement": "青霉素这药我碰不得，沾上就浑身起疹块。",
+      "restatementFloor": 56,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f07",
+      "memoryType": "relationship",
+      "subject": "沈昭",
+      "relation": "married_to",
+      "object": "苏晚",
+      "speaker": "user",
+      "statement": "我妻子叫苏晚，婚都结到第四个年头了。",
+      "statementFloor": 40,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "苏晚上个月查出怀孕，我要当爹了。",
+        "probe": "那桩即将落在我头上的喜事，你还记得么？"
+      },
+      "updateFloor": 186
+    },
+    {
+      "id": "f08",
+      "memoryType": "goal",
+      "subject": "沈昭",
+      "relation": "pursues",
+      "object": "潜水证",
+      "speaker": "user",
+      "statement": "航次靠港我就去考潜水证，深潜采样用得上。",
+      "statementFloor": 46,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "耳压检测没过关，潜水证这计划黄了，认了。",
+        "probe": "当初想考的那本执照，后来怎么着了？"
+      },
+      "updateFloor": 212
+    },
+    {
+      "id": "f09",
+      "memoryType": "health",
+      "subject": "顾一苇",
+      "relation": "manages_with",
+      "object": "褪黑素",
+      "speaker": "character",
+      "statement": "轮班把我的觉睡颠倒了，得吞褪黑素才睡得沉。",
+      "statementFloor": 55,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "近来不用药也能睡整宿，身体总算认了船的钟点。",
+        "probe": "现在夜里那觉质量，还需要外援么？"
+      },
+      "updateFloor": 147
+    },
+    {
+      "id": "f10",
+      "memoryType": "event",
+      "subject": "沈昭",
+      "relation": "suffered",
+      "object": "左腕缝四针",
+      "speaker": "user",
+      "statement": "上个月过台风外围，我在甲板摔了一跤，左腕缝了四针。",
+      "statementFloor": 60,
+      "restatement": "前阵子躲台风摔在甲板上，左手腕挨了四针。",
+      "restatementFloor": 82,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f11",
+      "memoryType": "event",
+      "subject": "顾一苇",
+      "relation": "experienced",
+      "object": "机舱火灾",
+      "speaker": "character",
+      "statement": "三年前我跑的那条船起过机舱火灾，打那以后闻不得烟味。",
+      "statementFloor": 65,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f12",
+      "memoryType": "fact",
+      "subject": "溯洄号",
+      "relation": "lasts",
+      "object": "九十天",
+      "speaker": "character",
+      "statement": "溯洄号这趟要在海上漂满九十天，十月底才靠港。",
+      "statementFloor": 71,
+      "restatement": "这一航次满打满算九十天，靠港得等到十月底。",
+      "restatementFloor": 103,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "preference",
+      "subject": "沈昭",
+      "relation": "likes",
+      "object": "摇滚乐",
+      "speaker": "user",
+      "statement": "收拾样品我必放摇滚乐，声音大得舱壁都嗡嗡响。",
+      "statementFloor": 80,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "item",
+      "subject": "沈昭",
+      "relation": "keeps",
+      "object": "机械表",
+      "speaker": "user",
+      "statement": "我戴的机械表是父亲留下的，防水壳裂了也没舍得换。",
+      "statementFloor": 84,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "那块表上月检修时掉进海里，捞不回来了。",
+        "probe": "我手上原来那件传家的时计，如今还在么？"
+      },
+      "updateFloor": 144
+    },
+    {
+      "id": "f15",
+      "memoryType": "location",
+      "subject": "顾一苇",
+      "relation": "works_in",
+      "object": "主甲板右舷",
+      "speaker": "character",
+      "statement": "医务室在主甲板右舷，门口贴着个红十字牌。",
+      "statementFloor": 87,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "fact",
+      "subject": "溯洄号",
+      "relation": "displaces",
+      "object": "五千二百吨",
+      "speaker": "character",
+      "statement": "溯洄号满载排水量五千二百吨，是这条线上最大的。",
+      "statementFloor": 99,
+      "restatement": "满载排水五千二百吨，这条船在同类里算大家伙。",
+      "restatementFloor": 115,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f17",
+      "memoryType": "relationship",
+      "subject": "顾一苇",
+      "relation": "father_of",
+      "object": "闺女",
+      "speaker": "character",
+      "statement": "我闺女跟姥姥住在青岛，每次靠港都要视频两小时。",
+      "statementFloor": 97,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "闺女去年跟了她妈去新西兰，视频从每周改成每月。",
+        "probe": "远在海外那孩子的近况，如今多久才联络一回？"
+      },
+      "updateFloor": 137
+    },
+    {
+      "id": "f18",
+      "memoryType": "preference",
+      "subject": "顾一苇",
+      "relation": "likes",
+      "object": "浓茶",
+      "speaker": "character",
+      "statement": "我的保温杯里永远是浓茶，一天三泡才够劲。",
+      "statementFloor": 95,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "胃镜查出浅表性胃炎，如今只喝得下淡得没味的茶。",
+        "probe": "你那只杯子的滋味，还像从前那样霸道么？"
+      },
+      "updateFloor": 135
+    },
+    {
+      "id": "f19",
+      "memoryType": "preference",
+      "subject": "沈昭",
+      "relation": "dislikes",
+      "object": "罐头菠萝",
+      "speaker": "user",
+      "statement": "轮到发罐头我专挑毛病，菠萝的那个碰都不碰。",
+      "statementFloor": 112,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f20",
+      "memoryType": "relationship",
+      "subject": "沈昭",
+      "relation": "mentored_by",
+      "object": "程叙",
+      "speaker": "user",
+      "statement": "带我入行的导师叫程叙，我俩到如今每月还通一封邮件。",
+      "statementFloor": 118,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "goal",
+      "subject": "顾一苇",
+      "relation": "learning",
+      "object": "基础手语",
+      "speaker": "character",
+      "statement": "下次靠港前我想学会基础手语，跟失聪船员问诊省劲。",
+      "statementFloor": 125,
+      "restatement": "我盘算着趁航次把基础手语拿下，问诊聋哑船员方便。",
+      "restatementFloor": 149,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f22",
+      "memoryType": "goal",
+      "subject": "顾一苇",
+      "relation": "targets",
+      "object": "百分之十八",
+      "speaker": "character",
+      "statement": "我给自己定了数，靠港前体脂要降到百分之十八。",
+      "statementFloor": 93,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "航次过半体脂不降反升，目标改成先戒夜宵。",
+        "probe": "原定打算作废之后，你先跟哪样馋瘾较劲？"
+      },
+      "updateFloor": 139
+    },
+    {
+      "id": "f23",
+      "memoryType": "health",
+      "subject": "顾一苇",
+      "relation": "has",
+      "object": "干性湿疹",
+      "speaker": "character",
+      "statement": "我手背有片干性湿疹，碰消毒酒精就刺得钻心。",
+      "statementFloor": 143,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f24",
+      "memoryType": "health",
+      "subject": "沈昭",
+      "relation": "has",
+      "object": "慢性腰痛",
+      "speaker": "user",
+      "statement": "舱室湿冷，我的老腰一到夜里就僵，贴膏药才顶得住。",
+      "statementFloor": 90,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "跟着医务室的康复操做了三周，腰总算不闹了。",
+        "probe": "那副折腾我半年的老毛病，如今还使绊子么？"
+      },
+      "updateFloor": 140
+    },
+    {
+      "id": "f25",
+      "memoryType": "item",
+      "subject": "沈昭",
+      "relation": "collects",
+      "object": "七枚港口徽章",
+      "speaker": "user",
+      "statement": "我攒下七枚港口徽章，全钉在床铺的软木板上。",
+      "statementFloor": 152,
+      "restatement": "靠一次港收一枚，我这儿已钉了七枚徽章。",
+      "restatementFloor": 170,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f26",
+      "memoryType": "location",
+      "subject": "沈昭",
+      "relation": "works_in",
+      "object": "二号湿实验室",
+      "speaker": "user",
+      "statement": "我的实验台在二号湿实验室最里侧，窗边那格归我。",
+      "statementFloor": 88,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "二号湿实验室改成了备用药房，我的摊子挪去了三层。",
+        "probe": "如今我干活的新据点，落在第几层来着？"
+      },
+      "updateFloor": 128
+    },
+    {
+      "id": "f27",
+      "memoryType": "event",
+      "subject": "顾一苇",
+      "relation": "participated_in",
+      "object": "跨洋医疗转运",
+      "speaker": "character",
+      "statement": "前年我跟过一趟跨洋医疗转运，三天没合眼把病人送到岸。",
+      "statementFloor": 165,
+      "restatement": "那年护送危重病人横渡大洋，我连轴转了三天没合眼。",
+      "restatementFloor": 185,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f28",
+      "memoryType": "identity",
+      "subject": "顾一苇",
+      "relation": "registered_with",
+      "object": "海事医疗中心",
+      "speaker": "character",
+      "statement": "我的编制挂在总局的海事医疗中心，档案都在岸上。",
+      "statementFloor": 169,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "event",
+      "subject": "沈昭",
+      "relation": "ate",
+      "object": "馄饨",
+      "speaker": "user",
+      "statement": "开船前一晚我在码头吃了碗馄饨，算是跟陆地道别。",
+      "statementFloor": 172,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "fact",
+      "subject": "沈昭",
+      "relation": "birthday_is",
+      "object": "九月九号",
+      "speaker": "user",
+      "statement": "九月九号那天我满三十岁，生日正好落在航次中间。",
+      "statementFloor": 180,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "还记得为啥那勺提鲜的白粉你从来不碰么？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我户口簿上印的原籍，你还记得是座什么城么？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "半夜要寻我，报哪个门牌号准能逮着人？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "你箱底那台量压的旧家伙，来历还记得么？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f06",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "打针前我得先跟你交代哪桩要命的事，你还记得么？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "熬夜值班的命，是靠哪种苦水吊着的，还记得么？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f07",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "结婚证上另一半的名字，你还记得么？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f08",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我惦记着要考的那本下潜资格执照，还记得么？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f09",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f09"
+      ],
+      "text": "现在夜里那觉质量，还需要外援么？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f14",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f14"
+      ],
+      "text": "我手上原来那件传家的时计，如今还在么？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f17",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f17"
+      ],
+      "text": "远在海外那孩子的近况，如今多久才联络一回？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f18",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f18"
+      ],
+      "text": "你那只杯子的滋味，还像从前那样霸道么？"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "sessionCount": 12,
+  "sessions": [
+    {
+      "id": "s01",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 9,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6323
+    },
+    {
+      "id": "s02",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 15,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6031
+    },
+    {
+      "id": "s03",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 16,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6179
+    },
+    {
+      "id": "s04",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 11,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6584
+    },
+    {
+      "id": "s05",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 11,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6395
+    },
+    {
+      "id": "s06",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 10,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6523
+    },
+    {
+      "id": "s07",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 9,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6914
+    },
+    {
+      "id": "s08",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 9,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6751
+    },
+    {
+      "id": "s09",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 9,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6972
+    },
+    {
+      "id": "s10",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 30,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6228
+    },
+    {
+      "id": "s11",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 30,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6323
+    },
+    {
+      "id": "s12",
+      "floors": 300,
+      "facts": 30,
+      "updatedFacts": 10,
+      "restatedFacts": 30,
+      "probes": 12,
+      "probesOnUpdated": 4,
+      "totalChars": 6087
+    }
+  ]
+}

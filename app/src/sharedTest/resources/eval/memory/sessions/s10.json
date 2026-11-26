@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s10",
+  "title": "宿舍的一学期",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "回来啦？热水刚烧上。今晚是想吐槽还是想八卦，你挑一样。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "食堂阿姨给我打菜手一抖，肉少了一半。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "你得赶在十二点整去，头锅最实在。再晚就是勺子贴着盆底刮的那批，全是汤。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "宿舍夜谈聊到鬼故事，我后背发凉。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "你属于听的时候上头，睡的时候怂那种。关灯前咱把柜门都关严，省得你瞎想。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "我这学期咖啡就认冰美式，别的都不对味。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "行，这我记下了。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "共享充电宝涨价了，一小时涨到四块。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "这价格都快赶上买根线了。你抽屉里那个旧的修修还能用，工具我借你，周末捣鼓半小时就成。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "手机贴膜起了泡，看着闹心。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "你自己就能压平，卡片裹块布从中间往边上推出去。实在不行换一张，膜才几块钱的事。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "冬至那天食堂饺子窗口排队绕了操场半圈。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "咱自己包得了，楼下超市饺子皮现成。你调馅我擀皮，齐活比排一小时队强多了，还图个热闹。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "对了，说说你自己吧。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "点外卖我必勾重辣，辣子多多的那家才够劲。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "羽毛球馆订场小程序崩了，白等半天。"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "高峰期系统就这德行，你直接打电话给前台，报个学号也能订上。别死磕那个应用了，白耗时间。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "抢回家的票开了候补，我盯着刷新。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "候补兑现率比你想的高，尤其开车前四十八小时。你把前后几个日期都挂上，别只盯一天死等。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "我习惯早上七点冲澡，那样一天都清爽。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "嗯，原来是这样。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "我跑步只听纯音乐，带词的一律打乱节奏。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "好家伙，长见识了。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "跟你说过的吧，我的咖啡名单上一直只有冰美式。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "懂了，回头我帮你留意。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "还记得我冲凉定在什么钟点吗？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "嘘，楼下在查寝，这事儿回头再聊。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "自助打印机识别不出我的文件。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "你那是格式问题，转成固定版式再传。以后交作业也用那种格式，排版不乱。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "我对象是外语学院的周棠，处了大半年了。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "这么回事啊，明白了。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "你平时课余都怎么打发？"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "吃辣这事我从没含糊过，直接顶到最狠那档。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "澡堂晚上水温忽冷忽热，我差点烫出声。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "避开刚开闸那阵就行，管子里的凉水先放放。你涂沐浴露前先试探两下，别硬冲。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "最近有什么开心事？"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "我在郑明远教授组里，做光子晶体这摊。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "早晨七点那场澡雷打不动，一天的精神全靠它。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "收到，心里有数了。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "我晨跑歌单里清一色是没歌词的曲子。"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "嗯嗯，你接着说。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "隔壁宿舍的纪野是我高中同桌，俩人熟到穿一条裤子。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "这我可得记牢。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "有人问我借课堂笔记，我纠结给不给。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "给呗，笔记又不是独门秘籍。你拍个照发电子版，原件自己留着复习，两不耽误。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "跟我处了半年多对象的那位，是外语学院的周棠。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "行吧，随你高兴就好。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "十二月那场六级，我盯的就是600分。"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "有意思，说下去。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "还记得我锻炼时耳机里放的是什么类型吗？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "我这会儿在赶实验报告，脑子转不动了。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "讲讲你家里的事呗。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "我这学期的算盘是保研南大，绩点不敢掉。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "你最近在忙些什么？"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "领我上路的老师是郑明远，方向定在光子晶体。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "期末成绩出来一科，我盯着刷新手抖。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "你这心理素质还刷新什么，定个闹钟明天再看。该多少就是多少，刷新一万遍也改不了分。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "我打算年底前攒够八千块，添台像样的微单。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "明白，不往外传。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "纪野这人，从高中起就跟我同桌，交情深得很。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "哦，这样啊，我懂了。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "我校园卡丢了，食堂阿姨让我先赊账。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "先挂失再补办，别拖，卡里还剩一百多呢。食堂那阿姨心善，回头你去道个谢。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "我买的热水壶烧水跳闸了整层。"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "大功率电器本就违规，你别声张，换个低瓦数的。日常烧水去开水房，免费还安全，一举两得。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "这阵子我失眠，躺到凌晨三点才有点困意。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "记下了，你就放心吧。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "说说你这学期的打算？"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "心里盘算的是拿南大的保研名额，分数半点松不得。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "我的六级目标早写好了，就奔着600分去。"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "嗯，这事儿我上心了。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "你老家那边什么样？"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "我右手腕得了腱鞘炎，握拍都发不上力。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "夜市新出的烤冷面排队排疯了。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "网红摊都这德行，撑过两个月味道就回归平凡。想吃咱周三错峰去，顺便逛逛后面的旧书摊。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "我有位从中学一路同窗到毕业的旧友，你记得他吗？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "哎，外卖到了，先让我干了这口。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "我的攒钱计划没变过，八千块就为那台微单。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "好嘞，这我知道了。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "我那辆二手捷安特骑了两年，除了铃哪儿都响。"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "成，这回我全懂了。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "聊聊你的朋友们呗。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "我那把杜伽红轴键盘用了三年，键帽都盘出包浆了。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "入睡难得很，眼睁睁熬到三点过后才睡着。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "行，这我记下了。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "球场又被外校的包了半边，咱们约的局泡汤。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "那就去东侧半场，灯光亮还没人盯。改天咱们早点去占场，六点前那会儿基本空着，随到随打。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "我自习固定占老图书馆四楼靠窗那排座。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "嗯，原来是这样。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "有没有什么烦心事？"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "手腕那处腱鞘炎折腾我半个月了，使不上劲。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "我这台联想小新是大一买的，屏幕色彩挺正。"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "好家伙，长见识了。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "楼里消防演练，全员下楼站队。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "这种演练你就当散步，认真听疏散路线。真出事那几秒，熟门熟路能救命，别嬉皮笑脸。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "楼门口台阶结冰，好几个人滑了。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "你走那排铺了草垫的，千万别逞能跑。摔倒时别用手撑地，手腕最容易伤，护着点。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "你平时都怎么解压？"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "我们组的实验室在老实验楼517，刷卡才进得去。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "我平时代步骑的那个家伙什么牌子，你记得吗？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "你先别说，让我猜猜……算了，猜不着。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "车棚那台捷安特是我的老伙计，浑身都响就是铃不响。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "懂了，回头我帮你留意。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "对了，说说你自己吧。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "手边那块杜伽的红轴，陪我敲了三个年头。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "晒被子忘了看天，又给云欺负了。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "被套湿了没事，被芯晒半干就收进屋。你要学会看积雨云，那玩意一来准下雨，比预报还准。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "泡自习室我只认老馆四层临窗的位置。"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "这么回事啊，明白了。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "十一那天我随户外社夜爬黄山，凌晨摸黑登的顶。"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "收到，心里有数了。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "手头这台联想的小新，从大一陪我到现在。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "嗯嗯，你接着说。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "你平时课余都怎么打发？"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "院系杯决赛压哨那记三分，是我投进去的。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "我追的那部剧终于更新了，一口气看完两集。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "你这一追就停不下来，明天早课又悬。要看也行，先定个闹钟，看完一集就睡觉。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "校医院口腔科号约到两周后了。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "你那颗智齿不疼就先排着，疼了走急诊通道。挂号软件放个提醒，晚上八点多有退号。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "最近有什么开心事？"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "平时做实验就在517那间，门禁卡离不得身。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "我本行是材料科学，大二从机械那边转过来的。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "这我可得记牢。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "咱们宿舍是九号楼432，门牌从我搬来就没换过。"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "行吧，随你高兴就好。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "我敲代码离不开的那块外设是什么牌子轴体，你有数吗？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "这话题一聊就停不下来，改天细说。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "讲讲你家里的事呗。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "保研这条路我放弃了，毕业就奔航天院所去。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "你最近在忙些什么？"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "我在兰州长大，十八岁才头一回坐火车出远门。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "元旦晚会我报了个近景魔术，道具都备齐了。"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "有意思，说下去。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "微单预算我砍到五千了，二手的就够我用。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "明白，不往外传。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "校医院开了褪黑素，如今我十二点前后就睡着了。"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "哦，这样啊，我懂了。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "说说你这学期的打算？"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "腱鞘炎养利索了，现在打球我又能抡开了。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "六级成绩下来过了线，寒假我改攻雅思了，想拿7分。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "记下了，你就放心吧。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "你老家那边什么样？"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "开学初我转投了顾砚秋老师门下，课题也换了。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "聊聊你的朋友们呗。"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "十一月国家奖学金公示，我名字在头一排，八千块。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "国庆我跟社团去爬了趟黄山，天没亮就站上山巅了。"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "嗯，这事儿我上心了。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "老馆四楼闭馆装修，我挪去四教的自习室了。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "好嘞，这我知道了。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "还记得我点单从来不犹豫、闭眼就报的那一款吗？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "嘘，隔壁敲墙呢，回头接着聊。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "有没有什么烦心事？"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "期中统考定在第十周末尾，全校一个不落。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "你平时都怎么解压？"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "决赛读秒那记外线远投，是我在终场前扔进去的。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "说起来我念的是材料，当初从机械那边换的跑道。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "成，这回我全懂了。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "对了，说说你自己吧。"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "我只喝冰镇可乐，常温的兑白水没两样。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "门开在九号楼432，住了两学期没挪。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "行，这我记下了。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "苦瓜这东西我碰都不碰，炒得再香也不下筷。"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "嗯，原来是这样。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "你平时课余都怎么打发？"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "打小在兰州城长大，成年后才离开西北。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "最近有什么开心事？"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "我那副铁三角头戴耳机五年了，耳罩换过两回。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "跨年那台晚会上，我要表演一段手彩戏法。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "好家伙，长见识了。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "讲讲你家里的事呗。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "八千块的国奖名单出来了，我排在头一个。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "你最近在忙些什么？"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "第十周就是期中的日子，全校统一排的考。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "说说你这学期的打算？"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "咱们楼十一点半准时断电，比隔壁楼早半个钟头。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "还记得我挑吃食口味时死守哪一档吗？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "我刚洗完澡脑子糊的，明早再说？"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "我家在泉州，坐动车回去得五个钟头。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "懂了，回头我帮你留意。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "你老家那边什么样？"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "可乐必须带冰碴儿，放到常温我碰都不碰。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "那种发苦的瓜甭管怎么做，我都绕着走。"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "这么回事啊，明白了。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "聊聊你的朋友们呗。"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "耳朵上那套铁三角，跟了我整整五个年头。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "冰美式把我胃喝坏了，如今改喝燕麦拿铁了。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "收到，心里有数了。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "有没有什么烦心事？"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "体检说我肠胃要静养，这阵子我一口辣都不沾了。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "你平时都怎么解压？"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "每晚十一点半全楼熄灯断电，雷打不动。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "快递驿站又排长队了，我取个件等了二十分钟。"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "挑饭点前去能快不少。要是大件，干脆让跑腿捎上楼，几块钱买个省心，别跟人挤。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "楼管阿姨贴了通宵自习室开放通知。"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "通宵那地方少去，熬完第二天全废。你要赶工就去，带件外套，夜里那屋冷得像冷库。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "我老家安在泉州那头，回一趟要大半天车程。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "嗯嗯，你接着说。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "台风预警挂出来了，明天的课全改线上。"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "那你窗台那盆绿萝先搬进来，别放外头挨砸。阳台门也锁死，风大的时候吱嘎一宿。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "我时常挂在嘴边的那位姑娘，你还记得名字吗？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "作业还差一半，容我去救火。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "楼里暖气片咔咔响，半夜跟敲梆子似的。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "那是气堵，放放气就消音了。你拿个盆接好水，排气阀在侧面，拧半圈就够，别全拧开。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "这两天降温降得邪乎，我那件厚外套还没翻出来。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "压箱底的衣服记得先晒晒再穿，柜子里一股樟脑味。今晚把被子也换厚点的，夜里别硬扛。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "自习室连插座都被人占了，我手机都快没电。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "你带个充电宝不就完了，老指望着墙插。那种六位的排插你也备一个，公用的抢不过。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "十月底我和周棠和平分开了，现在是单身。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "这我可得记牢。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "洗衣机又被占满了，我的袜子泡了半天。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "晚上十点后再去，基本没人抢。泡着的记得先拧干晾上，闷一宿那味儿能熏死人。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "冬至过了天冷得邪门，窗户缝漏风。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "我那卷密封条还有富余，裁一段你贴上。贴之前把缝擦干，不然粘不住，白忙一场。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "食堂新出了甜品窗口，双皮奶卖断货。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "那玩意就是预拌粉冲的，你信我。想吃正经的去南门那家糖水铺，五块钱一碗料还足。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "我在二手书摊淘到一本绝版教材。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "淘得值，这种书复印版都难找。你回去先晾晾味，旧书一股霉气，暴晒半天再上架。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "社团聚餐一人八十八，我肉疼。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "八十八吃顿火锅不算亏，就怕中途加项目再摊。下次你先问清明细，别到结账才傻眼。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "行李箱轮子卡住了，拖起来咯噔咯噔响。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "八成是缠了头发丝，翻过来看滚轮。拿我桌上的小剪刀清理一下，立刻顺滑，推起来不吵。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "有人半夜在楼道练吉他，声音穿透力极强。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "你敲敲墙比投诉管用，大部分人知趣。真不管用再报楼管，别自己憋着生闷气，睡觉要紧。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "空调遥控器又找不着了，冻了一晚上。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "就在你枕头底下压着呢，你天天拿它垫脖子。要不买个收纳挂袋钉门后头，遥控器有了固定的家。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "如今带我的人换成了谁，你猜到了吗？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "这会儿正困，改天扒开了讲。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "骑车带人被保安拦下教育了一顿。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "校内载人也忒显眼，保安亭就在那。认个错就完事，别掰扯规定，人家只管执行。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "选课系统今晚崩了，我刷了四十分钟没进去。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "这种系统一到抢课就瘫痪，规律了。你明早六点半蹲一波，退课高峰能捡到余量。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "社团招新那几天，广场上摊位快挤爆了。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "发传单的比看的人还多。你别光顾着领小礼品，真想报就问清楚活动频率，别交了钱吃灰。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "楼道堆了大件快递纸箱，走路都得侧身。"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "拆完就赶紧清走，堆着招蟑螂。你要嫌搬楼下麻烦，攒到周末我帮你抬一趟，顺路锻炼。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "求职宣讲会我蹭了场，领了袋零食。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "白听也是听，你就当彩排。真到秋招你大三下再操心，现在先把简历模板存一份。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "我那双篮球鞋开胶了，跑起来啪嗒响。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "鞋胶自己补就行，按压一晚上。修鞋摊那老头用的是工业胶，更结实，五块钱。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "楼下猫把我的鞋带当玩具，蹲守门口。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "它这是认上你了，猫记吃不记打。你那鞋带别垂着，往鞋里头系，它扑两回没劲就消停了。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "楼下那只橘猫又蹲在车棚顶上晒太阳。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "那家伙毛都顺出光来了，比咱们吃得都规律。你别老喂火腿肠，猫盐吃多了掉毛。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "泡脚桶借隔壁宿舍用忘了要回来。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "那种东西借出去就要不回来的，你直接去敲门要，脸皮薄吃亏的是自己，下回长个记性。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "食堂套餐涨价五毛，怨声载道。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "五毛钱不至于造反，你嫌贵就换自选窗口。人家肉包子没涨，你早上改吃包子得了，还顶饱。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "跳蚤市场有个学长甩卖台灯，十块钱。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "那种灯你先插电试试，镇流器坏的最多。砍到八块再拿，反正他毕业也带不走，留着也是占地方。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "如今我转战海外的那场语言考试，奔着几分去？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "等我把这局打完，回头细聊。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "打印讲义打错了版本，浪费我十张纸。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "以后打之前先看页码顺序，老师最爱临场换版。废纸别急着扔，反面还能打草稿，一个月省不少纸。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "晾在阳台的衣服忘收，淋得透透的。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "这天气说变就变，你下次听我的一句，出门看云。重洗一遍吧，晾室内先开着除湿。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "江边骑行的道修好了，周末人爆多。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "要去就赶清早，树荫凉快还没人抢道。你那车闸先紧一紧，下坡那段人多，捏闸的手感得提前找。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "教学楼电梯中午挤到怀疑人生。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "你走楼梯四楼也就两分钟，比等电梯快多了。真赶时间就提前五分钟下楼，别老卡着点。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "楼下废纸箱攒了一堆，收废品的论斤称。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "攒着卖不如直接给宿管阿姨，她攒着统一卖，换的钱还能给楼道添几盆绿植，一举两得。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "刮大风把伞吹成了喇叭口。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "骨架没断就能掰回来，别硬撑开晾着。这种天气你那伞面太兜风，换把小一号的，省得再翻一次。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "自习时隔壁桌打电话，声音跟开免提似的。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "你客气提醒一句，一般人都会出去接。真遇上脸皮厚的就换座，犯不上吵起来。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "公告栏贴了新一批评审名单，围观的人不少。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "你要是也报了就别盯着榜看，结果出来自然知道。这种事越看越焦虑，安心睡觉。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "昨晚打游戏连跪五把，气得我直接退了。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "深夜匹配全是狠人，你这不是技术问题。今早我陪你两把热热手，赢不了再卸载。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "跨年活动的票开抢，三秒没了。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "这种票拼的就是手速和网速。你蹲二次放票，通常演出前三天会回一波，稳住别慌。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "楼道声控灯坏了三层，摸黑走的。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "你手机开个手电就行，别学人跺脚，楼下以为地震。回头我跟楼管提一嘴，让她报修。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "我羽毛球拍线断了，穿线要等三天。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "借我用你那把旧的，我那把借你轮着使。穿线别图快，拉线机差的容易掉磅，球都打不脆。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "如今我打算一出校门就去哪类地方上班？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "楼道里太吵，听不清，回聊。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "骑车去上课半路爆胎，推行了半站地。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "校门口那家修车摊手艺还行，十块钱的事。以后出门前捏捏胎，软了就先打气。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "我桌上多肉蔫了，叶子一碰就掉。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "你是浇水浇勤了，多肉最怕涝。挪到窗台晒两天，等土干透再浇，还能缓回来。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "校门口修路，绕行多走十分钟。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "绕就绕吧，你早上别掐点出门就行。等修好那排水坑，下雨天咱都省得跳格子。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "校车改点了，站牌上的时刻表都还没换。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "这种事贴通知永远慢半拍。你把新时刻拍下来存相册，别指望站牌能及时更新。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "我的台灯闪了两下灭了，线路像接触不良。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "八成是插头松了，你先换我桌上那个插座试试。还不亮就是灯管到寿，换新的得了。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "桂花开了，整条路都是甜味。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "这个季节就该多走那段路，比啥香水都顶用。你要想留香，捡点落花夹书里，就是容易招虫。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "今早差点迟到，跑得我书包都颠开了。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "你那闹钟定五个跟没定一样，全是按掉的。要不咱俩错开洗漱，卫生间也不打架。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "今晚食堂二楼新开了个窗口，人排到楼梯口了。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "我看那阵仗就掉头了。咱们楼下便利店还有关东煮，将就一顿，明早再去抢头一波。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "银杏道落叶铺了满地，拍照的人排成排。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "你要拍就赶七点前，人少光还软。扫叶子的八点就到，一来全扫没了，想拍可就只剩光秃秃的枝子。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "食堂豆浆今天免费续杯，我去排了两回。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "你那胃别灌太满，豆浆胀气。续一杯带回去当早饭就行，别贪多，明天还有呢。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "快递柜又满了，超时取件多扣了一块。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "大件你就写驿站地址，别塞柜子。超时费虽然一次一块，攒多了也肉疼，何苦跟自己过不去。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "现在那笔添置的钱缩到多少了，你有数吗？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "温叙",
+      "relation": "prefers",
+      "object": "冰美式",
+      "speaker": "user",
+      "statement": "我这学期咖啡就认冰美式，别的都不对味。",
+      "statementFloor": 6,
+      "restatement": "跟你说过的吧，我的咖啡名单上一直只有冰美式。",
+      "restatementFloor": 24,
+      "update": {
+        "statement": "冰美式把我胃喝坏了，如今改喝燕麦拿铁了。",
+        "probe": "我现在杯子里那口味儿变甜了，你知道换成啥了吗？"
+      },
+      "updateFloor": 186
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "程澈",
+      "relation": "loves",
+      "object": "重辣",
+      "speaker": "character",
+      "statement": "点外卖我必勾重辣，辣子多多的那家才够劲。",
+      "statementFloor": 15,
+      "restatement": "吃辣这事我从没含糊过，直接顶到最狠那档。",
+      "restatementFloor": 33,
+      "update": {
+        "statement": "体检说我肠胃要静养，这阵子我一口辣都不沾了。",
+        "probe": "我如今点餐敢不敢再碰红亮亮的料，你说？"
+      },
+      "updateFloor": 189
+    },
+    {
+      "id": "f03",
+      "memoryType": "preference",
+      "subject": "温叙",
+      "relation": "showers_at",
+      "object": "早上七点",
+      "speaker": "user",
+      "statement": "我习惯早上七点冲澡，那样一天都清爽。",
+      "statementFloor": 20,
+      "restatement": "早晨七点那场澡雷打不动，一天的精神全靠它。",
+      "restatementFloor": 38,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "preference",
+      "subject": "温叙",
+      "relation": "listens_to",
+      "object": "纯音乐",
+      "speaker": "user",
+      "statement": "我跑步只听纯音乐，带词的一律打乱节奏。",
+      "statementFloor": 22,
+      "restatement": "我晨跑歌单里清一色是没歌词的曲子。",
+      "restatementFloor": 40,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f05",
+      "memoryType": "relationship",
+      "subject": "温叙",
+      "relation": "dating",
+      "object": "外语学院的周棠",
+      "speaker": "user",
+      "statement": "我对象是外语学院的周棠，处了大半年了。",
+      "statementFloor": 30,
+      "restatement": "跟我处了半年多对象的那位，是外语学院的周棠。",
+      "restatementFloor": 46,
+      "update": {
+        "statement": "十月底我和周棠和平分开了，现在是单身。",
+        "probe": "我这感情状况如今算什么，你知道吗？"
+      },
+      "updateFloor": 208
+    },
+    {
+      "id": "f06",
+      "memoryType": "relationship",
+      "subject": "程澈",
+      "relation": "studies_under",
+      "object": "郑明远教授",
+      "speaker": "character",
+      "statement": "我在郑明远教授组里，做光子晶体这摊。",
+      "statementFloor": 37,
+      "restatement": "领我上路的老师是郑明远，方向定在光子晶体。",
+      "restatementFloor": 55,
+      "update": {
+        "statement": "开学初我转投了顾砚秋老师门下，课题也换了。",
+        "probe": "如今带我的人换成了谁，你猜到了吗？"
+      },
+      "updateFloor": 143
+    },
+    {
+      "id": "f07",
+      "memoryType": "relationship",
+      "subject": "温叙",
+      "relation": "friends_with",
+      "object": "纪野",
+      "speaker": "user",
+      "statement": "隔壁宿舍的纪野是我高中同桌，俩人熟到穿一条裤子。",
+      "statementFloor": 42,
+      "restatement": "纪野这人，从高中起就跟我同桌，交情深得很。",
+      "restatementFloor": 60,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f08",
+      "memoryType": "goal",
+      "subject": "温叙",
+      "relation": "targets",
+      "object": "六级600分",
+      "speaker": "user",
+      "statement": "十二月那场六级，我盯的就是600分。",
+      "statementFloor": 48,
+      "restatement": "我的六级目标早写好了，就奔着600分去。",
+      "restatementFloor": 70,
+      "update": {
+        "statement": "六级成绩下来过了线，寒假我改攻雅思了，想拿7分。",
+        "probe": "如今我转战海外的那场语言考试，奔着几分去？"
+      },
+      "updateFloor": 140
+    },
+    {
+      "id": "f09",
+      "memoryType": "goal",
+      "subject": "程澈",
+      "relation": "plans",
+      "object": "保研南大",
+      "speaker": "character",
+      "statement": "我这学期的算盘是保研南大，绩点不敢掉。",
+      "statementFloor": 53,
+      "restatement": "心里盘算的是拿南大的保研名额，分数半点松不得。",
+      "restatementFloor": 69,
+      "update": {
+        "statement": "保研这条路我放弃了，毕业就奔航天院所去。",
+        "probe": "如今我打算一出校门就去哪类地方上班？"
+      },
+      "updateFloor": 129
+    },
+    {
+      "id": "f10",
+      "memoryType": "goal",
+      "subject": "温叙",
+      "relation": "saves_for",
+      "object": "八千块微单",
+      "speaker": "user",
+      "statement": "我打算年底前攒够八千块，添台像样的微单。",
+      "statementFloor": 58,
+      "restatement": "我的攒钱计划没变过，八千块就为那台微单。",
+      "restatementFloor": 78,
+      "update": {
+        "statement": "微单预算我砍到五千了，二手的就够我用。",
+        "probe": "现在那笔添置的钱缩到多少了，你有数吗？"
+      },
+      "updateFloor": 134
+    },
+    {
+      "id": "f11",
+      "memoryType": "health",
+      "subject": "温叙",
+      "relation": "suffers_from",
+      "object": "凌晨三点",
+      "speaker": "user",
+      "statement": "这阵子我失眠，躺到凌晨三点才有点困意。",
+      "statementFloor": 66,
+      "restatement": "入睡难得很，眼睁睁熬到三点过后才睡着。",
+      "restatementFloor": 84,
+      "update": {
+        "statement": "校医院开了褪黑素，如今我十二点前后就睡着了。",
+        "probe": "现在躺下多久能见着周公，你还清楚吗？"
+      },
+      "updateFloor": 136
+    },
+    {
+      "id": "f12",
+      "memoryType": "health",
+      "subject": "程澈",
+      "relation": "suffers_from",
+      "object": "右腕腱鞘炎",
+      "speaker": "character",
+      "statement": "我右手腕得了腱鞘炎，握拍都发不上力。",
+      "statementFloor": 73,
+      "restatement": "手腕那处腱鞘炎折腾我半个月了，使不上劲。",
+      "restatementFloor": 91,
+      "update": {
+        "statement": "腱鞘炎养利索了，现在打球我又能抡开了。",
+        "probe": "现在我抡起拍子还疼不疼，你猜？"
+      },
+      "updateFloor": 139
+    },
+    {
+      "id": "f13",
+      "memoryType": "item",
+      "subject": "温叙",
+      "relation": "owns",
+      "object": "二手捷安特",
+      "speaker": "user",
+      "statement": "我那辆二手捷安特骑了两年，除了铃哪儿都响。",
+      "statementFloor": 80,
+      "restatement": "车棚那台捷安特是我的老伙计，浑身都响就是铃不响。",
+      "restatementFloor": 102,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "item",
+      "subject": "程澈",
+      "relation": "owns",
+      "object": "杜伽红轴键盘",
+      "speaker": "character",
+      "statement": "我那把杜伽红轴键盘用了三年，键帽都盘出包浆了。",
+      "statementFloor": 83,
+      "restatement": "手边那块杜伽的红轴，陪我敲了三个年头。",
+      "restatementFloor": 105,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "item",
+      "subject": "温叙",
+      "relation": "owns",
+      "object": "联想小新",
+      "speaker": "user",
+      "statement": "我这台联想小新是大一买的，屏幕色彩挺正。",
+      "statementFloor": 92,
+      "restatement": "手头这台联想的小新，从大一陪我到现在。",
+      "restatementFloor": 112,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "location",
+      "subject": "温叙",
+      "relation": "self_studies_at",
+      "object": "老图书馆四楼",
+      "speaker": "user",
+      "statement": "我自习固定占老图书馆四楼靠窗那排座。",
+      "statementFloor": 88,
+      "restatement": "泡自习室我只认老馆四层临窗的位置。",
+      "restatementFloor": 108,
+      "update": {
+        "statement": "老馆四楼闭馆装修，我挪去四教的自习室了。",
+        "probe": "现在我看书挪到哪个新据点了，有数吗？"
+      },
+      "updateFloor": 148
+    },
+    {
+      "id": "f17",
+      "memoryType": "location",
+      "subject": "程澈",
+      "relation": "works_at",
+      "object": "实验楼517",
+      "speaker": "character",
+      "statement": "我们组的实验室在老实验楼517，刷卡才进得去。",
+      "statementFloor": 99,
+      "restatement": "平时做实验就在517那间，门禁卡离不得身。",
+      "restatementFloor": 121,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f18",
+      "memoryType": "event",
+      "subject": "温叙",
+      "relation": "climbed",
+      "object": "夜爬黄山",
+      "speaker": "user",
+      "statement": "十一那天我随户外社夜爬黄山，凌晨摸黑登的顶。",
+      "statementFloor": 110,
+      "restatement": "国庆我跟社团去爬了趟黄山，天没亮就站上山巅了。",
+      "restatementFloor": 146,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "event",
+      "subject": "程澈",
+      "relation": "hit",
+      "object": "院系杯决赛",
+      "speaker": "character",
+      "statement": "院系杯决赛压哨那记三分，是我投进去的。",
+      "statementFloor": 115,
+      "restatement": "决赛读秒那记外线远投，是我在终场前扔进去的。",
+      "restatementFloor": 155,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f20",
+      "memoryType": "identity",
+      "subject": "温叙",
+      "relation": "majors_in",
+      "object": "材料科学与工程",
+      "speaker": "user",
+      "statement": "我本行是材料科学，大二从机械那边转过来的。",
+      "statementFloor": 122,
+      "restatement": "说起来我念的是材料，当初从机械那边换的跑道。",
+      "restatementFloor": 156,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "fact",
+      "subject": "宿舍",
+      "relation": "located_at",
+      "object": "九号楼432",
+      "speaker": "user",
+      "statement": "咱们宿舍是九号楼432，门牌从我搬来就没换过。",
+      "statementFloor": 124,
+      "restatement": "门开在九号楼432，住了两学期没挪。",
+      "restatementFloor": 160,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f22",
+      "memoryType": "identity",
+      "subject": "程澈",
+      "relation": "grew_up_in",
+      "object": "兰州",
+      "speaker": "character",
+      "statement": "我在兰州长大，十八岁才头一回坐火车出远门。",
+      "statementFloor": 131,
+      "restatement": "打小在兰州城长大，成年后才离开西北。",
+      "restatementFloor": 165,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f23",
+      "memoryType": "event",
+      "subject": "温叙",
+      "relation": "performs",
+      "object": "近景魔术节目",
+      "speaker": "user",
+      "statement": "元旦晚会我报了个近景魔术，道具都备齐了。",
+      "statementFloor": 132,
+      "restatement": "跨年那台晚会上，我要表演一段手彩戏法。",
+      "restatementFloor": 168,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f24",
+      "memoryType": "event",
+      "subject": "程澈",
+      "relation": "received",
+      "object": "国家奖学金",
+      "speaker": "character",
+      "statement": "十一月国家奖学金公示，我名字在头一排，八千块。",
+      "statementFloor": 145,
+      "restatement": "八千块的国奖名单出来了，我排在头一个。",
+      "restatementFloor": 171,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f25",
+      "memoryType": "fact",
+      "subject": "期中考",
+      "relation": "falls_on",
+      "object": "第十周",
+      "speaker": "character",
+      "statement": "期中统考定在第十周末尾，全校一个不落。",
+      "statementFloor": 153,
+      "restatement": "第十周就是期中的日子，全校统一排的考。",
+      "restatementFloor": 173,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f26",
+      "memoryType": "preference",
+      "subject": "程澈",
+      "relation": "only_drinks",
+      "object": "冰可乐",
+      "speaker": "character",
+      "statement": "我只喝冰镇可乐，常温的兑白水没两样。",
+      "statementFloor": 159,
+      "restatement": "可乐必须带冰碴儿，放到常温我碰都不碰。",
+      "restatementFloor": 181,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f27",
+      "memoryType": "preference",
+      "subject": "温叙",
+      "relation": "dislikes",
+      "object": "苦瓜",
+      "speaker": "user",
+      "statement": "苦瓜这东西我碰都不碰，炒得再香也不下筷。",
+      "statementFloor": 162,
+      "restatement": "那种发苦的瓜甭管怎么做，我都绕着走。",
+      "restatementFloor": 182,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f28",
+      "memoryType": "item",
+      "subject": "程澈",
+      "relation": "owns",
+      "object": "铁三角耳机",
+      "speaker": "character",
+      "statement": "我那副铁三角头戴耳机五年了，耳罩换过两回。",
+      "statementFloor": 167,
+      "restatement": "耳朵上那套铁三角，跟了我整整五个年头。",
+      "restatementFloor": 185,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "fact",
+      "subject": "宿舍楼",
+      "relation": "cuts_power_at",
+      "object": "十一点半",
+      "speaker": "character",
+      "statement": "咱们楼十一点半准时断电，比隔壁楼早半个钟头。",
+      "statementFloor": 175,
+      "restatement": "每晚十一点半全楼熄灯断电，雷打不动。",
+      "restatementFloor": 191,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "location",
+      "subject": "温叙",
+      "relation": "is_from",
+      "object": "泉州",
+      "speaker": "user",
+      "statement": "我家在泉州，坐动车回去得五个钟头。",
+      "statementFloor": 178,
+      "restatement": "我老家安在泉州那头，回一趟要大半天车程。",
+      "restatementFloor": 196,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "还记得我冲凉定在什么钟点吗？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "还记得我锻炼时耳机里放的是什么类型吗？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f07",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我有位从中学一路同窗到毕业的旧友，你记得他吗？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f13",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我平时代步骑的那个家伙什么牌子，你记得吗？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f14",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我敲代码离不开的那块外设是什么牌子轴体，你有数吗？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "还记得我点单从来不犹豫、闭眼就报的那一款吗？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "还记得我挑吃食口味时死守哪一档吗？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我时常挂在嘴边的那位姑娘，你还记得名字吗？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f06",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f06"
+      ],
+      "text": "如今带我的人换成了谁，你猜到了吗？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f08",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f08"
+      ],
+      "text": "如今我转战海外的那场语言考试，奔着几分去？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f09",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f09"
+      ],
+      "text": "如今我打算一出校门就去哪类地方上班？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f10",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f10"
+      ],
+      "text": "现在那笔添置的钱缩到多少了，你有数吗？"
+    }
+  ]
+}

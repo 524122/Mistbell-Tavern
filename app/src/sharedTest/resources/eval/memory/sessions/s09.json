@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s09",
+  "title": "茶烟与线索",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "来了？里间的茶刚沏上，门我反锁了。坐吧，今晚不赶时辰，有什么话慢慢捋。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "今天菜市东头来了个新摊位。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "卖腌货的，秤给得旺。新摊第三天最要紧，看看谁来买、谁来攀谈，摊主背后站着的人，比货有意思。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "今天旧货摊有人兜售怀表。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "表壳新擦的，故事却旧。急着出手的表，来路多半不清，你不碰，让它们自己转几天，看谁的手再伸过来。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "我在报关行抄单子，数字看得比谁都细。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "嗯，这条我收下了。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "今天的米铺门口排了长队。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "涨价前抢购，腿快的手快。人心一慌，什么都肯往外说，队伍里站着半城的耳朵，你去排一次，光听不买。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "昨晚旅馆的走廊灯闪了一夜。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "线路潮了。灯闪的走廊夜里没人敢走，正好，你要带人上楼，就挑闪灯的时段，脚步都省了。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "我今天看见墙上有新的粉笔画。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "小孩涂的？那不是，粉笔线路是行里的记号。有人约人在那碰面，你别靠近，远远记下日子就行。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "你这一行的门道讲讲呗。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "我早年在警队刑事科干过六年，后来自己出来单干。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "城南的戏园子重新开锣了。"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "头三天的戏码是老班底撑场。开锣的日子人最杂，三教九流全露面，你要认人，这两天最划算。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "最近道上有什么新鲜动静？"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "我粤语官话都拿得起，码头审货尾从不带翻译。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "今晚茶社的挂钟慢了十分钟。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "修理的人没来，掌柜的将就着。钟慢十分，约人的时辰就乱十分，往后咱们对时辰，以你的表为准。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "去年腊月码头查缉那晚，我在仓库顶上躲了一宿。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "好，这条我搁在心里了。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "茶馆新来的伙计手脚勤快。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "勤快得过了头，抹布擦到第三遍。手脚太干净的堂倌，多半长着另一双眼睛，你在那说话，声音压半格。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "我平时挂名吃饭的那份正经差事是什么，还记得吗？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "嘘，茶还没凉，这话得缓一缓再说。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "我住的旅店换了新的看门人。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "换人是大动静，谁保荐的要问清。看门人是旅馆的耳朵，新耳朵还没长熟，正好是你行动的空窗。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "街角上新开了家刻印铺子。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "刻印铺子里存着半城的图章底样。掌刀的师傅话少眼尖，你要一方闲章打发他，往后取件方便。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "你年轻时是做什么营生的？"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "前年替绸缎庄追过一批失窃的货，三天找回。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "今年端午有人出一块银元，雇我送一封火漆信，我没敢拆。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "有数了，你别声张。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "今天城隍庙的庙会人山人海。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "人多的地方消息也多，可眼睛不够用。要听事去茶棚后头，那儿有人坐着听闲话，一句顶庙会三天。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "腊月里那场大搜查，我在仓库顶趴到天亮。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "哟，这可是条大鱼。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "你家里人眼下都安好吗？"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "我墙上钉着半张旧城的舆图，边角都卷了。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "我把没用的旧信纸都烧了。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "烧得对，灰要埋进花盆，别顺水冲。纸上的字进了水，漂到下游也是话柄，咱们这行的废纸都得过火。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "我在窗台上放了盆椒草。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "好眼力，椒草叶子厚，招雨水也招猫。你那扇窗从此多了个守夜的，不领工钱的那种，记得别浇太多水。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "我天生过目不忘，单子上的数目过一遍眼就锁进脑子。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "明白，我按住不表。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "我今天换了顶旧的毡帽。"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "好，行头换得对。这城的眼睛认衣裳不认脸，一顶帽子换过去，半个街面的招呼声都变了味。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "你入这行前吃的是哪门公家饭，有印象吗？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "这会儿街面上的耳朵多，改个时辰细谈。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "最近手头的活计顺不顺？"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "我只喝凉透的浓茶，滚烫的碰都不碰。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "你平日不办事的时候做什么？"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "绸缎庄丢货那桩，我三天就把货全数追讨回来。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "昨晚夜市的灯泡忽明忽暗。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "线路老化，电灯行的人白天查过。灯暗的地方眼睛就得亮，你我走夜路，一半靠灯，一半靠记性。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "碰头我习惯约在后半夜，街上清净眼神也干净。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "成，这一层要紧。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "巷尾卖糖人的手艺又精了。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "手艺人扎堆的地方兵荒马乱都照旧。糖人摊前孩子多，大人说话不设防，你买两个糖人，站着听一刻钟。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "我这双眼睛扫过的数目，转头都还锁在脑子里。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "行，你嘴严就好。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "聊聊你那些老相识呗。"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "我门口钉了只樟木信箱，收要紧的信从不走邮差。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "附近的修鞋摊今天没出摊。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "摊主回乡喝喜酒去了，歇五天。修鞋摊是街面的驿站，他一歇，借针线的、歇脚的、传话的都散了，街上安静得可疑。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "街上的梧桐叶子掉了一半。"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "秋深了，衣服该添了。叶子落尽的时节，屋顶上藏不住人，蹲守的行当转入地下，咱们也换换碰头的门户。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "今天有人在我门缝塞了传单。"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "传单是幌子，塞传单的在认门。你把传单原样夹回门缝，别扔，他明后天还来核对，你也顺便认认他。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "我看见巡夜的换了新路线。"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "人数加了一班，绕开了旧巷。路线一换，就有人的营生要挪窝，这几夜你少走暗巷，白日办事。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "我养了只灰羽信鸽，要紧口信系在它腿上放飞。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "好嘛，又绕出一层来。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "两种嘴里的话你都会说，是哪两种？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "你先替我看着门口，这事先按下。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "桥洞底下多了几个打地铺的。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "河工散了，没处去。流落的人肚子空，眼睛尖，什么都能看见，什么也都肯卖，你带两个馒头去转转，稳赚。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "我老家绍兴的，乌篷船上长大。"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "嗯呐，这话我掂过了。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "这阵子睡得还踏实吗？"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "我欠当铺温掌柜一笔老人情，他家的死当我都先挑给他。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "你往后有什么盘算？"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "我的事务所窝在钟楼西巷的旧当铺二楼。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "我原先一点辣都吃不了，沾唇就冒汗。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "得嘞，回头我去核对。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "这城的规矩你给我讲讲。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "我手头压着三年前钟表匠失踪的案子，非翻出结果不可。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "你这一行的门道讲讲呗。"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "我妹妹在报馆做校对，咱俩冷战半年没说话。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "最近道上有什么新鲜动静？"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "我查票证凭那只德国产的放大镜，纹路藏不住。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "我天一擦黑就看不清道，夜盲的底子。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "中，这条线值得跟。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "我记消息用的是牛皮封皮的小册子，随身带。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "唉，这消息扎手。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "鱼市称重的那位老倌是我耳目，秤杆一抬就是暗号。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "好眼力，就数你细。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "入冬那回官面上的人突击搜仓，你还记得吗？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "嗯，这话不是现在能摊开的，容我掂量。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "我一直攒着钱，想置办一张去南洋的船票。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "先这么定，别外传。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "你年轻时是做什么营生的？"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "钟表匠下落不明那桩，我压在手头三年了。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "你家里人眼下都安好吗？"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "我最忌讳别人翻我的抽屉，谁动手我跟谁急。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "最近手头的活计顺不顺？"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "去年上元夜我在灯市盯丢过目标，憋屈了一整晚。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "你平日不办事的时候做什么？"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "信箱钉在门侧，要紧的信都从它那儿走。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "那只灰毛鸽子替我传口信，条子就绑腿上。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "嗯，亏你跑这一趟。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "我袖口内衬缝着七枚不同年份的铜纽扣，一枚一个来路。"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "这话金贵，我咽下去了。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "街心花园的长椅换了个方向。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "转个向，正对旅馆大门。挪椅子的手艺人心细，谁使的钱我不知道，但坐上去的人，值得你都记脸。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "聊聊你那些老相识呗。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "急信我搁在西水关石桥第三根望柱底下。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "昨晚我听见隔壁在磨刀。"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "磨了一宿，砂轮声不紧不慢。磨刀的多半是手艺人，可半夜磨刀的心里有火，你这几天绕开那道门走。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "南洋船票的钱我一分一分攒着，早晚要置办一张。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "嗯，这条我收下了。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "落脚我还住南站边的长安旅社，账房认得我。"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "好，这条我搁在心里了。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "替老字号追回失物那桩差事，你还记得吗？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "后头有人，咱们换盏茶的功夫再讲。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "跟着码头工人吃了半年大锅菜，如今没辣不下饭。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "有数了，你别声张。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "这阵子睡得还踏实吗？"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "她开春出嫁了，两家重新走动起来。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "你往后有什么盘算？"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "我这气管一入秋就咳，夜里咳得更凶。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "这城的规矩你给我讲讲。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "上礼拜镜片磕裂了，换了个带柄的新款。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "册子叫雨泡烂了，如今改用铁盒装纸条。"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "哟，这可是条大鱼。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "你这一行的门道讲讲呗。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "当铺东家收回楼了，事务所搬进码头堆栈区。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "我表哥在巡捕房档案科坐柜，旧卷宗给我留缝。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "明白，我按住不表。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "鱼肝油吃了俩月，天黑走路不碍事了。"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "成，这一层要紧。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "最近道上有什么新鲜动静？"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "钟表匠那案子结了，委托人撤了，我转头去查夜航船的私货。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "你年轻时是做什么营生的？"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "要紧的搁西水关石桥，数到第三根望柱往下摸。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "昨晚谁家的小孩哭了一夜。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "出疹子，郎中来过两趟。街坊的病气听着烦心，可郎中的脚印有价值，他把哪几家的门都串了一遍，值得记。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "我睡的地方在南边哪个站点近旁，有印象吗？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "眼下风声紧，这个话题先封起来。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "你家里人眼下都安好吗？"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "一入秋气管就闹，后半夜咳得压不住枕。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "今天街上的孩子都在唱新童谣。"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "童谣是长了翅膀的告示，词里藏着街面上的事。你把词抄给我，孩子嘴里的话，大人多半编不出来。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "旧书摊上淘到半部地方志。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "亏本买卖让给你了？那半部记的是城防旧事，纸页发脆，翻的时候手上别出汗，这种书越翻越金贵。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "街角那家洋行换了橱窗。"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "摆的是留声机和新式皮箱。橱窗一换，说明后头的东家换了，城里这盘棋，走一步能看出三步。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "我把窗台的花搬进屋了。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "要变天了，你的预感不差。草木比人先知冷暖，花进屋的第二天多半有风，出远门把厚衣裳捎上。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "我把门环用布缠了一圈。"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "缠布的环敲起来发闷，屋里听得见，街上听不见。这法子老辈传的，你还可以在窗台撒层细灰，一举两得。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "旅社上月底关了张，我挪去河北岸的广济客栈。"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "行，你嘴严就好。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "街角修伞的老师傅还开着门。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "他手艺沉得住气。往后你要藏什么物件，他那间棚屋比我那儿稳妥，工钱给足就万无一失。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "我今天去当了一支旧钢笔。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "当票收好，别和别的纸放一起。柜台见过的物件比衙门多，柜台后的眼睛认货也认人，你少说话。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "巷尾的照相馆挂出了新样片。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "样片里人多眼杂。照相师傅存底片，底片就是账本，你要拍什么，先问清底片归谁，别给自己留尾巴。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "巷口的井盖今天换了新的。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "换井盖的日子，地下有人动土。动土的工程围着哪几条街，哪几条街的暗道就得重走一遍，记着这事。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "最近这几样吃食的物价又涨了。"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "米面油盐全线上浮。钱一紧，短工和跑腿的都躁，消息行市也涨，咱们这几单算得抠着点办。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "你一换季节就咳喘的那桩老病，还有印象吗？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "我得先核一遍口径，别急着要答案。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "昨夜的月亮亮得有些反常。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "月亮一亮，夜行人省了灯，胆子也大。这几夜走动的人多，你把作息挪到白天，月亮底下少办事。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "夜里对街的窗户纸亮到天明。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "亮堂的窗后有人守夜。守夜分两种，等人的和躲人的，你记下那扇窗，三天之内必有动静。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "昨夜有野猫翻了我家的瓦。"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "猫上房是追鸟，也是探路。瓦动过的屋子招贼惦记，你回去看看窗销，再把值钱的家伙换换地方。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "今天有人打听你住哪条巷。"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "来的是张什么面孔？不用说了。生面孔打听我，说明有人急着搭线，也可能急着堵线，这几日你换条路回家。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "昨天巷口有人摆摊卖祖传药酒。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "药酒是幌子，摊子是望哨。真卖酒的不挑四面通风的路口，你路过别停脚，停脚就成了他的干证。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "街上的黄包车换上了新铃铛。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "铃铛响，是车行斗气也是拉客。铃铛一响满街都听得见，往后你要送短信，让车铃替你引开视线。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "昨晚桥上有两人站了很久。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "站着不说话的，不是等人就是交接。桥心是死角，巡的绕不到，你路过时放慢半步，听清一个字是一个字。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "今天渡口的船加了早班。"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "早班是给赶脚的牲口和货担开的。渡口一加班，人流就杂，杂的时候看衣着，新靴子和旧褂子都要留意。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "最近手头的活计顺不顺？"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "喝了俩月汤药，入冬总算没再咳。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "我今天换了条厚实的新围巾。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "围巾好，半遮脸，风天也护嗓。行头一换，招呼你的人都要愣半秒，这半秒里你能看清谁在认真看你。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "昨晚有人往河里扔了封信。"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "扔信是毁迹，也是钓鱼。三天内看谁去下游捞，捞信的人背后必定站着丢信的人，这一局耐性最要紧。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "我提过的那位穿公门的亲戚，在哪个衙口当差？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "你这一问戳在要害上，容我想一夜。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "今晚那条街的路灯坏了两盏。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "昨晚还亮着，坏了得蹊跷。灯一黑，那条街就成了别人的场子，这几夜你借道走，别抄近路。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "昨夜有人敲错了我家的门。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "敲错门的手法太重，是查探反应。你再遇到装醉的、问路的，一律不应声，第二回敲的才是真找你的。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "他开春调去外埠了，档案科那条路子断了。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "好嘛，又绕出一层来。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "昨晚对街有人在墙根烧纸。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "深更半夜烧纸，一半是祭奠，一半是立规矩。那面墙根从此是他们的地界，你要走夜路，绕开十步。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "今天的旧报纸有人在成捆收。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "收旧纸的是行里的耳目，报纸上的寻人栏一页不落。你往后登东西，换个不起眼的版面，字要歪着排。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "今天有相面的在桥头支摊。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "算命摊是消息摊的马甲。相面的记性好，过路人的脸都收在肚子里，你要查谁，先给他三个铜板。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "码头今天卸的货箱子特别沉。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "压舱的铁器，八成有来头。沉货不过明秤的，后头都有故事，你只看编号，别问货主，记下就走。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "我把那本账本收进了米缸。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "米缸是老地方，查宅的都懂。换个新地方，比如腌菜坛的夹层，越旧的地方越危险，这是咱们行的悖论。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "昨晚雨停了，湿屋瓦都在反光。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "湿瓦夜里有亮度，屋顶藏不住人。这种天对咱们的眼睛有利，对蹲守的也有利，双方都在明处，反而安全。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "昨晚我数着街上过了七拨脚步。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "耳朵不错。夜里过身的脚步有数，匀的是巡街，急的是赶事，走走停停的才要留心，你数到了七，第八拨才是关键的。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "昨夜巷口的狗叫了一宿。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "狗眼睛认生人，叫一宿是有人走动。天亮你去看脚印，青苔上的鞋印最诚实，雨后的泥地不撒谎。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "昨夜下雨，屋檐水积了半尺。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "排水的沟眼堵了。水积着不走，夜里有人踩水就出声，这对你我是好事，天然的门铃，别让人修。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "你如今追的是哪桩事，还记得吗？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "话到嘴边留三分，等灯暗了再说不迟。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "面摊的汤头不如从前浓了。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "老板换汤骨了，成本压着呢。摊子的味道一变，常客就散，眼线跟着散，这条街要重新认一遍人脸。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "昨晚楼上的房客搬走了。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "半夜搬的，箱子不多。住不满三个月就挪窝的，多半心里有事，你留个心眼，别打听，先看着。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "茶博士今早多送了我一碟瓜子。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "无事献殷勤，他掌柜的在试探生客。瓜子你收，钱照付，多谢不必说，规矩一破，往后就不好收场。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "屋里的煤油灯该剪芯了。"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "灯芯长，光晃，照人影也变形。剪灯芯这种小事别拖，夜里写字看图，一点恍惚就是一天的白干。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "我昨天在旧货摊淘到一盏铜灯。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "眼力不错，铜皮厚的是老货。淘旧货的门道在听卖家说话，说得太满的必有诈，含糊的反而有真东西。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "昨夜守夜的梆子少敲了一次。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "少的那一次是留给某扇门的。更夫嘴里有半城的人情，你托人给他捎壶酒，他没说出口的比说出来的值钱。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "今天早上的报纸都卖空了。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "头版登了大事。报纸一空，茶馆的谈论就换主题，接下来三天，满城的话头都在那一条新闻上。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "今年的燕子来得比往年晚。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "天序乱，人间的动静也乱。燕子的日子比人准时，它们迟到，说明风向不对，出门多带一层衣裳。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "这几天摊子上的鲤鱼便宜了。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "渔汛尾了，网里都是杂鱼。鱼价一落，跑船的手头就紧，紧了就有人接活儿，水上的消息最近会多。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "今天桥头贴出了新的告示。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "我去看了，是修桥募捐的告示。这种热闹别凑，人多手杂，盯梢的最爱挤在人堆里借眼睛，咱们绕开走。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "昨夜我听见房顶有脚步声。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "轻的，是懂行的。踩瓦不响的功夫要三年，能上你屋顶的没几个人，你睡前把窗栓换了方向，让他白来。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "我平日记账的那件家伙眼下换成了啥？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "这事的斤两还没称准，先搁着。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "昨夜起风了，旗幡哗哗响。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "起北风，船要晚点，信也晚点。风大的日子路上人少，正好走远路办事，风声盖脚步，是天然的掩护。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "隔壁的裁缝连夜赶了一件大衣。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "大衣是男式的，尺寸不小。裁缝铺的订单单子上有名有姓，你要知道给谁做的，半句好话就套出来了。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "昨夜对街楼上搬进了新住户。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "搬家的车来了三趟，家底不薄。白天窗帘拉着，夜里灯亮得晚，你记下这个作息，十天之后自然见分晓。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "昨晚茶馆的灯熄得特别晚。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "掌柜的在等人，等到二更才闩门。茶馆的灯就是招牌，灯亮多久，事就谈多久，你记下这几天时辰。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "街口粥铺的老板娘换人了。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "换成了她小姑子，手艺差半口。老味道一断，来打听事的人就少了，那条街的眼线跟着松了一半。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "今天井台边围着一圈人。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "捞上来一只鞋，闲人看热闹。看热闹的人堆里，总有几个是真想看你的，你散开人群前先扫一遍脸。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "今天江边的渡口挂出了新价目。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "价目一挂，脚夫和挑夫先知道。运费一动，水上的营生就跟着动，你盯住那块牌子，比盯十个人还管用。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "今天茶馆里的说书先生换了本子。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "换的是前朝公案，听客坐得满。说书人嘴里的案子十有九编，可编的东西也照着人心编，闲时听听不亏。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "昨晚更夫敲梆子敲到四更。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "老规矩没废，四更那遍是提醒夜行人。这年头肯敲满更的不多，那位老爷子是替整条街守魂，敬他三分。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "昨晚巷子里有人吹口哨对暗号。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "对暗号的多半是生手，老手用眼神。生手扎堆的地方早晚出事，你把那条巷从路线上划掉，记牢。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "今天的茶价又抬了半档。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "茶价抬，是码头运费先抬的。一条水路的价目变动，背后都是货和人的变动，你盯紧运费，比盯报纸灵。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "今天邮差送错了三封信。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "分拣的换了新手。信送错是小事，送进谁家是大事，你那几封要紧的信，往后亲手递，别走邮路。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "我入夜后的眼神如今怎么样了？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "别催，线头还没接上，急也无用。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "今天的雨把告示泡烂了。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "烂了正好，重贴的新告示里夹带新章程。纸一换，章程就变，你去认一遍新的，看贴的时辰和位置。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "巷尾的水井打上来的水发浑。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "上游有人淘河沙。水浑的日子，人心也容易浑，谈事情的约都往后推两天，等水清了再说。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "这雨一下就是三天，街道全泡了。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "雨大的年头，消息也发霉。你出行把鞋底钉上胶皮，城西那片低洼，蹚水别走明渠边，去年淹过人。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "昨晚我听见有人翻墙进后院。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "翻墙不叫门，是熟门熟路的老手。后院的枣树杈被他踩过，明早你去看树皮的蹭痕，认下那双鞋。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "旧货行今天的市面挺热闹。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "月底盘账，抛货的多。热闹里藏着急用钱的人，急用钱的人嘴里漏故事，你去转一圈，别掏钱包，光听。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "今天江上的雾散得特别早。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "风向转了，从山口来的北风。雾散得快的日子，江上的船密，船密的日子，水上人的话也密，多听少问。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "今天当街有人摔了算盘。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "账算不平，急的。算盘一摔，附近三家铺子都探头，这条街的耳目比官府还灵，往后说话多留神。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "巷口的黄包车夫今天歇工。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "他拉伤腰了，歇三天。这人嘴松腿勤，满城的消息一半从他轮子上过，他歇着，咱们耳朵就短一截。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "昨天渡口有人落水，救上来了。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "是喝多了失足，不算大事。可落水的时辰蹊跷，三更天渡口早锁了，他怎么进的码头，这事我记下了。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "今天城里的集市收得早。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "风声紧的日子摊贩先知道。收市早不是买卖淡，是有人打过招呼，这三天你只接熟客，新活一律不碰。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "我今天路过河边的洗衣妇。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "她们是水上最灵的耳朵，衣服口袋里什么掏不出来。你对她们客气，洗衣的棒槌底下有半座城的底细。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "你验票据的家伙如今是新的了吗？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "identity",
+      "subject": "阿蝉",
+      "relation": "works_as",
+      "object": "报关行抄单员",
+      "speaker": "user",
+      "statement": "我在报关行抄单子，数字看得比谁都细。",
+      "statementFloor": 6,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f02",
+      "memoryType": "identity",
+      "subject": "聂川",
+      "relation": "formerly_served_in",
+      "object": "警队刑事科",
+      "speaker": "character",
+      "statement": "我早年在警队刑事科干过六年，后来自己出来单干。",
+      "statementFloor": 15,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "fact",
+      "subject": "聂川",
+      "relation": "speaks",
+      "object": "粤语官话",
+      "speaker": "character",
+      "statement": "我粤语官话都拿得起，码头审货尾从不带翻译。",
+      "statementFloor": 19,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "event",
+      "subject": "阿蝉",
+      "relation": "hid_during",
+      "object": "腊月的查缉",
+      "speaker": "user",
+      "statement": "去年腊月码头查缉那晚，我在仓库顶上躲了一宿。",
+      "statementFloor": 22,
+      "restatement": "腊月里那场大搜查，我在仓库顶趴到天亮。",
+      "restatementFloor": 38,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f05",
+      "memoryType": "event",
+      "subject": "聂川",
+      "relation": "recovered",
+      "object": "绸缎庄失货",
+      "speaker": "character",
+      "statement": "前年替绸缎庄追过一批失窃的货，三天找回。",
+      "statementFloor": 33,
+      "restatement": "绸缎庄丢货那桩，我三天就把货全数追讨回来。",
+      "restatementFloor": 55,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f06",
+      "memoryType": "event",
+      "subject": "阿蝉",
+      "relation": "delivered",
+      "object": "端午的火漆信",
+      "speaker": "user",
+      "statement": "今年端午有人出一块银元，雇我送一封火漆信，我没敢拆。",
+      "statementFloor": 34,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f07",
+      "memoryType": "fact",
+      "subject": "聂川",
+      "relation": "keeps",
+      "object": "半张旧城地图",
+      "speaker": "character",
+      "statement": "我墙上钉着半张旧城的舆图，边角都卷了。",
+      "statementFloor": 41,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f08",
+      "memoryType": "fact",
+      "subject": "阿蝉",
+      "relation": "has",
+      "object": "过目不忘",
+      "speaker": "user",
+      "statement": "我天生过目不忘，单子上的数目过一遍眼就锁进脑子。",
+      "statementFloor": 46,
+      "restatement": "我这双眼睛扫过的数目，转头都还锁在脑子里。",
+      "restatementFloor": 62,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f09",
+      "memoryType": "preference",
+      "subject": "聂川",
+      "relation": "only_drinks",
+      "object": "凉透的浓茶",
+      "speaker": "character",
+      "statement": "我只喝凉透的浓茶，滚烫的碰都不碰。",
+      "statementFloor": 53,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f10",
+      "memoryType": "preference",
+      "subject": "阿蝉",
+      "relation": "prefers_to_meet",
+      "object": "后半夜碰头",
+      "speaker": "user",
+      "statement": "碰头我习惯约在后半夜，街上清净眼神也干净。",
+      "statementFloor": 58,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f11",
+      "memoryType": "item",
+      "subject": "聂川",
+      "relation": "installed",
+      "object": "樟木信箱",
+      "speaker": "character",
+      "statement": "我门口钉了只樟木信箱，收要紧的信从不走邮差。",
+      "statementFloor": 65,
+      "restatement": "信箱钉在门侧，要紧的信都从它那儿走。",
+      "restatementFloor": 111,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f12",
+      "memoryType": "item",
+      "subject": "阿蝉",
+      "relation": "keeps",
+      "object": "灰羽信鸽",
+      "speaker": "user",
+      "statement": "我养了只灰羽信鸽，要紧口信系在它腿上放飞。",
+      "statementFloor": 74,
+      "restatement": "那只灰毛鸽子替我传口信，条子就绑腿上。",
+      "restatementFloor": 112,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "location",
+      "subject": "阿蝉",
+      "relation": "hometown_is",
+      "object": "绍兴",
+      "speaker": "user",
+      "statement": "我老家绍兴的，乌篷船上长大。",
+      "statementFloor": 80,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "relationship",
+      "subject": "聂川",
+      "relation": "owes_favor_to",
+      "object": "当铺的温掌柜",
+      "speaker": "character",
+      "statement": "我欠当铺温掌柜一笔老人情，他家的死当我都先挑给他。",
+      "statementFloor": 83,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "relationship",
+      "subject": "阿蝉",
+      "relation": "uses_as_ear",
+      "object": "鱼市称重的老倌",
+      "speaker": "user",
+      "statement": "鱼市称重的那位老倌是我耳目，秤杆一抬就是暗号。",
+      "statementFloor": 98,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "goal",
+      "subject": "阿蝉",
+      "relation": "saving_for",
+      "object": "一张去南洋的船票",
+      "speaker": "user",
+      "statement": "我一直攒着钱，想置办一张去南洋的船票。",
+      "statementFloor": 102,
+      "restatement": "南洋船票的钱我一分一分攒着，早晚要置办一张。",
+      "restatementFloor": 122,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f17",
+      "memoryType": "preference",
+      "subject": "聂川",
+      "relation": "forbids",
+      "object": "别人翻他的抽屉",
+      "speaker": "character",
+      "statement": "我最忌讳别人翻我的抽屉，谁动手我跟谁急。",
+      "statementFloor": 107,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f18",
+      "memoryType": "event",
+      "subject": "聂川",
+      "relation": "lost_target_at",
+      "object": "上元夜灯市",
+      "speaker": "character",
+      "statement": "去年上元夜我在灯市盯丢过目标，憋屈了一整晚。",
+      "statementFloor": 109,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "fact",
+      "subject": "阿蝉",
+      "relation": "sews_in_cuff",
+      "object": "七枚铜纽扣",
+      "speaker": "user",
+      "statement": "我袖口内衬缝着七枚不同年份的铜纽扣，一枚一个来路。",
+      "statementFloor": 114,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f20",
+      "memoryType": "location",
+      "subject": "聂川",
+      "relation": "hides_urgent_mail_at",
+      "object": "西水关石桥的第三根望柱",
+      "speaker": "character",
+      "statement": "急信我搁在西水关石桥第三根望柱底下。",
+      "statementFloor": 119,
+      "restatement": "要紧的搁西水关石桥，数到第三根望柱往下摸。",
+      "restatementFloor": 147,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "location",
+      "subject": "阿蝉",
+      "relation": "lodges_at",
+      "object": "长安旅社",
+      "speaker": "user",
+      "statement": "落脚我还住南站边的长安旅社，账房认得我。",
+      "statementFloor": 124,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "旅社上月底关了张，我挪去河北岸的广济客栈。",
+        "probe": "我如今歇脚的那处店名，你还叫得出吗？"
+      },
+      "updateFloor": 164
+    },
+    {
+      "id": "f22",
+      "memoryType": "health",
+      "subject": "聂川",
+      "relation": "suffers",
+      "object": "入秋的咳疾",
+      "speaker": "character",
+      "statement": "我这气管一入秋就咳，夜里咳得更凶。",
+      "statementFloor": 133,
+      "restatement": "一入秋气管就闹，后半夜咳得压不住枕。",
+      "restatementFloor": 153,
+      "update": {
+        "statement": "喝了俩月汤药，入冬总算没再咳。",
+        "probe": "你如今睡到天亮还咳醒吗？"
+      },
+      "updateFloor": 195
+    },
+    {
+      "id": "f23",
+      "memoryType": "relationship",
+      "subject": "阿蝉",
+      "relation": "has_cousin_in",
+      "object": "巡捕房档案科",
+      "speaker": "user",
+      "statement": "我表哥在巡捕房档案科坐柜，旧卷宗给我留缝。",
+      "statementFloor": 140,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "他开春调去外埠了，档案科那条路子断了。",
+        "probe": "我托人调旧档的那条门路，如今还通吗？"
+      },
+      "updateFloor": 206
+    },
+    {
+      "id": "f24",
+      "memoryType": "goal",
+      "subject": "聂川",
+      "relation": "pursuing",
+      "object": "三年前的钟表匠失踪案",
+      "speaker": "character",
+      "statement": "我手头压着三年前钟表匠失踪的案子，非翻出结果不可。",
+      "statementFloor": 89,
+      "restatement": "钟表匠下落不明那桩，我压在手头三年了。",
+      "restatementFloor": 105,
+      "update": {
+        "statement": "钟表匠那案子结了，委托人撤了，我转头去查夜航船的私货。",
+        "probe": "你如今追的是哪桩事，还记得吗？"
+      },
+      "updateFloor": 145
+    },
+    {
+      "id": "f25",
+      "memoryType": "item",
+      "subject": "阿蝉",
+      "relation": "uses",
+      "object": "牛皮封皮的小册子",
+      "speaker": "user",
+      "statement": "我记消息用的是牛皮封皮的小册子，随身带。",
+      "statementFloor": 96,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "册子叫雨泡烂了，如今改用铁盒装纸条。",
+        "probe": "我平日记账的那件家伙眼下换成了啥？"
+      },
+      "updateFloor": 136
+    },
+    {
+      "id": "f26",
+      "memoryType": "health",
+      "subject": "阿蝉",
+      "relation": "has",
+      "object": "夜盲的毛病",
+      "speaker": "user",
+      "statement": "我天一擦黑就看不清道，夜盲的底子。",
+      "statementFloor": 94,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "鱼肝油吃了俩月，天黑走路不碍事了。",
+        "probe": "我入夜后的眼神如今怎么样了？"
+      },
+      "updateFloor": 142
+    },
+    {
+      "id": "f27",
+      "memoryType": "item",
+      "subject": "聂川",
+      "relation": "verifies_with",
+      "object": "德国产的放大镜",
+      "speaker": "character",
+      "statement": "我查票证凭那只德国产的放大镜，纹路藏不住。",
+      "statementFloor": 93,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "上礼拜镜片磕裂了，换了个带柄的新款。",
+        "probe": "你验票据的家伙如今是新的了吗？"
+      },
+      "updateFloor": 135
+    },
+    {
+      "id": "f28",
+      "memoryType": "relationship",
+      "subject": "聂川",
+      "relation": "was_estranged_from",
+      "object": "在报馆当校对的妹妹",
+      "speaker": "character",
+      "statement": "我妹妹在报馆做校对，咱俩冷战半年没说话。",
+      "statementFloor": 91,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "她开春出嫁了，两家重新走动起来。",
+        "probe": "你跟你那位至亲眼下处得怎么样了？"
+      },
+      "updateFloor": 131
+    },
+    {
+      "id": "f29",
+      "memoryType": "preference",
+      "subject": "阿蝉",
+      "relation": "used_to_avoid",
+      "object": "辣椒",
+      "speaker": "user",
+      "statement": "我原先一点辣都吃不了，沾唇就冒汗。",
+      "statementFloor": 86,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "跟着码头工人吃了半年大锅菜，如今没辣不下饭。",
+        "probe": "我眼下点菜还嘱咐忌口吗？"
+      },
+      "updateFloor": 128
+    },
+    {
+      "id": "f30",
+      "memoryType": "location",
+      "subject": "聂川",
+      "relation": "office_at",
+      "object": "钟楼西巷的旧当铺二楼",
+      "speaker": "character",
+      "statement": "我的事务所窝在钟楼西巷的旧当铺二楼。",
+      "statementFloor": 85,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "当铺东家收回楼了，事务所搬进码头堆栈区。",
+        "probe": "你如今挂牌办事的地方挪到哪里了？"
+      },
+      "updateFloor": 139
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我平时挂名吃饭的那份正经差事是什么，还记得吗？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "你入这行前吃的是哪门公家饭，有印象吗？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "两种嘴里的话你都会说，是哪两种？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "入冬那回官面上的人突击搜仓，你还记得吗？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "替老字号追回失物那桩差事，你还记得吗？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f21",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我睡的地方在南边哪个站点近旁，有印象吗？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f22",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "你一换季节就咳喘的那桩老病，还有印象吗？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f23",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我提过的那位穿公门的亲戚，在哪个衙口当差？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f24",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f24"
+      ],
+      "text": "你如今追的是哪桩事，还记得吗？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f25",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f25"
+      ],
+      "text": "我平日记账的那件家伙眼下换成了啥？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f26",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f26"
+      ],
+      "text": "我入夜后的眼神如今怎么样了？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f27",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f27"
+      ],
+      "text": "你验票据的家伙如今是新的了吗？"
+    }
+  ]
+}

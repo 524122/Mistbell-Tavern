@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s11",
+  "title": "青雀号航程",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "船长，航向已咬住，四小时后进跳跃窗口。茶我刚沏上，想聊还是想眯一会儿，你挑。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "清洁机器人今天在三舱门口转圈卡死。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "它传感器被灰糊住了，你拿布擦擦它的眼睛。再重启一次就满血复活，这小东西皮实得很。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "货运保险的续费单又到了，费用涨了。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "涨就涨，咱跑的线杂，这份钱省不得。你挑个免赔额高一点的档位，保费能压下来一些。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "对了，讲讲你自己呗。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "我泡茶只认合成薄荷那款，真茶叶下喉反倒心慌。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "温度读数有一块区域总比别处高三度。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "那片贴着设备舱，一直如此，正常。你在图上把热区标出来，堆货的时候避开就行。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "船员的年度体检表发下来了，得填。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "你如实填，别学人瞒数据，真出事的时候害的是全船。体检那两天我给你把工排开，安心去。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "货柜绑带有一根起毛了。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "起毛的带子承力要打折，直接换新的。绑带这种东西带病上岗，一到颠簸路段准出事。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "每回跳跃前我都放一段旧地球的爵士，图个心安。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "收到，船长大人。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "你家里人都好？"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "我休眠舱常年定十七度，高一度都睡不踏实。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "备用天线的固定螺栓松了一颗。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "你拿扭矩扳手按标准紧，别用蛮力。螺栓这种东西紧过头滑了丝，反而误事，换都难换。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "空间站邮局排队的队伍拐了三个弯。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "寄包裹挑非高峰时段，开门头一小时最快。你要寄的文件不急，我顺路帮你带，省得排队。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "我妹妹在织女星的港务局做调度，捎货能省不少。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "明白，记在航行日志上了。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "这趟航程你习惯吗？"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "手边那杯必须是薄荷味的合成茶，正经茶叶无福消受。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "我怀里那壶热饮认准哪种口味，你有数吗？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "领航仪还亮着呢，这话题先挂起。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "舱门铰链吱嘎响了一星期，听着心烦。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "润滑脂在工具柜第二层，挤一点就哑了。别上太多，那种油招灰，回头卡了轨道更难弄。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "说说你上船前的事呗。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "我哥在边防巡逻舰队开护卫舰，三年没着家了。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "备用氧罐盘点完了吗？我记不清数了。"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "盘完了，十二个满的、两个半满，账对得上。半满的那两个标个记号，下个补给站优先换掉它们。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "点火跳跃前那几十秒，我的老唱片只放那一种调调。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "嗯，这事我挂心了。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "琥珀港的维姬跟我做了七年生意，价钱没红过脸。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "好，我这就留意。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "最近有什么烦心事？"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "休眠舱那格温度我卡死在十七，松一格都不成。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "舷窗外能看见补给站的灯一闪一闪。"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "那是引导灯语，闪三下是让咱们减速。你把减速程序挂上，别等人闪到第五下，那是催命。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "跑完这单我就收山，回澜台星找个海边屋子养老。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "行，心里有数了。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "我那个妹妹，在织女星港务局上班好几年了。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "收到收到，不失联。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "你平时值更外都干什么？"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "我那位兄长跑边防巡逻舰，一出去就是整年。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "讲讲你的老朋友？"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "我在啃深空领航的特级执照，题库刷到第三遍了。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "咱们船每次穿点前我必放的乐曲是哪类，记得不？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "等我标完这条航线，回头细说。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "垃圾投弃窗口快关闭了，得赶这班。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "按规程压缩打包再投，别偷懒整袋扔。窗口错过了等下一班，那罚款比运费都贵，不值当。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "维姬同我做了七年买卖，账面上从没红过脸。"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "懂了，不再多嘴。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "年内我想把主引擎换成九型，报价单都摸到手了。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "这事我记进日程了。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "我腰上有处旧伤，一遇引力波动就钻着疼。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "嗯，你就放一百个心。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "这单交割完我就金盆洗手，回澜台星海边养老去。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "好，就这么定了。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "星港黑市的传闻越传越邪乎，说有船失踪。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "传闻十句九虚，剩下那句还添了油。咱走官道、按图飞，该亮灯亮灯，这种事传不到咱头上。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "你老家还有亲人吗？"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "我落下了深空失眠的毛病，闭眼就觉得自己在飘。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "通讯延迟又拉长了，家书发出去半天没回音。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "这段离中继站远，延迟正常。你写你的，信号到了自然走，急也是白急，回头靠站再补一封。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "检疫的人要开箱抽查，抽到咱的三号舱。"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "配合就完了，别多话。开箱前把清单摆在手边，人家核对得快，咱也省得干站着耗时间。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "最近有没有什么盼头？"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "特级领航证那摊考试，我题都刷过三轮了。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "换九型引擎这事我攒了小半年，连价都问好了。"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "明白，绝不外传。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "我腰间那把信号刀是老爷子留的，柄上刻着S07。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "行，我一路盯着呢。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "我家里当兵的那位至亲在什么部队，有数吗？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "嘘，主控在录音，回头再说。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "腰那处老伤没好利索，引力一大就折磨我。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "收到，放心交给我。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "聊聊你这些年的经历呗。"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "我那台猫形的伴机叫阿灰，跟我年头比你还长。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "对了，讲讲你自己呗。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "深空那觉睡颠倒是老病根，一合眼人就发飘。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "备用天线展开的时候卡了一下。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "导轨里进屑了，回头清理一遍。展开这种动作慢就是快，你猛一推容易崩齿，崩了就得换件。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "我舱里藏着瓶木卫二的冰酿，专等庆功的日子开。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "嗯，这事儿稳了。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "你家里人都好？"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "每回船靠琥珀港，我都要去三号码头那家汤面摊报到。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "这趟航程你习惯吗？"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "我这块星历仪是怀表模样，上了弦才肯走。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "泊位费的单子字迹打印模糊。"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "模糊就要求重打，别收模糊单据。回头对账对不上，扯皮扯到你头疼，字迹清清楚楚最好。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "随身那把老信号刀传自父亲，编号S07磨不掉了。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "好，我这记性靠得住。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "驾驶台座椅的升降有点卡。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "气压杆老化了，凑合用还撑得住。你要想换，报一份备件申请，我签字，一两周就能到货。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "说说你上船前的事呗。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "那只机器猫阿灰是我的老伙计，资历比船上都老。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "我贴身收藏的那件老遗物，刻号是多少来着？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "值更钟响了，我先看一眼星图。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "柜子深处那瓶木卫二冰酿，我压着没舍得动。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "明了，就先这样。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "这单的终点站是青梧站，满打满算四十天航程。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "收到，船长大人。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "最近有什么烦心事？"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "我在新京的轨道城长大，看惯了没有地平线的天。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "你平时值更外都干什么？"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "一落琥珀港，我头件事就是奔三号码头吃碗热汤面。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "讲讲你的老朋友？"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "我那台老式星历仪长得像怀表，上弦才走字。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "雷达今天校了三次才合格，烦。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "天线罩上八成又积灰了，擦一擦就利索。高空作业记得挂安全索，别逞能，船晃起来没处抓。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "我的船长执照编号是G-4407，换船都不带换的。"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "明白，记在航行日志上了。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "昨天跳跃完晕了半天，像坐了过山车。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "你跳跃前少吃点，胃里东西多更容易晕。实在不行把配给里那份姜糖含上，老船员的土方子。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "星港的钟楼每到整点敲四下，特别准。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "老站的钟从来不带差的，船员都拿它对表。你的表慢了小两分钟，回头校一校，误点要挨罚。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "前年我们拖回过一艘断电的冷货船，救下六个人。"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "嗯，这事我挂心了。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "咱这一票的到站港是青梧，掐指头算四十天到。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "好，我这就留意。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "你老家还有亲人吗？"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "上回靠港，我帮港务找回过走丢的小孩，家长哭了。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "我留着压舱的那瓶佳酿产自哪里，还记得吗？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "这会儿通讯窗口窄，容我盯着。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "最近有没有什么盼头？"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "我老家在新京轨道城，打小就没见过地平线。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "执照编号G-4407跟着我走南闯北，一直没换。"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "行，心里有数了。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "聊聊你这些年的经历呗。"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "换了船医配的助眠波段，如今能一觉睡到换班。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "三年前那回叠浪跳跃，主引擎熄了整整十一分钟。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "收到收到，不失联。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "对了，讲讲你自己呗。"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "上个月穿灰岩带，外板被碎石敲了十七下，叮当响。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "退休的事我搁下了，又跟船东续了三年约。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "懂了，不再多嘴。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "你家里人都好？"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "特级执照考下来了，下一站我想摸旗舰的导航台。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "九型报价涨得离谱，我先换台三型的顶着用。"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "这事我记进日程了。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "打了两针关节凝胶，如今长跳完腰也不闹了。"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "嗯，你就放一百个心。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "这趟航程你习惯吗？"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "阿灰上月彻底散架了，我换了台新的，取名雪球。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "说说你上船前的事呗。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "三号码头连片拆了，我改去北站的新市场转悠。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "我睡舱那台温控拧到几格，你还记得吗？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "冷却液有点渗，我先去堵漏。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "最近有什么烦心事？"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "咱船六个货舱，就丙号舱还是手摇的门。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "你平时值更外都干什么？"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "咱这船连续跳跃撑不满七十二小时，老规矩。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "前年那艘全船断电的冷柜货，是我拖回来的，救了六口人。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "好，就这么定了。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "全船连我五个人，轮机那边老韩带个学徒撑着。"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "明白，绝不外传。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "讲讲你的老朋友？"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "前一趟泊岸，有个迷路娃是我送回他爹妈怀里的。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "你老家还有亲人吗？"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "K-19航道限速千分之三点五，超一回罚一趟运费。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "叠浪跳跃出过一回事儿，主机趴了十一分钟才缓过来。"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "行，我一路盯着呢。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "最近有没有什么盼头？"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "头个月过灰岩带那段，船壳挨了十七颗石子。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "我吃不惯合成酸瓜，一闻那股味儿就倒胃口。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "收到，放心交给我。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "聊聊你这些年的经历呗。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "全船统共六个舱位，唯独丙号舱门要靠手摇。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "驾驶台那台六分仪是我从废品站淘的，照样能用。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "嗯，这事儿稳了。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "对了，讲讲你自己呗。"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "连跳的上限是七十二小时，再多引擎受不了。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "我家有位亲戚的差事跟星际港口沾边，记得吗？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "货单还没核完，改个班次再聊。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "船上满编就五口人，机舱里靠老韩师徒俩顶着。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "好，我这记性靠得住。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "我和轮机长老韩同期上船，搭伙十一年了。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "明了，就先这样。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "你家里人都好？"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "K-19航段的限速是千三点五，抓到就罚一趟脚钱。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "这趟航程你习惯吗？"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "关节怕冷的毛病犯了我才调到十九度，睡得沉多了。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "那种酸口的合成腌瓜，我筷子从来不碰。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "收到，船长大人。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "舵位旁那台六分仪，是我从旧货堆里翻出来的宝。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "明白，记在航行日志上了。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "我妹上个月调岗了，如今在天璇站那边做港务。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "嗯，这事我挂心了。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "舱温今天波动得厉害，一会儿冷一会儿热。"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "温控阀可能滞了，我回头敲一敲就好。你衣服穿脱勤快点，别硬扛着出了汗再吹风。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "舱壁上不知道谁又画了个笑脸。"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "画得还行，就是位置不该在配电箱旁边。你拿溶剂擦掉，别让巡查的看见，以为咱乱改线路。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "舱内植物的新芽今天冒出来了。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "活得比你想象的顽强。你拿根小棍给它搭个架，回头长歪了想扶都扶不回来，现在趁早。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "虫害检疫的探针贴纸该换了。"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "仓库角上还有一版新的，你撕四张贴四角。旧揭下来的别乱丢，登记销毁，这是规矩。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "我在南环最倚重的老伙伴是谁，你还记得吗？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "雷达正扫着碎片，稍后聊。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "老韩跟我一批上的船，搭档都十一个年头了。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "好，我这就留意。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "检疫贴纸贴歪了，被巡查说了两句。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "贴歪了撕了重贴，态度端正比什么都强。巡查记这一笔不重，你千万别顶嘴，升级就麻烦。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "睡眠舱湿度显示偏低，睡醒嗓子干。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "加湿模块的水匣子空了，换一格就行。你睡前多喝口水，别硬顶着干气睡，早上嗓子冒烟。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "船员证书年审的通知下来了，要我交材料。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "材料你照单备齐，飞行时长我给你签。年审别拖到最后，窗口期一过就得再多跑一趟站里。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "货舱编号的油漆我今天描好了。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "描得挺正，隔着老远都认得出。你顺手把四号舱也描了，一次备料，省得再翻一次工具箱。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "维姬压价压得太狠，我改同环带的白楠合作了。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "行，心里有数了。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "航道施工的通告贴出来了，要绕灯塔区。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "绕行段多烧的燃料记得申报补贴，这种绕行有补偿的。你把通告拍照存档，别丢了凭据。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "纪念币贩子在泊位口兜售限量币。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "那种币出了港一文不值，纯割生韭菜。你要真喜欢，挑个最便宜的买来图个乐，仅此而已。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "脉冲计数器今晚数字跳得比平时快。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "那是过磁场区的正常读数，别紧张。你盯着别超红线就行，真超了我立刻改道，心里有数。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "脉冲信号今晚有段杂音，像谁在说话。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "杂音就是杂音，你别脑补故事。真有求救信号会有规范格式，乱码不算数，睡觉去。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "集装箱绑带又绷断了一根，吓我一跳。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "断的是那批老化的，剩下的全换掉。你先把货柜重新做受力检查，别急着装新带上去。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "舷窗外那片星云颜色变深了，真好看。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "好看是好看，导航图上这片是乱流窝子。看归看，眼睛别离开仪表太久，出了岔子可没处说理。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "如今我撂挑子的日子改到什么时候了？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "我刚下了值更，脑子还没浮上来。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "这个泊位的费比上站贵了两成。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "旺季就这样，认了吧，跟谁置气去。你要想省，以后咱们错开大船队到港的日子，价能松些。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "重力环今天转速不太稳，走路有点飘。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "差半个点之内不用管，是传感器的毛病。你要不放心，下午我陪你下机舱看一眼平衡块，图个踏实。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "集装箱绑带的卡扣有一个锈住了。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "锈扣直接换，别敲敲打打接着用。你从备件柜取三号新扣，我下午顺手就给你装上。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "备件清单里扳手少了两把，谁拿的？"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "上回检修借给了邻船，借条还压在我这儿。回头靠港去讨，顺手把他家的活儿也验验成色。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "推进器点火那一下，桌上的杯子都跳了。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "点火冲击就这样，杯子收进凹槽里去。下次预热前我会喊一嗓子，你把易碎的都提前归置了。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "驾驶台的座椅扶手晃了。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "螺丝松了，椅背后面藏着两颗。你拿小号扳手紧一下，垫块布夹，别把皮面给夹破了。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "舷梯口的踏板防滑条磨平了。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "防滑条是耗材，直接撕了贴新的。这钱不能省，下雨天那踏板滑得很，摔一跤就都省了。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "引擎预热的声音比往常长了两拍。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "冷机启动就这样，别多想。预热没走完千万别碰油门，这点耐心咱们还是有的，稳住。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "冷冻舱的货解冻了一批，单子上写着鲜品。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "温控昨晚波动过，我查了记录。你先联系收货方报备，走正规流程，千万别自己偷偷处理掉。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "备用天线的信号今天格外稳。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "昨天紧过螺栓，手感对了就是不一样。设备这种东西你对它上心，它就给你省心，不信你看。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "泊位费单据我按类别归档了。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "归档是好习惯，账目清楚心里不慌。你顺手再做一份电子备份，纸质丢了也不怕，双保险。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "如今那本证到手了，我瞄上的下一个台子是什么？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "跳点快到了，先帮我盯着读数。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "循环水今天有股铁味，我漱了两遍。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "滤芯该换了，备件箱里还剩两根。你换之前先关循环泵，不然水压一起喷你一身，还得换衣服。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "食谱轮到第七天，又是藻类饼。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "你把藻饼烤脆了蘸酱吃，口感能翻倍。冷库里还压着几包干果，咱俩省着点吃，月底就见底了。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "货运单要船长签三处，我签漏了一处被打回。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "你按单子从头到尾勾一遍再交上去。那种柜台就吃格式，签漏一处全重来，白排半天队。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "远航信标的灯今天闪的节奏不对。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "你看是不是视角问题，偏一个角度节拍就不一样。真异常就记下时间上报，别自己动手拆。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "舱里那盆苔藓又黄了一角。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "你挪到舷窗边去，光照够了能缓过来。别天天浇水，这东西吃水少，烂根了就救不回来了。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "跳跃晕眩我这次只晕了十分钟。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "有长进，说明你的身体在适应了。跳跃前那口姜糖继续含着，别觉得自己百毒不侵就行。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "舷窗外流星划过去三颗，我没来得及许愿。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "许愿这东西，许给流星不如许给自己。你真想求什么，睡前把它写进计划表里更实在。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "星语电台今晚放老船歌，挺好听。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "这些歌都是老跑船人一代代凑出来的，词糙情真。你听着干活，别跟着哼，跑调影响我算数。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "货运单上的签名栏被墨水蹭花了。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "蹭花就重签一份，多备两张单子。老派柜台就认纸面，你跟他们讲电子签没有用。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "星港集市今天开市，我想去淘点稀罕物。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "去就去正经摊位，巷子深处那种别进。你看中什么老物件，先问价再上手，别让人家看出外行。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "星港小吃街的烤饼香气飘了半条街。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "闻着就饱了，还省一顿饭钱。你要买就买刚出炉的，凉了那口感差一层，别贪多，胀气。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "氧气面罩演习我戴反了，被点名。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "戴反说明你没真用过，练熟为止。这东西平时丢人，关键时刻丢命，多练几遍不吃亏。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "眼下这台心脏定下哪一代了，你知道吗？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "舱里广播催人了，回聊啊。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "邮包到了，我的包裹被压变形了。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "变形不等于内伤，你拆开先验验货。真坏了就走索赔流程，单据包装都留着，一样别扔。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "回收水冰的产量这个月高了。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "循环效率上来了，是好事。你把数据记进日志，月底做报表用得上，一是一二是二地写。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "三号货舱的温控面板又开始闪黄灯了。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "老毛病，接触点氧化了，拆下来擦擦就好。你要嫌烦，先断电五分钟再上电，能顶两天不闹。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "太空垃圾预警响了，得绕出五百公里。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "绕就绕，那玩意撞上可不是闹着玩的。你把新航点发我，我连夜把燃料账重算一遍，不耽误正事。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "船钟报时的声音今天听着格外响。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "你这是耳朵闲的，忙起来就听不见了。真嫌吵我把音量调低一格，可别调太低，误了正事。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "旧航海日志里记着一场大风暴的逃生路线。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "前辈用命换来的经验，比教科书实在。你把那页复印一份贴值班室，就当是传家宝。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "船体刚才震了两下，我饭都端不稳。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "是过碎片带的正常颠簸，记录仪里都有数。你要不放心，我把外置监控调给你看，外壳一点没伤。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "领航桌上那本旧手册的书脊散了。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "拿线缝一下，比胶粘的结实。书脊散了页也别丢，老手册新版本删了不少实用的条目呢。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "舱里那台烹饪机今天总自动断电。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "插座接触不良，你换个口插试试。还不行就是温控模块到寿了，报修单我来填，别拖。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "货单上有一栏备注看不懂，写的什么折算。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "那是按密度折舱位的老派写法，祖上传下来的格式。照单装货就行，别自作主张给人家改。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "旧地图册里夹了张前人的手绘航线。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "这种手绘图现在值钱了，你收好别受潮。上面标的暗礁位，比现版图还细，是宝贝。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "现在我这老毛病犯不犯了？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "岑夜",
+      "relation": "prefers",
+      "object": "合成薄荷茶",
+      "speaker": "character",
+      "statement": "我泡茶只认合成薄荷那款，真茶叶下喉反倒心慌。",
+      "statementFloor": 7,
+      "restatement": "手边那杯必须是薄荷味的合成茶，正经茶叶无福消受。",
+      "restatementFloor": 25,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "陆铮",
+      "relation": "listens_to",
+      "object": "旧地球爵士",
+      "speaker": "user",
+      "statement": "每回跳跃前我都放一段旧地球的爵士，图个心安。",
+      "statementFloor": 14,
+      "restatement": "点火跳跃前那几十秒，我的老唱片只放那一种调调。",
+      "restatementFloor": 34,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "preference",
+      "subject": "岑夜",
+      "relation": "sets_bunk_at",
+      "object": "十七度",
+      "speaker": "character",
+      "statement": "我休眠舱常年定十七度，高一度都睡不踏实。",
+      "statementFloor": 17,
+      "restatement": "休眠舱那格温度我卡死在十七，松一格都不成。",
+      "restatementFloor": 39,
+      "update": {
+        "statement": "关节怕冷的毛病犯了我才调到十九度，睡得沉多了。",
+        "probe": "现在我的睡舱拧到几格了，你知道吗？"
+      },
+      "updateFloor": 185
+    },
+    {
+      "id": "f04",
+      "memoryType": "relationship",
+      "subject": "陆铮",
+      "relation": "sibling_works_at",
+      "object": "织女星港务局",
+      "speaker": "user",
+      "statement": "我妹妹在织女星的港务局做调度，捎货能省不少。",
+      "statementFloor": 22,
+      "restatement": "我那个妹妹，在织女星港务局上班好几年了。",
+      "restatementFloor": 44,
+      "update": {
+        "statement": "我妹上个月调岗了，如今在天璇站那边做港务。",
+        "probe": "现在我家那位至亲挪去哪个站点了？"
+      },
+      "updateFloor": 190
+    },
+    {
+      "id": "f05",
+      "memoryType": "relationship",
+      "subject": "岑夜",
+      "relation": "sibling_serves_in",
+      "object": "边防巡逻舰队",
+      "speaker": "character",
+      "statement": "我哥在边防巡逻舰队开护卫舰，三年没着家了。",
+      "statementFloor": 31,
+      "restatement": "我那位兄长跑边防巡逻舰，一出去就是整年。",
+      "restatementFloor": 47,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f06",
+      "memoryType": "relationship",
+      "subject": "陆铮",
+      "relation": "partners_with",
+      "object": "琥珀港维姬",
+      "speaker": "user",
+      "statement": "琥珀港的维姬跟我做了七年生意，价钱没红过脸。",
+      "statementFloor": 36,
+      "restatement": "维姬同我做了七年买卖，账面上从没红过脸。",
+      "restatementFloor": 54,
+      "update": {
+        "statement": "维姬压价压得太狠，我改同环带的白楠合作了。",
+        "probe": "现在这摊活我跟谁一起干，你心里有数吗？"
+      },
+      "updateFloor": 212
+    },
+    {
+      "id": "f07",
+      "memoryType": "goal",
+      "subject": "陆铮",
+      "relation": "plans",
+      "object": "澜台星",
+      "speaker": "user",
+      "statement": "跑完这单我就收山，回澜台星找个海边屋子养老。",
+      "statementFloor": 42,
+      "restatement": "这单交割完我就金盆洗手，回澜台星海边养老去。",
+      "restatementFloor": 60,
+      "update": {
+        "statement": "退休的事我搁下了，又跟船东续了三年约。",
+        "probe": "如今我撂挑子的日子改到什么时候了？"
+      },
+      "updateFloor": 138
+    },
+    {
+      "id": "f08",
+      "memoryType": "goal",
+      "subject": "岑夜",
+      "relation": "chases",
+      "object": "深空特级执照",
+      "speaker": "character",
+      "statement": "我在啃深空领航的特级执照，题库刷到第三遍了。",
+      "statementFloor": 49,
+      "restatement": "特级领航证那摊考试，我题都刷过三轮了。",
+      "restatementFloor": 71,
+      "update": {
+        "statement": "特级执照考下来了，下一站我想摸旗舰的导航台。",
+        "probe": "如今那本证到手了，我瞄上的下一个台子是什么？"
+      },
+      "updateFloor": 141
+    },
+    {
+      "id": "f09",
+      "memoryType": "goal",
+      "subject": "陆铮",
+      "relation": "plans",
+      "object": "九型引擎",
+      "speaker": "user",
+      "statement": "年内我想把主引擎换成九型，报价单都摸到手了。",
+      "statementFloor": 56,
+      "restatement": "换九型引擎这事我攒了小半年，连价都问好了。",
+      "restatementFloor": 72,
+      "update": {
+        "statement": "九型报价涨得离谱，我先换台三型的顶着用。",
+        "probe": "眼下这台心脏定下哪一代了，你知道吗？"
+      },
+      "updateFloor": 142
+    },
+    {
+      "id": "f10",
+      "memoryType": "health",
+      "subject": "陆铮",
+      "relation": "suffers_from",
+      "object": "腰部旧伤",
+      "speaker": "user",
+      "statement": "我腰上有处旧伤，一遇引力波动就钻着疼。",
+      "statementFloor": 58,
+      "restatement": "腰那处老伤没好利索，引力一大就折磨我。",
+      "restatementFloor": 78,
+      "update": {
+        "statement": "打了两针关节凝胶，如今长跳完腰也不闹了。",
+        "probe": "现在我这老毛病犯不犯了？"
+      },
+      "updateFloor": 144
+    },
+    {
+      "id": "f11",
+      "memoryType": "health",
+      "subject": "岑夜",
+      "relation": "suffers_from",
+      "object": "深空失眠症",
+      "speaker": "character",
+      "statement": "我落下了深空失眠的毛病，闭眼就觉得自己在飘。",
+      "statementFloor": 65,
+      "restatement": "深空那觉睡颠倒是老病根，一合眼人就发飘。",
+      "restatementFloor": 83,
+      "update": {
+        "statement": "换了船医配的助眠波段，如今能一觉睡到换班。",
+        "probe": "现在我靠哪套声波调息入睡，你知道吗？"
+      },
+      "updateFloor": 133
+    },
+    {
+      "id": "f12",
+      "memoryType": "item",
+      "subject": "陆铮",
+      "relation": "owns",
+      "object": "信号刀S07",
+      "speaker": "user",
+      "statement": "我腰间那把信号刀是老爷子留的，柄上刻着S07。",
+      "statementFloor": 74,
+      "restatement": "随身那把老信号刀传自父亲，编号S07磨不掉了。",
+      "restatementFloor": 94,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "item",
+      "subject": "岑夜",
+      "relation": "owns",
+      "object": "阿灰",
+      "speaker": "character",
+      "statement": "我那台猫形的伴机叫阿灰，跟我年头比你还长。",
+      "statementFloor": 81,
+      "restatement": "那只机器猫阿灰是我的老伙计，资历比船上都老。",
+      "restatementFloor": 99,
+      "update": {
+        "statement": "阿灰上月彻底散架了，我换了台新的，取名雪球。",
+        "probe": "现在窝里那只新的活物叫啥，你知道吗？"
+      },
+      "updateFloor": 147
+    },
+    {
+      "id": "f14",
+      "memoryType": "item",
+      "subject": "陆铮",
+      "relation": "owns",
+      "object": "木卫二冰酿",
+      "speaker": "user",
+      "statement": "我舱里藏着瓶木卫二的冰酿，专等庆功的日子开。",
+      "statementFloor": 86,
+      "restatement": "柜子深处那瓶木卫二冰酿，我压着没舍得动。",
+      "restatementFloor": 102,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "item",
+      "subject": "岑夜",
+      "relation": "owns",
+      "object": "星历仪怀表",
+      "speaker": "character",
+      "statement": "我这块星历仪是怀表模样，上了弦才肯走。",
+      "statementFloor": 91,
+      "restatement": "我那台老式星历仪长得像怀表，上弦才走字。",
+      "restatementFloor": 111,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "location",
+      "subject": "岑夜",
+      "relation": "always_visits",
+      "object": "三号码头汤面摊",
+      "speaker": "character",
+      "statement": "每回船靠琥珀港，我都要去三号码头那家汤面摊报到。",
+      "statementFloor": 89,
+      "restatement": "一落琥珀港，我头件事就是奔三号码头吃碗热汤面。",
+      "restatementFloor": 109,
+      "update": {
+        "statement": "三号码头连片拆了，我改去北站的新市场转悠。",
+        "probe": "现在那处吃食的老窝点挪去了哪片新地界？"
+      },
+      "updateFloor": 149
+    },
+    {
+      "id": "f17",
+      "memoryType": "location",
+      "subject": "航程",
+      "relation": "heads_to",
+      "object": "青梧站",
+      "speaker": "user",
+      "statement": "这单的终点站是青梧站，满打满算四十天航程。",
+      "statementFloor": 104,
+      "restatement": "咱这一票的到站港是青梧，掐指头算四十天到。",
+      "restatementFloor": 122,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f18",
+      "memoryType": "identity",
+      "subject": "岑夜",
+      "relation": "grew_up_in",
+      "object": "新京轨道城",
+      "speaker": "character",
+      "statement": "我在新京的轨道城长大，看惯了没有地平线的天。",
+      "statementFloor": 107,
+      "restatement": "我老家在新京轨道城，打小就没见过地平线。",
+      "restatementFloor": 129,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "identity",
+      "subject": "陆铮",
+      "relation": "licensed_as",
+      "object": "G-4407",
+      "speaker": "user",
+      "statement": "我的船长执照编号是G-4407，换船都不带换的。",
+      "statementFloor": 114,
+      "restatement": "执照编号G-4407跟着我走南闯北，一直没换。",
+      "restatementFloor": 130,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f20",
+      "memoryType": "event",
+      "subject": "陆铮",
+      "relation": "rescued",
+      "object": "断电冷货船",
+      "speaker": "user",
+      "statement": "前年我们拖回过一艘断电的冷货船，救下六个人。",
+      "statementFloor": 120,
+      "restatement": "前年那艘全船断电的冷柜货，是我拖回来的，救了六口人。",
+      "restatementFloor": 156,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "event",
+      "subject": "岑夜",
+      "relation": "helped",
+      "object": "走失小孩",
+      "speaker": "character",
+      "statement": "上回靠港，我帮港务找回过走丢的小孩，家长哭了。",
+      "statementFloor": 125,
+      "restatement": "前一趟泊岸，有个迷路娃是我送回他爹妈怀里的。",
+      "restatementFloor": 161,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f22",
+      "memoryType": "event",
+      "subject": "陆铮",
+      "relation": "survived",
+      "object": "叠浪跳跃",
+      "speaker": "user",
+      "statement": "三年前那回叠浪跳跃，主引擎熄了整整十一分钟。",
+      "statementFloor": 134,
+      "restatement": "叠浪跳跃出过一回事儿，主机趴了十一分钟才缓过来。",
+      "restatementFloor": 164,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f23",
+      "memoryType": "event",
+      "subject": "岑夜",
+      "relation": "witnessed",
+      "object": "灰岩带陨石",
+      "speaker": "character",
+      "statement": "上个月穿灰岩带，外板被碎石敲了十七下，叮当响。",
+      "statementFloor": 137,
+      "restatement": "头个月过灰岩带那段，船壳挨了十七颗石子。",
+      "restatementFloor": 167,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f24",
+      "memoryType": "fact",
+      "subject": "青雀号",
+      "relation": "has",
+      "object": "丙号舱",
+      "speaker": "character",
+      "statement": "咱船六个货舱，就丙号舱还是手摇的门。",
+      "statementFloor": 153,
+      "restatement": "全船统共六个舱位，唯独丙号舱门要靠手摇。",
+      "restatementFloor": 171,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f25",
+      "memoryType": "fact",
+      "subject": "青雀号",
+      "relation": "limited_to",
+      "object": "七十二小时",
+      "speaker": "character",
+      "statement": "咱这船连续跳跃撑不满七十二小时，老规矩。",
+      "statementFloor": 155,
+      "restatement": "连跳的上限是七十二小时，再多引擎受不了。",
+      "restatementFloor": 175,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f26",
+      "memoryType": "fact",
+      "subject": "青雀号",
+      "relation": "crewed_by",
+      "object": "五人编制",
+      "speaker": "user",
+      "statement": "全船连我五个人，轮机那边老韩带个学徒撑着。",
+      "statementFloor": 158,
+      "restatement": "船上满编就五口人，机舱里靠老韩师徒俩顶着。",
+      "restatementFloor": 178,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f27",
+      "memoryType": "fact",
+      "subject": "K-19航道",
+      "relation": "speed_limit",
+      "object": "千分之三点五",
+      "speaker": "character",
+      "statement": "K-19航道限速千分之三点五，超一回罚一趟运费。",
+      "statementFloor": 163,
+      "restatement": "K-19航段的限速是千三点五，抓到就罚一趟脚钱。",
+      "restatementFloor": 183,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f28",
+      "memoryType": "preference",
+      "subject": "陆铮",
+      "relation": "dislikes",
+      "object": "合成酸瓜",
+      "speaker": "user",
+      "statement": "我吃不惯合成酸瓜，一闻那股味儿就倒胃口。",
+      "statementFloor": 168,
+      "restatement": "那种酸口的合成腌瓜，我筷子从来不碰。",
+      "restatementFloor": 186,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "item",
+      "subject": "陆铮",
+      "relation": "owns",
+      "object": "六分仪",
+      "speaker": "user",
+      "statement": "驾驶台那台六分仪是我从废品站淘的，照样能用。",
+      "statementFloor": 172,
+      "restatement": "舵位旁那台六分仪，是我从旧货堆里翻出来的宝。",
+      "restatementFloor": 188,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "relationship",
+      "subject": "陆铮",
+      "relation": "crewmates_with",
+      "object": "老韩",
+      "speaker": "user",
+      "statement": "我和轮机长老韩同期上船，搭伙十一年了。",
+      "statementFloor": 180,
+      "restatement": "老韩跟我一批上的船，搭档都十一个年头了。",
+      "restatementFloor": 202,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我怀里那壶热饮认准哪种口味，你有数吗？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "咱们船每次穿点前我必放的乐曲是哪类，记得不？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我家里当兵的那位至亲在什么部队，有数吗？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f12",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我贴身收藏的那件老遗物，刻号是多少来着？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f14",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我留着压舱的那瓶佳酿产自哪里，还记得吗？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我睡舱那台温控拧到几格，你还记得吗？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我家有位亲戚的差事跟星际港口沾边，记得吗？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f06",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我在南环最倚重的老伙伴是谁，你还记得吗？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f07",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f07"
+      ],
+      "text": "如今我撂挑子的日子改到什么时候了？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f08",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f08"
+      ],
+      "text": "如今那本证到手了，我瞄上的下一个台子是什么？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f09",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f09"
+      ],
+      "text": "眼下这台心脏定下哪一代了，你知道吗？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f10",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f10"
+      ],
+      "text": "现在我这老毛病犯不犯了？"
+    }
+  ]
+}

@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s03",
+  "title": "灶房与灵田",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "来啦？先把袖子挽上，跟我把晌午的碗筷收了，边干活边说。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "今儿是谁打翻了醋坛子？"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "打翻的自己去山下打醋。醋这东西洒一半，坛子还得刷三遍，酸味缠着不散。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "昨儿腌菜坛子冒白沫了。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "起白沫是盐轻了，赶紧补一撮盐。腌菜这东西就吃个盐准，盐匀了坛子清亮，盐欠了就浑汤。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "我最馋灶房那口糖蒸芋头，一顿不惦记就难受。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "行，我记下了呢。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "今儿山泉边的青苔滑不滑？"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "滑，我垫了几块碎瓦。取水的石阶得常打理，青苔这东西，三天不理就磨出祸来。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "山下集市的盐是不是涨价了？"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "涨了两文，我趁早多背了两袋。灶上的东西就得赶早囤，等人人都缺的时候，价钱能翻着跟头涨。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "今儿灶顶的炊烟直得很。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "烟直说明没风，烧火顺当。烟一打旋，灶膛就发呛，得调调风门，不然半屋子烟。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "师姐今天忙不忙？"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "辣子我一口不碰，舌尖遭不住那股窜劲。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "今儿咱把酱缸挪到向阳处了。"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "挪得对，酱见日头才香。晒酱的缸早晚还得盖，白天晒晚上捂，一坛好酱就是这么伺候出来的。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "你那账本是拿麻绳装的？"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "麻绳装订，散了随时再穿。账本这东西不怕旧，就怕丢，页子穿得牢，翻十年都散不了。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "我那柄木剑是入门那年你给削的，一直背着。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "嗯呐，晓得了呀。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "昨儿谁扛着扁担横冲直撞了？"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "扛着扁担横着走，门框都撞了两回。扁担得竖着过窄道，这常识都得撞两回才长记性。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "我睡西跨院挨着柴房那间，冬冷夏闷。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "好嘛，原来这么回事。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "开饭时我头一个奔向的那碗甜口蒸食是啥，你还记得吗？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "哎，锅里还坐着水呢，回头再细说。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "灶上蒸的那笼甜芋头，我隔着窗户都咽口水。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "成，我心上记着呢。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "我上个月练剑把右手腕扭了，提水都费劲。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "哦？还有这一出。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "你那块围裙上的补丁真多。"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "补丁是省出来的家底。粗布衣裳经补不经扔，补一回多穿一季，账要这么算才精明。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "给我讲讲灶上的新鲜事呗。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "咱门里初一十五灶房歇火，各屋自己啃干粮。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "背上这柄旧木剑，是你亲手削的那把，没换过。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "懂了，回头我多留意。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "昨儿订的那批新碗到货了。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "到了，磕了两个，记在损耗上。陶器运山路就这命，多订一成的量，才够月里的损坏。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "你最近都在忙啥呀？"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "前些日子一伙采药客在山门口吵价，嚷了半晌。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "昨儿砍柴的手都磨泡了。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "起泡就裹布接着干，磨出茧就利索了。山里讨生活，手上没几层茧，日子都站不住脚。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "昨儿我把那只旧竹筐拆了。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "拆了编小筐正好，大筐改小筐不费料。竹器这东西拆拆编编，能用上三代人。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "前头演练武场的石阶结苔了。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "结苔就滑，我得拎桶粗盐去撒。练功的人摔一跤事小，磕坏了筋骨耽误功课事大。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "我是外门挂名的杂役，还没正经拜师呢。"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "得嘞，照你说的办。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "你掌勺放料时绕开的那样红皮东西是啥，还记得吗？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "这会儿手上一把面，容我腾出手来。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "昨儿那筐豆角择到掌灯。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "择得细才好，老筋去净了吃着痛快。笨功夫省不得，偷懒留的筋，吃的人替你受罪。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "山里这日子过得惯吗？"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "门规是初一十五灶房不开火，各屋啃干粮。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "我外婆一个人守在山下溪口村，我一直惦记。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "哟，那可不易呢。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "昨儿夜里的露水重得很。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "重露的早晨别晒东西，晒了也是白晒。我改擦洗坛坛罐罐，屋里活干完，日头也就高了。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "我憋着劲儿呢，年底要搏一搏内门考核。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "中，我心里有数。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "唠唠你平时的琐碎呗。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "山门外那伙药客为价钱拌嘴，折腾了小半天。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "今儿谁把抹布晾在灶边了？"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "拿下来，灶边烤抹布有糊味。抹布得晾绳上风吹，干了才不馊，馊布擦啥都串味。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "今儿淘米水留着干啥用？"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "留着晚上刷灶台，去油垢不伤釉。这水倒掉可惜，老辈人拿它浆衣裳，浆过的布挺括。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "你跟门里的人都处得咋样？"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "我想培育出一株不呛人的甜灵椒，给灶房添个菜。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "我这身子还挂着外门的名头，正经师承八字没一撇。"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "啧，听着都累人。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "昨儿那场雪把菜棚压塌了角。"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "塌了就支起来，雪天得勤扫棚顶。积雪压上一夜，竹架就弯了，弯了再正就难了。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "你晚上闲下来都做啥？"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "灶上那口大铁锅是我师父传的，炒啥都香。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "我背上挂了这些年的那件木头家什，来历你还记得吗？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "先别问这个，帮我把柴抱进来。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "我穿衣裳就认靛青色，耐脏还压风。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "好家伙，长见识。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "今晚守夜的人选定了吗？"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "定了，我和火房的轮着来。值夜虽熬人，后半夜安静，正好把第二天的采买单子理出来。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "你那算账的木牌写满换新的？"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "满了就刮，刮平接着写。木牌比纸经使，灶房油烟大，纸搁三天就脆，木牌能传两代人。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "说点你小时候的事呗。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "后山那三亩灵田归我管，一天不去心里空。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "昨儿仓库里钻进耗子了。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "我下了夹子，堵了三个洞。存粮的屋子就得勤查，耗子祸害起来，一冬的口粮都能遭殃。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "药圃的篱笆又塌了一角。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "塌了就扎，我砍了几根新竹。篱笆不齐，野物钻进来一晚上就能祸害半垄，不敢拖。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "我夜里手脚冰凉，睡不踏实。"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "嗯，这点我懂行。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "你管这摊子事累不累？"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "我左肩带着旧伤，变天就发沉。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "开春前我想把御风术练顺，省得天天爬坡。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "哎，真是难为你。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "今天山上有什么趣事没？"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "我亲师弟在剑堂当差，闷葫芦一个。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "师姐今天忙不忙？"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "月钱初一在执事堂领，一回三十文。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "一旬里头哪两天灶上不生烟，你还记得吗？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "哎哟，考我呢？容我灶上忙完这阵。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "给我讲讲灶上的新鲜事呗。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "师父留我的那口老铁锅，炒出来的饭菜带魂。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "上月灶房丢了一罐蜜，闹了三天才知道是獾叼的。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "妥了，往后就这么办。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "菌子我一口不碰，怕吃出毛病见小人儿。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "行呀，回头我帮你瞅瞅。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "传功堂前的小广场扫完了？"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "扫完了，落叶装了满满三筐。叶子不急着烧，捂在坑里沤一沤，开春肥田最好使。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "今儿你嗓子咋哑成这样了？"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "吆喝了一上午，喊得太勤。灶上人多口杂，不喊不动弹，一喊就收不住，嗓子先扛不住。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "你腰上的钥匙串又添新的了？"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "添了柴房的，一把钥匙一个家当。串上叮当响归响，心里踏实，丢哪把都是麻烦。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "雨后山路滑，你慢着点走。"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "晓得，我鞋底缠了两圈麻绳。挑担子走陡坡，脚下稳当比啥都强，摔一跤洒一担，白忙一晌午。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "你那把蒲扇的边都补上了？"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "补边能用就成，蒲扇不值几个钱。可摇惯了顺手的物件，坏了心里空落落的，舍不得换。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "今儿的山泉水喝着格外甜。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "落过雨的山泉都甜，冲刷下来的草汁也带味儿。趁着这几天多存两缸，煮饭都比平时香。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "你最近都在忙啥呀？"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "执事堂每逢初一放月钱，一人三十文。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "我窗台上晒着半盒干桂花，留着熏茶。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "好，这话我接住了。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "灶上少了蜜那回，折腾三天才翻出底，是獾干的好事。"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "行，我记下了呢。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "前阵子聚集在外头嚷嚷着讨价的那拨生人，你还记得吗？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "等开饭的再说，人齐了话才多。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "山里这日子过得惯吗？"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "甜灵椒育成了，头茬炒了一盘，抢着吃。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "唠唠你平时的琐碎呗。"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "开春灵田挪给新来的师弟管了，我专盯灶房。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "你跟门里的人都处得咋样？"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "吃了俩月新丹，左肩总算松快了。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "喝了一冬的温养汤，手脚总算暖了。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "嗯呐，晓得了呀。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "内门名册上腊月里添了我的名字，成啦。"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "好嘛，原来这么回事。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "你晚上闲下来都做啥？"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "碗我使惯粗陶的，灵瓷烫手还娇气。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "御风我练顺了，前儿还飘去后山摘桃。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "成，我心上记着呢。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "说点你小时候的事呗。"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "师弟随队下山历练去了，一走三年。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "你管这摊子事累不累？"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "后山那片桃树是二代祖师亲手栽的，谁都不许折枝。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "我入门那天下着瓢泼雨，浑身湿透拜的祖师。"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "哦？还有这一出。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "山货里那类伞伞朵朵，我从来不下筷。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "懂了，回头我多留意。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "我原先睡的那处傍着柴火的院子是哪座，你还记得吗？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "这事急不得，改日我慢慢与你道来。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "今天山上有什么趣事没？"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "我老家在南边的雾泽，水汽一年到头不散。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "我是谷雨那天生的，师姐记着给我留糖就行。"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "得嘞，照你说的办。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "窗台上那半盒晒好的桂花，我存着往后熏茶用。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "哟，那可不易呢。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "今儿的粥米是新碾的吧？"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "是，新米出饭香，就是费柴。新米火要急，陈米火要慢，灶上的门道都在火候里头。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "师姐今天忙不忙？"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "后山桃林是二代祖师亲手栽的，枝子一根不许动。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "进门那天赶上大雨，我湿得能拧出水来。"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "中，我心里有数。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "上月初我挪去东院跟贺师姐同屋了，敞亮多了。"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "啧，听着都累人。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "给我讲讲灶上的新鲜事呗。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "月初有人偷喝了执事堂的酒，被罚跪了半天山门。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "今儿扎扫帚的草料到了吗？"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "到了，扎扫帚的料齐了。我趁闲扎上十把，一把自用，其余搁柴房备着，损耗有数。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "今儿雾里听见山雀叫得欢。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "雀欢说明儿是天晴，比啥预报都灵验。我听雀叫安排晒场，十回里九回不落空。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "我落地赶上谷雨，年年这天记得给我留块糖。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "好家伙，长见识。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "你最近都在忙啥呀？"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "灶房寅时就得起火熬粥，误了时辰挨说。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "我哪只手的筋给扭过一回，你还记得吗？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "嘘，师父在前头呢，回头再提。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "山里这日子过得惯吗？"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "看见糟蹋粮食的我嗓门就压不住，粒粒都金贵。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "今儿的斋饭多了道咸菜。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "腌坛子开了，趁脆给大家分了。咸菜配清粥，一冬的早饭都精神，比肉还落胃。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "昨儿灶膛的灰掏出来堆哪了？"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "装筐里留着，肥菜地顶用。草木灰是宝，撒垄上防虫，和进粪里肥田，老辈人都会用。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "昨儿是谁把扫帚用秃的？"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "谁用谁知道，秃了就换新的。扫帚这东西不金贵，但扎扫帚的谷草得去山下换，我记在账上了。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "手腕好利索了，这旬又能抡扫帚干活了。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "嗯，这点我懂行。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "唠唠你平时的琐碎呗。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "前头那桩偷酒的风波，主儿在山门跪了半日。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "昨儿有人把竹筷当柴拨火了。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "干这事的自己来领新筷子。竹筷金贵不到哪去，可一茬一茬糟践，账攒起来也吓人。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "你跟门里的人都处得咋样？"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "灶房的规矩是寅时引火，晚一步粥就糊。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "你那筷子笼换上新了的吗？"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "换了个竹编的，沥水快。筷子笼捂着水要发霉，竹编的透风，隔几天倒扣晒一晒就行。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "师父今儿查功课查得严。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "严有严的道理，糊弄功夫糊弄的是自己。被他点着名的几个，今儿个个练到掌灯，倒也算因祸得福。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "你晚上闲下来都做啥？"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "我见不得人作践吃食，一粒米都是汗珠子换的。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "我那位上了年纪的亲人还守着哪处村落，你还记得吗？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "先把这筐豆角择了，说话不耽误干活。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "今天晒的被子差点被风卷跑。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "我瞅见了，拿石头压的角。山里这风没个定性，晒东西四角都得坠重物，不然一个旋风就没了。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "今儿雾大，练剑场都看不清人影。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "雾天最练耳力，你听脚步声就知道谁来了。我今儿听岔了三回，把挑水的张师弟当成送菜的，闹了个大红脸。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "昨儿晌午那锅粥熬糊了。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "糊就糊了，底下一层锅巴倒有人抢。熬粥得有人守着搅，但凡灶前离人，十回糊八回。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "今儿雨具都收进屋了吗？"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "收了，斗笠蓑衣挂南墙。雨具怕捂，得挂通风的地方阴干，捂一宿就长霉点子。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "昨儿灶膛前头换新砖了？"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "换了，旧砖裂了缝直漏火。灶膛的砖要勤查，砖一漏火，柴费一成，粥还带烟味。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "开春我把外婆从溪口村接上山了，心里落定。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "哎，真是难为你。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "今儿这场雾啥时候能散？"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "日头一出就散，雾浓反而晴得快。这种天晒不了东西，我安排人擦缸刷坛，干点屋里的活。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "溪水涨了，桥板淹了半截。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "我挪了块大石头垫脚，往来挑水的踩着过。等水退了再喊人修桥，这几天都绕东坡走。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "昨儿谁把陶罐摞太高了？"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "摞了五层，我一趟摞回三层。坛子摞高了看着齐整，塌下来一地碎片，白忙一晌午。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "修行房的窗纸破了个洞。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "洞小风大，夜里呜呜地响。我裁了条新纸糊上，浆糊里掺了点花椒面，虫子都不爱啃。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "昨儿厨房那杆秤不准了。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "我拿砝码校过了，星花磨浅了。秤这东西心里得有杆真的，秤亏了人，名声就亏了。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "你那双旧布鞋补了三回了。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "补三回才穿了两年，值。鞋底纳得密就耐磨，我这针线活还是小时候跟我娘学的，忘不了。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "我如今是不是升了一等身份，你还记得吗？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "我这正算着账呢，等会儿接着聊。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "昨儿那场雨把晒的笋干淋了。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "淋了就回锅再烘一回，失点香味罢了。笋干这东西经折腾，只要不捂霉，都能救回来。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "今儿谁把泔水倒了菜地边？"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "泔水沤肥是好事，就是离菜根太近。我得吆喝一声，泔水得埋土里发酵，直接浇要烧根。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "今儿是谁的锄头柄断了？"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "断了就换，柄我备着两根。农具坏在半道上最误事，手边的备件齐了，心里就不慌。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "今儿山上摘的野果分了吗？"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "分了，灶房留一半，其余送各屋。野果这东西搁不住，当日分完最公道，谁也不落闲话。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "你袖口那道口子缝了吗？"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "缝了，针脚歪歪扭扭的。好在袖口不起眼，能遮丑就行，粗人衣裳不讲体面讲结实。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "药圃那垄当归该间苗了吧？"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "该，挤成一堆谁也长不成。回头我带把小铲去，间出来的苗分给东边垄补空，一点不糟践。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "藏经阁外那株老银杏黄透了。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "黄得铺了一地金，扫地的都想多扫两天。我捡了一兜叶子回来，夹进账本里当书签，挺好使。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "昨儿灶房的灯油添了吗？"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "添了，够烧半个月。灯油这东西省不得，夜里摸黑干活，碰翻了锅灶才是大亏。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "昨儿谁把磨盘扫得干干净净？"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "扫干净是本分，磨盘周围脏了招虫。粮食沾了灰，磨出来的面都牙碜，吃的人骂的是灶房。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "昨儿你数落了偷嘴的小师妹？"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "数落归数落，回头我给她留了块锅巴。小孩子嘴馋不算错，得让她知道规矩，也不能寒了心。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "你磨出来的那把镰刀真亮。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "亮才好使，钝刀割草全靠薅。磨刀这活急不得，先粗石后细石，磨完抹层油，能顶一季。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "你灶房那道抢手的新菜用的是啥稀罕物，你还记得吗？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "天要落雨了，先收衣裳，这事押后。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "后厨那口水缸快见底了。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "知道，晌午就去山溪挑。水缸这东西就得勤着添，等见了底再动弹，一灶房的碗都刷不成。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "那群灵雀又来偷谷种了。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "这群小贼精得很，纱罩都能啄出洞。我挂了两串红布条吓唬，头两天管用，往后还得换新花样。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "昨儿煮豆子忘看火，差点干锅。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "差点就收拾，灶上最忌离人。往后豆子下锅我先添足水，再守着搅两圈，心里就有底了。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "山下来的货郎今儿来了吗？"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "来了，针头线脑都齐。我捎了两包针线，还有半斤皂角。灶房的人衣裳费，皂角得多备着。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "今儿檐下的燕子窝掉了一角。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "掉了别扫，燕子明年还认窝。我拿泥把缺口抹了抹，燕子回来一看，家还在，安心。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "昨儿那批木柴劈得真齐整。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "齐整的柴好码垛，烧起来也匀。劈柴看斧准，斧落一条线，柴花四溅那才叫痛快。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "柴房里那捆湿柴咋处理？"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "挪到檐下架起来阴干，湿柴塞灶里全是烟。烟一呛，半屋子人咳，粥都得带上柴火味。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "今儿菜地里的草拔了吗？"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "拔了半垄，剩下明儿接着来。拔草赶早不赶晚，草籽一落就成片，到时候拔都拔不过来。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "今儿腌菜的石头找不着了。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "河边捡的扁石头，我又寻了一块。压菜的石头讲究沉而平，圆滚滚的压不实，菜要浮坛。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "打更的梆子声昨儿咋停了？"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "更夫着了凉，嗓子哑得敲不动。我给他送了碗姜汤，梆子声今夜就续上了，不然一山的人睡不踏实。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "昨儿那只灰兔又啃菜苗了。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "啃吧啃吧，回头我拿竹篱圈出一小块给它。兔子和咱抢食，抢不过就分它一口，图个山里和气。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "今儿的柴火备得足了吗？"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "足了，粗细分两堆码着。粗柴压火熬汤，细柴起火快，配着烧才省，一堆混烧净冒烟。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "你如今肩上那份田里的差事还在不在，你还记得吗？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "你先替我看着火，我去去就回。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "昨儿那锅汤咸得发苦了。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "咸了兑水，再撒把山葱遮一遮。盐这东西宁少勿多，少了能补，多了神仙也捞不回来。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "昨儿夜里的星星密得很。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "密说明明儿晴，晒谷晒被都赶趟。山里看天比看皇历准，云脚一低，我就知道该收东西了。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "丹房今儿又飘出药味来了。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "浓得呛人，路过都得捂鼻子。炼药的师兄们比咱还辛苦，咱这灶房的烟火气跟人家比算清闲。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "昨儿是谁把粮袋码歪的？"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "码歪了自己扶正，歪垛要倒。粮垛码得齐不齐，看得出这屋人心里有没有数。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "今儿谁把晾衣裳的绳子收了？"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "我收的，天要落雨了。衣裳淋一回晾三回都不干，看云收绳，比洗十回都省事。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "今儿开春的第一场雷响过没？"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "响了，惊得檐下的雀儿炸了窝。头雷一响，地气就动了，菜畦里的苗要蹿，肥得赶紧跟上。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "今儿的水缸盖找不着了。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "找着了，扣在泔水桶上了。家什乱放是灶房大忌，用完归位，这话我得再说一百遍。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "采买的单子今儿添了啥？"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "添了粗盐和干笋，油也该补了。山里采购讲究一趟办齐，多跑一趟山路，就多耗半天工夫。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "你那一捆麻绳用完了吗？"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "用完了，今儿又续了一把。麻绳是灶房的万能家什，捆菜吊肉补筐，离了它寸步难行。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "这个月的用度你盘过了吗？"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "盘了，这个月盐超了两成。下个月我在腌菜上省，淡口菜多排两天，账就平了。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "昨儿夜里山猫又翻厨房了。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "翻就翻吧，它逮耗子比谁都利索。我就心疼那半屉凉糕，明儿吃食都得压纱罩，谁也甭想偷嘴。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "你那处发沉的老患如今是不是缓过来了，你还记得吗？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "阿蘅",
+      "relation": "craves",
+      "object": "糖蒸芋头",
+      "speaker": "user",
+      "statement": "我最馋灶房那口糖蒸芋头，一顿不惦记就难受。",
+      "statementFloor": 6,
+      "restatement": "灶上蒸的那笼甜芋头，我隔着窗户都咽口水。",
+      "restatementFloor": 28,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "云萝",
+      "relation": "avoids",
+      "object": "辣子",
+      "speaker": "character",
+      "statement": "辣子我一口不碰，舌尖遭不住那股窜劲。",
+      "statementFloor": 15,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "item",
+      "subject": "阿蘅",
+      "relation": "owns",
+      "object": "旧木剑",
+      "speaker": "user",
+      "statement": "我那柄木剑是入门那年你给削的，一直背着。",
+      "statementFloor": 20,
+      "restatement": "背上这柄旧木剑，是你亲手削的那把，没换过。",
+      "restatementFloor": 36,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "location",
+      "subject": "阿蘅",
+      "relation": "sleeps_in",
+      "object": "西跨院",
+      "speaker": "user",
+      "statement": "我睡西跨院挨着柴房那间，冬冷夏闷。",
+      "statementFloor": 24,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "上月初我挪去东院跟贺师姐同屋了，敞亮多了。",
+        "probe": "我如今是不是换了亮堂的新屋住，你还记得吗？"
+      },
+      "updateFloor": 164
+    },
+    {
+      "id": "f05",
+      "memoryType": "health",
+      "subject": "阿蘅",
+      "relation": "injured",
+      "object": "练剑扭伤手腕",
+      "speaker": "user",
+      "statement": "我上个月练剑把右手腕扭了，提水都费劲。",
+      "statementFloor": 30,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "手腕好利索了，这旬又能抡扫帚干活了。",
+        "probe": "我那只发僵的手如今活泛过来没有，你还记得吗？"
+      },
+      "updateFloor": 186
+    },
+    {
+      "id": "f06",
+      "memoryType": "fact",
+      "subject": "云萝",
+      "relation": "observes_rule",
+      "object": "初一十五灶房歇火",
+      "speaker": "character",
+      "statement": "咱门里初一十五灶房歇火，各屋自己啃干粮。",
+      "statementFloor": 35,
+      "restatement": "门规是初一十五灶房不开火，各屋啃干粮。",
+      "restatementFloor": 55,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f07",
+      "memoryType": "event",
+      "subject": "云萝",
+      "relation": "witnessed",
+      "object": "采药客山门争执",
+      "speaker": "character",
+      "statement": "前些日子一伙采药客在山门口吵价，嚷了半晌。",
+      "statementFloor": 41,
+      "restatement": "山门外那伙药客为价钱拌嘴，折腾了小半天。",
+      "restatementFloor": 63,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f08",
+      "memoryType": "identity",
+      "subject": "阿蘅",
+      "relation": "is",
+      "object": "外门杂役",
+      "speaker": "user",
+      "statement": "我是外门挂名的杂役，还没正经拜师呢。",
+      "statementFloor": 48,
+      "restatement": "我这身子还挂着外门的名头，正经师承八字没一撇。",
+      "restatementFloor": 70,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f09",
+      "memoryType": "relationship",
+      "subject": "阿蘅",
+      "relation": "has_grandmother_in",
+      "object": "溪口村外婆",
+      "speaker": "user",
+      "statement": "我外婆一个人守在山下溪口村，我一直惦记。",
+      "statementFloor": 56,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "开春我把外婆从溪口村接上山了，心里落定。",
+        "probe": "我惦记的那位老人家如今安置在哪儿了，你还记得吗？"
+      },
+      "updateFloor": 212
+    },
+    {
+      "id": "f10",
+      "memoryType": "goal",
+      "subject": "阿蘅",
+      "relation": "aiming_for",
+      "object": "年底内门考核",
+      "speaker": "user",
+      "statement": "我憋着劲儿呢，年底要搏一搏内门考核。",
+      "statementFloor": 60,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "内门名册上腊月里添了我的名字，成啦。",
+        "probe": "我如今是不是升了一等身份，你还记得吗？"
+      },
+      "updateFloor": 136
+    },
+    {
+      "id": "f11",
+      "memoryType": "goal",
+      "subject": "云萝",
+      "relation": "breeding",
+      "object": "甜灵椒",
+      "speaker": "character",
+      "statement": "我想培育出一株不呛人的甜灵椒，给灶房添个菜。",
+      "statementFloor": 69,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "甜灵椒育成了，头茬炒了一盘，抢着吃。",
+        "probe": "你灶房那道抢手的新菜用的是啥稀罕物，你还记得吗？"
+      },
+      "updateFloor": 129
+    },
+    {
+      "id": "f12",
+      "memoryType": "item",
+      "subject": "云萝",
+      "relation": "owns",
+      "object": "师父传的铁锅",
+      "speaker": "character",
+      "statement": "灶上那口大铁锅是我师父传的，炒啥都香。",
+      "statementFloor": 75,
+      "restatement": "师父留我的那口老铁锅，炒出来的饭菜带魂。",
+      "restatementFloor": 103,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "preference",
+      "subject": "阿蘅",
+      "relation": "prefers_wearing",
+      "object": "靛青色",
+      "speaker": "user",
+      "statement": "我穿衣裳就认靛青色，耐脏还压风。",
+      "statementFloor": 78,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "location",
+      "subject": "云萝",
+      "relation": "tends",
+      "object": "后山三亩灵田",
+      "speaker": "character",
+      "statement": "后山那三亩灵田归我管，一天不去心里空。",
+      "statementFloor": 85,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "开春灵田挪给新来的师弟管了，我专盯灶房。",
+        "probe": "你如今肩上那份田里的差事还在不在，你还记得吗？"
+      },
+      "updateFloor": 131
+    },
+    {
+      "id": "f15",
+      "memoryType": "health",
+      "subject": "云萝",
+      "relation": "has_old_injury_in",
+      "object": "左肩旧伤",
+      "speaker": "character",
+      "statement": "我左肩带着旧伤，变天就发沉。",
+      "statementFloor": 93,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "吃了俩月新丹，左肩总算松快了。",
+        "probe": "你那处发沉的老患如今是不是缓过来了，你还记得吗？"
+      },
+      "updateFloor": 133
+    },
+    {
+      "id": "f16",
+      "memoryType": "fact",
+      "subject": "云萝",
+      "relation": "paid_on",
+      "object": "初一执事堂发月钱",
+      "speaker": "character",
+      "statement": "月钱初一在执事堂领，一回三十文。",
+      "statementFloor": 99,
+      "restatement": "执事堂每逢初一放月钱，一人三十文。",
+      "restatementFloor": 121,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f17",
+      "memoryType": "event",
+      "subject": "阿蘅",
+      "relation": "witnessed",
+      "object": "灶房蜜罐失窃",
+      "speaker": "user",
+      "statement": "上月灶房丢了一罐蜜，闹了三天才知道是獾叼的。",
+      "statementFloor": 104,
+      "restatement": "灶上少了蜜那回，折腾三天才翻出底，是獾干的好事。",
+      "restatementFloor": 124,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f18",
+      "memoryType": "preference",
+      "subject": "阿蘅",
+      "relation": "avoids",
+      "object": "菌子",
+      "speaker": "user",
+      "statement": "菌子我一口不碰，怕吃出毛病见小人儿。",
+      "statementFloor": 106,
+      "restatement": "山货里那类伞伞朵朵，我从来不下筷。",
+      "restatementFloor": 148,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "relationship",
+      "subject": "云萝",
+      "relation": "has_brother_in",
+      "object": "剑堂当差的师弟",
+      "speaker": "character",
+      "statement": "我亲师弟在剑堂当差，闷葫芦一个。",
+      "statementFloor": 97,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "师弟随队下山历练去了，一走三年。",
+        "probe": "你那位闷声的胞弟如今人在何处，你还记得吗？"
+      },
+      "updateFloor": 143
+    },
+    {
+      "id": "f20",
+      "memoryType": "item",
+      "subject": "阿蘅",
+      "relation": "keeps",
+      "object": "半盒干桂花",
+      "speaker": "user",
+      "statement": "我窗台上晒着半盒干桂花，留着熏茶。",
+      "statementFloor": 122,
+      "restatement": "窗台上那半盒晒好的桂花，我存着往后熏茶用。",
+      "restatementFloor": 156,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "goal",
+      "subject": "阿蘅",
+      "relation": "practicing",
+      "object": "开春前练顺御风术",
+      "speaker": "user",
+      "statement": "开春前我想把御风术练顺，省得天天爬坡。",
+      "statementFloor": 94,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "御风我练顺了，前儿还飘去后山摘桃。",
+        "probe": "我如今下山坡是不是脚不沾地就到了，你还记得吗？"
+      },
+      "updateFloor": 140
+    },
+    {
+      "id": "f22",
+      "memoryType": "preference",
+      "subject": "云萝",
+      "relation": "prefers",
+      "object": "粗陶碗",
+      "speaker": "character",
+      "statement": "碗我使惯粗陶的，灵瓷烫手还娇气。",
+      "statementFloor": 139,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f23",
+      "memoryType": "fact",
+      "subject": "云萝",
+      "relation": "knows_lineage_of",
+      "object": "二代祖师手植的桃林",
+      "speaker": "character",
+      "statement": "后山那片桃树是二代祖师亲手栽的，谁都不许折枝。",
+      "statementFloor": 145,
+      "restatement": "后山桃林是二代祖师亲手栽的，枝子一根不许动。",
+      "restatementFloor": 161,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f24",
+      "memoryType": "event",
+      "subject": "阿蘅",
+      "relation": "entered_sect_in",
+      "object": "入门日淋雨",
+      "speaker": "user",
+      "statement": "我入门那天下着瓢泼雨，浑身湿透拜的祖师。",
+      "statementFloor": 146,
+      "restatement": "进门那天赶上大雨，我湿得能拧出水来。",
+      "restatementFloor": 162,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f25",
+      "memoryType": "location",
+      "subject": "云萝",
+      "relation": "from",
+      "object": "南边雾泽",
+      "speaker": "character",
+      "statement": "我老家在南边的雾泽，水汽一年到头不散。",
+      "statementFloor": 153,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f26",
+      "memoryType": "identity",
+      "subject": "阿蘅",
+      "relation": "born_on",
+      "object": "谷雨那天",
+      "speaker": "user",
+      "statement": "我是谷雨那天生的，师姐记着给我留糖就行。",
+      "statementFloor": 154,
+      "restatement": "我落地赶上谷雨，年年这天记得给我留块糖。",
+      "restatementFloor": 172,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f27",
+      "memoryType": "health",
+      "subject": "阿蘅",
+      "relation": "has",
+      "object": "手脚冰凉睡不实",
+      "speaker": "user",
+      "statement": "我夜里手脚冰凉，睡不踏实。",
+      "statementFloor": 90,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "喝了一冬的温养汤，手脚总算暖了。",
+        "probe": "我夜里那股凉气如今退了没有，你还记得吗？"
+      },
+      "updateFloor": 134
+    },
+    {
+      "id": "f28",
+      "memoryType": "event",
+      "subject": "云萝",
+      "relation": "witnessed",
+      "object": "偷酒罚跪山门",
+      "speaker": "character",
+      "statement": "月初有人偷喝了执事堂的酒，被罚跪了半天山门。",
+      "statementFloor": 167,
+      "restatement": "前头那桩偷酒的风波，主儿在山门跪了半日。",
+      "restatementFloor": 189,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "fact",
+      "subject": "云萝",
+      "relation": "starts_fire_at",
+      "object": "灶房寅时起火",
+      "speaker": "character",
+      "statement": "灶房寅时就得起火熬粥，误了时辰挨说。",
+      "statementFloor": 175,
+      "restatement": "灶房的规矩是寅时引火，晚一步粥就糊。",
+      "restatementFloor": 193,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "preference",
+      "subject": "云萝",
+      "relation": "hates",
+      "object": "糟蹋粮食",
+      "speaker": "character",
+      "statement": "看见糟蹋粮食的我嗓门就压不住，粒粒都金贵。",
+      "statementFloor": 179,
+      "restatement": "我见不得人作践吃食，一粒米都是汗珠子换的。",
+      "restatementFloor": 199,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "开饭时我头一个奔向的那碗甜口蒸食是啥，你还记得吗？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "你掌勺放料时绕开的那样红皮东西是啥，还记得吗？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我背上挂了这些年的那件木头家什，来历你还记得吗？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f06",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "一旬里头哪两天灶上不生烟，你还记得吗？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f07",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "前阵子聚集在外头嚷嚷着讨价的那拨生人，你还记得吗？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我原先睡的那处傍着柴火的院子是哪座，你还记得吗？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我哪只手的筋给扭过一回，你还记得吗？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f09",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我那位上了年纪的亲人还守着哪处村落，你还记得吗？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f10",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f10"
+      ],
+      "text": "我如今是不是升了一等身份，你还记得吗？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f11",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f11"
+      ],
+      "text": "你灶房那道抢手的新菜用的是啥稀罕物，你还记得吗？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f14",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f14"
+      ],
+      "text": "你如今肩上那份田里的差事还在不在，你还记得吗？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f15",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f15"
+      ],
+      "text": "你那处发沉的老患如今是不是缓过来了，你还记得吗？"
+    }
+  ]
+}

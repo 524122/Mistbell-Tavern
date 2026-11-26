@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s06",
+  "title": "七号据点的断续闲谈",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "回来啦？水烧上了，先烤烤火。今天外头风硬，据点里头倒还稳当，有什么想说的慢慢讲。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "望楼的梯子第三级又裂了。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "裂梯子换板条，别将就着踩。夜里上下望楼的人多，摔一个就是减一个战力。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "夜里的露水把哨位坐垫都打湿了。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "坐垫改挂屋里，早上再带出去。湿垫子坐一夜，腰腿都要落下毛病，哨位的物件也讲这个理。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "今天整理了旧衣物，分了尺寸堆。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "衣物按尺码分堆，紧急的时候抓了就穿。破洞的拆成布条，擦枪缠手都好用。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "囤货里那几罐剁椒我一直私藏着，谁伸手都不给。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "嗯，这话我记下了。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "巡逻时看见一只断腿的野狗。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "断腿的野狗别招惹，疼急了咬人。绕开走，回头从栅栏外扔点吃的给它就行。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "讲讲你从前的行当呗。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "甜口的东西我一口不碰，这是入队前就有的老讲究。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "路口的伪装网被刮开了一个角。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "伪装网破一角，远看就是破绽。今天天黑前补好，再压些带叶的枝子，显得自然。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "闲着没事，说说你的老家？"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "事发前我是地铁公司的电工，隧道底下干了八年。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "水窖的木盖子合不严，飘进杂物。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "盖子缝里嵌层旧纱网，虫叶就进不来。水是命根子，盖不严的水窖等于敞口的粮仓。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "今天测了水窖的水位，掉了半格。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "水位掉了半格就查渗漏，别等见底。查漏从底部接缝看起，湿印子不会说谎。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "枪械保养日，擦了两个小时。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "擦枪讲究拆装有序，零件摆成排。油布分开用，膛线那步最马虎不得，保养完的枪入柜登记。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "我是医学院念到大三退的学，文凭没拿到手。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "这话我收着了。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "存粮里口味最冲的那样下饭菜，我为啥轻易不动它？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "这话得压低声讲，现在不行。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "你是哪儿人？随便聊聊。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "七号据点扎在废弃中学的地下器械室，两道铁门把着。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "最辣的那几罐好东西，我压在箱底谁也不匀。"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "行，心里有个数了。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "烧水的铁锅底漏了个针眼。"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "针眼用铆钉加铝片铆死，再抹层耐火泥。锅是公家的命，坏了得排队等修复。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "水渠的闸板放下去了，渠水满了。"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "渠水满了夜里要有人巡查闸口。水漫过渠沿就是事故，闸板的销子要插到底。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "说说你平时都怎么消磨日子。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "那台柴油发电机是我从修车铺拖回来的，一天只敢开两小时。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "你有什么一直放不下的事么？"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "从前我在地铁公司当电工，跟隧道打了八年交道。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "我左肩留着一道贯穿的旧创，阴天就发麻发沉。"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "好，我不多问了。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "夜里的蟋蟀叫得正欢呢。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "虫声旺说明秋深了。听虫声睡得着是福气，虫声一停才要竖起耳朵，真安静下来的夜里才吓人。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "储藏的洋葱发了芽，掐了芽还能吃。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "发芽的洋葱要先吃，完好的垫底。芽眼附近发苦，切深一点，炖菜吃不出怪味。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "我姐姐困在江北的隔离区，我一直在攒频段找她。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "嗯，都记脑子里了。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "聊聊你兜里的那些老物件呗。"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "咱们窝在一所废学校的底下器械间里，铁门安了两道。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "你吃手艺饭那阵子伺候的是哪行家伙，还记得么？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "外头有动静，改天再说这个。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "今天清点了弹药箱，数目对得上。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "数目对上是本分，湿度才是大敌。弹药柜里搁包干燥剂，每月换一次，这活雷打不动排进表。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "我想赶在雨季前架起大功率电台，联络东边的营盘。"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "这话够实在的。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "傍晚烧了堆落叶，烟味飘很远。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "烧东西看风向，烟朝据点飘就是报信。往后烧杂物的时辰挑傍晚，逆风的日子干。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "工具房那把旧锯条断成了两截。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "断锯条别扔，磨一磨还能当小刀。正式的锯齿明儿去五金库碰碰运气，兴许有存货。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "上个月出城那趟，我们在高架桥下头撞上三只变异犬，丢了物资。"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "成，我信你这话。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "顶楼的鸽子窝引来两只野鸽。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "野鸽能训就留着传信，不能训就炖汤。别喂惯了，喂熟了它们赖着吃粮不干活。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "手电的电池只剩两节新的。"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "新电池留夜巡用，屋里的活用旧电池凑合。旧电池摇一摇还能挤点光，别扔。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "今天修理了望楼的遮雨棚。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "遮雨棚外倾三指，雨水才不倒灌。棚角压牢，这个季节的风说大就大，压石备两块换着用。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "外头那片天，你以前是做什么的？"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "乱起来头一个月，我把自己锁在检修间里撑了二十天。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "给我讲讲你累了一天都怎么歇。"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "据点的存水还够撑四十天，雨水收集是唯一进项。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "储水缸长青苔了，水味发滑手。"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "青苔要刷，刷完晒半天再蓄水。缸底铺层干净卵石，水就清亮得慢，能多撑些时日。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "各种罐头里我唯独咽不下豌豆，宁可干啃压缩饼干。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "记牢靠了，不外传。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "我半途而废的那门读书行当，念的是哪一路，还记得么？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "值哨的钟点快到了，先忙正事。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "食堂灶膛的烟囱堵了，满屋呛烟。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "烟道里多半卡了鸟窝。通烟囱要趁白天干，熏一晚上屋子，人都得咳到天亮。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "今天分了新靴子，鞋帮有些紧。"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "新靴先穿半日，磨脚就垫厚袜。脚上磨出水泡在这个年头，能耽误一轮巡逻。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "前阵子出城，高架底下那群畜生扑上来，物资丢了一部分。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "嗯，难得你交底。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "今天的云压得很低，闷得慌。"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "闷热低压多半有雨，晒着的东西早收。雨水接着了是财富，布匹淋透了就是损失。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "我这把工兵铲陪我走过三个省，铲刃磨得只剩半指宽。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "好，这事我上心。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "有什么想聊的，今天我听着。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "整批抗生素都藏在西墙配电柜的夹层里，外人摸不着。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "你说说，往后有啥打算？"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "我左耳让爆炸震得只剩半拉听力，说话你得站我右边。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "讲讲你从前的行当呗。"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "我想赶在入冬前把雨水净化塔焊完，眼下就差三节管子。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "我口袋里常备一铁盒薄荷糖，心慌时含一颗定神。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "行，都听你安排。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "闲着没事，说说你的老家？"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "我儿子走散在头一批疏散里，左耳后一颗痣是我认他的记号。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "我值哨固定在东南角的天台，能望到整条来时的公路。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "这话听着踏实。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "入梅之前要立的那个通信家伙，用途还记得么？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "水刚烧开，等我把水灌上。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "从这儿到最近的活人聚居点，步行要整整两天。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "嗯，稳住了就好。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "你是哪儿人？随便聊聊。"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "整个据点的水账我算过，满打满算还剩四十天。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "打水的水泵把手松了，晃得厉害。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "把手松是销子磨损，垫圈换一个就好。泵水前记得检查底阀，空转最伤泵体。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "后山那条小径的荆棘长疯了。"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "得安排人砍一次，那是咱们的退路。荆棘丛留着扎人，砍出的口子要留好掩体。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "说说你平时都怎么消磨日子。"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "我只信机械表，电子那些玩意儿停摆以后就是废铁。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "哨兵报告坡道有车轮印，很新。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "新车轮印就得记下方向和时间。多留心不亏，明天这个点再查一遍，痕迹要画进巡逻草图。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "院里的水洼结了一层薄冰。"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "薄冰别踩，看着结实实则脆。早晚提水改到午间，冰碴子划了手不好治，这季节摔跤最伤骨头。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "轮到站哨我总占着东南角那片天台，公路一览无余。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "记下了，夜里慢慢想。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "今天掰了玉米，棒子堆满筐。"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "玉米棒子连皮挂在通风处，干得匀。芯子别烧，攒着引火最好用，冬天引火全靠它。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "你有什么一直放不下的事么？"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "我那把焊枪是命根子，睡觉都搁在枕头边上。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "仓库门轴锈了，开关吱嘎响个不停。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "门轴点油，响声夜里听着像警报。油别省着用，一扇门一天要开合几十回，吱嘎声还招人耳目。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "厨房排班表重排，我排到三天连灶。"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "连着灶三天是辛苦，掌勺的手艺涨得也快。伙食把关的活儿交给你，我放心。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "最险那回出行，我们在路上撞见了什么祸害，还记得么？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "今天耗得够呛，改日细聊。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "前阵子那旧创发了炎，切开引流之后轻快多了。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "好，这话听着暖心。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "聊聊你兜里的那些老物件呗。"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "托你弄来的消炎针起效了，左耳的鸣响轻了大半。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "上礼拜短波里真收到了姐姐的暗号，她人安全在北岸。"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "成，就这么办吧。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "那铁盒上礼拜见了底，如今改嚼后山的酸草叶顶事。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "嗯，这话我记下了。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "外头那片天，你以前是做什么的？"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "上月收留的孩子里，真有一个耳后带痣的，八成是他。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "给我讲讲你累了一天都怎么歇。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "夹层返了潮，抗生素全数挪进档案室的铁皮柜了。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "我给自己定了数，入冬前把准头练到十发八中。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "这话我收着了。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "有什么想聊的，今天我听着。"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "管子凑齐了，净化塔立起来通了水，赶在头场雪前完工。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "据点之间的口信今天捎到了。"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "口信到了就好，路条和暗号都核对过吧。捎信的脚程辛苦，热水和干粮要招待到位。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "一到后半夜我就睡不踏实，总觉得围墙外头有动静。"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "行，心里有个数了。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "工具间的钉子分了类，整齐多了。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "钉子分类是样板活，以后都照这个来。找东西省下的功夫，比分类费的事多得多。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "分吃食时候你头一个摇头推掉的是哪样，还记得么？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "这话搁心里久了，回头慢慢讲。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "巡逻表改了，后半夜改成双人。"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "双人岗是对的，单人在夜里容易走神。你搭谁一组提前说好，交接口令也定死。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "望楼的绳梯该换了，毛边多。"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "绳梯毛边是断的前兆，别赌运气。新绳到位前，上下望楼改走那架木梯，毛绳留着他用别扔。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "厨房的盐快见底了，省着用。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "盐省不得，人缺盐没力气。把咸菜切块分小份配给，盐分匀着摄入，能撑到补给。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "你说说，往后有啥打算？"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "方圆十公里里头，活人就剩咱们跟河对岸的渔村两拨。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "讲讲你从前的行当呗。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "去年腊月我断粮十七天，靠融雪水和一根皮带熬过来。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "练枪的硬指标我立下了，十发里头得中八个。"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "好，我不多问了。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "闲着没事，说说你的老家？"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "现在一块糖能换半盒子弹，我这忌口早破防了。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "菜地里的萝卜缨子蔫了一片。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "蔫是缺水，浇水的时辰改早晚。叶子蔫根还在，缓两天就挺过来，先别急着拔除。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "你是哪儿人？随便聊聊。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "猫这种东西光吃粮不顶用，我历来一只都不留。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "修屋顶的沥青熬好了，气味冲。"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "熬沥青看火候，冒黑烟就过火。施工的人护好脸，滴一滴就是一冬的疤，底下的人也离远些。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "夜里的虫鸣忽然停了，瘆人。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "虫子齐声停就是有东西路过。这时候别出门，竖着耳朵听上十分钟再做打算。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "离开老小区前，我把一铁盒照片埋在院里枣树根下了。"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "嗯，都记脑子里了。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "小队落脚的这处穴点，原先安在哪种房型，还记得么？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "手头这点活儿急，容我先弄完。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "电台静默是每晚八点起、凌晨五点止，雷打不动。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "这话够实在的。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "说说你平时都怎么消磨日子。"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "十公里地界内，除了咱们就只剩对岸渔村那几口人。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "望远镜的镜片起了一层雾。"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "镜片进屋别急着擦，温差会开成水痕。晾到室温再擦，镜布也别拿衣角凑合。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "你有什么一直放不下的事么？"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "我这人对猫没好感，白吃口粮的活物一概不收。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "磨坊的石盘磨得薄了，出粉慢。"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "石盘薄到一定程度就得錾齿。錾齿是细活，别自己上手，磨坏了的盘没处配件。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "聊聊你兜里的那些老物件呗。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "器械室渗水返潮，上个月全队搬去了二层实验室。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "手摇收音机今晚只能收到沙沙声。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "天线角度不对，摇着试试转方向。收不到就当练手，真有重要广播时会反复播。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "老屋院里那棵树底下，埋着一铁盒我全家的相片。"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "成，我信你这话。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "夜里风把塑料布吹得哗啦响。"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "压布的砖头该换石板了，风大的夜里砖头靠不住。响声也招人耳目，得压严实些。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "腌菜的坛子又起了白膜。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "白膜撇掉，坛口倒一层薄油封住。腌菜是过冬的底气，坏了这坛就得啃干粮。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "引水到灶间的竹管接好了。"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "竹管接口用麻丝缠紧，渗水就补。引水道冬天上冻前要排空，不然冻裂一整根。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "咱们用电靠的那台油老虎，来路你还记得么？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "夜太深了，明早再讲这个。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "今天翻晒了所有的毛毯。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "毛毯晒透拍打一遍，螨灰就出来了。收之前叠紧压实，防潮也省地方，拍打时记得戴口罩。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "营地的狗今晚叫得发急。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "狗耳朵灵，叫得急多半是生人靠近了。你带手电沿墙根巡一圈，人别出大门半步。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "存粮柜的缝隙里有米虫了。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "米虫怕干怕辣，晒透了再入柜。柜缝塞几片花椒叶，虫子闻着味就绕道，这法子老辈人百试百灵。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "外头那片天，你以前是做什么的？"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "发电机上个月烧了励磁绕组，如今全靠手摇蓄电顶着。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "哨位换了新挡板，视线挡了大半。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "挡板留观察缝是对的，安全第一。缝隙的高度你调好，蹲姿能看全坡道才算合格。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "柴堆淋了雨，外层都湿透了。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "湿柴劈开晒芯子，干得快些。码柴堆要留风道，捂着的柴堆返潮还招虫，跟存粮一个道理。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "今天把旧地图誊了一遍，标了新路。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "地图誊新是保命的活计，标错一步路就偏。旧图留着对照，新路用红笔标注。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "昨天打的野兔炖了一锅汤。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "兔肉寡淡，多搁一把干菜提味。汤别一次喝完，分作两天，肠胃弱的人少喝浓的。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "坡上采的野菊晒了两天，干透了。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "干透的花装袋密封，受潮就霉。野菊泡水败火，冬天配姜糖水，是驱寒的老方子。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "晾在绳上的袜子冻成了硬片。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "冻硬的袜子别硬扯，进屋焐软再穿。夜里气温骤降，晾衣绳上只挂耐冻的粗布。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "蜡烛快用完了，今晚起要少用。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "烛光改油灯，油还够烧一阵。蜡烛留着停电急用，日常别动，谁破规矩谁去劈柴。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "配给表上的豆子又减了半份。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "库存见底就得抠着吃，别抱怨。把豆子掺进杂粮糊里煮，熬稠一些最顶饿，谁也别挑。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "折磨我一年多的那处暗伤，如今还闹腾么？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "先把这箱货码好，回头说。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "电灯泡又闪，亮度忽明忽暗。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "电压不稳就这样，凑合着用。真正要紧的灯泡留给哨位，屋里人摸黑也认得路。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "储藏室的门锁发涩，钥匙拧不动了。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "锁芯注点铅笔芯粉末，比油干净。锁是最后一道关，涩了就得伺候，别硬拧断钥匙。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "围墙上那道裂缝又宽了半指。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "裂缝拿碎石加黄泥先堵上，雨前必须弄完。墙根的杂草也清一清，根须拱墙最厉害。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "今天轮我值守，屋顶的望孔结了露水。"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "拿干布擦净，夜里凝水最误事。望孔周边的木板也要抹一遍，返潮的木头招白蚁。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "菜地的篱笆松了，野兔钻进来。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "兔子进了菜地比虫子祸害大。篱笆根压土踩实，洞口下套子，肉和菜两不误。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "今天换岗晚了十分钟，交岗的有意见。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "迟到就提前出门，黑夜里路更慢。岗哨交接卡着钟点，差一刻都是纪律问题。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "储物架第三层塌了一角。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "塌角是铆钉松了，层板别超重。重物下移，架子寿命能多撑一年，铆钉全部复紧一遍。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "晚饭后看了一会儿星，北边亮。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "北边亮是月晕，明天风变。睡前把明天要干的活想一遍，早起就不抓瞎，这是老辈传下的排活法。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "今天缝补了三件外套，线用去半轴。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "缝补先缝受力处，肘膝肩头。线头打结藏进夹层，磨到哪儿都不散，这手艺多练几件就熟。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "雨水桶的桶底渗水，滴得很慢。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "渗水慢是砂眼，抹层沥青能顶半年。接缝处再箍一道铁丝，桶就还能撑上一季。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "西边天际有飞机声，很远。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "远就当没听见，别抬头张望。这个年头天上飞的东西，看见咱们的都不怀好意。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "我日思夜想的那位同胞，如今有了准信么？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "风声不对，这话先按下不表。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "今天体能训练，有人练到吐。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "练猛了伤身，循序渐进才养人。吐了的那个明天减量，饭要吃够，练完喝口盐水。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "晚饭的干菜炖得软，牙口不好也吃得动。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "干菜多炖上一刻钟，省柴也省牙。老人小孩的那份先盛出来，炖得再烂一些。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "今天全体大扫除，连天台都扫了。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "大扫除是查漏的机会，扫到哪查到哪。缝隙里的存灰清了，虫窝露头也就灭了。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "夜里的猫头鹰在望楼顶叫。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "猫头鹰叫不碍事，它捉鼠是帮手。别拿石子轰它，粮仓的鼠患全指望这路帮手。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "晚饭后有人在小声哼着歌。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "哼歌没事，声音压住就行。日子再紧，人得留一点透气的地方，绷断了弦才真完了。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "夜里月亮太亮，走夜路扎眼。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "月圆夜行动全靠影子来掩护。亮处别站，贴着墙根走，眼睛也留个暗处适应。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "晚饭的糊糊咸淡正好，难得。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "盐罐见底前都得省着放。今天合口味，明天未必，吃饭的人嘴上留德，做饭的才有劲。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "日头毒，金属扶手烫得没法摸。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "正午的扶手最烫，干活垫块布。要搬的东西挪到傍晚，烫伤在这个年头最麻烦。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "夜里的风向转了，从北边来。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "北风起就添衣，寒潮在后头跟着。柴房今天多备一天的量，刮风天砍柴误事。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "旧报纸翻出来糊窗缝，正好。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "报纸糊缝再压层布条，风就钻不进来。糊之前把窗框擦净，不然开春一撕一层皮。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "山坡上的野柿子黄了一半。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "涩柿子得捂几天才脱涩，别急着摘。留一半在树上，过路的眼睛看了也不起疑。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "地窖里存的土豆冒芽了。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "芽眼挖净还能吃，毒在芽不在肉。冒芽的先吃，完好的垫在底下存，顺序别乱。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "那个新来的娃娃身上有什么印记，你核实过了么？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "锅里还炖着，等饭点再聊。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "今天练习包扎，绷带绕得松了。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "绷带松了不止血，紧了勒肉，两指能伸进去最合适。互相练，练到闭眼也会绕。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "屋檐下的麻雀窝里孵出了雏鸟。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "雏鸟叫得欢，天敌也听得见。窝先别捅，等雏鸟飞走再清理，省得弄一身臊味。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "坡下的溪水浑了，多半上游下了雨。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "溪水浑就别直饮，沉淀加煮沸一步不能省。储水缸趁浑前先蓄满，浑水来了再接就晚了。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "屋顶的瓦松了一片，风一吹就响。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "松瓦要趁晴天压好，雨天没法施工。响声小事，漏雨才是大事，别倒着排先后。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "夜里的霜把菜叶打蔫了。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "霜打的菜叶甜，留几棵晚拔。怕霜的幼苗盖草苫，早上掀开晒太阳，盖早了捂出黄叶。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "被子潮乎乎的，盖着一点不暖。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "潮被子越睡越冷，晴日摊开晒。睡觉前用体温焐干的衣服盖头，能顶上一阵。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "蓄水池的水面浮了一层油花。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "油花是泵里渗的，撇掉再观察。持续渗就得修泵，水比油金贵，拖到水不能喝才是大祸。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "铁皮屋顶被冰雹砸了几个窝。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "砸瘪的顶多费点料，漏了才是大事。今晚下雨前全屋检查一遍，脸盆先备在墙角。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "储藏室的麻袋垛太高，压得横梁响。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "码垛别超三层，塌下来砸了粮就是大祸。今天下午挪一挪，重的那几袋放底层。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "铁丝网外挂的空罐头盒响了一夜。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "空罐报警是好东西，响得越早越安心。今天顺着响的位置查一遍，看看是不是风。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "菜窖的温度偏高，土豆皮发潮。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "窖温高就夜里通风，白天封死。土豆潮了的先挑出来摊晾，捂着就要烂一窖。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "从前含着提神的那口零嘴断了顿，现在拿什么凑数？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "陆野",
+      "relation": "likes",
+      "object": "剁椒罐头",
+      "speaker": "user",
+      "statement": "囤货里那几罐剁椒我一直私藏着，谁伸手都不给。",
+      "statementFloor": 8,
+      "restatement": "最辣的那几罐好东西，我压在箱底谁也不匀。",
+      "restatementFloor": 30,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "韩铮",
+      "relation": "dislikes",
+      "object": "甜食",
+      "speaker": "character",
+      "statement": "甜口的东西我一口不碰，这是入队前就有的老讲究。",
+      "statementFloor": 13,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "现在一块糖能换半盒子弹，我这忌口早破防了。",
+        "probe": "当初碰都不碰的那样零嘴，如今还忌着么？"
+      },
+      "updateFloor": 165
+    },
+    {
+      "id": "f03",
+      "memoryType": "identity",
+      "subject": "韩铮",
+      "relation": "worked_as",
+      "object": "地铁电工",
+      "speaker": "character",
+      "statement": "事发前我是地铁公司的电工，隧道底下干了八年。",
+      "statementFloor": 17,
+      "restatement": "从前我在地铁公司当电工，跟隧道打了八年交道。",
+      "restatementFloor": 39,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "identity",
+      "subject": "陆野",
+      "relation": "dropped_out_of",
+      "object": "医学院肄业",
+      "speaker": "user",
+      "statement": "我是医学院念到大三退的学，文凭没拿到手。",
+      "statementFloor": 24,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f05",
+      "memoryType": "location",
+      "subject": "七号据点",
+      "relation": "based_in",
+      "object": "废弃中学地下器械室",
+      "speaker": "character",
+      "statement": "七号据点扎在废弃中学的地下器械室，两道铁门把着。",
+      "statementFloor": 29,
+      "restatement": "咱们窝在一所废学校的底下器械间里，铁门安了两道。",
+      "restatementFloor": 49,
+      "update": {
+        "statement": "器械室渗水返潮，上个月全队搬去了二层实验室。",
+        "probe": "大伙儿如今挪的那处新窝，占了教学楼的第几层？"
+      },
+      "updateFloor": 189
+    },
+    {
+      "id": "f06",
+      "memoryType": "item",
+      "subject": "韩铮",
+      "relation": "runs",
+      "object": "柴油发电机",
+      "speaker": "character",
+      "statement": "那台柴油发电机是我从修车铺拖回来的，一天只敢开两小时。",
+      "statementFloor": 37,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "发电机上个月烧了励磁绕组，如今全靠手摇蓄电顶着。",
+        "probe": "那台供电的老伙计坏过之后，电从哪里来？"
+      },
+      "updateFloor": 209
+    },
+    {
+      "id": "f07",
+      "memoryType": "health",
+      "subject": "陆野",
+      "relation": "has",
+      "object": "左肩旧伤",
+      "speaker": "user",
+      "statement": "我左肩留着一道贯穿的旧创，阴天就发麻发沉。",
+      "statementFloor": 40,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "前阵子那旧创发了炎，切开引流之后轻快多了。",
+        "probe": "折磨我一年多的那处暗伤，如今还闹腾么？"
+      },
+      "updateFloor": 128
+    },
+    {
+      "id": "f08",
+      "memoryType": "relationship",
+      "subject": "陆野",
+      "relation": "hopes_to_find",
+      "object": "姐姐",
+      "speaker": "user",
+      "statement": "我姐姐困在江北的隔离区，我一直在攒频段找她。",
+      "statementFloor": 46,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "上礼拜短波里真收到了姐姐的暗号，她人安全在北岸。",
+        "probe": "我日思夜想的那位同胞，如今有了准信么？"
+      },
+      "updateFloor": 132
+    },
+    {
+      "id": "f09",
+      "memoryType": "goal",
+      "subject": "陆野",
+      "relation": "plans",
+      "object": "大功率电台",
+      "speaker": "user",
+      "statement": "我想赶在雨季前架起大功率电台，联络东边的营盘。",
+      "statementFloor": 54,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f10",
+      "memoryType": "event",
+      "subject": "陆野",
+      "relation": "ran_into",
+      "object": "高架桥遇袭",
+      "speaker": "user",
+      "statement": "上个月出城那趟，我们在高架桥下头撞上三只变异犬，丢了物资。",
+      "statementFloor": 60,
+      "restatement": "前阵子出城，高架底下那群畜生扑上来，物资丢了一部分。",
+      "restatementFloor": 82,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f11",
+      "memoryType": "event",
+      "subject": "韩铮",
+      "relation": "sheltered_in",
+      "object": "地铁检修间避难",
+      "speaker": "character",
+      "statement": "乱起来头一个月，我把自己锁在检修间里撑了二十天。",
+      "statementFloor": 69,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f12",
+      "memoryType": "fact",
+      "subject": "七号据点",
+      "relation": "water_reserve",
+      "object": "四十天存水",
+      "speaker": "character",
+      "statement": "据点的存水还够撑四十天，雨水收集是唯一进项。",
+      "statementFloor": 71,
+      "restatement": "整个据点的水账我算过，满打满算还剩四十天。",
+      "restatementFloor": 105,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "preference",
+      "subject": "陆野",
+      "relation": "dislikes",
+      "object": "豌豆罐头",
+      "speaker": "user",
+      "statement": "各种罐头里我唯独咽不下豌豆，宁可干啃压缩饼干。",
+      "statementFloor": 74,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "item",
+      "subject": "陆野",
+      "relation": "carries",
+      "object": "工兵铲",
+      "speaker": "user",
+      "statement": "我这把工兵铲陪我走过三个省，铲刃磨得只剩半指宽。",
+      "statementFloor": 86,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "location",
+      "subject": "陆野",
+      "relation": "stands_watch_at",
+      "object": "东南角天台",
+      "speaker": "user",
+      "statement": "我值哨固定在东南角的天台，能望到整条来时的公路。",
+      "statementFloor": 98,
+      "restatement": "轮到站哨我总占着东南角那片天台，公路一览无余。",
+      "restatementFloor": 116,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f16",
+      "memoryType": "fact",
+      "subject": "陆野",
+      "relation": "reaches_on_foot_in",
+      "object": "步行两天",
+      "speaker": "user",
+      "statement": "从这儿到最近的活人聚居点，步行要整整两天。",
+      "statementFloor": 102,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f17",
+      "memoryType": "relationship",
+      "subject": "韩铮",
+      "relation": "seeking",
+      "object": "走失的儿子",
+      "speaker": "character",
+      "statement": "我儿子走散在头一批疏散里，左耳后一颗痣是我认他的记号。",
+      "statementFloor": 97,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "上月收留的孩子里，真有一个耳后带痣的，八成是他。",
+        "probe": "那个新来的娃娃身上有什么印记，你核实过了么？"
+      },
+      "updateFloor": 137
+    },
+    {
+      "id": "f18",
+      "memoryType": "preference",
+      "subject": "韩铮",
+      "relation": "prefers",
+      "object": "机械表",
+      "speaker": "character",
+      "statement": "我只信机械表，电子那些玩意儿停摆以后就是废铁。",
+      "statementFloor": 111,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "preference",
+      "subject": "陆野",
+      "relation": "likes",
+      "object": "薄荷糖",
+      "speaker": "user",
+      "statement": "我口袋里常备一铁盒薄荷糖，心慌时含一颗定神。",
+      "statementFloor": 94,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "那铁盒上礼拜见了底，如今改嚼后山的酸草叶顶事。",
+        "probe": "从前含着提神的那口零嘴断了顿，现在拿什么凑数？"
+      },
+      "updateFloor": 134
+    },
+    {
+      "id": "f20",
+      "memoryType": "item",
+      "subject": "韩铮",
+      "relation": "treasures",
+      "object": "焊枪",
+      "speaker": "character",
+      "statement": "我那把焊枪是命根子，睡觉都搁在枕头边上。",
+      "statementFloor": 121,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "goal",
+      "subject": "韩铮",
+      "relation": "finishing",
+      "object": "净化塔",
+      "speaker": "character",
+      "statement": "我想赶在入冬前把雨水净化塔焊完，眼下就差三节管子。",
+      "statementFloor": 93,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "管子凑齐了，净化塔立起来通了水，赶在头场雪前完工。",
+        "probe": "当初差零件的那项大工程，末了结果如何？"
+      },
+      "updateFloor": 143
+    },
+    {
+      "id": "f22",
+      "memoryType": "goal",
+      "subject": "陆野",
+      "relation": "targets",
+      "object": "十发八中",
+      "speaker": "user",
+      "statement": "我给自己定了数，入冬前把准头练到十发八中。",
+      "statementFloor": 140,
+      "restatement": "练枪的硬指标我立下了，十发里头得中八个。",
+      "restatementFloor": 162,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f23",
+      "memoryType": "health",
+      "subject": "韩铮",
+      "relation": "has",
+      "object": "左耳半聋",
+      "speaker": "character",
+      "statement": "我左耳让爆炸震得只剩半拉听力，说话你得站我右边。",
+      "statementFloor": 91,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "托你弄来的消炎针起效了，左耳的鸣响轻了大半。",
+        "probe": "先前听岔的那半边耳朵，如今见好了么？"
+      },
+      "updateFloor": 131
+    },
+    {
+      "id": "f24",
+      "memoryType": "health",
+      "subject": "陆野",
+      "relation": "has",
+      "object": "失眠",
+      "speaker": "user",
+      "statement": "一到后半夜我就睡不踏实，总觉得围墙外头有动静。",
+      "statementFloor": 146,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f25",
+      "memoryType": "location",
+      "subject": "韩铮",
+      "relation": "stocked_at",
+      "object": "配电柜夹层",
+      "speaker": "character",
+      "statement": "整批抗生素都藏在西墙配电柜的夹层里，外人摸不着。",
+      "statementFloor": 89,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": {
+        "statement": "夹层返了潮，抗生素全数挪进档案室的铁皮柜了。",
+        "probe": "那些救命的药丸如今归置到哪间屋了？"
+      },
+      "updateFloor": 139
+    },
+    {
+      "id": "f26",
+      "memoryType": "fact",
+      "subject": "七号据点",
+      "relation": "spans",
+      "object": "方圆十公里",
+      "speaker": "character",
+      "statement": "方圆十公里里头，活人就剩咱们跟河对岸的渔村两拨。",
+      "statementFloor": 159,
+      "restatement": "十公里地界内，除了咱们就只剩对岸渔村那几口人。",
+      "restatementFloor": 181,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f27",
+      "memoryType": "event",
+      "subject": "韩铮",
+      "relation": "survived",
+      "object": "断粮十七天",
+      "speaker": "character",
+      "statement": "去年腊月我断粮十七天，靠融雪水和一根皮带熬过来。",
+      "statementFloor": 161,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f28",
+      "memoryType": "preference",
+      "subject": "韩铮",
+      "relation": "dislikes",
+      "object": "养猫",
+      "speaker": "character",
+      "statement": "猫这种东西光吃粮不顶用，我历来一只都不留。",
+      "statementFloor": 169,
+      "restatement": "我这人对猫没好感，白吃口粮的活物一概不收。",
+      "restatementFloor": 185,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "event",
+      "subject": "陆野",
+      "relation": "buried",
+      "object": "照片铁盒",
+      "speaker": "user",
+      "statement": "离开老小区前，我把一铁盒照片埋在院里枣树根下了。",
+      "statementFloor": 174,
+      "restatement": "老屋院里那棵树底下，埋着一铁盒我全家的相片。",
+      "restatementFloor": 192,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "fact",
+      "subject": "七号据点",
+      "relation": "keeps_radio_silence",
+      "object": "晚八点至凌晨五点",
+      "speaker": "user",
+      "statement": "电台静默是每晚八点起、凌晨五点止，雷打不动。",
+      "statementFloor": 178,
+      "restatement": null,
+      "restatementFloor": null,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "存粮里口味最冲的那样下饭菜，我为啥轻易不动它？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "你吃手艺饭那阵子伺候的是哪行家伙，还记得么？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我半途而废的那门读书行当，念的是哪一路，还记得么？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f09",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "入梅之前要立的那个通信家伙，用途还记得么？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f10",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "最险那回出行，我们在路上撞见了什么祸害，还记得么？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "分吃食时候你头一个摇头推掉的是哪样，还记得么？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "小队落脚的这处穴点，原先安在哪种房型，还记得么？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f06",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "咱们用电靠的那台油老虎，来路你还记得么？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f07",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f07"
+      ],
+      "text": "折磨我一年多的那处暗伤，如今还闹腾么？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f08",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f08"
+      ],
+      "text": "我日思夜想的那位同胞，如今有了准信么？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f17",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f17"
+      ],
+      "text": "那个新来的娃娃身上有什么印记，你核实过了么？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f19",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f19"
+      ],
+      "text": "从前含着提神的那口零嘴断了顿，现在拿什么凑数？"
+    }
+  ]
+}

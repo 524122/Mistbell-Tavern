@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "id": "s12",
+  "title": "守拙木作",
+  "contextTokenLimit": 2048,
+  "messages": [
+    {
+      "floor": 1,
+      "role": "assistant",
+      "content": "来啦？刨子都替你磨利了。先把地扫了，晌午包荠菜馅的，边干活边聊。"
+    },
+    {
+      "floor": 2,
+      "role": "user",
+      "content": "夜里有猫在瓦上打架，吵醒了。"
+    },
+    {
+      "floor": 3,
+      "role": "assistant",
+      "content": "猫闹是换季的事，过几天就安生了。你明早看看瓦有没有被蹬松，松了得压一压再走人。"
+    },
+    {
+      "floor": 4,
+      "role": "user",
+      "content": "画线笔的墨我研得浓了。"
+    },
+    {
+      "floor": 5,
+      "role": "assistant",
+      "content": "浓了滞笔淡了虚线，你滴水再研两圈。研墨是磨性子，手上急不得，心浮线就飘。"
+    },
+    {
+      "floor": 6,
+      "role": "user",
+      "content": "河埠头有人捶衣裳，声音一下一下的。"
+    },
+    {
+      "floor": 7,
+      "role": "assistant",
+      "content": "这声音跟咱敲楔子一个节拍，听着听着手上就匀了。你细品，干活的声音里都有讲究。"
+    },
+    {
+      "floor": 8,
+      "role": "user",
+      "content": "我一上工就得沏酽茶，越苦越来劲。"
+    },
+    {
+      "floor": 9,
+      "role": "assistant",
+      "content": "行，我给你记着了。"
+    },
+    {
+      "floor": 10,
+      "role": "user",
+      "content": "桶里的桐油快见底了，得备货。"
+    },
+    {
+      "floor": 11,
+      "role": "assistant",
+      "content": "桐油开桶先搅后用，沉底的稠。你算着点用量，冬天上的活多，别到节骨眼上断了货。"
+    },
+    {
+      "floor": 12,
+      "role": "user",
+      "content": "师傅，说说您的老本行呗。"
+    },
+    {
+      "floor": 13,
+      "role": "assistant",
+      "content": "刨刃我只信自己手上磨的，机器磨的太躁。"
+    },
+    {
+      "floor": 14,
+      "role": "user",
+      "content": "掸尘扫到房梁，灰落了我一头。"
+    },
+    {
+      "floor": 15,
+      "role": "assistant",
+      "content": "掸尘自上而下，你倒着扫当然吃灰。梁上灰厚说明一年没大扫，开春再彻底来一回。"
+    },
+    {
+      "floor": 16,
+      "role": "user",
+      "content": "守岁那晚师傅您讲了三个老故事。"
+    },
+    {
+      "floor": 17,
+      "role": "assistant",
+      "content": "故事都带把子，你听的是分寸不是热闹。等你带徒弟了，这些故事还得往下传，一句不能少。"
+    },
+    {
+      "floor": 18,
+      "role": "user",
+      "content": "收了工我爱沿河堤遛到桥头，吹吹风再回。"
+    },
+    {
+      "floor": 19,
+      "role": "assistant",
+      "content": "嗯，这话在理，听着了。"
+    },
+    {
+      "floor": 20,
+      "role": "user",
+      "content": "快过年了，写春联的红纸买回来了。"
+    },
+    {
+      "floor": 21,
+      "role": "assistant",
+      "content": "你研墨我来写，咱的字贴出去不丢人。写完平放阴干，别卷起来捂着，捂了墨要洇。"
+    },
+    {
+      "floor": 22,
+      "role": "user",
+      "content": "画线的时候笔尖分叉了。"
+    },
+    {
+      "floor": 23,
+      "role": "assistant",
+      "content": "分叉就削，别画，线毛了看不准。你削笔照我教的斜口削，耐画，一支笔能顶半个月。"
+    },
+    {
+      "floor": 24,
+      "role": "user",
+      "content": "我姐嫁在泗水镇，坐车过去要一个半钟头。"
+    },
+    {
+      "floor": 25,
+      "role": "assistant",
+      "content": "好，就照这么办。"
+    },
+    {
+      "floor": 26,
+      "role": "user",
+      "content": "我使的那把家伙刃口讲究什么来路，有数吗？"
+    },
+    {
+      "floor": 27,
+      "role": "assistant",
+      "content": "嘘，胶锅还坐在火上，回头说。"
+    },
+    {
+      "floor": 28,
+      "role": "user",
+      "content": "开工头一件事是泡杯酽酽的茶，苦味越重越提劲。"
+    },
+    {
+      "floor": 29,
+      "role": "assistant",
+      "content": "记下了，你别慌。"
+    },
+    {
+      "floor": 30,
+      "role": "user",
+      "content": "您年轻时是怎么学艺的？"
+    },
+    {
+      "floor": 31,
+      "role": "assistant",
+      "content": "刨刀的锋口非得亲手开才行，机磨的使不顺手。"
+    },
+    {
+      "floor": 32,
+      "role": "user",
+      "content": "讲讲您这行的老规矩呗。"
+    },
+    {
+      "floor": 33,
+      "role": "assistant",
+      "content": "我跟街尾铁匠铺的老纪做了五十年街坊。"
+    },
+    {
+      "floor": 34,
+      "role": "user",
+      "content": "木匠行话里收头到底是什么讲究？"
+    },
+    {
+      "floor": 35,
+      "role": "assistant",
+      "content": "收头就是收口的分寸，线到头要留三分余地。这些话头你多问，问我别问外人，外人不教真的。"
+    },
+    {
+      "floor": 36,
+      "role": "user",
+      "content": "晚饭后我顺堤岸走到桥边，兜一圈才回屋。"
+    },
+    {
+      "floor": 37,
+      "role": "assistant",
+      "content": "慢工出细活，急不得。"
+    },
+    {
+      "floor": 38,
+      "role": "user",
+      "content": "我发小阿椿在县城开花店，几回喊我合伙我都推了。"
+    },
+    {
+      "floor": 39,
+      "role": "assistant",
+      "content": "嗯，你这就上心了。"
+    },
+    {
+      "floor": 40,
+      "role": "user",
+      "content": "我胞姐婆家安在泗水，来回得一个半钟头。"
+    },
+    {
+      "floor": 41,
+      "role": "assistant",
+      "content": "好，手上见真章。"
+    },
+    {
+      "floor": 42,
+      "role": "user",
+      "content": "今天鳔胶熬得太稠了，刷不开。"
+    },
+    {
+      "floor": 43,
+      "role": "assistant",
+      "content": "兑点温水再熬，火要小。鳔胶这东西看火候，急火出废胶，废胶粘的板子开春准翘。"
+    },
+    {
+      "floor": 44,
+      "role": "user",
+      "content": "我想赶在年底出师，回镇上开间自己的铺面。"
+    },
+    {
+      "floor": 45,
+      "role": "assistant",
+      "content": "行，这规矩不能破。"
+    },
+    {
+      "floor": 46,
+      "role": "user",
+      "content": "重阳那天咱们歇不歇工。"
+    },
+    {
+      "floor": 47,
+      "role": "assistant",
+      "content": "歇半天，登个高去去木屑气。人不能一年到头闷在坊里，眼界也是手艺的一部分，出去走走。"
+    },
+    {
+      "floor": 48,
+      "role": "user",
+      "content": "您最近有什么新打算？"
+    },
+    {
+      "floor": 49,
+      "role": "assistant",
+      "content": "我这余生就想把那套榫卯图谱整理成册。"
+    },
+    {
+      "floor": 50,
+      "role": "user",
+      "content": "我散工后遛食走的那条线，你还描得出来吗？"
+    },
+    {
+      "floor": 51,
+      "role": "assistant",
+      "content": "我这手正上着胶，腾不出来。"
+    },
+    {
+      "floor": 52,
+      "role": "user",
+      "content": "说说您家里的事呗。"
+    },
+    {
+      "floor": 53,
+      "role": "assistant",
+      "content": "街那头打铁的老纪，同我当了半百年邻居。"
+    },
+    {
+      "floor": 54,
+      "role": "user",
+      "content": "我想攒半年工钱，置一套西洋钢的凿子。"
+    },
+    {
+      "floor": 55,
+      "role": "assistant",
+      "content": "听着了，回头照办。"
+    },
+    {
+      "floor": 56,
+      "role": "user",
+      "content": "阿椿是我打小一块长大的，如今在县城经营花铺。"
+    },
+    {
+      "floor": 57,
+      "role": "assistant",
+      "content": "嗯，这话我爱听。"
+    },
+    {
+      "floor": 58,
+      "role": "user",
+      "content": "窗花的浆糊我调稀了，粘不住。"
+    },
+    {
+      "floor": 59,
+      "role": "assistant",
+      "content": "浆糊要熬到挑起挂旗才行，你加点面粉回锅再熬。急火出来的浆糊发脆，贴不住还掉渣。"
+    },
+    {
+      "floor": 60,
+      "role": "user",
+      "content": "您这些天都忙些什么？"
+    },
+    {
+      "floor": 61,
+      "role": "assistant",
+      "content": "我这右肩是老毛病，一变天就沉得抬不起刨。"
+    },
+    {
+      "floor": 62,
+      "role": "user",
+      "content": "我的盘算是年前出师，回镇自己撑一间门面。"
+    },
+    {
+      "floor": 63,
+      "role": "assistant",
+      "content": "记牢了，你放心。"
+    },
+    {
+      "floor": 64,
+      "role": "user",
+      "content": "我这血压偏低，蹲久了起身眼前就发黑。"
+    },
+    {
+      "floor": 65,
+      "role": "assistant",
+      "content": "好，明日一早就办。"
+    },
+    {
+      "floor": 66,
+      "role": "user",
+      "content": "聊聊您的老朋友呗。"
+    },
+    {
+      "floor": 67,
+      "role": "assistant",
+      "content": "我下半辈子的大愿，是把榫卯的图谱归拢成书。"
+    },
+    {
+      "floor": 68,
+      "role": "user",
+      "content": "蝉声停了，秋天是不是要来了。"
+    },
+    {
+      "floor": 69,
+      "role": "assistant",
+      "content": "桂花一开就该备冬料了，年轮不等人。你把冬天的活单先拟个草稿，过两天咱爷俩过一遍。"
+    },
+    {
+      "floor": 70,
+      "role": "user",
+      "content": "拼板的木纹一顺一逆，看着乱。"
+    },
+    {
+      "floor": 71,
+      "role": "assistant",
+      "content": "纹路要顺着排，跟梳头一个理。你把板子翻个面再看，纹就顺了，顺纹的板子才不吃刀。"
+    },
+    {
+      "floor": 72,
+      "role": "user",
+      "content": "您平时歇工都做什么？"
+    },
+    {
+      "floor": 73,
+      "role": "assistant",
+      "content": "那把黑檀柄的鲁班尺，传到我手里是第三代。"
+    },
+    {
+      "floor": 74,
+      "role": "user",
+      "content": "攒下半年月钱，我要置办一套西洋钢凿具。"
+    },
+    {
+      "floor": 75,
+      "role": "assistant",
+      "content": "行，心里有谱了。"
+    },
+    {
+      "floor": 76,
+      "role": "user",
+      "content": "县里头摆弄花草的那位总角之交是谁，有数吗？"
+    },
+    {
+      "floor": 77,
+      "role": "assistant",
+      "content": "客人还在外头等着看样，回聊。"
+    },
+    {
+      "floor": 78,
+      "role": "user",
+      "content": "上月我咬牙添了把夹背锯，锯口平得能照人。"
+    },
+    {
+      "floor": 79,
+      "role": "assistant",
+      "content": "嗯，老话确实没错。"
+    },
+    {
+      "floor": 80,
+      "role": "user",
+      "content": "您最近见过什么稀罕物？"
+    },
+    {
+      "floor": 81,
+      "role": "assistant",
+      "content": "右边肩胛落下病根了，天色一变就坠得慌。"
+    },
+    {
+      "floor": 82,
+      "role": "user",
+      "content": "我这血压底子薄，蹲得久一撑起身就眼前发乌。"
+    },
+    {
+      "floor": 83,
+      "role": "assistant",
+      "content": "好，你这悟性行。"
+    },
+    {
+      "floor": 84,
+      "role": "user",
+      "content": "您对咱这行往后怎么看？"
+    },
+    {
+      "floor": 85,
+      "role": "assistant",
+      "content": "木料一直堆在桥西的老库房，防潮正好。"
+    },
+    {
+      "floor": 86,
+      "role": "user",
+      "content": "我家在河东榆树湾，来回要过大石桥。"
+    },
+    {
+      "floor": 87,
+      "role": "assistant",
+      "content": "记下了，回头上手。"
+    },
+    {
+      "floor": 88,
+      "role": "user",
+      "content": "师傅，说说您的老本行呗。"
+    },
+    {
+      "floor": 89,
+      "role": "assistant",
+      "content": "作坊那台老带锯比我工龄都长，噪声大得很。"
+    },
+    {
+      "floor": 90,
+      "role": "user",
+      "content": "您年轻时是怎么学艺的？"
+    },
+    {
+      "floor": 91,
+      "role": "assistant",
+      "content": "我这牛角墨斗使了四十年，斗身都包了浆。"
+    },
+    {
+      "floor": 92,
+      "role": "user",
+      "content": "干磨水磨我分不清啥时候用哪个。"
+    },
+    {
+      "floor": 93,
+      "role": "assistant",
+      "content": "粗成形用干磨，见光出细用水磨。记不住就写在墙上的小黑板，天天看，看一年就长在手里。"
+    },
+    {
+      "floor": 94,
+      "role": "user",
+      "content": "讲讲您这行的老规矩呗。"
+    },
+    {
+      "floor": 95,
+      "role": "assistant",
+      "content": "我手里那杆黑檀柄的量尺，传到我是第三个年头。"
+    },
+    {
+      "floor": 96,
+      "role": "user",
+      "content": "交货那天客人直夸柜子的角。"
+    },
+    {
+      "floor": 97,
+      "role": "assistant",
+      "content": "角是整件的脸，倒角一分不多一分不少。客人夸的是你的手，你听着就行，别飘。"
+    },
+    {
+      "floor": 98,
+      "role": "user",
+      "content": "新置的那把夹背锯好使得很，走出来的口子平直。"
+    },
+    {
+      "floor": 99,
+      "role": "assistant",
+      "content": "行，我给你记着了。"
+    },
+    {
+      "floor": 100,
+      "role": "user",
+      "content": "我惦记的那套进口好钢的琢刻家什，你记得吗？"
+    },
+    {
+      "floor": 101,
+      "role": "assistant",
+      "content": "这话得蘸着茶慢慢讲，改天。"
+    },
+    {
+      "floor": 102,
+      "role": "user",
+      "content": "我老家安在榆树湾那片，一趟要跨过大石桥。"
+    },
+    {
+      "floor": 103,
+      "role": "assistant",
+      "content": "嗯，这话在理，听着了。"
+    },
+    {
+      "floor": 104,
+      "role": "user",
+      "content": "您最近有什么新打算？"
+    },
+    {
+      "floor": 105,
+      "role": "assistant",
+      "content": "存料的老库房在桥西那头，干湿正合宜。"
+    },
+    {
+      "floor": 106,
+      "role": "user",
+      "content": "说说您家里的事呗。"
+    },
+    {
+      "floor": 107,
+      "role": "assistant",
+      "content": "咱那台开料的老带锯资历比我深，吵得慌。"
+    },
+    {
+      "floor": 108,
+      "role": "user",
+      "content": "您这些天都忙些什么？"
+    },
+    {
+      "floor": 109,
+      "role": "assistant",
+      "content": "县衙门口那对木狮子，是我二十岁那年刻的。"
+    },
+    {
+      "floor": 110,
+      "role": "user",
+      "content": "聊聊您的老朋友呗。"
+    },
+    {
+      "floor": 111,
+      "role": "assistant",
+      "content": "这只牛角做的墨斗跟了我四十年，包浆都养出来了。"
+    },
+    {
+      "floor": 112,
+      "role": "user",
+      "content": "县里的手艺比试我拿了第三名，奖品是方砚台。"
+    },
+    {
+      "floor": 113,
+      "role": "assistant",
+      "content": "好，就照这么办。"
+    },
+    {
+      "floor": 114,
+      "role": "user",
+      "content": "山里的料商捎信来说新料到货了。"
+    },
+    {
+      "floor": 115,
+      "role": "assistant",
+      "content": "你回信让他留中段的料，头尾的再议。买料跟交朋友一个理，急了容易吃哑巴亏。"
+    },
+    {
+      "floor": 116,
+      "role": "user",
+      "content": "师傅您那套口诀我背了三遍还没顺。"
+    },
+    {
+      "floor": 117,
+      "role": "assistant",
+      "content": "背不如用，你今天开榫就照口诀走一遍。手上过了三回，嘴上自然就顺了，死背记不牢。"
+    },
+    {
+      "floor": 118,
+      "role": "user",
+      "content": "您平时歇工都做什么？"
+    },
+    {
+      "floor": 119,
+      "role": "assistant",
+      "content": "前年台风掀了作坊半边瓦，停工修了半个月。"
+    },
+    {
+      "floor": 120,
+      "role": "user",
+      "content": "有客人来问定制衣柜，急着要一周交货。"
+    },
+    {
+      "floor": 121,
+      "role": "assistant",
+      "content": "一周交不出好活，你替我回他：要么等，要么另请高明。砸咱招牌的单子，给多少钱都不接。"
+    },
+    {
+      "floor": 122,
+      "role": "user",
+      "content": "热胶锅子冒的味道有点冲。"
+    },
+    {
+      "floor": 123,
+      "role": "assistant",
+      "content": "开窗通通风，胶味闻多了头晕。你把锅挪到门口去，别对着料堆熏，料吃味也变性。"
+    },
+    {
+      "floor": 124,
+      "role": "user",
+      "content": "上周我去镇上看老祠堂拆梁，偷师了两手榫法。"
+    },
+    {
+      "floor": 125,
+      "role": "assistant",
+      "content": "记下了，你别慌。"
+    },
+    {
+      "floor": 126,
+      "role": "user",
+      "content": "我量木料用的那件传家宝，到我这辈是第几任了？"
+    },
+    {
+      "floor": 127,
+      "role": "assistant",
+      "content": "墙上的墨线还没干，先干活。"
+    },
+    {
+      "floor": 128,
+      "role": "user",
+      "content": "出师的事我改主意了，先去省城木器厂历练两年。"
+    },
+    {
+      "floor": 129,
+      "role": "assistant",
+      "content": "慢工出细活，急不得。"
+    },
+    {
+      "floor": 130,
+      "role": "user",
+      "content": "您最近见过什么稀罕物？"
+    },
+    {
+      "floor": 131,
+      "role": "assistant",
+      "content": "官署门前蹲的一对木狮子，出自我二十岁手笔。"
+    },
+    {
+      "floor": 132,
+      "role": "user",
+      "content": "您对咱这行往后怎么看？"
+    },
+    {
+      "floor": 133,
+      "role": "assistant",
+      "content": "图谱先搁一搁，文昌桥的廊亭等着修，要紧。"
+    },
+    {
+      "floor": 134,
+      "role": "user",
+      "content": "师傅，说说您的老本行呗。"
+    },
+    {
+      "floor": 135,
+      "role": "assistant",
+      "content": "我十六岁拜师学艺，到今年整整五十年。"
+    },
+    {
+      "floor": 136,
+      "role": "user",
+      "content": "您年轻时是怎么学艺的？"
+    },
+    {
+      "floor": 137,
+      "role": "assistant",
+      "content": "咱作坊的规矩，刨子收工必得擦油才能挂墙。"
+    },
+    {
+      "floor": 138,
+      "role": "user",
+      "content": "我二十二岁上拜的师，到如今满三年了。"
+    },
+    {
+      "floor": 139,
+      "role": "assistant",
+      "content": "嗯，你这就上心了。"
+    },
+    {
+      "floor": 140,
+      "role": "user",
+      "content": "喝了一个月红枣汤，血压稳当了些，晕的次数少了。"
+    },
+    {
+      "floor": 141,
+      "role": "assistant",
+      "content": "好，手上见真章。"
+    },
+    {
+      "floor": 142,
+      "role": "user",
+      "content": "榆树湾开春拆迁，我家搬进了桥南的新小区。"
+    },
+    {
+      "floor": 143,
+      "role": "assistant",
+      "content": "行，这规矩不能破。"
+    },
+    {
+      "floor": 144,
+      "role": "user",
+      "content": "讲讲您这行的老规矩呗。"
+    },
+    {
+      "floor": 145,
+      "role": "assistant",
+      "content": "贴了半个月膏药，肩膀轻快多了，刨子推得动了。"
+    },
+    {
+      "floor": 146,
+      "role": "user",
+      "content": "您最近有什么新打算？"
+    },
+    {
+      "floor": 147,
+      "role": "assistant",
+      "content": "老带锯上个月电机烧了，我换了台新的。"
+    },
+    {
+      "floor": 148,
+      "role": "user",
+      "content": "说说您家里的事呗。"
+    },
+    {
+      "floor": 149,
+      "role": "assistant",
+      "content": "老库房退了租，木料挪进巷尾新搭的棚子了。"
+    },
+    {
+      "floor": 150,
+      "role": "user",
+      "content": "我干活前那杯提神的热饮要多酽，你还记得吗？"
+    },
+    {
+      "floor": 151,
+      "role": "assistant",
+      "content": "我眯一觉的工夫，你先记着。"
+    },
+    {
+      "floor": 152,
+      "role": "user",
+      "content": "您这些天都忙些什么？"
+    },
+    {
+      "floor": 153,
+      "role": "assistant",
+      "content": "弹墨线讲究一次成，回线的活儿这行没人接。"
+    },
+    {
+      "floor": 154,
+      "role": "user",
+      "content": "手艺比武那回我名次排在第三，捧回一方砚台。"
+    },
+    {
+      "floor": 155,
+      "role": "assistant",
+      "content": "听着了，回头照办。"
+    },
+    {
+      "floor": 156,
+      "role": "user",
+      "content": "聊聊您的老朋友呗。"
+    },
+    {
+      "floor": 157,
+      "role": "assistant",
+      "content": "我师父是浙东过来的，一身圆作功夫。"
+    },
+    {
+      "floor": 158,
+      "role": "user",
+      "content": "您平时歇工都做什么？"
+    },
+    {
+      "floor": 159,
+      "role": "assistant",
+      "content": "头两年大风揭了咱坊里半片屋瓦，歇工半月才修好。"
+    },
+    {
+      "floor": 160,
+      "role": "user",
+      "content": "前几天镇上老祠堂落架，我跑去瞧人家拆大梁。"
+    },
+    {
+      "floor": 161,
+      "role": "assistant",
+      "content": "嗯，这话我爱听。"
+    },
+    {
+      "floor": 162,
+      "role": "user",
+      "content": "您最近见过什么稀罕物？"
+    },
+    {
+      "floor": 163,
+      "role": "assistant",
+      "content": "生漆味我一闻就晕，上漆的活都托给漆匠老魏。"
+    },
+    {
+      "floor": 164,
+      "role": "user",
+      "content": "您对咱这行往后怎么看？"
+    },
+    {
+      "floor": 165,
+      "role": "assistant",
+      "content": "打十六岁上跟师父学起，屈指到今年是第五十个年头。"
+    },
+    {
+      "floor": 166,
+      "role": "user",
+      "content": "师傅，说说您的老本行呗。"
+    },
+    {
+      "floor": 167,
+      "role": "assistant",
+      "content": "里屋那张黄花梨画案，是我压箱底不舍得卖的。"
+    },
+    {
+      "floor": 168,
+      "role": "user",
+      "content": "我拜师那年二十二，数到眼下正好三个年头。"
+    },
+    {
+      "floor": 169,
+      "role": "assistant",
+      "content": "记牢了，你放心。"
+    },
+    {
+      "floor": 170,
+      "role": "user",
+      "content": "您年轻时是怎么学艺的？"
+    },
+    {
+      "floor": 171,
+      "role": "assistant",
+      "content": "坊里的老礼数，刨子用完不上油不许上架。"
+    },
+    {
+      "floor": 172,
+      "role": "user",
+      "content": "讲讲您这行的老规矩呗。"
+    },
+    {
+      "floor": 173,
+      "role": "assistant",
+      "content": "墨线弹下去就不兴描第二遍，返线的活砸招牌。"
+    },
+    {
+      "floor": 174,
+      "role": "user",
+      "content": "您最近有什么新打算？"
+    },
+    {
+      "floor": 175,
+      "role": "assistant",
+      "content": "作坊卯时就上工，冬天也不挪时辰。"
+    },
+    {
+      "floor": 176,
+      "role": "user",
+      "content": "我出嫁的同胞姊妹安家在哪片地界，记得吗？"
+    },
+    {
+      "floor": 177,
+      "role": "assistant",
+      "content": "料还搁锯台上，等我这一锯。"
+    },
+    {
+      "floor": 178,
+      "role": "user",
+      "content": "说说您家里的事呗。"
+    },
+    {
+      "floor": 179,
+      "role": "assistant",
+      "content": "我师父那辈从浙东迁来，圆作的活计是家传。"
+    },
+    {
+      "floor": 180,
+      "role": "user",
+      "content": "您这些天都忙些什么？"
+    },
+    {
+      "floor": 181,
+      "role": "assistant",
+      "content": "我就住在作坊后院，四十年没挪过窝。"
+    },
+    {
+      "floor": 182,
+      "role": "user",
+      "content": "聊聊您的老朋友呗。"
+    },
+    {
+      "floor": 183,
+      "role": "assistant",
+      "content": "我沾不得那股漆气，凡上漆的活都转给老魏做。"
+    },
+    {
+      "floor": 184,
+      "role": "user",
+      "content": "体检说我胃受不了刺激，如今只喝淡淡的茶了。"
+    },
+    {
+      "floor": 185,
+      "role": "assistant",
+      "content": "好，明日一早就办。"
+    },
+    {
+      "floor": 186,
+      "role": "user",
+      "content": "您平时歇工都做什么？"
+    },
+    {
+      "floor": 187,
+      "role": "assistant",
+      "content": "内室那件黄花梨的案台，是我压箱底的念想。"
+    },
+    {
+      "floor": 188,
+      "role": "user",
+      "content": "姐夫调去省城做事，我姐也跟着迁过去了。"
+    },
+    {
+      "floor": 189,
+      "role": "assistant",
+      "content": "行，心里有谱了。"
+    },
+    {
+      "floor": 190,
+      "role": "user",
+      "content": "交货的柜子抬出门时卡了下门框。"
+    },
+    {
+      "floor": 191,
+      "role": "assistant",
+      "content": "抬大件先量门，量完再起身，这是规矩。磕了边角，前头的细活全白费，客人嘴上不说心里有数。"
+    },
+    {
+      "floor": 192,
+      "role": "user",
+      "content": "您最近见过什么稀罕物？"
+    },
+    {
+      "floor": 193,
+      "role": "assistant",
+      "content": "咱这坊子卯时开工，入冬照旧不改点。"
+    },
+    {
+      "floor": 194,
+      "role": "user",
+      "content": "中午的绿豆汤熬糊了锅底。"
+    },
+    {
+      "floor": 195,
+      "role": "assistant",
+      "content": "糊了就糊了，上层的照样喝。刷锅用草木灰搓，比钢丝球温柔，锅底能多使好几年。"
+    },
+    {
+      "floor": 196,
+      "role": "user",
+      "content": "拼板的缝对得真齐，我盯着看入迷了。"
+    },
+    {
+      "floor": 197,
+      "role": "assistant",
+      "content": "缝齐是基本功，别光看，伸手摸摸手感。接缝处过手不挂指，才算真齐，差一丝都不成。"
+    },
+    {
+      "floor": 198,
+      "role": "user",
+      "content": "您对咱这行往后怎么看？"
+    },
+    {
+      "floor": 199,
+      "role": "assistant",
+      "content": "我家就安在坊子后头院里，四十年没搬过家。"
+    },
+    {
+      "floor": 200,
+      "role": "user",
+      "content": "巷子里和我处得最久的老邻家是谁，还记得吗？"
+    },
+    {
+      "floor": 201,
+      "role": "assistant",
+      "content": "风大得很，出院子再说这个。"
+    },
+    {
+      "floor": 202,
+      "role": "user",
+      "content": "热胶的火候我今天拿准了一回。"
+    },
+    {
+      "floor": 203,
+      "role": "assistant",
+      "content": "拿准一回就有第二回，手感是攒出来的。火候这东西说不得，全在腕子上，你自己悟。"
+    },
+    {
+      "floor": 204,
+      "role": "user",
+      "content": "我把工具箱整理了一遍，少了一把小凿。"
+    },
+    {
+      "floor": 205,
+      "role": "assistant",
+      "content": "你翻翻料堆底下，上回开榫你随手搁那儿了。工具归位是规矩，找了半天耽误的是正活。"
+    },
+    {
+      "floor": 206,
+      "role": "user",
+      "content": "今天弹线，我的手一直抖。"
+    },
+    {
+      "floor": 207,
+      "role": "assistant",
+      "content": "抖就先别弹，线弹歪了料就废了。歇口气喝口水再上手，急出来的活全是次品，砸自己招牌。"
+    },
+    {
+      "floor": 208,
+      "role": "user",
+      "content": "师傅，说说您的老本行呗。"
+    },
+    {
+      "floor": 209,
+      "role": "assistant",
+      "content": "老纪家上个月迁去他儿子那边，铺子也易了主。"
+    },
+    {
+      "floor": 210,
+      "role": "user",
+      "content": "掸尘那天我把工具全擦了一遍。"
+    },
+    {
+      "floor": 211,
+      "role": "assistant",
+      "content": "擦工具是给自己擦脸面，你这点对。铁器擦完上薄油，开春不生锈，用起来也顺手。"
+    },
+    {
+      "floor": 212,
+      "role": "user",
+      "content": "我打算盘对账，总差三文钱。"
+    },
+    {
+      "floor": 213,
+      "role": "assistant",
+      "content": "你把昨天的订金单翻出来对，八成是漏记了一笔。账要日日清，拖过三天就成了糊涂账。"
+    },
+    {
+      "floor": 214,
+      "role": "user",
+      "content": "老虎钳借隔壁木器铺了两天。"
+    },
+    {
+      "floor": 215,
+      "role": "assistant",
+      "content": "借出去登记一笔，还回来你验验牙口。工具出门容易受伤，回来都得过一遍手，别嫌絮叨。"
+    },
+    {
+      "floor": 216,
+      "role": "user",
+      "content": "中秋的月亮从窗棂里照进来，正好落在料堆上。"
+    },
+    {
+      "floor": 217,
+      "role": "assistant",
+      "content": "月光下看木纹最清楚，老辈人挑料专挑月夜。你多看几眼，练的是眼力，比书本实在。"
+    },
+    {
+      "floor": 218,
+      "role": "user",
+      "content": "竹钉我削的这批头太尖了。"
+    },
+    {
+      "floor": 219,
+      "role": "assistant",
+      "content": "尖头劈料你今天见着了，圆头留一分。削废的别扔，攒着引火正好，一分都是钱。"
+    },
+    {
+      "floor": 220,
+      "role": "user",
+      "content": "天阴得厉害，怕是要下雨。"
+    },
+    {
+      "floor": 221,
+      "role": "assistant",
+      "content": "那就把门口那摞料挪进去，木头吃了潮气要变形。慢工出细活，防潮也是细活里的一头，别嫌麻烦。"
+    },
+    {
+      "floor": 222,
+      "role": "user",
+      "content": "春联贴的时候我贴歪了。"
+    },
+    {
+      "floor": 223,
+      "role": "assistant",
+      "content": "歪了揭了重贴，浆糊还没干透。贴春联跟装门一样，横平竖直是脸面，歪一寸都睡不着觉。"
+    },
+    {
+      "floor": 224,
+      "role": "user",
+      "content": "订金收了，我得写个收据。"
+    },
+    {
+      "floor": 225,
+      "role": "assistant",
+      "content": "收据写清规格和交期，一式两份按手印。嘴上的痛快靠不住，落在纸上的才作数，记牢。"
+    },
+    {
+      "floor": 226,
+      "role": "user",
+      "content": "如今我那自立门户的章程改成了什么？"
+    },
+    {
+      "floor": 227,
+      "role": "assistant",
+      "content": "我先把这个榫敲完，别催。"
+    },
+    {
+      "floor": 228,
+      "role": "user",
+      "content": "竹钉我钉歪了一根，拔出来重钉的。"
+    },
+    {
+      "floor": 229,
+      "role": "assistant",
+      "content": "歪了就拔，别将就。竹钉歪着吃力不匀，日子一长板子要翘，返工总比返修强。"
+    },
+    {
+      "floor": 230,
+      "role": "user",
+      "content": "年三十的爆竹要不要备点。"
+    },
+    {
+      "floor": 231,
+      "role": "assistant",
+      "content": "备一小挂就够了，听个响讨个彩头。作坊里全是木屑干料，点火的事离远着办，谨慎为上。"
+    },
+    {
+      "floor": 232,
+      "role": "user",
+      "content": "巷子里磨剪子戗菜刀的吆喝声又响了。"
+    },
+    {
+      "floor": 233,
+      "role": "assistant",
+      "content": "这行当都快绝了，跟咱们一样是吃手上功夫的。你细听那调子，比城里喇叭叫卖亲切得多。"
+    },
+    {
+      "floor": 234,
+      "role": "user",
+      "content": "老话讲料要做干，是这意思吗？"
+    },
+    {
+      "floor": 235,
+      "role": "assistant",
+      "content": "对，料不干透就动手，成器必开裂。你往后摸料先掂重量，轻飘飘的才踏实，沉手的再晾。"
+    },
+    {
+      "floor": 236,
+      "role": "user",
+      "content": "街口早点的油条今天炸得格外脆。"
+    },
+    {
+      "floor": 237,
+      "role": "assistant",
+      "content": "油炸的东西偶尔吃吃就得了，天天吃胃受不住。你端豆浆回来慢点走，洒了还得重买一回。"
+    },
+    {
+      "floor": 238,
+      "role": "user",
+      "content": "蜂蜡擦完的那张桌面是真亮。"
+    },
+    {
+      "floor": 239,
+      "role": "assistant",
+      "content": "蜡要薄擦勤擦，厚了发黏招灰。你今天擦的这一遍就到位了，手上有了数，往后照这个来。"
+    },
+    {
+      "floor": 240,
+      "role": "user",
+      "content": "这个月的工钱你给我多了两成。"
+    },
+    {
+      "floor": 241,
+      "role": "assistant",
+      "content": "多的是你加班赶工的那部分，账上写得明明白白。该给的一分不少，不该拿的你也别客气。"
+    },
+    {
+      "floor": 242,
+      "role": "user",
+      "content": "马凳腿有点晃，站上去咯吱响。"
+    },
+    {
+      "floor": 243,
+      "role": "assistant",
+      "content": "别站，先加固再上人。凳子晃着开料，一歪就是伤，安全比快当要紧，这话你记死了。"
+    },
+    {
+      "floor": 244,
+      "role": "user",
+      "content": "窗花我剪坏了三张红纸。"
+    },
+    {
+      "floor": 245,
+      "role": "assistant",
+      "content": "剪坏了不丢人，手熟就好。你照着我那张样子描了再剪，别凭空下剪，纸金贵着呢。"
+    },
+    {
+      "floor": 246,
+      "role": "user",
+      "content": "下午扫院子，落叶把下水眼堵了。"
+    },
+    {
+      "floor": 247,
+      "role": "assistant",
+      "content": "扫完院再通沟，顺序别乱。落叶沤在沟里一冬天，开春臭得没法开门，你年前再通一回。"
+    },
+    {
+      "floor": 248,
+      "role": "user",
+      "content": "西瓜便宜，我抱了半个回来。"
+    },
+    {
+      "floor": 249,
+      "role": "assistant",
+      "content": "放井水里拔一拔再切，透心凉。瓜皮别扔，擦手上的木渍好使得很，比肥皂还顺手。"
+    },
+    {
+      "floor": 250,
+      "role": "user",
+      "content": "如今传世的心思搁置了，转去做哪件大事？"
+    },
+    {
+      "floor": 251,
+      "role": "assistant",
+      "content": "晌午了，吃了饭再细聊不迟。"
+    },
+    {
+      "floor": 252,
+      "role": "user",
+      "content": "师傅，今早的刨花扫了三簸箕还没见底。"
+    },
+    {
+      "floor": 253,
+      "role": "assistant",
+      "content": "刨花别急着倒，干的留着引火，潮的堆墙根沤肥。作坊里没有废料这一说，就看你会不会安排。"
+    },
+    {
+      "floor": 254,
+      "role": "user",
+      "content": "交货的日子定在初一，客人来取柜子。"
+    },
+    {
+      "floor": 255,
+      "role": "assistant",
+      "content": "你提前三天把柜子通体擦一遍，边角别漏。交货那天把保养的法子也教给人家，落个好人缘。"
+    },
+    {
+      "floor": 256,
+      "role": "user",
+      "content": "我傍晚去河边看了看渔船收网。"
+    },
+    {
+      "floor": 257,
+      "role": "assistant",
+      "content": "看人家收网也是学艺，渔网结绳跟咱结榫一个理，都是吃巧劲的活，看多了手上就有数。"
+    },
+    {
+      "floor": 258,
+      "role": "user",
+      "content": "巷尾新搬来个篾匠，手艺瞧着不错。"
+    },
+    {
+      "floor": 259,
+      "role": "assistant",
+      "content": "篾匠木匠是近亲，你多看人家的手。同行不是冤家，碰上难活还能互相搭把手，别门户之见。"
+    },
+    {
+      "floor": 260,
+      "role": "user",
+      "content": "墨斗的线快磨断了，得换。"
+    },
+    {
+      "floor": 261,
+      "role": "assistant",
+      "content": "换线顺手把斗里的墨膏匀一匀。线松紧有讲究，太紧弹不上色，太松弹不成直线，自己掂量。"
+    },
+    {
+      "floor": 262,
+      "role": "user",
+      "content": "邻居家板凳腿晃了，让我看看。"
+    },
+    {
+      "floor": 263,
+      "role": "assistant",
+      "content": "榫头松了加个楔子就能救，别让人拿钉子瞎钉。你下午带上工具去，顺手教他怎么保养。"
+    },
+    {
+      "floor": 264,
+      "role": "user",
+      "content": "街坊来借梯子，说修屋檐用。"
+    },
+    {
+      "floor": 265,
+      "role": "assistant",
+      "content": "借，但你要跟去搭把手，扶稳了再让人上。梯子上出事，借的人也脱不了干系，得盯到底。"
+    },
+    {
+      "floor": 266,
+      "role": "user",
+      "content": "巷口的路灯今晚不亮，黑得慌。"
+    },
+    {
+      "floor": 267,
+      "role": "assistant",
+      "content": "你打灯笼送隔壁阿婆回家，顺路的事。咱这行讲究个心正，黑道也要走得稳当，别跑。"
+    },
+    {
+      "floor": 268,
+      "role": "user",
+      "content": "螃蟹上市了，师傅您爱吃吗。"
+    },
+    {
+      "floor": 269,
+      "role": "assistant",
+      "content": "蒸的尝两只行，剥壳费工夫，工夫花在活上更值。你买两只咱晚上下酒，别的日子就算了。"
+    },
+    {
+      "floor": 270,
+      "role": "user",
+      "content": "竹钉用完了，我削了一批新的。"
+    },
+    {
+      "floor": 271,
+      "role": "assistant",
+      "content": "削竹钉看尖，尖太利要劈料。你留个圆头，钉进去才服帖，削废的别扔，引火正好。"
+    },
+    {
+      "floor": 272,
+      "role": "user",
+      "content": "桌上的茶凉了都没顾上喝。"
+    },
+    {
+      "floor": 273,
+      "role": "assistant",
+      "content": "凉了就倒了重沏，别喝凉茶闹肚子。干活归干活，水得按时喝，身子骨是干这行的本钱。"
+    },
+    {
+      "floor": 274,
+      "role": "user",
+      "content": "作坊里蚊子太多，干活直拍腿。"
+    },
+    {
+      "floor": 275,
+      "role": "assistant",
+      "content": "你烧盘艾草，别点那呛人的盘香。艾草烟对料没损，人也受得住，熏完记得开半扇窗。"
+    },
+    {
+      "floor": 276,
+      "role": "user",
+      "content": "如今我这处老患松快了吗？"
+    },
+    {
+      "floor": 277,
+      "role": "assistant",
+      "content": "手上全是木屑，回头接你话。"
+    },
+    {
+      "floor": 278,
+      "role": "user",
+      "content": "熬鳔胶的锅底结了硬壳。"
+    },
+    {
+      "floor": 279,
+      "role": "assistant",
+      "content": "硬壳泡软了铲，别拿刀刮，锅底薄了受热不匀。回头刷锅按我教的来，锅也是吃饭家伙。"
+    },
+    {
+      "floor": 280,
+      "role": "user",
+      "content": "开料前我核了三遍尺寸。"
+    },
+    {
+      "floor": 281,
+      "role": "assistant",
+      "content": "核三遍不多，料一锯下去就回不了头。你这份心细，慢慢就长在骨头里了，到时候想毛都毛不起来。"
+    },
+    {
+      "floor": 282,
+      "role": "user",
+      "content": "乌篷船摇过桥洞，船头挂着灯笼。"
+    },
+    {
+      "floor": 283,
+      "role": "assistant",
+      "content": "傍晚的景就好看在这点灯火上。你看了别看痴，手里的活别停，天黑前把这批料归了库。"
+    },
+    {
+      "floor": 284,
+      "role": "user",
+      "content": "砂纸用完了，粗号的没了。"
+    },
+    {
+      "floor": 285,
+      "role": "assistant",
+      "content": "粗号的省着用，先用旧细号垫着磨。下趟集我捎一沓回来，你把每天用量记一记，别断顿。"
+    },
+    {
+      "floor": 286,
+      "role": "user",
+      "content": "我给凿子把缠了新麻绳，手感稳多了。"
+    },
+    {
+      "floor": 287,
+      "role": "assistant",
+      "content": "缠绳要一圈压半圈才吃得住手汗。你这种肯在工具上下功夫的心思，比天赋金贵，留着用。"
+    },
+    {
+      "floor": 288,
+      "role": "user",
+      "content": "集市上有个木贩子推销机器雕的花板。"
+    },
+    {
+      "floor": 289,
+      "role": "assistant",
+      "content": "机器出的花样是死板，一眼一个模子。咱手工的活每一刀都不重样，这就是价钱的来处。"
+    },
+    {
+      "floor": 290,
+      "role": "user",
+      "content": "祖师爷鲁班的像前该添香了。"
+    },
+    {
+      "floor": 291,
+      "role": "assistant",
+      "content": "月初一十五添香是老礼，你记着日子。拜的不是木头，是手里的分寸，心里得存着敬畏。"
+    },
+    {
+      "floor": 292,
+      "role": "user",
+      "content": "马凳我今天加固了，敲上去实沉。"
+    },
+    {
+      "floor": 293,
+      "role": "assistant",
+      "content": "加固完再站上去晃一晃试，稳了才许站。你这份谨慎，是吃这行饭的根本，比力气值钱。"
+    },
+    {
+      "floor": 294,
+      "role": "user",
+      "content": "月饼买了两块，分你一块五仁的。"
+    },
+    {
+      "floor": 295,
+      "role": "assistant",
+      "content": "五仁的实在，吃着不腻人。你放窗台晾晾，配茶正好歇晌，干活前别吃太多，犯困。"
+    },
+    {
+      "floor": 296,
+      "role": "user",
+      "content": "开料的锯路走得歪了半分。"
+    },
+    {
+      "floor": 297,
+      "role": "assistant",
+      "content": "歪半分搁在整板上就是大半寸，重来。锯路这东西第一次就要走准，返工最伤料性。"
+    },
+    {
+      "floor": 298,
+      "role": "user",
+      "content": "订金的账我记在了小本上。"
+    },
+    {
+      "floor": 299,
+      "role": "assistant",
+      "content": "记账字要清楚，数目大写。小本一年一换，换下来的收进柜子里，都是凭据，丢不得。"
+    },
+    {
+      "floor": 300,
+      "role": "user",
+      "content": "如今我这头晕的老症候见好了吗？"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f01",
+      "memoryType": "preference",
+      "subject": "桂逢春",
+      "relation": "prefers",
+      "object": "酽茶",
+      "speaker": "user",
+      "statement": "我一上工就得沏酽茶，越苦越来劲。",
+      "statementFloor": 8,
+      "restatement": "开工头一件事是泡杯酽酽的茶，苦味越重越提劲。",
+      "restatementFloor": 28,
+      "update": {
+        "statement": "体检说我胃受不了刺激，如今只喝淡淡的茶了。",
+        "probe": "现在我这杯茶兑成什么口味了，你知道吗？"
+      },
+      "updateFloor": 184
+    },
+    {
+      "id": "f02",
+      "memoryType": "preference",
+      "subject": "齐守拙",
+      "relation": "prefers",
+      "object": "自己磨的刨刃",
+      "speaker": "character",
+      "statement": "刨刃我只信自己手上磨的，机器磨的太躁。",
+      "statementFloor": 13,
+      "restatement": "刨刀的锋口非得亲手开才行，机磨的使不顺手。",
+      "restatementFloor": 31,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f03",
+      "memoryType": "preference",
+      "subject": "桂逢春",
+      "relation": "prefers",
+      "object": "河堤遛弯",
+      "speaker": "user",
+      "statement": "收了工我爱沿河堤遛到桥头，吹吹风再回。",
+      "statementFloor": 18,
+      "restatement": "晚饭后我顺堤岸走到桥边，兜一圈才回屋。",
+      "restatementFloor": 36,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f04",
+      "memoryType": "relationship",
+      "subject": "桂逢春",
+      "relation": "sibling_married_into",
+      "object": "泗水镇",
+      "speaker": "user",
+      "statement": "我姐嫁在泗水镇，坐车过去要一个半钟头。",
+      "statementFloor": 24,
+      "restatement": "我胞姐婆家安在泗水，来回得一个半钟头。",
+      "restatementFloor": 40,
+      "update": {
+        "statement": "姐夫调去省城做事，我姐也跟着迁过去了。",
+        "probe": "如今我姐那份家业挪到哪座大城了？"
+      },
+      "updateFloor": 188
+    },
+    {
+      "id": "f05",
+      "memoryType": "relationship",
+      "subject": "齐守拙",
+      "relation": "neighbors_with",
+      "object": "老纪",
+      "speaker": "character",
+      "statement": "我跟街尾铁匠铺的老纪做了五十年街坊。",
+      "statementFloor": 33,
+      "restatement": "街那头打铁的老纪，同我当了半百年邻居。",
+      "restatementFloor": 53,
+      "update": {
+        "statement": "老纪家上个月迁去他儿子那边，铺子也易了主。",
+        "probe": "如今我处得最久的那户老邻家挪窝了，你知道吗？"
+      },
+      "updateFloor": 209
+    },
+    {
+      "id": "f06",
+      "memoryType": "relationship",
+      "subject": "桂逢春",
+      "relation": "friends_with",
+      "object": "阿椿",
+      "speaker": "user",
+      "statement": "我发小阿椿在县城开花店，几回喊我合伙我都推了。",
+      "statementFloor": 38,
+      "restatement": "阿椿是我打小一块长大的，如今在县城经营花铺。",
+      "restatementFloor": 56,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f07",
+      "memoryType": "goal",
+      "subject": "桂逢春",
+      "relation": "plans",
+      "object": "年底出师",
+      "speaker": "user",
+      "statement": "我想赶在年底出师，回镇上开间自己的铺面。",
+      "statementFloor": 44,
+      "restatement": "我的盘算是年前出师，回镇自己撑一间门面。",
+      "restatementFloor": 62,
+      "update": {
+        "statement": "出师的事我改主意了，先去省城木器厂历练两年。",
+        "probe": "如今我那自立门户的章程改成了什么？"
+      },
+      "updateFloor": 128
+    },
+    {
+      "id": "f08",
+      "memoryType": "goal",
+      "subject": "齐守拙",
+      "relation": "plans",
+      "object": "榫卯图谱",
+      "speaker": "character",
+      "statement": "我这余生就想把那套榫卯图谱整理成册。",
+      "statementFloor": 49,
+      "restatement": "我下半辈子的大愿，是把榫卯的图谱归拢成书。",
+      "restatementFloor": 67,
+      "update": {
+        "statement": "图谱先搁一搁，文昌桥的廊亭等着修，要紧。",
+        "probe": "如今传世的心思搁置了，转去做哪件大事？"
+      },
+      "updateFloor": 133
+    },
+    {
+      "id": "f09",
+      "memoryType": "goal",
+      "subject": "桂逢春",
+      "relation": "saves_for",
+      "object": "西洋钢凿子",
+      "speaker": "user",
+      "statement": "我想攒半年工钱，置一套西洋钢的凿子。",
+      "statementFloor": 54,
+      "restatement": "攒下半年月钱，我要置办一套西洋钢凿具。",
+      "restatementFloor": 74,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f10",
+      "memoryType": "health",
+      "subject": "齐守拙",
+      "relation": "suffers_from",
+      "object": "右肩老毛病",
+      "speaker": "character",
+      "statement": "我这右肩是老毛病，一变天就沉得抬不起刨。",
+      "statementFloor": 61,
+      "restatement": "右边肩胛落下病根了，天色一变就坠得慌。",
+      "restatementFloor": 81,
+      "update": {
+        "statement": "贴了半个月膏药，肩膀轻快多了，刨子推得动了。",
+        "probe": "如今我这处老患松快了吗？"
+      },
+      "updateFloor": 145
+    },
+    {
+      "id": "f11",
+      "memoryType": "health",
+      "subject": "桂逢春",
+      "relation": "suffers_from",
+      "object": "低血压",
+      "speaker": "user",
+      "statement": "我这血压偏低，蹲久了起身眼前就发黑。",
+      "statementFloor": 64,
+      "restatement": "我这血压底子薄，蹲得久一撑起身就眼前发乌。",
+      "restatementFloor": 82,
+      "update": {
+        "statement": "喝了一个月红枣汤，血压稳当了些，晕的次数少了。",
+        "probe": "如今我这头晕的老症候见好了吗？"
+      },
+      "updateFloor": 140
+    },
+    {
+      "id": "f12",
+      "memoryType": "item",
+      "subject": "齐守拙",
+      "relation": "owns",
+      "object": "鲁班尺",
+      "speaker": "character",
+      "statement": "那把黑檀柄的鲁班尺，传到我手里是第三代。",
+      "statementFloor": 73,
+      "restatement": "我手里那杆黑檀柄的量尺，传到我是第三个年头。",
+      "restatementFloor": 95,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f13",
+      "memoryType": "item",
+      "subject": "桂逢春",
+      "relation": "owns",
+      "object": "夹背锯",
+      "speaker": "user",
+      "statement": "上月我咬牙添了把夹背锯，锯口平得能照人。",
+      "statementFloor": 78,
+      "restatement": "新置的那把夹背锯好使得很，走出来的口子平直。",
+      "restatementFloor": 98,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f14",
+      "memoryType": "item",
+      "subject": "齐守拙",
+      "relation": "owns",
+      "object": "牛角墨斗",
+      "speaker": "character",
+      "statement": "我这牛角墨斗使了四十年，斗身都包了浆。",
+      "statementFloor": 91,
+      "restatement": "这只牛角做的墨斗跟了我四十年，包浆都养出来了。",
+      "restatementFloor": 111,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f15",
+      "memoryType": "item",
+      "subject": "齐守拙",
+      "relation": "owns",
+      "object": "老带锯",
+      "speaker": "character",
+      "statement": "作坊那台老带锯比我工龄都长，噪声大得很。",
+      "statementFloor": 89,
+      "restatement": "咱那台开料的老带锯资历比我深，吵得慌。",
+      "restatementFloor": 107,
+      "update": {
+        "statement": "老带锯上个月电机烧了，我换了台新的。",
+        "probe": "如今那台吵人的家伙换成新的了吗？"
+      },
+      "updateFloor": 147
+    },
+    {
+      "id": "f16",
+      "memoryType": "location",
+      "subject": "桂逢春",
+      "relation": "lives_in",
+      "object": "榆树湾",
+      "speaker": "user",
+      "statement": "我家在河东榆树湾，来回要过大石桥。",
+      "statementFloor": 86,
+      "restatement": "我老家安在榆树湾那片，一趟要跨过大石桥。",
+      "restatementFloor": 102,
+      "update": {
+        "statement": "榆树湾开春拆迁，我家搬进了桥南的新小区。",
+        "probe": "现在我家的住址换到桥哪一头了？"
+      },
+      "updateFloor": 142
+    },
+    {
+      "id": "f17",
+      "memoryType": "location",
+      "subject": "作坊",
+      "relation": "stores_at",
+      "object": "桥西老库房",
+      "speaker": "character",
+      "statement": "木料一直堆在桥西的老库房，防潮正好。",
+      "statementFloor": 85,
+      "restatement": "存料的老库房在桥西那头，干湿正合宜。",
+      "restatementFloor": 105,
+      "update": {
+        "statement": "老库房退了租，木料挪进巷尾新搭的棚子了。",
+        "probe": "眼下堆料的地方挪去何处了？"
+      },
+      "updateFloor": 149
+    },
+    {
+      "id": "f18",
+      "memoryType": "event",
+      "subject": "齐守拙",
+      "relation": "carved",
+      "object": "木狮子",
+      "speaker": "character",
+      "statement": "县衙门口那对木狮子，是我二十岁那年刻的。",
+      "statementFloor": 109,
+      "restatement": "官署门前蹲的一对木狮子，出自我二十岁手笔。",
+      "restatementFloor": 131,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f19",
+      "memoryType": "event",
+      "subject": "桂逢春",
+      "relation": "placed",
+      "object": "第三名",
+      "speaker": "user",
+      "statement": "县里的手艺比试我拿了第三名，奖品是方砚台。",
+      "statementFloor": 112,
+      "restatement": "手艺比武那回我名次排在第三，捧回一方砚台。",
+      "restatementFloor": 154,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f20",
+      "memoryType": "event",
+      "subject": "作坊",
+      "relation": "damaged_by",
+      "object": "半边瓦",
+      "speaker": "character",
+      "statement": "前年台风掀了作坊半边瓦，停工修了半个月。",
+      "statementFloor": 119,
+      "restatement": "头两年大风揭了咱坊里半片屋瓦，歇工半月才修好。",
+      "restatementFloor": 159,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f21",
+      "memoryType": "event",
+      "subject": "桂逢春",
+      "relation": "observed",
+      "object": "老祠堂拆梁",
+      "speaker": "user",
+      "statement": "上周我去镇上看老祠堂拆梁，偷师了两手榫法。",
+      "statementFloor": 124,
+      "restatement": "前几天镇上老祠堂落架，我跑去瞧人家拆大梁。",
+      "restatementFloor": 160,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f22",
+      "memoryType": "identity",
+      "subject": "齐守拙",
+      "relation": "has_practiced_for",
+      "object": "从艺五十年",
+      "speaker": "character",
+      "statement": "我十六岁拜师学艺，到今年整整五十年。",
+      "statementFloor": 135,
+      "restatement": "打十六岁上跟师父学起，屈指到今年是第五十个年头。",
+      "restatementFloor": 165,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f23",
+      "memoryType": "identity",
+      "subject": "桂逢春",
+      "relation": "apprenticed_since",
+      "object": "二十二岁拜师",
+      "speaker": "user",
+      "statement": "我二十二岁上拜的师，到如今满三年了。",
+      "statementFloor": 138,
+      "restatement": "我拜师那年二十二，数到眼下正好三个年头。",
+      "restatementFloor": 168,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f24",
+      "memoryType": "fact",
+      "subject": "作坊",
+      "relation": "requires",
+      "object": "擦油挂墙",
+      "speaker": "character",
+      "statement": "咱作坊的规矩，刨子收工必得擦油才能挂墙。",
+      "statementFloor": 137,
+      "restatement": "坊里的老礼数，刨子用完不上油不许上架。",
+      "restatementFloor": 171,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f25",
+      "memoryType": "fact",
+      "subject": "木匠行",
+      "relation": "requires",
+      "object": "一次成",
+      "speaker": "character",
+      "statement": "弹墨线讲究一次成，回线的活儿这行没人接。",
+      "statementFloor": 153,
+      "restatement": "墨线弹下去就不兴描第二遍，返线的活砸招牌。",
+      "restatementFloor": 173,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f26",
+      "memoryType": "fact",
+      "subject": "齐守拙",
+      "relation": "inherits_from",
+      "object": "浙东圆作",
+      "speaker": "character",
+      "statement": "我师父是浙东过来的，一身圆作功夫。",
+      "statementFloor": 157,
+      "restatement": "我师父那辈从浙东迁来，圆作的活计是家传。",
+      "restatementFloor": 179,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f27",
+      "memoryType": "preference",
+      "subject": "齐守拙",
+      "relation": "avoids",
+      "object": "生漆",
+      "speaker": "character",
+      "statement": "生漆味我一闻就晕，上漆的活都托给漆匠老魏。",
+      "statementFloor": 163,
+      "restatement": "我沾不得那股漆气，凡上漆的活都转给老魏做。",
+      "restatementFloor": 183,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f28",
+      "memoryType": "item",
+      "subject": "齐守拙",
+      "relation": "owns",
+      "object": "黄花梨画案",
+      "speaker": "character",
+      "statement": "里屋那张黄花梨画案，是我压箱底不舍得卖的。",
+      "statementFloor": 167,
+      "restatement": "内室那件黄花梨的案台，是我压箱底的念想。",
+      "restatementFloor": 187,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f29",
+      "memoryType": "fact",
+      "subject": "作坊",
+      "relation": "starts_at",
+      "object": "卯时",
+      "speaker": "character",
+      "statement": "作坊卯时就上工，冬天也不挪时辰。",
+      "statementFloor": 175,
+      "restatement": "咱这坊子卯时开工，入冬照旧不改点。",
+      "restatementFloor": 193,
+      "update": null,
+      "updateFloor": null
+    },
+    {
+      "id": "f30",
+      "memoryType": "location",
+      "subject": "齐守拙",
+      "relation": "lives_in",
+      "object": "后院",
+      "speaker": "character",
+      "statement": "我就住在作坊后院，四十年没挪过窝。",
+      "statementFloor": 181,
+      "restatement": "我家就安在坊子后头院里，四十年没搬过家。",
+      "restatementFloor": 199,
+      "update": null,
+      "updateFloor": null
+    }
+  ],
+  "probes": [
+    {
+      "floor": 26,
+      "targetFactId": "f02",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我使的那把家伙刃口讲究什么来路，有数吗？"
+    },
+    {
+      "floor": 50,
+      "targetFactId": "f03",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我散工后遛食走的那条线，你还描得出来吗？"
+    },
+    {
+      "floor": 76,
+      "targetFactId": "f06",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "县里头摆弄花草的那位总角之交是谁，有数吗？"
+    },
+    {
+      "floor": 100,
+      "targetFactId": "f09",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我惦记的那套进口好钢的琢刻家什，你记得吗？"
+    },
+    {
+      "floor": 126,
+      "targetFactId": "f12",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我量木料用的那件传家宝，到我这辈是第几任了？"
+    },
+    {
+      "floor": 150,
+      "targetFactId": "f01",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我干活前那杯提神的热饮要多酽，你还记得吗？"
+    },
+    {
+      "floor": 176,
+      "targetFactId": "f04",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "我出嫁的同胞姊妹安家在哪片地界，记得吗？"
+    },
+    {
+      "floor": 200,
+      "targetFactId": "f05",
+      "targetVersion": "original",
+      "absentFactIds": [],
+      "text": "巷子里和我处得最久的老邻家是谁，还记得吗？"
+    },
+    {
+      "floor": 226,
+      "targetFactId": "f07",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f07"
+      ],
+      "text": "如今我那自立门户的章程改成了什么？"
+    },
+    {
+      "floor": 250,
+      "targetFactId": "f08",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f08"
+      ],
+      "text": "如今传世的心思搁置了，转去做哪件大事？"
+    },
+    {
+      "floor": 276,
+      "targetFactId": "f10",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f10"
+      ],
+      "text": "如今我这处老患松快了吗？"
+    },
+    {
+      "floor": 300,
+      "targetFactId": "f11",
+      "targetVersion": "updated",
+      "absentFactIds": [
+        "f11"
+      ],
+      "text": "如今我这头晕的老症候见好了吗？"
+    }
+  ]
+}
