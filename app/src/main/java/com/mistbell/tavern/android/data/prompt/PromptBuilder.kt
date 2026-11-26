@@ -1443,15 +1443,26 @@ object PromptBuilder {
             // 历史是否被裁剪、以及估算值与 API 实发 token 的偏差——排查"实发超配置/缓存命中率低"的直接依据
             val estimatedTotal = messages.sumOf { estimateTokens(it.message.content) }
             val insertedMemory = memoryContext.messagesFor(historyTruncated = historyTruncated)
+            // 注入清单的最终口径与注入点（appendMemoryBlocks）完全一致：结构化块非空即注入；
+            // 召回块仅在历史被裁剪时注入——未注入的 id 不进清单（清单记录点在裁剪/去重之后）
+            val injectedStructuredIds =
+                if (memoryContext.structuredBlock != null) memoryContext.structuredMemoryIds else emptyList()
+            val injectedRecallIds =
+                if (historyTruncated) memoryContext.recallMessageIds else emptyList()
             // 召回诊断的最终形态：召回块装配成功但历史未裁剪时，注入点会丢弃它——
             // 这是唯一一个装配点之后才确定的 droppedReason，在这里补上（诊断与预览/日志同源）
             val recallDiagnostics =
                 memoryContext.diagnostics.let { diag ->
-                    if (diag.droppedReason == null && memoryContext.recallBlock != null && !historyTruncated) {
-                        diag.copy(droppedReason = RecallDiagnostics.DROP_HISTORY_INTACT)
-                    } else {
-                        diag
-                    }
+                    val cleared =
+                        if (diag.droppedReason == null && memoryContext.recallBlock != null && !historyTruncated) {
+                            diag.copy(droppedReason = RecallDiagnostics.DROP_HISTORY_INTACT)
+                        } else {
+                            diag
+                        }
+                    cleared.copy(
+                        injectedStructuredMemoryIds = injectedStructuredIds.map(Long::toString),
+                        injectedRecallMessageIds = injectedRecallIds,
+                    )
                 }
             android.util.Log.d(
                 "PromptDiag",
@@ -1766,6 +1777,10 @@ object PromptBuilder {
         val recallBlock: ChatMessage? = null,
         /** 本轮召回的诊断（只读投影；装配决策不受影响，见 RecallDiagnostics） */
         val diagnostics: RecallDiagnostics = RecallDiagnostics(),
+        /** 结构化块实际注入的记忆 id（token 裁剪与去重后；与 [structuredBlock] 同源） */
+        val structuredMemoryIds: List<Long> = emptyList(),
+        /** 召回块实际注入的消息 id（去重后；历史未裁剪时召回块被丢弃，id 由 buildTrace 同口径清空） */
+        val recallMessageIds: List<String> = emptyList(),
     ) {
         /**
          * 组装用。
@@ -1812,43 +1827,56 @@ object PromptBuilder {
                 currentSessionId = query.sessionId,
                 scope = MemoryScope.SESSION,
             )
-        val (structuredBlock, injectedContents) = structuredMemoryBlock(db, query, window, contextTokenLimit)
-        val recall = recallBlock(db, query, window, injectedContents)
+        val structured = structuredMemoryBlock(db, query, window, contextTokenLimit)
+        val recall = recallBlock(db, query, window, structured.injectedContents)
         return MemoryContext(
-            structuredBlock = structuredBlock,
+            structuredBlock = structured.block,
             recallBlock = recall.block,
             diagnostics =
                 recall.diagnostics.copy(
-                    structuredCount = injectedContents.size,
+                    structuredCount = structured.injectedContents.size,
                     structuredBudgetTokens = memoryBlockBudget(contextTokenLimit),
                 ),
+            structuredMemoryIds = structured.memoryIds,
+            recallMessageIds = recall.messageIds,
         )
     }
+
+    /** 结构化块装配产物：注入块 + 实际注入的正文（向量去重用）+ 实际注入的记忆 id（注入清单用） */
+    private data class StructuredBlockOutcome(
+        val block: ChatMessage?,
+        val injectedContents: List<String>,
+        val memoryIds: List<Long>,
+    )
 
     /**
      * 结构化记忆块：按召回窗口取候选 → 相关性选择 → 按 token 预算渲染。
      *
-     * @return (注入块, 实际注入的记忆正文)；正文供向量召回去重——被预算裁掉的不算"已覆盖"
+     * 实际注入的集合（正文与 id）都在预算裁剪**之后**取自同一份 [formatStructuredMemoryContext]
+     * 的返回值——被裁掉的不算注入，也不进注入清单。
      */
     private suspend fun structuredMemoryBlock(
         db: AppDatabase,
         query: MemoryRecallQuery,
         window: RecallWindow,
         contextTokenLimit: Int,
-    ): Pair<ChatMessage?, List<String>> {
+    ): StructuredBlockOutcome {
         val memories = recallCandidates(db, window).map { it.toDomain() }
         val selected = selectRelevantMemories(memories, query.userMessage)
         // 记忆块按 token 预算裁剪：选择器已按重要度/相关性排好序，被裁掉的是最不重要的尾巴
         val (text, injected) =
             formatStructuredMemoryContext(selected, memoryBlockBudget(contextTokenLimit))
-        if (injected.isEmpty()) return null to emptyList()
+        if (injected.isEmpty()) return StructuredBlockOutcome(null, emptyList(), emptyList())
 
         val accessedAt = Instant.now().toString()
         injected.map { it.id }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.let {
             db.structuredMemoryDao().incrementAccessCount(it, accessedAt)
         }
-        return ChatMessage(role = "system", content = "## Known Information\n$text") to
-            injected.map { it.content }.filter { it.isNotBlank() }
+        return StructuredBlockOutcome(
+            block = ChatMessage(role = "system", content = "## Known Information\n$text"),
+            injectedContents = injected.map { it.content }.filter { it.isNotBlank() },
+            memoryIds = injected.map { it.id },
+        )
     }
 
     /**
@@ -1880,10 +1908,11 @@ object PromptBuilder {
         )
     }
 
-    /** 一次召回块装配的产物：注入块 + 诊断（诊断与块同源，见 RecallDiagnostics） */
+    /** 一次召回块装配的产物：注入块 + 实际注入的消息 id + 诊断（诊断与块同源，见 RecallDiagnostics） */
     private data class RecallOutcome(
         val block: ChatMessage?,
         val diagnostics: RecallDiagnostics,
+        val messageIds: List<String> = emptyList(),
     )
 
     /** 语义召回块：有真实 embedding 服务（API 或本地 ONNX，F3）→ 向量+词法混合召回；否则词法回退（F3-FTS） */
@@ -1993,6 +2022,7 @@ object PromptBuilder {
         return RecallOutcome(
             block = ChatMessage(role = "system", content = render.text),
             diagnostics = diagnostics.copy(injectedRecallLines = render.injectedCount),
+            messageIds = render.messageIds,
         )
     }
 
@@ -2053,6 +2083,7 @@ object PromptBuilder {
         return RecallOutcome(
             block = ChatMessage(role = "system", content = text),
             diagnostics = diagnostics.copy(injectedRecallLines = items.size),
+            messageIds = items.map { it.id },
         )
     }
 
@@ -2284,13 +2315,14 @@ object PromptBuilder {
                     appendLine("${index + 1}. ${result.candidate.content.truncateMemoryContent()} ($annotation)")
                 }
             }
-        return RecallRender(text, relevantResults.size)
+        return RecallRender(text, relevantResults.size, relevantResults.map { it.candidate.messageId })
     }
 
-    /** 召回块渲染产物：注入文本 + 实际注入行数（诊断面板的"去重后条数"来源） */
+    /** 召回块渲染产物：注入文本 + 实际注入行数 + 实际注入行的消息 id（诊断与注入清单共用） */
     internal data class RecallRender(
         val text: String,
         val injectedCount: Int,
+        val messageIds: List<String> = emptyList(),
     )
 
     /**

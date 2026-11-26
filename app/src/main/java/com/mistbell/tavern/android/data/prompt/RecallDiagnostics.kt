@@ -34,6 +34,14 @@ data class RecallDiagnostics(
     val droppedReason: String? = null,
     /** 词法回退模式（无 embedding）：召回只有词法一路 */
     val lexicalOnly: Boolean = false,
+    /**
+     * 本轮**实际注入**提示词的结构化记忆 id（字符串化的 structured_memory.id）。
+     * 记录点在 token 裁剪与去重之后——被裁掉/未注入的不在此列；历史未裁剪时召回块被
+     * 丢弃，召回 id 同口径清空。「记得 N 件」标记与注入明细弹层、记忆评测共用此清单。
+     */
+    val injectedStructuredMemoryIds: List<String> = emptyList(),
+    /** 本轮实际注入的召回行对应的**消息** id（召回块未注入时为空，同上口径） */
+    val injectedRecallMessageIds: List<String> = emptyList(),
 ) {
     /** 预览/复制文本用的一行摘要 */
     fun summaryLine(): String {

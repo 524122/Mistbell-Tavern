@@ -117,12 +117,7 @@ class MemoryExtractionService(
                     Log.d(TAG, "No memory candidates returned")
                     return@withContext emptyList()
                 }
-
-                val validated = validateAndEnhanceCandidates(candidates)
-                if (validated.isEmpty()) {
-                    Log.d(TAG, "No candidates survived quality validation")
-                }
-                validated
+                candidates
             } catch (e: Exception) {
                 Log.e(TAG, "Memory extraction failed: ${e.message}", e)
                 // 让持久化抽取队列感知失败并保留 inflight 批次；若在这里吞掉异常，
@@ -191,7 +186,8 @@ class MemoryExtractionService(
     }
 
     // 多轮拼接：轮间空行分隔；无用户消息的轮次（群聊"让TA继续"）省略 User 行
-    private fun buildDialogueText(turns: List<DialogueTurn>): String {
+    // internal：记忆评测回放按应用真实拼法重放批次（与其余管线共用同一实现）
+    internal fun buildDialogueText(turns: List<DialogueTurn>): String {
         return turns.joinToString("\n\n") { turn ->
             if (turn.userMessage.isBlank()) {
                 "Assistant: ${turn.assistantMessage}"
@@ -201,9 +197,11 @@ class MemoryExtractionService(
         }
     }
 
-    private fun shouldExtractMemory(message: String): Boolean {
+    // internal：评测回放需与生产路径共用同一道快速质量闸（短/低质对话在真实链路里不会触发抽取）。
+    // 判定式改写为布尔合取（与原有三个提前返回逐值等价：长度不足 / 用户行低质 / 内容占比不足）。
+    internal fun shouldExtractMemory(message: String): Boolean {
         val trimmed = message.trim()
-        if (trimmed.length < MIN_DIALOGUE_LENGTH) return false
+        val longEnough = trimmed.length >= MIN_DIALOGUE_LENGTH
 
         val userLine =
             trimmed
@@ -213,13 +211,11 @@ class MemoryExtractionService(
                 ?.trim()
                 .orEmpty()
 
-        if (userLine.isNotBlank() && lowQualityPatterns.any { it.matches(userLine) }) {
-            return false
-        }
+        val userLineLowQuality = userLine.isNotBlank() && lowQualityPatterns.any { it.matches(userLine) }
 
         val contentChars = trimmed.count { it.isLetterOrDigit() || it.isCjk() }
         val contentRatio = contentChars.toDouble() / trimmed.length
-        return contentRatio >= 0.3
+        return longEnough && !userLineLowQuality && contentRatio >= 0.3
     }
 
     private suspend fun extractMemoryCandidatesWithLLM(
@@ -243,21 +239,38 @@ class MemoryExtractionService(
             )
 
         val response = requestExtraction(config, prompt)
+        return parseAndValidateCandidates(response)
+    }
 
-        // 诊断只记结构特征（长度/形状），不记响应正文——响应派生自用户聊天内容（隐私）
-        if (response.isBlank()) {
-            Log.w(TAG, "LLM returned blank content (empty/truncated-at-budget response)")
-            return emptyList()
+    /**
+     * 原始响应 → 解析 + 质量校验后的候选（[extractMemoryCandidatesWithLLM] 与记忆评测回放
+     * 共用的唯一入口：评测把"LLM 调用"替换成录制输出/ORACLE 合成输出，解析与质量过滤
+     * 仍走生产实现）。不碰库、不发网络；空白响应按"无候选"处理（与原行为一致）。
+     */
+    internal suspend fun parseAndValidateCandidates(rawResponse: String): List<MemoryCandidate> {
+        val parsed =
+            if (rawResponse.isBlank()) {
+                Log.w(TAG, "LLM returned blank content (empty/truncated-at-budget response)")
+                emptyList()
+            } else {
+                parseMemoryExtractionResult(rawResponse).also { parsed ->
+                    // 诊断只记结构特征（长度/形状），不记响应正文——响应派生自用户聊天内容（隐私）
+                    Log.d(
+                        TAG,
+                        "LLM response diag: len=${rawResponse.length}, triplets=${parsed.size}, " +
+                            "startsWithBrace=${rawResponse.trimStart().startsWith('{')}, " +
+                            "endsWithBrace=${rawResponse.trimEnd().endsWith('}')}, " +
+                            "codeFenced=${rawResponse.contains("```")}",
+                    )
+                }
+            }
+        if (parsed.isEmpty()) return emptyList()
+
+        val validated = validateAndEnhanceCandidates(parsed)
+        if (validated.isEmpty()) {
+            Log.d(TAG, "No candidates survived quality validation")
         }
-        val parsed = parseMemoryExtractionResult(response)
-        Log.d(
-            TAG,
-            "LLM response diag: len=${response.length}, triplets=${parsed.size}, " +
-                "startsWithBrace=${response.trimStart().startsWith('{')}, " +
-                "endsWithBrace=${response.trimEnd().endsWith('}')}, " +
-                "codeFenced=${response.contains("```")}",
-        )
-        return parsed
+        return validated
     }
 
     /**
@@ -284,7 +297,8 @@ class MemoryExtractionService(
         }
     }
 
-    private suspend fun buildMemoryExtractionPrompt(dialogueText: String): String {
+    // internal：录制测试要用同一份提示词生成抽取输出，回放时再校验提示词摘要一致
+    internal suspend fun buildMemoryExtractionPrompt(dialogueText: String): String {
         val customPrompt =
             withContext(Dispatchers.IO) {
                 db.settingsDao().getValue("memory_extraction_prompt")
