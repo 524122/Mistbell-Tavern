@@ -11,9 +11,9 @@
 | 维度 | 现状 |
 |---|---|
 | 版本 / 规模 | v0.9.8-beta，单模块 `:app`，主代码约 6.45 万行 |
-| 测试 | 单测 1183 例 / 118 个套件（本地 `checkAll` 与 CI #49 一致）；androidTest 12 个文件 / 82 例，已进 CI（托管设备，观察期） |
+| 测试 | 单测 1192 例 / 120 个套件（本地 `checkAll`；CI 跑同一套）；androidTest 12 个文件 / 82 例，已进 CI（托管设备，观察期） |
 | 数据库 | Room schema v39（`exportSchema=true`，每个版本都有迁移与迁移测试；迁移清单 `AppDatabase.ALL_MIGRATIONS` 是生产与测试共用的唯一数据源） |
-| 结构债 | `TavernApplication.instance` 51 处 / 30 个文件；包组间互相依赖 11 对（`data`、`ui` 按二级包分组，其余按顶层包） |
+| 结构债 | `TavernApplication.instance` 51 处 / 30 个文件；包组间互相依赖 11 对；`ui` 对 entity 的引用 38 处 / 22 个文件。三项都有只减不增的棘轮（`ArchitectureRulesTest`），口径见 `app/src/test/resources/architecture-baseline.json` |
 | 功能缺口 | 界面模式尚未实现（规划 P3）；会话记忆默认关闭 |
 | CI | GitHub Actions 全绿（2026-11-26，CI #49）：`verify`（构建 / 单测 / detekt / ktlint / licenseGuard）与 `instrumented`（托管设备 androidTest）。此前 #26–#48 连续失败。`instrumented` 处于观察期：只报告不拦截，连续 7 次绿后改为必须通过 |
 | release 构建 | 可正常启动并通过 14 项冒烟（2026-11-26）：修复了自引入 skiko 起的冷启动崩溃（R8 按名访问），并移除 Compose 整包 keep（每个 APK 省约 4.9MB） |
@@ -150,9 +150,12 @@
    - `ui.*` 不 import DAO；entity import 只减不增（现 25）。
    - `TavernApplication.instance` 只减不增（现 51）；包组互赖对只减不增（现 11）。
    - 不拆 Gradle 模块，拆分条件改为「棘轮归零」。
+   - 已完成（2026-11-26）：2a10d87（前置的解析器下沉 bd88b85）。实施时有两处与规划文本不同，按意图处理：entity 口径收紧为 import 与全限定名都算（与 DAO 同口径，防删 import 改写全限定名绕过），基线是 38 处 / 22 个文件而不是 25；互赖对数量同为 11，但组成与评审清单有一处出入（`ui.regex` 与 `ui.character` 实为单向，评审漏了根包与 `navigation`），没有为凑数改口径。变好也必须更新基线（`-ParchBaselineUpdate=true`），否则测试同样失败。
 3. **基线棘轮**：CI 加一步，detekt 与 ktlint 的 baseline 条数不得超过上限文件（detekt 927、ktlint 229）。
+   - 已完成（2026-11-26）：2a10d87。做成 JVM 单测 `LintBaselineRatchetTest`，上限在 `config/lint-baseline.limits`；本地 `checkAll` 与 CI 跑的是同一个测试，没有另加 CI 步骤。
 
 **验收**：冻结决定与解冻条件有书面记录；三条基线进 CI；`checkAll` 绿。
+- 验收状态（2026-11-26）：P1 三项全部完成。三条基线（依赖、detekt、ktlint）都随单测进 CI，`checkAll` 绿（单测 1192 例，0 失败）。
 
 ### P2 先量它：评测基线与记忆可见（6–7 天，关键路径）
 
