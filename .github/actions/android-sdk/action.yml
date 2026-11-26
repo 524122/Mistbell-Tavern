@@ -8,6 +8,11 @@ inputs:
     description: 要安装的 sdkmanager 包，每行一个（包名含分号，逐行传递以免被 shell 当作命令分隔符）
     required: true
 
+# 诊断输出约定：Actions 的日志需要登录才能读，而注解（::notice:: / ::error::）在公开仓库的
+# 运行页上匿名可见。所以这里的关键信息都写成注解，失败时把命令输出的末尾也带进 ::error::。
+# 2026-11-26 实测的 runner 环境：shell 里没有 sdkmanager（退出码 127），
+# android-actions/setup-android@v3 也在其步骤内失败；其余工具是否有不做假设。
+
 runs:
   using: composite
   steps:
@@ -15,10 +20,11 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        # 2026-11-26 实测：ubuntu-latest 的 shell 里 sdkmanager 不在 PATH 上（直接调用退出码 127），
-        # 也不依赖 android-actions/setup-android（它在 runner 上失败）。这里自己定位或下载。
+        # 本步任何命令失败都在这里留下带命令与退出码的注解（匿名可见），然后按原退出码结束
+        trap 'code=$?; echo "::error::设置 command-line tools 失败：命令 [$BASH_COMMAND] 退出码 $code"' ERR
+        diag() { echo "::notice::android-sdk: $*"; }
         DEFAULT_SDK_ROOT="/usr/local/lib/android/sdk"
-        if [ -n "${ANDROID_HOME:-}" ]; then
+        if [ -n "${ANDROID_HOME:-}" ] && [ -d "${ANDROID_HOME}" ]; then
           SDK_ROOT="$ANDROID_HOME"
         elif [ -d "$DEFAULT_SDK_ROOT" ]; then
           SDK_ROOT="$DEFAULT_SDK_ROOT"
@@ -26,42 +32,81 @@ runs:
           SDK_ROOT="$RUNNER_TEMP/android-sdk"
           mkdir -p "$SDK_ROOT"
         fi
+        if [ ! -w "$SDK_ROOT" ]; then
+          diag "SDK 根目录不可写（$SDK_ROOT），改用 $RUNNER_TEMP/android-sdk"
+          SDK_ROOT="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$SDK_ROOT"
+        fi
+        diag "ANDROID_HOME=${ANDROID_HOME:-<unset>}；选用 SDK_ROOT=$SDK_ROOT"
+        diag "工具：curl=$(command -v curl || echo 无) unzip=$(command -v unzip || echo 无) python3=$(command -v python3 || echo 无) java=$(command -v java || echo 无)"
+
         CMDLINE_TOOLS="$SDK_ROOT/cmdline-tools/latest"
         CMDLINE_TOOLS_VERSION="11076708"
         if [ ! -x "$CMDLINE_TOOLS/bin/sdkmanager" ]; then
-          echo "command-line tools not found under $SDK_ROOT; downloading version $CMDLINE_TOOLS_VERSION"
-          mkdir -p "$SDK_ROOT/cmdline-tools"
-          rm -rf "$RUNNER_TEMP/cmdline-tools.zip" "$RUNNER_TEMP/cmdline-tools-unzip"
-          curl -fsSL -o "$RUNNER_TEMP/cmdline-tools.zip" \
-            "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
-          unzip -q "$RUNNER_TEMP/cmdline-tools.zip" -d "$RUNNER_TEMP/cmdline-tools-unzip"
+          URL="https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
+          ZIP="$RUNNER_TEMP/cmdline-tools.zip"
+          UNZIPPED="$RUNNER_TEMP/cmdline-tools-unzip"
+          rm -rf "$ZIP" "$UNZIPPED"
+          if ! curl -fsSL -o "$ZIP" "$URL"; then
+            echo "::error::下载 command-line tools 失败：$URL"
+            exit 1
+          fi
+          mkdir -p "$UNZIPPED" "$SDK_ROOT/cmdline-tools"
+          # 不用 unzip：runner 上未必有；python3 是 runner 镜像自带的。zipfile 解压不保留可执行位，
+          # 所以下面补 chmod
+          python3 -m zipfile -e "$ZIP" "$UNZIPPED"
           rm -rf "$CMDLINE_TOOLS"
-          mv "$RUNNER_TEMP/cmdline-tools-unzip/cmdline-tools" "$CMDLINE_TOOLS"
+          mv "$UNZIPPED/cmdline-tools" "$CMDLINE_TOOLS"
+          chmod +x "$CMDLINE_TOOLS/bin/"*
+          diag "已下载 command-line tools $CMDLINE_TOOLS_VERSION 到 $CMDLINE_TOOLS"
+        fi
+        if [ ! -x "$CMDLINE_TOOLS/bin/sdkmanager" ]; then
+          echo "::error::sdkmanager 不存在：$CMDLINE_TOOLS/bin/sdkmanager"
+          ls -la "$SDK_ROOT" "$SDK_ROOT/cmdline-tools" 2>&1 | tail -n 20
+          exit 1
         fi
         echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
         echo "$CMDLINE_TOOLS/bin" >> "$GITHUB_PATH"
-        echo "SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-        "$CMDLINE_TOOLS/bin/sdkmanager --version"
+        "$CMDLINE_TOOLS/bin/sdkmanager" --version
 
     - name: Accept Android SDK licenses
       shell: bash
       # 固定写入若干个 y 而不是 `yes | ...`：后者在 pipefail 下会因 SIGPIPE（141）误判失败，
-        # 而给管道加 `|| true` 又会把真正的错误（例如命令不存在）一并掩盖
-      run: printf 'y\ny\ny\ny\ny\ny\ny\ny\n' | sdkmanager --licenses > /dev/null
+      # 而给管道加 `|| true` 又会把真正的错误（例如命令不存在）一并掩盖
+      run: |
+        set -uo pipefail
+        log="$RUNNER_TEMP/sdk-licenses.log"
+        if ! printf 'y\ny\ny\ny\ny\ny\ny\ny\n' | sdkmanager --licenses > "$log" 2>&1; then
+          code=$?
+          echo "::error::sdkmanager --licenses 失败（退出码 $code）"
+          tail -n 15 "$log"
+          exit "$code"
+        fi
+        tail -n 2 "$log"
 
     - name: Install requested packages
       shell: bash
       env:
         ANDROID_PACKAGES: ${{ inputs.packages }}
       run: |
-        set -euo pipefail
+        set -uo pipefail
         args=()
         while IFS= read -r pkg; do
           pkg="${pkg%$'\r'}"
           if [ -n "$pkg" ]; then args+=("$pkg"); fi
         done <<< "$ANDROID_PACKAGES"
-        echo "installing: ${args[*]}"
-        sdkmanager "${args[@]}"
+        log="$RUNNER_TEMP/sdk-install.log"
+        if ! sdkmanager "${args[@]}" > "$log" 2>&1; then
+          code=$?
+          echo "::error::sdkmanager 安装失败（退出码 $code），请求的包：${args[*]}"
+          awk '/Warning|Error|error|Failed|failed|not found|No .* found|licen[cs]e|Could not/ { print substr($0, 1, 300) }' "$log" \
+            | tr -d '\r' | awk '!seen[$0]++' | head -n 6 \
+            | while IFS= read -r line; do echo "::error::$line"; done
+          echo "----- sdkmanager 输出末尾 -----"
+          tail -n 25 "$log" | tr -d '\r' | awk '{ print substr($0, 1, 300) }'
+          exit "$code"
+        fi
+        tail -n 4 "$log" | tr -d '\r' | awk '{ print substr($0, 1, 300) }'
 
     - name: List installed packages
       shell: bash

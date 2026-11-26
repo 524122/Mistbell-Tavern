@@ -9,8 +9,12 @@ on:
 # command-line tools → 接受许可 → sdkmanager 安装。两个 job 共用同一份，避免漂移。
 # 版本与 app/build.gradle 对齐：compileSdk 37、ndkVersion 28.2.13676358、CMake 3.22.1；
 # build-tools 由 AGP 按自身默认版本自动补装（许可已接受）。
-# 背景：2026-10-01 至 2026-11-26 的 19 次运行全部失败在环境搭建阶段（Gradle 从未开始）——
-# 先是 android-actions/setup-android@v3，改用 runner 自带 sdkmanager 后是命令不在 PATH（退出码 127）。
+# Gradle 命令统一经 ./.github/scripts/gradle-step.sh 执行：失败时把关键错误行转成注解。
+# Actions 的日志需要登录才能读，注解在公开仓库的运行页上匿名可见——没有 gh / 令牌的
+# 机器也能据此定位失败原因。
+# 背景：2026-10-01 起的运行 #26–#45 全部失败在环境搭建阶段（Gradle 从未开始）：
+# android-actions/setup-android@v3 在其步骤内失败；改用 runner 自带 sdkmanager 后是命令不存在
+# （退出码 127）；runner 上连部分基础命令也未必存在，所以这里对环境不做任何假设。
 
 jobs:
   verify:
@@ -42,28 +46,41 @@ jobs:
       - name: Ensure gradlew executable（防御 Windows 提交丢失可执行位）
         run: chmod +x gradlew
 
-      # 与本地 `gradlew checkAll` 等价的五个检查，拆成独立步骤：日志需要登录才能看，
-      # 步骤级结论与失败注解（含退出码）匿名可读，哪一步失败从运行页就能定位
+      # 与本地 `gradlew checkAll` 等价的五个检查，各自独立成步：哪一步失败、为什么失败，
+      # 从运行页的步骤结论与注解就能定位
       - name: assembleDebug
-        run: ./gradlew :app:assembleDebug --console=plain
+        run: bash ./.github/scripts/gradle-step.sh assemble.log :app:assembleDebug
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --console=plain
+        run: bash ./.github/scripts/gradle-step.sh unit-tests.log :app:testDebugUnitTest
+
+      - name: Unit test summary
+        if: always()
+        run: |
+          dir=app/build/test-results/testDebugUnitTest
+          if [ -d "$dir" ]; then
+            tests=$(cat "$dir"/*.xml | grep -a -o '<testcase ' | wc -l)
+            failures=$(cat "$dir"/*.xml | grep -a -o '<failure ' | wc -l)
+            errors=$(cat "$dir"/*.xml | grep -a -o '<error ' | wc -l)
+            echo "::notice title=单测汇总::tests=${tests} failures=${failures} errors=${errors}"
+          fi
 
       - name: detekt and ktlint
-        run: ./gradlew :app:detekt :app:ktlintCheck --console=plain
+        run: bash ./.github/scripts/gradle-step.sh lint.log :app:detekt :app:ktlintCheck
 
       - name: licenseGuard
-        run: ./gradlew licenseGuard --console=plain
+        run: bash ./.github/scripts/gradle-step.sh license-guard.log licenseGuard
 
-      - name: Upload reports (on failure)
+      - name: Upload reports and logs (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: verification-reports
           path: |
             app/build/reports/**
+            app/build/test-results/testDebugUnitTest/**
             build/reports/**
+            ${{ runner.temp }}/*.log
           if-no-files-found: ignore
 
   instrumented:
@@ -111,9 +128,11 @@ jobs:
 
       - name: Run androidTest on the managed device
         # instrumented 测试：Room 迁移数据完整性、向量/记忆契约、渲染冒烟
-        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:ciPixel6Api34DebugAndroidTest --console=plain
+        run: >
+          bash ./.github/scripts/gradle-step.sh androidtest.log
+          :app:assembleDebug :app:assembleDebugAndroidTest :app:ciPixel6Api34DebugAndroidTest
 
-      - name: Upload androidTest reports
+      - name: Upload androidTest reports and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -121,5 +140,6 @@ jobs:
           path: |
             app/build/outputs/androidTest/**
             app/build/reports/androidTests/**
+            ${{ runner.temp }}/*.log
           if-no-files-found: ignore
           retention-days: 7
