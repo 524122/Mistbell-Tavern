@@ -6,7 +6,7 @@
 [![Android](https://img.shields.io/badge/Android-8.0%2B-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-100%25-purple.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-956%20passed-success.svg)](app/src/test)
+[![CI](https://github.com/524122/Mistbell-Tavern/actions/workflows/ci.yml/badge.svg)](https://github.com/524122/Mistbell-Tavern/actions/workflows/ci.yml)
 
 **高性能的 AI 角色聊天 Android 应用**
 
@@ -99,22 +99,12 @@ APK 按 ABI 分包（arm64-v8a / armeabi-v7a / x86 / x86_64），另提供 unive
 ### 数据与主题
 - 全量备份/恢复（单 zip 含角色/会话/记忆/世界书/设置/主题/向量库）
 - 皮肤级主题包（zip 导入导出，纯数据 tokens 无代码执行）
+- 布局主题包（实验性）—— 模板 + 样式 + 绑定由原生引擎渲染，见 [docs/THEME_FRAMEWORK_DESIGN.md](docs/THEME_FRAMEWORK_DESIGN.md)；消息里带 `<style>` / `<table>` 的静态片段由 litehtml 排版（不执行脚本、不联网），见 [docs/LITEHTML_INTEGRATION.md](docs/LITEHTML_INTEGRATION.md)
 - 聊天记录 JSON 导出
 
 ---
 
 ## ⚡ 性能优化
-
-经过多个版本的系统优化，应用性能全面提升：
-
-| 优化项 | 提升幅度 |
-|--------|---------|
-| 冷启动速度 | **40%** ↓ |
-| 数据库查询 | **2-10 倍** ↑ |
-| UI 流畅度 | **20-30%** ↑ |
-| 内存占用 | **30-70MB** ↓ |
-| 向量搜索 | **99%** ↓ |
-| 网络成功率 | **29%** ↑ |
 
 ### 主要优化
 
@@ -145,8 +135,8 @@ APK 按 ABI 分包（arm64-v8a / armeabi-v7a / x86 / x86_64），另提供 unive
 
 | 工具 | 用途 | 状态 |
 |------|------|------|
-| **JUnit** | 320 个单元测试 | 全绿 |
-| **detekt** | 静态分析（baseline 767 条，新代码零容忍） | CI 强制 |
+| **JUnit** | 单元测试，数量以 CI 与测试报告为准 | 见 CI 状态徽标 |
+| **detekt** | 静态分析（baseline 只减不增，新代码零容忍） | CI 强制 |
 | **ktlint** | 代码风格 | CI 强制 |
 | **licenseGuard** | 依赖许可证红线（禁 GPL/AGPL/SSPL/AFFERO） | CI 强制 |
 
@@ -155,8 +145,8 @@ APK 按 ABI 分包（arm64-v8a / armeabi-v7a / x86 / x86_64），另提供 unive
 MVVM + Repository + Flow，Compose UI + ViewModel + Room。
 
 - **无 Hilt** - AppContainer 手工 DI（团队 > 1 人或注入图 > 30 节点再议）
-- **单模块** - 代码量超过 30k 行或需多团队并行再议拆分
-- **Room 36 个 schema 版本** - exportSchema=true，36 个版本全部有迁移 + 迁移测试
+- **单模块** - 保持单模块，拆分条件是依赖棘轮归零（见 [docs/ROADMAP.md](docs/ROADMAP.md)），不以代码行数触发
+- **Room schema** - 版本随迁移递增，exportSchema=true，每个版本都有迁移与迁移测试
 - **密钥加固** - SecureStore（Keystore 加密）替代 androidx.security-crypto（已停更）
 
 ### 兼容性研究
@@ -178,10 +168,10 @@ MVVM + Repository + Flow，Compose UI + ViewModel + Room。
 - **ViewModel** - MVVM 架构
 
 ### 数据层
-- **Room Database** - 本地存储（36 个 schema 版本）
+- **Room Database** - 本地存储（schema 版本随迁移递增）
 - **SecureStore** - Keystore 加密密钥
 - **onnxruntime-android** - 本地语义向量（MIT）
-- **sqlite-vec**（计划） - 向量存储规模升级
+- **sqlite-vec** - 向量索引存储引擎（vec0 虚拟表，加载失败自动回退 JSON 引擎）
 
 ### 网络层
 - **OkHttp** - HTTP 客户端 + SSE（okhttp-sse 4.12），LLM 请求自研 `LlmClient`
@@ -204,8 +194,9 @@ MVVM + Repository + Flow，Compose UI + ViewModel + Room。
 
 ### 环境要求
 - JDK 17+
-- Android Studio Hedgehog (2023.1.1) 或更高
-- Gradle 8.13
+- Android Studio（近期版本即可，也可只用命令行 + JDK 17）
+- Gradle 9.4.1（gradle-wrapper 自带，`./gradlew` 会自动获取）
+- NDK 与 CMake——构建含原生 litehtml 桥接库（`externalNativeBuild`，版本以 `app/build.gradle` 为准）
 - compileSdk 37 / minSdk 26 / targetSdk 37（Android 17）
 
 ### 构建步骤
@@ -240,9 +231,12 @@ APK 输出路径：`app/build/outputs/apk/`
 | 文档 | 内容 |
 |------|------|
 | [更新日志](CHANGELOG.md) | 完整的版本历史（v0.1.0 ~ v0.9.8-beta） |
-| [路线图](docs/ROADMAP.md) | 现状快照、M1~M3 规划、明确不做的事 |
+| [路线图](docs/ROADMAP.md) | 现状快照（2026-11-26）、重新设计规划（P0~P5）、历史清单存档 |
 | [地基规划](docs/FOUNDATION.md) | 依赖选型、许可证红线、ST 生态格式要点 |
 | [模式设计](docs/MODES.md) | 五种玩法模式的架构设计 |
+| [主题框架设计](docs/THEME_FRAMEWORK_DESIGN.md) | 布局主题包协议与原生渲染引擎（已实施） |
+| [litehtml 对接说明](docs/LITEHTML_INTEGRATION.md) | 无脚本 HTML 片段的原生排版对照路径 |
+| [扩展平台设计](docs/EXTENSION_PLATFORM_DESIGN.md) | 规则包、扩展包与脚本沙箱的插件化设计 |
 | [前辈借鉴](docs/PREDECESSORS.md) | OMate/Tavo 调研与借鉴清单 |
 | [贡献指南](CONTRIBUTING.md) | 如何参与开发 |
 | [发布说明模板](docs/RELEASE_TEMPLATE.md) | 版本发布格式 |
@@ -255,14 +249,21 @@ APK 输出路径：`app/build/outputs/apk/`
 app/src/main/java/com/mistbell/tavern/android/
 ├── data/                 # 数据层
 │   ├── api/             # LLM API 客户端、采样预设
+│   ├── extensionpack/   # 扩展包存储、权限目录、预注入提供器
 │   ├── local/           # Room 数据库（dao / entity / 迁移）
 │   ├── model/           # 数据模型
+│   ├── mvu/             # MVU 变量引擎
 │   ├── network/         # 网络监控
 │   ├── prompt/          # 提示词构建、世界书位置解析
+│   ├── regex/           # 正则脚本引擎（卡级 / 全局）
 │   ├── repository/      # 数据仓库（备份/角色/聊天/世界书/向量）
+│   ├── rulepack/        # 规则包模型与解析
 │   ├── theme/           # 主题包数据模型
 │   └── vector/          # 向量存储、本地 ONNX 推理、分词器
+├── di/                  # AppContainer 手工依赖注入
+├── extension/           # 扩展平台（注册表、内置扩展、脚本沙箱、斜杠命令）
 ├── navigation/          # 导航
+├── render/              # 主题渲染引擎与 litehtml 对照路径
 ├── service/             # 后台服务（记忆抽取）
 ├── ui/                  # UI 层（Compose）
 │   ├── character/      # 角色管理
@@ -270,12 +271,17 @@ app/src/main/java/com/mistbell/tavern/android/
 │   ├── chatlist/       # 会话列表
 │   ├── common/         # 通用工具
 │   ├── components/     # 通用组件
+│   ├── extensionpack/  # 扩展包管理
 │   ├── main/           # 主界面
 │   ├── memory/         # 记忆管理
 │   ├── onboarding/     # 首启引导
-│   ├── provider/       # LLM 提供商配置
+│   ├── quickreply/     # 快捷回复
+│   ├── regex/          # 正则管理（全局正则与角色卡聚合）
+│   ├── rulepack/       # 规则包管理
 │   ├── settings/       # 设置页面
+│   ├── theme/          # 应用主题（Material 3）
 │   ├── themepack/      # 主题包管理
+│   ├── utils/          # UI 工具
 │   └── worldbook/      # 世界书
 └── util/               # 工具类（卡片解析、宏引擎、ST 互操作、备份）
 ```
