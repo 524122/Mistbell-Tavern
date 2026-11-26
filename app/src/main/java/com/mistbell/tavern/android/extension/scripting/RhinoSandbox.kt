@@ -246,11 +246,17 @@ class RhinoSandbox {
         private const val CALL_INSTRUCTION_BUDGET = 200_000
         private const val WALL_CLOCK_TIMEOUT_MS = 3_000L
 
-        /** ClassShutter 白名单：宿主对象类 + 不可变值包装类；其余 Java 类对脚本不可见 */
+        /**
+         * ClassShutter 白名单：宿主对象类 + 不可变值包装类；其余 Java 类对脚本不可见。
+         *
+         * 宿主类取运行时类名而不是写死全名字符串：R8 混淆会把类改名（release 实测被改成 "zr"），
+         * 写死的全名在 release 里对不上，脚本调用 tavern.* 会被 ClassShutter 拒绝——debug 包不混淆，
+         * 这类问题只在 release 复现。JDK 包装类的名字不受混淆影响，仍写字面量。
+         */
         private val ALLOWED_HOST_CLASSES =
             setOf(
-                "com.mistbell.tavern.android.extension.scripting.TavernHostApi",
-                "com.mistbell.tavern.android.extension.scripting.ExtensionHookApi",
+                TavernHostApi::class.java.name,
+                ExtensionHookApi::class.java.name,
                 "java.lang.String",
                 "java.lang.Integer",
                 "java.lang.Long",
