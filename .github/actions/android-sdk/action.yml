@@ -9,9 +9,10 @@ inputs:
     required: true
 
 # 诊断输出约定：Actions 的日志需要登录才能读，而注解（::notice:: / ::error::）在公开仓库的
-# 运行页上匿名可见。所以这里的关键信息都写成注解，失败时把命令输出的末尾也带进 ::error::。
-# 2026-11-26 实测的 runner 环境：shell 里没有 sdkmanager（退出码 127），
-# android-actions/setup-android@v3 也在其步骤内失败；其余工具是否有不做假设。
+# 运行页上匿名可见。所以这里的关键信息都写成注解，失败时把命令输出的末尾也带出来。
+# 2026-11-26 实测的 runner 环境（CI #46 的诊断注解）：ANDROID_HOME=/usr/local/lib/android/sdk，
+# curl / unzip / python3 / java 都在，但 sdkmanager 不在 PATH 上；仍不对环境做任何假设。
+# 取退出码的写法：先执行命令，再单独 `code=$?`。写成 `if ! cmd; then code=$?` 取到的是取反后的 0。
 
 runs:
   using: composite
@@ -37,8 +38,9 @@ runs:
           SDK_ROOT="$RUNNER_TEMP/android-sdk"
           mkdir -p "$SDK_ROOT"
         fi
-        diag "ANDROID_HOME=${ANDROID_HOME:-<unset>}；选用 SDK_ROOT=$SDK_ROOT"
+        diag "ANDROID_HOME=${ANDROID_HOME:-<unset>}；选用 SDK_ROOT=$SDK_ROOT；已有子目录：$(ls "$SDK_ROOT" 2>/dev/null | tr '\n' ' ')"
         diag "工具：curl=$(command -v curl || echo 无) unzip=$(command -v unzip || echo 无) python3=$(command -v python3 || echo 无) java=$(command -v java || echo 无)"
+        diag "command-line tools：$(ls "$SDK_ROOT/cmdline-tools" 2>/dev/null | tr '\n' ' ' || echo 无)"
 
         CMDLINE_TOOLS="$SDK_ROOT/cmdline-tools/latest"
         CMDLINE_TOOLS_VERSION="11076708"
@@ -47,13 +49,9 @@ runs:
           ZIP="$RUNNER_TEMP/cmdline-tools.zip"
           UNZIPPED="$RUNNER_TEMP/cmdline-tools-unzip"
           rm -rf "$ZIP" "$UNZIPPED"
-          if ! curl -fsSL -o "$ZIP" "$URL"; then
-            echo "::error::下载 command-line tools 失败：$URL"
-            exit 1
-          fi
+          curl -fsSL -o "$ZIP" "$URL"
           mkdir -p "$UNZIPPED" "$SDK_ROOT/cmdline-tools"
-          # 不用 unzip：runner 上未必有；python3 是 runner 镜像自带的。zipfile 解压不保留可执行位，
-          # 所以下面补 chmod
+          # 不依赖 unzip：runner 上未必有。zipfile 解压不保留可执行位，所以下面补 chmod
           python3 -m zipfile -e "$ZIP" "$UNZIPPED"
           rm -rf "$CMDLINE_TOOLS"
           mv "$UNZIPPED/cmdline-tools" "$CMDLINE_TOOLS"
@@ -76,13 +74,14 @@ runs:
       run: |
         set -uo pipefail
         log="$RUNNER_TEMP/sdk-licenses.log"
-        if ! printf 'y\ny\ny\ny\ny\ny\ny\ny\n' | sdkmanager --licenses > "$log" 2>&1; then
-          code=$?
+        printf 'y\ny\ny\ny\ny\ny\ny\ny\n' | sdkmanager --licenses > "$log" 2>&1
+        code=$?
+        if [ "$code" -ne 0 ]; then
           echo "::error::sdkmanager --licenses 失败（退出码 $code）"
-          tail -n 15 "$log"
+          tr '\r' '\n' < "$log" | awk 'NF' | tail -n 15
           exit "$code"
         fi
-        tail -n 2 "$log"
+        tr '\r' '\n' < "$log" | awk 'NF' | tail -n 2
 
     - name: Install requested packages
       shell: bash
@@ -96,17 +95,36 @@ runs:
           if [ -n "$pkg" ]; then args+=("$pkg"); fi
         done <<< "$ANDROID_PACKAGES"
         log="$RUNNER_TEMP/sdk-install.log"
-        if ! sdkmanager "${args[@]}" > "$log" 2>&1; then
-          code=$?
-          echo "::error::sdkmanager 安装失败（退出码 $code），请求的包：${args[*]}"
-          awk '/Warning|Error|error|Failed|failed|not found|No .* found|licen[cs]e|Could not/ { print substr($0, 1, 300) }' "$log" \
-            | tr -d '\r' | awk '!seen[$0]++' | head -n 6 \
-            | while IFS= read -r line; do echo "::error::$line"; done
-          echo "----- sdkmanager 输出末尾 -----"
-          tail -n 25 "$log" | tr -d '\r' | awk '{ print substr($0, 1, 300) }'
-          exit "$code"
+        sdkmanager "${args[@]}" > "$log" 2>&1
+        code=$?
+        # sdkmanager 用 \r 原地刷新进度条：先把 \r 换成换行，之后的按行筛选才有意义
+        tr '\r' '\n' < "$log" | awk 'NF' > "$log.lines"
+        if [ "$code" -ne 0 ]; then
+          echo "::warning title=sdkmanager::sdkmanager 请求的包：${args[*]}；退出码 ${code}。下面逐个核对是否真的装上"
         fi
-        tail -n 4 "$log" | tr -d '\r' | awk '{ print substr($0, 1, 300) }'
+        awk '/Warning|Error|error|Failed|failed|not found|inconsistent|Could not|denied|No such|licen[cs]e/ { print substr($0, 1, 300) }' "$log.lines" \
+          | awk '!seen[$0]++' | head -n 5 \
+          | while IFS= read -r line; do echo "::warning title=sdkmanager::$line"; done
+        # 不单凭 sdkmanager 的退出码论成败，而是核对后置条件：请求的每一个包都在已安装清单里。
+        # CI #46 里它退出码非零、包却都装上了（随后的 assembleDebug 通过）；当时的脚本把退出码
+        # 误记成 0 才让流程继续。现在把异常如实报出来，只有确实缺包才让步骤失败。
+        installed_ids="$(sdkmanager --list_installed 2>/dev/null | awk -F'|' 'NF >= 2 { id = $1; gsub(/^[ \t]+|[ \t]+$/, "", id); print id }' || true)"
+        missing=()
+        for pkg in "${args[@]}"; do
+          if ! printf '%s\n' "$installed_ids" | awk -v want="$pkg" '$0 == want { found = 1 } END { exit found ? 0 : 1 }'; then
+            missing+=("$pkg")
+          fi
+        done
+        if [ "${#missing[@]}" -ne 0 ]; then
+          echo "::error::sdkmanager 安装后仍缺这些包：${missing[*]}（sdkmanager 退出码 ${code}）"
+          echo "----- sdkmanager 输出末尾 -----"
+          tail -n 25 "$log.lines"
+          echo "----- 已安装清单 -----"
+          sdkmanager --list_installed 2>&1 | tail -n 30
+          exit 1
+        fi
+        echo "全部请求的包均已安装：${args[*]}"
+        tail -n 3 "$log.lines"
 
     - name: List installed packages
       shell: bash
