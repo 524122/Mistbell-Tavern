@@ -10,14 +10,15 @@
 
 | 维度 | 现状 |
 |---|---|
-| 版本 / 规模 | v0.9.8-beta，单模块 `:app`，主代码 297 个 Kotlin 文件 / 约 6.45 万行 |
-| 测试 | 单测 1163 例 / 114 个套件（本地 `checkAll`，2026-11-26）；androidTest 12 个文件 / 82 例，未进 CI |
-| 数据库 | Room schema v39（`exportSchema=true`，每个版本都有迁移与迁移测试） |
+| 版本 / 规模 | v0.9.8-beta，单模块 `:app`，主代码约 6.45 万行 |
+| 测试 | 单测 1183 例 / 118 个套件（本地 `checkAll` 与 CI #49 一致）；androidTest 12 个文件 / 82 例，已进 CI（托管设备，观察期） |
+| 数据库 | Room schema v39（`exportSchema=true`，每个版本都有迁移与迁移测试；迁移清单 `AppDatabase.ALL_MIGRATIONS` 是生产与测试共用的唯一数据源） |
 | 结构债 | `TavernApplication.instance` 51 处 / 30 个文件；包组间互相依赖 11 对（`data`、`ui` 按二级包分组，其余按顶层包） |
 | 功能缺口 | 界面模式尚未实现（规划 P3）；会话记忆默认关闭 |
-| CI | GitHub Actions 自 2026-10-01 起连续失败在「Set up Android SDK」步骤，原因待查（规划 P0 第 2 项） |
+| CI | GitHub Actions 全绿（2026-11-26，CI #49）：`verify`（构建 / 单测 / detekt / ktlint / licenseGuard）与 `instrumented`（托管设备 androidTest）。此前 #26–#48 连续失败。`instrumented` 处于观察期：只报告不拦截，连续 7 次绿后改为必须通过 |
+| release 构建 | 可正常启动并通过 14 项冒烟（2026-11-26）：修复了自引入 skiko 起的冷启动崩溃（R8 按名访问），并移除 Compose 整包 keep（每个 APK 省约 4.9MB） |
 
-一句话诊断：**工程底子扎实（64.5k 行、1163 个单测、39 版迁移链、默认全拒的安全模型），但重心偏离了产品。**
+一句话诊断：**工程底子扎实（64.5k 行、1183 个单测、39 版迁移链、默认全拒的安全模型），但重心偏离了产品。**
 
 ---
 
@@ -116,10 +117,12 @@
    - 不自动重试，重试会把不稳定藏起来。
    - 前一周 job 只报告、不拦截。连续 7 次绿之后，才改成必须通过。
    - 两天内没跑通就保持只报告状态，不阻塞后面的阶段。
+   - 已完成（2026-11-26）：CI #49 全绿，`verify`（构建 / 单测 / detekt / ktlint / licenseGuard）与 `instrumented`（托管设备 androidTest）都过。修了五轮才通：#44–#48 的失败全部出在环境搭建脚本自身（runner 上 `sdkmanager` 不在 PATH、我引入的 errexit 问题、平台包名写错），不涉及项目代码；#46 首次跑到 Gradle 时暴露并修掉了两个真实问题（单测在干净构建下编不过 f17aa28、迁移完整性测试自 v36 起失效 fb577d4）。平台包名是带小版本号的 `platforms;android-37.0`（稳定通道里没有不带小版本号的 `platforms;android-37`），与本地实际编译用的一致。未做 NDK 缓存，单次运行约 7 分钟。日志需要登录才能读，脚本把诊断写成了注解。`instrumented` 观察期从 #49 起计：1/7。
 3. **文档校准**
    - README 去掉会过期的数字（测试数、schema 数、baseline 数、「30k 行再议拆分」）和无出处的性能表。
    - 把批准后的本规划写进 `docs/ROADMAP.md`，替换 v0.3.0-beta 快照。
    - `.research_tavo` 移出版本库并修 `.gitignore`（文件留在本地；是否改历史由你定）。
+   - 已完成（2026-11-26）：7eabbb7
 4. **便宜缺陷**
    - `sendMessage` 与桥追加、删除的计数回写进事务并取会话锁（`ChatRepository.kt:154-186`、`:1964-2023`）。
    - `PanelRenderer` 单例化（`EngineMessageContent.kt:231`）。
@@ -127,6 +130,8 @@
    - 删除或清空会话时清掉 `ext.mvu.*` 键。
    - WebView 预热改为只看 `htmlUiEnabled`。
    - `-keep class androidx.compose.**` 做一次带与不带的对比：省 1MB 以上且 release 冒烟通过才移除，否则保留并写明原因。
+   - 已完成（2026-11-26）：六处修复 ab2b824，模拟器实测六项全部验证通过。keep 对比实验 fb4dc82：universal 包省 5,120,518 字节且 release 冒烟 14 项通过，按规则移除。
+   - 计划外发现并修复：开启混淆的 release 包冷启动即崩（af2b960，四层「native 代码或反射按名找类、R8 改了名」的问题，自引入 skiko 起，没有随任何已发布版本流出）。keep 实验第一次做的时候 release 包本身起不来，结论无法判定，是修好之后重做的。
 
 **验收**：`feature` 已在两个远程上；verify job 绿；`git status` 干净；ROADMAP 与现状一致。
 
@@ -137,6 +142,7 @@
    - 解冻条件：以 `HtmlBubble` 为对照，冷首帧、滚动掉帧率、常驻 10 个面板的内存增量三项均不超过 WebView 的 50% 且无泄漏；并且至少有 3 个非作者的 layout 主题包，或用户明确提出。
    - 以现在的采用情况，这个条件基本不会成立。解冻时才做那两天的测量。
    - litehtml 保持现状，不扩功能。
+   - 已完成（2026-11-26）：df5e8c1
 2. **依赖棘轮**
    - 新增 JVM 单测 `ArchitectureRulesTest`：扫描 import 与全限定名，基线存 `app/src/test/resources/architecture-baseline.json`，只减不增，不引新依赖。
    - `render` 不依赖 `ui.*`：先修 `MarkdownToNodes.kt` 的两条反向依赖。
