@@ -5,11 +5,12 @@ on:
     branches: [ feature, main, master ]
   pull_request:
 
-# Android SDK 组件直接用 runner 自带的 sdkmanager 分步安装（licenses → platform → NDK/CMake）。
-# 2026-10-01 起 android-actions/setup-android@v3 在"Set up Android SDK"步骤内失败、Gradle 尚未开始，
-# 连续 18 次运行全红；拆成独立步骤后，哪一步失败从运行页的步骤结论就能定位，不必翻日志。
-# 版本与 app/build.gradle 对齐：compileSdk 37、ndkVersion 28.2.13676358、CMake 3.22.1。
-# build-tools 由 AGP 按自身默认版本自动补装（licenses 已接受）。
+# Android SDK 组件经仓库内的复合 action ./.github/actions/android-sdk 安装：定位或下载
+# command-line tools → 接受许可 → sdkmanager 安装。两个 job 共用同一份，避免漂移。
+# 版本与 app/build.gradle 对齐：compileSdk 37、ndkVersion 28.2.13676358、CMake 3.22.1；
+# build-tools 由 AGP 按自身默认版本自动补装（许可已接受）。
+# 背景：2026-10-01 至 2026-11-26 的 19 次运行全部失败在环境搭建阶段（Gradle 从未开始）——
+# 先是 android-actions/setup-android@v3，改用 runner 自带 sdkmanager 后是命令不在 PATH（退出码 127）。
 
 jobs:
   verify:
@@ -26,23 +27,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Accept Android SDK licenses
-        shell: bash
-        # `yes` 被对端关闭管道时以 SIGPIPE 退出，在 pipefail 下会让步骤误判失败，故兜底为 true；
-        # 许可没真正接受的话，后面两步安装会明确失败
-        run: yes | sdkmanager --licenses > /dev/null || true
-
-      - name: Install Android platform 37
-        shell: bash
-        run: sdkmanager "platforms;android-37"
-
-      - name: Install NDK 28.2.13676358 and CMake 3.22.1
-        shell: bash
-        run: sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
-
-      - name: List installed Android SDK packages
-        shell: bash
-        run: sdkmanager --list_installed | tail -n 30
+      - name: Set up Android SDK (platform 37, NDK 28.2.13676358, CMake 3.22.1)
+        uses: ./.github/actions/android-sdk
+        with:
+          packages: |
+            platform-tools
+            platforms;android-37
+            ndk;28.2.13676358
+            cmake;3.22.1
 
       - name: Set up Gradle（缓存与校验）
         uses: gradle/actions/setup-gradle@v4
@@ -51,7 +43,7 @@ jobs:
         run: chmod +x gradlew
 
       # 与本地 `gradlew checkAll` 等价的五个检查，拆成独立步骤：日志需要登录才能看，
-      # 步骤级结论匿名可读，哪一步失败从运行页就能定位
+      # 步骤级结论与失败注解（含退出码）匿名可读，哪一步失败从运行页就能定位
       - name: assembleDebug
         run: ./gradlew :app:assembleDebug --console=plain
 
@@ -91,14 +83,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Accept Android SDK licenses
-        shell: bash
-        run: yes | sdkmanager --licenses > /dev/null || true
-
-      - name: Install Android platform 37, NDK, CMake and the managed device image
-        shell: bash
-        # 托管设备镜像与 app/build.gradle 的 testOptions.managedDevices.ciPixel6Api34 对应
-        run: sdkmanager "platforms;android-37" "ndk;28.2.13676358" "cmake;3.22.1" "system-images;android-34;aosp;x86_64"
+      - name: Set up Android SDK (platform 37, NDK, CMake, managed device image)
+        uses: ./.github/actions/android-sdk
+        with:
+          # 最后一项与 app/build.gradle 的 testOptions.managedDevices.ciPixel6Api34 对应
+          packages: |
+            platform-tools
+            platforms;android-37
+            ndk;28.2.13676358
+            cmake;3.22.1
+            system-images;android-34;aosp;x86_64
 
       - name: Enable KVM
         # 托管设备依赖 /dev/kvm；runner 镜像默认只允许 kvm 组访问
@@ -116,7 +110,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run androidTest on the managed device
-        # 82 例 instrumented 测试：Room 迁移数据完整性、向量/记忆契约、渲染冒烟
+        # instrumented 测试：Room 迁移数据完整性、向量/记忆契约、渲染冒烟
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:ciPixel6Api34DebugAndroidTest --console=plain
 
       - name: Upload androidTest reports

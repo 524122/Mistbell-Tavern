@@ -1,0 +1,68 @@
+name: Set up Android SDK components
+description: >-
+  定位或下载 Android command-line tools，接受 SDK 许可，再用 sdkmanager 安装指定组件。
+  供 ci.yml 的 verify 与 instrumented 两个 job 共用。
+
+inputs:
+  packages:
+    description: 要安装的 sdkmanager 包，每行一个（包名含分号，逐行传递以免被 shell 当作命令分隔符）
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Locate or download Android command-line tools
+      shell: bash
+      run: |
+        set -euo pipefail
+        # 2026-11-26 实测：ubuntu-latest 的 shell 里 sdkmanager 不在 PATH 上（直接调用退出码 127），
+        # 也不依赖 android-actions/setup-android（它在 runner 上失败）。这里自己定位或下载。
+        DEFAULT_SDK_ROOT="/usr/local/lib/android/sdk"
+        if [ -n "${ANDROID_HOME:-}" ]; then
+          SDK_ROOT="$ANDROID_HOME"
+        elif [ -d "$DEFAULT_SDK_ROOT" ]; then
+          SDK_ROOT="$DEFAULT_SDK_ROOT"
+        else
+          SDK_ROOT="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$SDK_ROOT"
+        fi
+        CMDLINE_TOOLS="$SDK_ROOT/cmdline-tools/latest"
+        CMDLINE_TOOLS_VERSION="11076708"
+        if [ ! -x "$CMDLINE_TOOLS/bin/sdkmanager" ]; then
+          echo "command-line tools not found under $SDK_ROOT; downloading version $CMDLINE_TOOLS_VERSION"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          rm -rf "$RUNNER_TEMP/cmdline-tools.zip" "$RUNNER_TEMP/cmdline-tools-unzip"
+          curl -fsSL -o "$RUNNER_TEMP/cmdline-tools.zip" \
+            "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
+          unzip -q "$RUNNER_TEMP/cmdline-tools.zip" -d "$RUNNER_TEMP/cmdline-tools-unzip"
+          rm -rf "$CMDLINE_TOOLS"
+          mv "$RUNNER_TEMP/cmdline-tools-unzip/cmdline-tools" "$CMDLINE_TOOLS"
+        fi
+        echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+        echo "$CMDLINE_TOOLS/bin" >> "$GITHUB_PATH"
+        echo "SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+        "$CMDLINE_TOOLS/bin/sdkmanager --version"
+
+    - name: Accept Android SDK licenses
+      shell: bash
+      # 固定写入若干个 y 而不是 `yes | ...`：后者在 pipefail 下会因 SIGPIPE（141）误判失败，
+        # 而给管道加 `|| true` 又会把真正的错误（例如命令不存在）一并掩盖
+      run: printf 'y\ny\ny\ny\ny\ny\ny\ny\n' | sdkmanager --licenses > /dev/null
+
+    - name: Install requested packages
+      shell: bash
+      env:
+        ANDROID_PACKAGES: ${{ inputs.packages }}
+      run: |
+        set -euo pipefail
+        args=()
+        while IFS= read -r pkg; do
+          pkg="${pkg%$'\r'}"
+          if [ -n "$pkg" ]; then args+=("$pkg"); fi
+        done <<< "$ANDROID_PACKAGES"
+        echo "installing: ${args[*]}"
+        sdkmanager "${args[@]}"
+
+    - name: List installed packages
+      shell: bash
+      run: sdkmanager --list_installed | tail -n 40
