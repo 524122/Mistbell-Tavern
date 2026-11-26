@@ -47,9 +47,15 @@
     volatile <fields>;
 }
 
-# Compose
--keep class androidx.compose.** { *; }
--keep class androidx.compose.runtime.** { *; }
+# Compose：不按名反射、无 JNI 绑定，不需要整包 keep。
+# 2026-11-26 对比实验（release/universal，R8 minify）：移除下面两条 keep 省下
+# 5,120,518 字节（86,055,959 → 80,935,441，各 ABI 一致），且 14 项 release 冒烟
+# 全部通过（冷启动、聊天流式/落库/杀进程重开、会话增删、角色/世界书/正则/规则包/
+# 扩展包/快捷回复/API 编辑器、Rhino 宿主钩子 JSEXT·hosthook-demo 真实执行、
+# HTML 界面 TavernJsBridge 桥接、布局主题引擎 skiko、litehtml 表格渲染、
+# 记忆/备份页面），全程无 ClassNotFoundException / NoSuchMethodError /
+# JNI DETECTED ERROR / R8 相关 NPE。Compose 官方 consumer 规则已覆盖反射点，
+# 故正式移除；如未来引入按名反射 Compose 内部类的依赖再评估恢复。
 
 # Yoga（M1 spike）：JNI native 方法按 C++ 符号（Java_com_facebook_yoga_*）绑定，类/方法不能被改名或剔除。
 # AAR 自带的 consumer 规则只 keep @DoNotStrip 成员，这里对 native 宿主类兜底（release 开了 minify）。
