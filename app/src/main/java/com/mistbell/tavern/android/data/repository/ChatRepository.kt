@@ -7,7 +7,9 @@ import com.mistbell.tavern.android.data.api.ChatMessage
 import com.mistbell.tavern.android.data.api.LlmClient
 import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.api.model.*
+import com.mistbell.tavern.android.data.local.AppDatabase
 import com.mistbell.tavern.android.data.local.entity.*
+import com.mistbell.tavern.android.data.mvu.MvuVariableKeys
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.extension.ExtensionRegistry
 import com.mistbell.tavern.android.extension.ReplyHookContext
@@ -150,10 +152,19 @@ class ChatRepository(private val context: Context) {
                     swipeIndex = 0,
                 )
 
-            // 1. Save user message locally
-            db.messageDao().upsert(
-                MessageEntity.fromDomain(userMsg, sessionId, ownerId, characterId),
-            )
+            // 1+2. 用户消息落库与会话计数/标题/updatedAt 回写收进同一 Room 事务：
+            // 并发发送/撤销时计数不再丢（读会话发生在消息已写入之后，事务体内天然有序）。
+            // 事件发射与向量任务启动留在事务外——事务只包这两步写库，不改变原有时序。
+            db.withTransaction {
+                saveUserMessageAndSyncSessionCount(
+                    db = db,
+                    ownerId = ownerId,
+                    characterId = characterId,
+                    sessionId = sessionId,
+                    userMessage = MessageEntity.fromDomain(userMsg, sessionId, ownerId, characterId),
+                    titleSeed = message,
+                )
+            }
             TavernEventBus.emit(TavernEvent.MessageSent(ownerId, characterId, sessionId, msgId))
 
             // 1.5. 源插入与恢复意图已由同一 Room 事务记录；后台恢复器自行在锁外 embedding、
@@ -165,23 +176,6 @@ class ChatRepository(private val context: Context) {
                     characterId = characterId,
                     sessionId = sessionId,
                     messageId = msgId,
-                )
-            }
-
-            // 2. Update session message count
-            val session = db.sessionDao().get(sessionId, ownerId, characterId)
-            if (session != null) {
-                db.sessionDao().upsert(
-                    session.copy(
-                        messageCount = session.messageCount + 1,
-                        updatedAt = userMsg.createdAt,
-                        title =
-                            if (session.title.isBlank() && session.messageCount == 0) {
-                                message.take(26)
-                            } else {
-                                session.title
-                            },
-                    ),
                 )
             }
 
@@ -943,6 +937,8 @@ class ChatRepository(private val context: Context) {
                 // 与 deleteSession 对称：清空连本会话的结构化记忆一起清掉——
                 // 旧记忆留在库里只会被召回注入一个"什么都没发生过"的提示词
                 structuredMemoryRepo.deleteMemoriesBySession(ownerId, sessionId)
+                // 会话级 MVU 变量随会话清空一并删除（settings 表的 ext.mvu.* 键）
+                MvuVariableKeys.deleteSessionKeys(db.settingsDao(), sessionId)
                 // 会话级删除：群聊 NPC 消息与主角色消息同属一个归属单元，一并清空
                 val messageIds = db.messageDao().idsBySession(sessionId, ownerId)
                 db.messageDao().deleteBySession(sessionId, ownerId)
@@ -1103,6 +1099,9 @@ class ChatRepository(private val context: Context) {
                 // 删除该会话的所有记忆
                 db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
                 structuredMemoryRepo.deleteMemoriesBySession(ownerId, sessionId)
+                // 会话级 MVU 变量随会话一并删除（settings 表的 ext.mvu.* 键），否则已删
+                // 会话的变量会永久残留、重建同 id 会话（如备份恢复）还会意外继承旧变量
+                MvuVariableKeys.deleteSessionKeys(db.settingsDao(), sessionId)
                 val messageIds = db.messageDao().idsBySession(sessionId, ownerId)
                 db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
                 deleteSessionVectors(ownerId, sessionId, messageIds)
@@ -1960,6 +1959,10 @@ class ChatRepository(private val context: Context) {
      * 桥在会话末尾追加一条消息；返回新消息 id，会话不存在返回 null。
      * 与正常落库路径同构：发 MessageSent/Received 事件 + 会话计数同步；
      * 向量/记忆抽取不接（桥消息多为 UI 产物，召回价值低，避免离线向量任务堆积）。
+     *
+     * 会话锁 + Room 事务：桥宿主方法经 runBlocking(IO) 进来、不持会话锁，取锁与
+     * 删除/清空互斥；消息 upsert 与计数回写同一事务（与 sendMessage 同构，计数不丢）。
+     * 事件在事务提交后发射（写库失败不发射，语义与原实现一致：只在追加成功时发）。
      */
     suspend fun bridgeAppendMessage(
         ownerId: String,
@@ -1969,7 +1972,86 @@ class ChatRepository(private val context: Context) {
         content: String,
     ): String? =
         withContext(Dispatchers.IO) {
-            val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@withContext null
+            appendBridgeMessageWithSessionLock(db, ownerId, characterId, sessionId, role, content) { block ->
+                db.withTransaction { block() }
+            }
+        }?.let { msgId ->
+            if (role == "user") {
+                TavernEventBus.emit(TavernEvent.MessageSent(ownerId, characterId, sessionId, msgId))
+            } else {
+                TavernEventBus.emit(TavernEvent.MessageReceived(ownerId, characterId, sessionId, msgId))
+            }
+            msgId
+        }
+
+    /** 桥按 id 批量删除消息；返回实际删除条数，会话计数同步扣减（不为负）。 */
+    suspend fun bridgeDeleteMessages(
+        ownerId: String,
+        characterId: String,
+        sessionId: String,
+        messageIds: List<String>,
+    ): Int =
+        withContext(Dispatchers.IO) {
+            deleteBridgeMessagesWithSessionLock(db, ownerId, characterId, sessionId, messageIds) { block ->
+                db.withTransaction { block() }
+            }
+        }
+}
+
+// ---- 会话写路径的事务体（internal 顶层函数，JVM 单测直接钉契约） ----
+// 单测不能跑 Room 事务（替身 db 无 Room 连接），因此事务边界留在类成员、由生产调用方
+// `db.withTransaction { block() }` 包裹；这些函数是事务体的唯一实现，测试验证其内部语义
+// （写入顺序、计数按真实状态回写），事务原子性由 Room 保证（编译期即固定）。
+
+/**
+ * 用户消息落库 + 会话计数/标题/updatedAt 回写（sendMessage 的事务体）。
+ * 先写消息再读会话——计数回写永远基于消息已写入后的库内状态（调用方负责事务）。
+ */
+@Suppress("LongParameterList") // 事务体签名与 DAO 键一一对应（owner/character/session + 消息字段）
+internal suspend fun saveUserMessageAndSyncSessionCount(
+    db: AppDatabase,
+    ownerId: String,
+    characterId: String,
+    sessionId: String,
+    userMessage: MessageEntity,
+    titleSeed: String,
+) {
+    db.messageDao().upsert(userMessage)
+    val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return
+    db.sessionDao().upsert(
+        session.copy(
+            messageCount = session.messageCount + 1,
+            updatedAt = userMessage.createdAt,
+            title =
+                if (session.title.isBlank() && session.messageCount == 0) {
+                    titleSeed.take(TITLE_SEED_MAX_CHARS)
+                } else {
+                    session.title
+                },
+        ),
+    )
+}
+
+/**
+ * 桥追加消息的锁内写路径（bridgeAppendMessage 的事务体；调用方负责事务边界）：
+ * 会话不存在返回 null；否则消息落库 + 计数 +1，返回新消息 id。
+ *
+ * @param transact 事务执行器：生产传 Room 事务（落库与计数原子），JVM 单测传默认直通
+ *   （替身 db 无 Room 连接）；只包写库两步，事件发射留在调用方事务外。
+ */
+@Suppress("LongParameterList") // 事务体签名与 DAO 键一一对应（owner/character/session + 消息字段）
+internal suspend fun appendBridgeMessageWithSessionLock(
+    db: AppDatabase,
+    ownerId: String,
+    characterId: String,
+    sessionId: String,
+    role: String,
+    content: String,
+    transact: suspend (suspend () -> String?) -> String? = { it() },
+): String? =
+    SessionMutationLocks.withSessionLock(sessionId) {
+        transact {
+            val session = db.sessionDao().get(sessionId, ownerId, characterId) ?: return@transact null
             val msgId = UUID.randomUUID().toString()
             val now = java.time.Instant.now().toString()
             db.messageDao().upsert(
@@ -1988,30 +2070,31 @@ class ChatRepository(private val context: Context) {
                     thinkingSwipesJson = "",
                 ),
             )
-            if (role == "user") {
-                TavernEventBus.emit(TavernEvent.MessageSent(ownerId, characterId, sessionId, msgId))
-            } else {
-                TavernEventBus.emit(TavernEvent.MessageReceived(ownerId, characterId, sessionId, msgId))
-            }
             db.sessionDao().upsert(session.copy(messageCount = session.messageCount + 1, updatedAt = now))
             msgId
         }
+    }
 
-    /** 桥按 id 批量删除消息；返回实际删除条数，会话计数同步扣减（不为负）。 */
-    suspend fun bridgeDeleteMessages(
-        ownerId: String,
-        characterId: String,
-        sessionId: String,
-        messageIds: List<String>,
-    ): Int =
-        withContext(Dispatchers.IO) {
-            var deleted = 0
-            messageIds.forEach { id ->
-                if (db.messageDao().getAnyById(id) != null) {
-                    db.messageDao().deleteById(id)
-                    deleted++
-                }
-            }
+/**
+ * 桥批量删除的锁内写路径（bridgeDeleteMessages 的事务体；调用方负责事务边界）：
+ * 整批删除与会话计数回写同一事务，计数按删除的真实行数扣减且不为负，返回真实删除条数。
+ *
+ * @param transact 事务执行器：生产传 Room 事务，JVM 单测传默认直通（理由见 appendBridgeMessageWithSessionLock）。
+ */
+@Suppress("LongParameterList") // 事务体签名与 DAO 键一一对应（owner/character/session + 目标 id 集）
+internal suspend fun deleteBridgeMessagesWithSessionLock(
+    db: AppDatabase,
+    ownerId: String,
+    characterId: String,
+    sessionId: String,
+    messageIds: List<String>,
+    transact: suspend (suspend () -> Int) -> Int = { it() },
+): Int =
+    SessionMutationLocks.withSessionLock(sessionId) {
+        transact {
+            if (messageIds.isEmpty()) return@transact 0
+            // 删除 DAO 返回真实受影响行数（不存在的 id 不计），计数按此自愈，不逐条查删
+            val deleted = db.messageDao().deleteByIds(messageIds)
             if (deleted > 0) {
                 db.sessionDao().get(sessionId, ownerId, characterId)?.let { session ->
                     db.sessionDao().upsert(
@@ -2021,4 +2104,6 @@ class ChatRepository(private val context: Context) {
             }
             deleted
         }
-}
+    }
+
+private const val TITLE_SEED_MAX_CHARS = 26

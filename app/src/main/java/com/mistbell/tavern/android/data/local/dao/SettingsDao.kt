@@ -20,6 +20,10 @@ interface SettingsDao {
     @Upsert
     suspend fun upsert(setting: SettingsEntity)
 
+    /** 按键删除（MVU 会话变量键等随会话删除的清理用；表结构不变，无需迁移） */
+    @Query("DELETE FROM settings WHERE `key` = :key")
+    suspend fun deleteByKey(key: String)
+
     @Query("DELETE FROM settings")
     suspend fun deleteAll()
 }

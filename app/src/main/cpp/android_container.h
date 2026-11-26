@@ -10,6 +10,11 @@
 class AndroidContainer : public litehtml::document_container {
 public:
     AndroidContainer(JNIEnv* env, int widthCssPx, float density);
+    // api_.cls 是全局引用，容器随每次 nativeRender 栈上重建，析构必须释放
+    ~AndroidContainer();
+    // 持有全局引用与 JNIEnv，不可拷贝：否则拷贝析构会把同一个全局引用删除两次
+    AndroidContainer(const AndroidContainer&) = delete;
+    AndroidContainer& operator=(const AndroidContainer&) = delete;
 
     void setCanvas(jobject canvas);
 

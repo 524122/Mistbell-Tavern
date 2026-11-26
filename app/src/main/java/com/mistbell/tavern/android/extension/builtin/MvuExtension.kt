@@ -1,6 +1,7 @@
 package com.mistbell.tavern.android.extension.builtin
 
 import com.mistbell.tavern.android.data.mvu.MvuEngine
+import com.mistbell.tavern.android.data.mvu.MvuVariableKeys
 import com.mistbell.tavern.android.extension.ReplyHookContext
 import com.mistbell.tavern.android.extension.ReplyPostProcessor
 import com.mistbell.tavern.android.extension.TavernEvent
@@ -55,8 +56,10 @@ class MvuExtension : TavernExtension, ReplyPostProcessor {
         /** 排在回复后处理链的中段（规则包 200 之后）：变量更新先看原始回复 */
         private const val LOADING_ORDER = 400
 
-        fun statKey(sessionId: String) = "ext.mvu.$sessionId"
+        // 键名生成收拢到 data 层（ChatRepository 删除/清空会话时按同款键名清理，
+        // 且 data.repository 不得反向依赖 extension），此处委托保持既有调用方兼容
+        fun statKey(sessionId: String) = MvuVariableKeys.statKey(sessionId)
 
-        fun versionKey(sessionId: String) = "ext.mvu.ver.$sessionId"
+        fun versionKey(sessionId: String) = MvuVariableKeys.versionKey(sessionId)
     }
 }

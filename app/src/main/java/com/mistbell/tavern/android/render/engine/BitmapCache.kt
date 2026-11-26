@@ -4,6 +4,9 @@ package com.mistbell.tavern.android.render.engine
  * 位图 LRU 缓存（M3）：自写 LinkedHashMap 实现（**不用 android.util.LruCache**，保持本类可 JVM
  * 单测），按条目字节计费淘汰，线程安全（synchronize）。
  *
+ * 共享实例（EngineBootstrap.bitmapCache）**只允许在引擎渲染调度器（EngineBootstrap.renderDispatcher）
+ * 上访问**：方法级 synchronize 只保护 map 一致性，不保证跨渲染的可见顺序，共享复用必须串行。
+ *
  * key 语义（PanelRenderer 使用）：(内容 hash, 变量版本, 宽度, 密度)；本类对 key 类型无假设。
  * 泛型 V 的字节计费由 [sizeOf] 注入（引擎出口处传 Bitmap.byteCount）。
  */

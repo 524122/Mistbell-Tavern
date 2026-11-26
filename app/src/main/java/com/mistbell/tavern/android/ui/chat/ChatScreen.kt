@@ -246,10 +246,13 @@ fun ChatScreen(
     val engineVariables by viewModel.engineVariables.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
-    // 预热 WebView：提前初始化 Chromium 进程，首个 HTML 消息直接复用（只预热不加载文档）
+    // 预热 WebView：提前初始化 Chromium 进程，首个 HTML 消息直接复用（只预热不加载文档）。
+    // 仅在 HTML 界面开启时预热：开关关闭时用户永远走不到 WebView 气泡，预热纯属浪费内存。
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        com.mistbell.tavern.android.ui.chat.htmlui.HtmlWebViewPool.preheat(appContext)
+    androidx.compose.runtime.LaunchedEffect(htmlUiEnabled) {
+        if (htmlUiEnabled) {
+            com.mistbell.tavern.android.ui.chat.htmlui.HtmlWebViewPool.preheat(appContext)
+        }
     }
     // 会话退出时兜底销毁未被取走的预热实例
     androidx.compose.runtime.DisposableEffect(sessionId) {

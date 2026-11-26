@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mistbell.tavern.android.data.repository.ResolvedLayoutPack
 import com.mistbell.tavern.android.data.repository.THEME_SUPPORTED_TEMPLATE_VERSION
+import com.mistbell.tavern.android.render.engine.EngineBootstrap
 import com.mistbell.tavern.android.render.engine.PanelRenderer
 import com.mistbell.tavern.android.render.engine.RenderRequest
 import com.mistbell.tavern.android.render.engine.RenderResult
@@ -75,7 +76,6 @@ import com.mistbell.tavern.android.ui.theme.AccentGreen
 import com.mistbell.tavern.android.ui.theme.AccentGreenDark
 import com.mistbell.tavern.android.ui.theme.AccentOrange
 import com.mistbell.tavern.android.ui.theme.AccentOrangeDark
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
@@ -135,7 +135,7 @@ private const val CONTENT_HASH_MULTIPLIER = 31
 
 /**
  * 引擎消息内容体（M4 内容缝）：正则后显示内容 → HtmlCardDetector 分段 → 模板 slot 填充 →
- * PanelRenderer 在 Dispatchers.Default 渲染 → Bitmap 展示（气泡壳/手势仍归 Compose）。
+ * PanelRenderer 在引擎共享调度器（EngineBootstrap.renderDispatcher）渲染 → Bitmap 展示（气泡壳/手势仍归 Compose）。
  *
  * 失败语义：渲染结果 [RenderResult.fallback]（引擎内部异常/未引导）→ 原地切 [legacy] 内容
  * （MessageBubble 既有分支），绝不崩聊天页、绝不静默丢内容。
@@ -227,8 +227,12 @@ fun EngineMessageContent(
                     if (widthPx <= 0 || widthDp <= 0f) {
                         null
                     } else {
-                        withContext(Dispatchers.Default) {
-                            PanelRenderer().render(
+                        // 引擎渲染统一切共享调度器（单线程串行）：缓存与测量器跨渲染复用的前提
+                        withContext(EngineBootstrap.renderDispatcher) {
+                            PanelRenderer(
+                                cache = EngineBootstrap.bitmapCache,
+                                measurer = EngineBootstrap.textMeasurer,
+                            ).render(
                                 RenderRequest(
                                     template = template,
                                     narrative = narrative,

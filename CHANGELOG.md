@@ -27,6 +27,15 @@
 - 「世界书」Tab 全局设置分组布局紧凑化重排：分组默认收起（打开 Tab 先见书卡列表，点「世界书全局参数」行展开）；扫描深度 / Token 预算 (%) / 预算上限 / 最小激活数 / 加深扫描上限五个数字行改为「左标题+右行内小输入框（80dp、48dp 触达高度）」单行布局；组标题与折叠行合并为单行不再叠两层大标题；副标题删除「对齐酒馆 / 英文字段名」类开发注记（保留默认值等有用提示）；插入策略 chips 标签缩短为「角色书优先 / 混排 / 全局书优先」并改用 FlowRow 窄屏自动换行——设置键、整数校验与逐键保存行为均不变。
 - 「设置」Tab 的世界书全局设置区整体迁移至「世界书」Tab：书籍列表上方新增「⚙️ 全局设置」分组（默认展开、可点按收起，仅底部导航 Tab 场景显示）。扫描深度、Token 预算 (%)、预算上限 (token)、深度插入进历史、递归扫描、最小激活数、加深扫描上限、扫描带名字前缀、分组按匹配分选拔、全局世界书多选、Persona 世界书绑定与插入策略全部原样迁入，继续绑定同一 SettingsViewModel（MainScreen 世界书 Tab 与设置 Tab 用同一 factory 取同一实例）——纯 UI 迁移，功能、控件与设置键（world_info_*）均不变；设置页删除该分组及全部专属行组件，不留副本；全局书 id 集合解析从 Composable 内联抽为纯函数 parseGlobalBookIds（JVM 单测 6 例）。导航图中遗留的独立 WORLD_BOOK_LIST 路由默认不显示该分组，行为不变。
 
+### Fixed
+- `sendMessage` 落库原子化：用户消息写入与会话计数 / 标题 / updatedAt 回写收进同一 Room 事务（事务体抽为 `saveUserMessageAndSyncSessionCount`），并发发送与撤销时计数不再丢；事件发射与向量任务启动留在事务之外，时序不变。
+- 桥消息写路径补会话锁与事务：`bridgeAppendMessage` / `bridgeDeleteMessages` 先取会话互斥锁（`SessionMutationLocks`，与删除 / 清空会话互斥）再进 Room 事务，此前既不取锁也不在事务里；批量删除由逐条「先查存在再删」改为单条 `IN` 语句（新增 `MessageDao.deleteByIds`，返回真实受影响行数），会话计数按真实行数回写且不为负；事件改在事务提交后发射。调用方（WebView 桥线程、扩展钩子的能力面）经 `runBlocking(IO)` 进入且不持会话锁，回复后处理链与提示词拦截器均在会话锁之外执行，不存在自锁。
+- 主题渲染引擎的缓存跨渲染复用：`EngineBootstrap` 单例持有 24MB 位图缓存与文本测量器，并提供单并发渲染调度器（`Dispatchers.Default.limitedParallelism(1)`——skia 对象与 LRU 缓存不是线程安全的，共享后必须串行）；`EngineMessageContent` 不再每次渲染新建 `PanelRenderer` 默认缓存，此前生产路径上二级缓存永不命中。
+- litehtml JNI 每次渲染泄漏一个全局引用：`AndroidContainer` 在析构里 `DeleteGlobalRef`，并禁用拷贝（否则拷贝析构会把同一个全局引用删除两次）。
+- litehtml 位图尺寸封顶：单边不超过 16384px、位图不超过 64MB（ARGB_8888），超限拒绝渲染并走既有的「原文留在气泡」回落；此前位图高度没有上限。
+- 删除 / 清空会话时一并删除该会话的 MVU 变量键（`ext.mvu.<sessionId>` 与版本键；键名收拢到 `data/mvu/MvuVariableKeys`，`MvuExtension` 改为委托，`data.repository` 不反向依赖 `extension`），覆盖 `ChatRepository` 的删除 / 清空路径与会话列表的单删 / 多选删 / 全部删除；此前已删会话的变量会永久残留。新增 `SettingsDao.deleteByKey`（不改表结构）。
+- 聊天页的 WebView 预热只在 HTML 界面开关开启时进行，此前无条件预热。
+
 ## [0.9.8-beta] - 2026-11-01
 
 ### Added

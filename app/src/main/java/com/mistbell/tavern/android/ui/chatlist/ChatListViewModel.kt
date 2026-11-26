@@ -15,6 +15,7 @@ import com.mistbell.tavern.android.data.api.model.SessionSummary
 import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
+import com.mistbell.tavern.android.data.mvu.MvuVariableKeys
 import com.mistbell.tavern.android.data.repository.SessionMutationLocks
 import com.mistbell.tavern.android.data.vector.deleteSessionVectors
 import com.mistbell.tavern.android.util.SessionExportData
@@ -296,6 +297,9 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
         db.memoryDao().deleteBySession(ownerId, characterId, sessionId)
         db.structuredMemoryDao().deleteBySession(ownerId, sessionId)
         db.vectorMemoryDao().deleteBySession(ownerId, sessionId)
+        // 会话级 MVU 变量随会话一并删除（settings 表的 ext.mvu.* 键；与 ChatRepository 的
+        // 删除/清空路径同款清理，批量删除 deleteAllSessions 逐会话走到这里）
+        MvuVariableKeys.deleteSessionKeys(db.settingsDao(), sessionId)
         // 契约 1：deleteBySession 会话级化（删除 character_id 过滤与参数）
         db.messageDao().deleteBySession(sessionId, ownerId)
         db.sessionDao().delete(sessionId, ownerId, characterId)

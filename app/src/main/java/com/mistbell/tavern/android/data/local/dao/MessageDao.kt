@@ -141,6 +141,13 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :messageId")
     suspend fun deleteById(messageId: String)
 
+    /**
+     * 桥按 id 批量删除：返回真实删除行数（不存在的 id 不计），调用方据此自愈回写会话计数。
+     * 空集合调用方必须先行短路（Room 对空 IN 集合生成非法 SQL）。
+     */
+    @Query("DELETE FROM messages WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: Collection<String>): Int
+
     /** 按 owner 全量删除（deleteAllSessions 的孤儿清理用；不带 owner 条件的 deleteAll 会越界） */
     @Query("DELETE FROM messages WHERE owner_id = :ownerId")
     suspend fun deleteByOwner(ownerId: String)

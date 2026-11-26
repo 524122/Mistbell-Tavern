@@ -22,6 +22,10 @@ import org.jetbrains.skia.paragraph.TextStyle
  * 缓存，创建时 layout 一次后**不再重排**——同 key 复用同一实例测量与绘制，保证测得高度与
  * 绘制布局一致；不同约束宽各自独立实例。缓存为线程安全 LRU（Yoga 测量回调所在线程不定）。
  *
+ * 共享实例（EngineBootstrap.textMeasurer）**只允许在引擎渲染调度器（EngineBootstrap.renderDispatcher）
+ * 上访问**：已 layout 的 Paragraph 是不可重入的 skia JNI 对象，多线程同时 measure/draw 同一
+ * 实例不安全，共享复用必须串行。
+ *
  * 本类触碰 skiko JNI，不可 JVM 单测；逻辑保持薄。
  */
 class TextMeasurer(

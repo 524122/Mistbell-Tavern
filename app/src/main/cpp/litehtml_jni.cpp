@@ -3,6 +3,7 @@
 #include <android/log.h>
 
 #include <cmath>
+#include <cstdint>
 #include <exception>
 #include <string>
 
@@ -10,6 +11,10 @@ namespace {
 
 constexpr const char* kLogTag = "LiteHtml";
 constexpr int kMinBitmapPx = 1;
+// 位图尺寸上限：恶意/异常高的布局可能让 document->height() 报出超大值，无封顶会直接
+// 申请超大位图压垮内存。单边封顶 + 总字节（ARGB_8888 每像素 4 字节）双重封顶。
+constexpr int kMaxBitmapSidePx = 16384;
+constexpr int64_t kMaxBitmapBytes = 64LL * 1024 * 1024;
 
 void throwRuntime(JNIEnv* env, const std::string& message) {
     if (env->ExceptionCheck()) {
@@ -80,6 +85,11 @@ Java_com_mistbell_tavern_android_render_litehtml_LiteHtmlRenderer_nativeRender(
         const int heightCss = std::max(kMinBitmapPx, static_cast<int>(std::ceil(document->height())));
         const int widthPx = std::max(kMinBitmapPx, static_cast<int>(std::ceil(widthCssPx * density)));
         const int heightPx = std::max(kMinBitmapPx, static_cast<int>(std::ceil(heightCss * density)));
+        if (widthPx > kMaxBitmapSidePx || heightPx > kMaxBitmapSidePx ||
+            static_cast<int64_t>(widthPx) * heightPx * 4 > kMaxBitmapBytes) {
+            throwRuntime(env, "litehtml 位图尺寸超限：单边不超过 16384px 且位图不超过 64MB，已拒绝渲染");
+            return nullptr;
+        }
         jobject bitmap = createBitmap(env, widthPx, heightPx);
         if (bitmap == nullptr || env->ExceptionCheck()) {
             return nullptr;

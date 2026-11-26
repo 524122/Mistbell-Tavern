@@ -28,6 +28,13 @@ jint colorOf(const litehtml::web_color& color) {
 AndroidContainer::AndroidContainer(JNIEnv* env, int widthCssPx, float density)
     : env_(env), widthCssPx_(widthCssPx), density_(density) {}
 
+AndroidContainer::~AndroidContainer() {
+    if (api_.cls != nullptr) {
+        env_->DeleteGlobalRef(api_.cls);
+        api_.cls = nullptr;
+    }
+}
+
 void AndroidContainer::setCanvas(jobject canvas) { canvas_ = canvas; }
 
 bool AndroidContainer::failed() const { return env_->ExceptionCheck(); }
