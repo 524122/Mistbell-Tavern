@@ -72,6 +72,9 @@ runs:
       # 固定写入若干个 y 而不是 `yes | ...`：后者在 pipefail 下会因 SIGPIPE（141）误判失败，
       # 而给管道加 `|| true` 又会把真正的错误（例如命令不存在）一并掩盖
       run: |
+        # 显式关掉 errexit：GitHub 对 `shell: bash` 的步骤默认用 bash -eo pipefail 启动，
+        # 这里的命令返回非零时要在后面自己取退出码、输出注解，不能让它直接终止脚本（CI #47 的教训）
+        set +e
         set -uo pipefail
         log="$RUNNER_TEMP/sdk-licenses.log"
         printf 'y\ny\ny\ny\ny\ny\ny\ny\n' | sdkmanager --licenses > "$log" 2>&1
@@ -88,6 +91,8 @@ runs:
       env:
         ANDROID_PACKAGES: ${{ inputs.packages }}
       run: |
+        # 显式关掉 errexit（理由见「Accept Android SDK licenses」一步）：sdkmanager 的退出码要自己取
+        set +e
         set -uo pipefail
         args=()
         while IFS= read -r pkg; do
@@ -128,4 +133,13 @@ runs:
 
     - name: List installed packages
       shell: bash
-      run: sdkmanager --list_installed | tail -n 40
+      # 仅用于留档：sdkmanager 的退出码只变成一条警告，不让这一步失败
+      run: |
+        set +e
+        output="$(sdkmanager --list_installed 2>&1)"
+        code=$?
+        printf '%s\n' "$output" | tail -n 40
+        if [ "$code" -ne 0 ]; then
+          echo "::warning title=sdkmanager::--list_installed 退出码 $code（仅留档，不影响后续步骤）"
+        fi
+        exit 0
