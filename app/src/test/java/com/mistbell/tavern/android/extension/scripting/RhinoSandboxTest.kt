@@ -32,6 +32,10 @@ class RhinoSandboxTest {
                 memSettings[setting.key] = setting.value
             }
 
+            override suspend fun deleteByKey(key: String) {
+                memSettings.remove(key)
+            }
+
             override suspend fun deleteAll() {
                 memSettings.clear()
             }

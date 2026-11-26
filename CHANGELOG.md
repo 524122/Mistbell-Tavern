@@ -36,6 +36,7 @@
 - litehtml 位图尺寸封顶：单边不超过 16384px、位图不超过 64MB（ARGB_8888），超限拒绝渲染并走既有的「原文留在气泡」回落；此前位图高度没有上限。
 - 删除 / 清空会话时一并删除该会话的 MVU 变量键（`ext.mvu.<sessionId>` 与版本键；键名收拢到 `data/mvu/MvuVariableKeys`，`MvuExtension` 改为委托，`data.repository` 不反向依赖 `extension`），覆盖 `ChatRepository` 的删除 / 清空路径与会话列表的单删 / 多选删 / 全部删除；此前已删会话的变量会永久残留。新增 `SettingsDao.deleteByKey`（不改表结构）。
 - 聊天页的 WebView 预热只在 HTML 界面开关开启时进行，此前无条件预热。
+- `SettingsDao` 的两个 JVM 测试替身补上 `deleteByKey`（`RhinoSandboxTest`、`ExtensionHookRuntimeManagerTest` 里的匿名实现）：上一批修复给 `SettingsDao` 新增该抽象方法时没有同步，本地增量 `checkAll` 没有重新编译这两个文件所以仍是绿的，干净构建才报「Class '<anonymous>' is not abstract and does not implement abstract member」。此后凡是改了接口或 DAO 的抽象成员，提交前都用 `-Pkotlin.incremental=false` 做一次非增量编译。
 
 ## [0.9.8-beta] - 2026-11-01
 
