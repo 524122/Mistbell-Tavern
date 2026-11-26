@@ -152,7 +152,7 @@
     {
       "floor": 30,
       "role": "user",
-      "content": "最辣的那几罐好东西，我压在箱底谁也不匀。"
+      "content": "最辣的那几罐剁椒好货，我压在箱底谁也不匀。"
     },
     {
       "floor": 31,
@@ -347,7 +347,7 @@
     {
       "floor": 69,
       "role": "assistant",
-      "content": "乱起来头一个月，我把自己锁在检修间里撑了二十天。"
+      "content": "乱起来头一个月，我把自己锁在地铁检修间里撑了二十天。"
     },
     {
       "floor": 70,
@@ -412,7 +412,7 @@
     {
       "floor": 82,
       "role": "user",
-      "content": "前阵子出城，高架底下那群畜生扑上来，物资丢了一部分。"
+      "content": "上月出城那趟，高架桥底下扑上来的是三只变异犬，物资也丢了。"
     },
     {
       "floor": 83,
@@ -512,7 +512,7 @@
     {
       "floor": 102,
       "role": "user",
-      "content": "从这儿到最近的活人聚居点，步行要整整两天。"
+      "content": "从这儿到最近的活人聚居点，绕开河道步行要整整两天。"
     },
     {
       "floor": 103,
@@ -657,7 +657,7 @@
     {
       "floor": 131,
       "role": "assistant",
-      "content": "托你弄来的消炎针起效了，左耳的鸣响轻了大半。"
+      "content": "托你弄来的消炎针起效了，左耳鸣响轻了大半，站左边说话也听得真。"
     },
     {
       "floor": 132,
@@ -812,7 +812,7 @@
     {
       "floor": 162,
       "role": "user",
-      "content": "练枪的硬指标我立下了，十发里头得中八个。"
+      "content": "练枪的硬指标我立下了，赶在入冬前得练到十发八中。"
     },
     {
       "floor": 163,
@@ -907,7 +907,7 @@
     {
       "floor": 181,
       "role": "assistant",
-      "content": "十公里地界内，除了咱们就只剩对岸渔村那几口人。"
+      "content": "方圆十公里地界内，除了咱们就只剩对岸渔村那几口人。"
     },
     {
       "floor": 182,
@@ -1515,7 +1515,7 @@
       "speaker": "user",
       "statement": "囤货里那几罐剁椒我一直私藏着，谁伸手都不给。",
       "statementFloor": 8,
-      "restatement": "最辣的那几罐好东西，我压在箱底谁也不匀。",
+      "restatement": "最辣的那几罐剁椒好货，我压在箱底谁也不匀。",
       "restatementFloor": 30,
       "update": null,
       "updateFloor": null
@@ -1656,7 +1656,7 @@
       "speaker": "user",
       "statement": "上个月出城那趟，我们在高架桥下头撞上三只变异犬，丢了物资。",
       "statementFloor": 60,
-      "restatement": "前阵子出城，高架底下那群畜生扑上来，物资丢了一部分。",
+      "restatement": "上月出城那趟，高架桥底下扑上来的是三只变异犬，物资也丢了。",
       "restatementFloor": 82,
       "update": null,
       "updateFloor": null
@@ -1668,7 +1668,7 @@
       "relation": "sheltered_in",
       "object": "地铁检修间避难",
       "speaker": "character",
-      "statement": "乱起来头一个月，我把自己锁在检修间里撑了二十天。",
+      "statement": "乱起来头一个月，我把自己锁在地铁检修间里撑了二十天。",
       "statementFloor": 69,
       "restatement": null,
       "restatementFloor": null,
@@ -1738,7 +1738,7 @@
       "relation": "reaches_on_foot_in",
       "object": "步行两天",
       "speaker": "user",
-      "statement": "从这儿到最近的活人聚居点，步行要整整两天。",
+      "statement": "从这儿到最近的活人聚居点，绕开河道步行要整整两天。",
       "statementFloor": 102,
       "restatement": null,
       "restatementFloor": null,
@@ -1833,7 +1833,7 @@
       "speaker": "user",
       "statement": "我给自己定了数，入冬前把准头练到十发八中。",
       "statementFloor": 140,
-      "restatement": "练枪的硬指标我立下了，十发里头得中八个。",
+      "restatement": "练枪的硬指标我立下了，赶在入冬前得练到十发八中。",
       "restatementFloor": 162,
       "update": null,
       "updateFloor": null
@@ -1850,7 +1850,7 @@
       "restatement": null,
       "restatementFloor": null,
       "update": {
-        "statement": "托你弄来的消炎针起效了，左耳的鸣响轻了大半。",
+        "statement": "托你弄来的消炎针起效了，左耳鸣响轻了大半，站左边说话也听得真。",
         "probe": "先前听岔的那半边耳朵，如今见好了么？"
       },
       "updateFloor": 131
@@ -1895,7 +1895,7 @@
       "speaker": "character",
       "statement": "方圆十公里里头，活人就剩咱们跟河对岸的渔村两拨。",
       "statementFloor": 159,
-      "restatement": "十公里地界内，除了咱们就只剩对岸渔村那几口人。",
+      "restatement": "方圆十公里地界内，除了咱们就只剩对岸渔村那几口人。",
       "restatementFloor": 181,
       "update": null,
       "updateFloor": null

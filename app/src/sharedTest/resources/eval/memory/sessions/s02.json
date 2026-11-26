@@ -112,12 +112,12 @@
     {
       "floor": 22,
       "role": "user",
-      "content": "我妈这礼拜又催我去相亲了。"
+      "content": "我妈这礼拜又寄了一箱苹果来。"
     },
     {
       "floor": 23,
       "role": "assistant",
-      "content": "长辈的嘴管不住，你就一句有数了应付。真遇到合适的再说，催出来的姻缘靠不住。"
+      "content": "长辈的心意都在吃食上，收了记得回个电话道谢。吃不完削皮切块冻起来，慢慢吃。"
     },
     {
       "floor": 24,
@@ -152,7 +152,7 @@
     {
       "floor": 30,
       "role": "user",
-      "content": "我算是在杭州站稳脚跟了，短时间不挪窝。"
+      "content": "我毕业后就一直在杭州，转眼也六七年了。"
     },
     {
       "floor": 31,
@@ -232,7 +232,7 @@
     {
       "floor": 46,
       "role": "user",
-      "content": "咖啡我只碰黑咖啡，甜的奶的一概不沾。"
+      "content": "美式我才喝得惯，甜的奶的一概不沾。"
     },
     {
       "floor": 47,
@@ -367,7 +367,7 @@
     {
       "floor": 73,
       "role": "assistant",
-      "content": "那年运动会我报了一千五百米，拼下来个亚军。"
+      "content": "那年校运会一千五百米，我拼下来个亚军。"
     },
     {
       "floor": 74,
@@ -602,7 +602,7 @@
     {
       "floor": 120,
       "role": "user",
-      "content": "柜子顶上那台粉壳子的快照机，我一直没舍得处理。"
+      "content": "柜子顶上那台粉色拍立得，我一直没舍得处理。"
     },
     {
       "floor": 121,
@@ -632,7 +632,7 @@
     {
       "floor": 126,
       "role": "user",
-      "content": "我当初操场上拼得最狠的那一场比试，还记得名次不？"
+      "content": "你当初操场上拼得最狠的那一场比试，还记得名次不？"
     },
     {
       "floor": 127,
@@ -647,7 +647,7 @@
     {
       "floor": 129,
       "role": "assistant",
-      "content": "五一那天我跟何蕾把证领了。"
+      "content": "上个月我跟何蕾把证领了。"
     },
     {
       "floor": 130,
@@ -677,7 +677,7 @@
     {
       "floor": 135,
       "role": "assistant",
-      "content": "咖啡角五一前开张了，生意还过得去。"
+      "content": "咖啡角前阵子开张了，生意还过得去。"
     },
     {
       "floor": 136,
@@ -897,7 +897,7 @@
     {
       "floor": 179,
       "role": "assistant",
-      "content": "柜台上摆着台老胶片机，海鸥牌的，我稀罕着呢。"
+      "content": "柜台上摆着台海鸥胶片机，我稀罕着呢。"
     },
     {
       "floor": 180,
@@ -922,7 +922,7 @@
     {
       "floor": 184,
       "role": "user",
-      "content": "心肝肚肠那些零碎，我从来不上桌。"
+      "content": "动物内脏我从来不上桌，心肝肚肠都不行。"
     },
     {
       "floor": 185,
@@ -932,7 +932,7 @@
     {
       "floor": 186,
       "role": "user",
-      "content": "初三上课那屋在三楼把东头，一开窗就是操场。"
+      "content": "初三上课那屋在三楼东头，一开窗就是操场。"
     },
     {
       "floor": 187,
@@ -942,7 +942,7 @@
     {
       "floor": 188,
       "role": "user",
-      "content": "换了个不用倒夜的岗，大半年没犯过了。"
+      "content": "喝了一阵中药调理，偏头痛这俩月没再犯。"
     },
     {
       "floor": 189,
@@ -972,7 +972,7 @@
     {
       "floor": 194,
       "role": "user",
-      "content": "临毕业我掏出本子让你留过言，你那页最满。"
+      "content": "临毕业咱俩交换了同学录，你那页写得最满。"
     },
     {
       "floor": 195,
@@ -1002,7 +1002,7 @@
     {
       "floor": 200,
       "role": "user",
-      "content": "我说过自己那台烧油的大家伙，你还记得吗？"
+      "content": "你还记得自己那台烧油的大家伙么？"
     },
     {
       "floor": 201,
@@ -1252,7 +1252,7 @@
     {
       "floor": 250,
       "role": "user",
-      "content": "我那张嘴现在还敢不敢招惹红的，你还记得吗？"
+      "content": "你那张嘴现在还敢不敢招惹红的，你还记得吗？"
     },
     {
       "floor": 251,
@@ -1382,7 +1382,7 @@
     {
       "floor": 276,
       "role": "user",
-      "content": "我如今是不是有名分的人了，你还记得吗？"
+      "content": "你如今是不是有名分的人了，你还记得吗？"
     },
     {
       "floor": 277,
@@ -1529,7 +1529,7 @@
       "speaker": "user",
       "statement": "我毕业就留在杭州了，转眼六七年。",
       "statementFloor": 10,
-      "restatement": "我算是在杭州站稳脚跟了，短时间不挪窝。",
+      "restatement": "我毕业后就一直在杭州，转眼也六七年了。",
       "restatementFloor": 30,
       "update": null,
       "updateFloor": null
@@ -1563,7 +1563,7 @@
       "restatement": null,
       "restatementFloor": null,
       "update": {
-        "statement": "换了个不用倒夜的岗，大半年没犯过了。",
+        "statement": "喝了一阵中药调理，偏头痛这俩月没再犯。",
         "probe": "我如今是不是把那个闹腾的旧患养利索了，你还记得吗？"
       },
       "updateFloor": 188
@@ -1577,7 +1577,7 @@
       "speaker": "user",
       "statement": "咖啡我就喝美式，加糖加奶都嫌腻。",
       "statementFloor": 28,
-      "restatement": "咖啡我只碰黑咖啡，甜的奶的一概不沾。",
+      "restatement": "美式我才喝得惯，甜的奶的一概不沾。",
       "restatementFloor": 46,
       "update": null,
       "updateFloor": null
@@ -1595,7 +1595,7 @@
       "restatementFloor": null,
       "update": {
         "statement": "摩托上个月出手了，换了辆小电驴代步。",
-        "probe": "我如今上下班骑的是不是换过的新家伙，你还记得吗？"
+        "probe": "你上下班骑的是不是换过的新家伙，你还记得吗？"
       },
       "updateFloor": 213
     },
@@ -1639,7 +1639,7 @@
       "speaker": "character",
       "statement": "初三校运会一千五百米，我咬牙跑了个第二。",
       "statementFloor": 57,
-      "restatement": "那年运动会我报了一千五百米，拼下来个亚军。",
+      "restatement": "那年校运会一千五百米，我拼下来个亚军。",
       "restatementFloor": 73,
       "update": null,
       "updateFloor": null
@@ -1685,7 +1685,7 @@
       "restatementFloor": null,
       "update": {
         "statement": "如今胃闹罢工，辣的只能眼馋。",
-        "probe": "我那张嘴现在还敢不敢招惹红的，你还记得吗？"
+        "probe": "你那张嘴现在还敢不敢招惹红的，你还记得吗？"
       },
       "updateFloor": 125
     },
@@ -1715,8 +1715,8 @@
       "restatement": null,
       "restatementFloor": null,
       "update": {
-        "statement": "五一那天我跟何蕾把证领了。",
-        "probe": "我如今是不是有名分的人了，你还记得吗？"
+        "statement": "上个月我跟何蕾把证领了。",
+        "probe": "你如今是不是有名分的人了，你还记得吗？"
       },
       "updateFloor": 129
     },
@@ -1732,7 +1732,7 @@
       "restatement": null,
       "restatementFloor": null,
       "update": {
-        "statement": "咖啡角五一前开张了，生意还过得去。",
+        "statement": "咖啡角前阵子开张了，生意还过得去。",
         "probe": "你腾出来的那半间如今派上用场没，还记得吗？"
       },
       "updateFloor": 135
@@ -1760,7 +1760,7 @@
       "speaker": "user",
       "statement": "我那台粉色拍立得还躺在柜子顶上。",
       "statementFloor": 102,
-      "restatement": "柜子顶上那台粉壳子的快照机，我一直没舍得处理。",
+      "restatement": "柜子顶上那台粉色拍立得，我一直没舍得处理。",
       "restatementFloor": 120,
       "update": null,
       "updateFloor": null
@@ -1892,7 +1892,7 @@
       "speaker": "character",
       "statement": "我收了台海鸥胶片机，摆店里柜台上。",
       "statementFloor": 157,
-      "restatement": "柜台上摆着台老胶片机，海鸥牌的，我稀罕着呢。",
+      "restatement": "柜台上摆着台海鸥胶片机，我稀罕着呢。",
       "restatementFloor": 179,
       "update": null,
       "updateFloor": null
@@ -1906,7 +1906,7 @@
       "speaker": "user",
       "statement": "动物内脏我一筷子都不碰，鸭血毛肚都不行。",
       "statementFloor": 164,
-      "restatement": "心肝肚肠那些零碎，我从来不上桌。",
+      "restatement": "动物内脏我从来不上桌，心肝肚肠都不行。",
       "restatementFloor": 184,
       "update": null,
       "updateFloor": null
@@ -1920,7 +1920,7 @@
       "speaker": "user",
       "statement": "咱初三那间教室在三楼东头，窗户正对操场。",
       "statementFloor": 166,
-      "restatement": "初三上课那屋在三楼把东头，一开窗就是操场。",
+      "restatement": "初三上课那屋在三楼东头，一开窗就是操场。",
       "restatementFloor": 186,
       "update": null,
       "updateFloor": null
@@ -1934,7 +1934,7 @@
       "speaker": "user",
       "statement": "毕业那会儿咱俩交换过同学录，你那页写得最满。",
       "statementFloor": 174,
-      "restatement": "临毕业我掏出本子让你留过言，你那页最满。",
+      "restatement": "临毕业咱俩交换了同学录，你那页写得最满。",
       "restatementFloor": 194,
       "update": null,
       "updateFloor": null
@@ -1952,7 +1952,7 @@
       "restatementFloor": null,
       "update": {
         "statement": "局定啦，年初四，就在咱初中门口那家馆子。",
-        "probe": "我张罗的那顿老同学饭如今定下日子没有，你还记得吗？"
+        "probe": "你张罗的那顿老同学饭如今定下日子没有，你还记得吗？"
       },
       "updateFloor": 133
     }
@@ -1991,7 +1991,7 @@
       "targetFactId": "f09",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我当初操场上拼得最狠的那一场比试，还记得名次不？"
+      "text": "你当初操场上拼得最狠的那一场比试，还记得名次不？"
     },
     {
       "floor": 150,
@@ -2012,7 +2012,7 @@
       "targetFactId": "f06",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我说过自己那台烧油的大家伙，你还记得吗？"
+      "text": "你还记得自己那台烧油的大家伙么？"
     },
     {
       "floor": 226,
@@ -2030,7 +2030,7 @@
       "absentFactIds": [
         "f12"
       ],
-      "text": "我那张嘴现在还敢不敢招惹红的，你还记得吗？"
+      "text": "你那张嘴现在还敢不敢招惹红的，你还记得吗？"
     },
     {
       "floor": 276,
@@ -2039,7 +2039,7 @@
       "absentFactIds": [
         "f14"
       ],
-      "text": "我如今是不是有名分的人了，你还记得吗？"
+      "text": "你如今是不是有名分的人了，你还记得吗？"
     },
     {
       "floor": 300,

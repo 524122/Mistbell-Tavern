@@ -132,7 +132,7 @@
     {
       "floor": 26,
       "role": "user",
-      "content": "我怀里那壶热饮认准哪种口味，你有数吗？"
+      "content": "你怀里那壶热饮认准哪种口味，有数吗？"
     },
     {
       "floor": 27,
@@ -172,7 +172,7 @@
     {
       "floor": 34,
       "role": "user",
-      "content": "点火跳跃前那几十秒，我的老唱片只放那一种调调。"
+      "content": "点火前那几十秒，我的老唱机只转旧地球那种爵士调。"
     },
     {
       "floor": 35,
@@ -197,7 +197,7 @@
     {
       "floor": 39,
       "role": "assistant",
-      "content": "休眠舱那格温度我卡死在十七，松一格都不成。"
+      "content": "休眠舱那格温度我卡死在十七度，松一度都不成。"
     },
     {
       "floor": 40,
@@ -222,7 +222,7 @@
     {
       "floor": 44,
       "role": "user",
-      "content": "我那个妹妹，在织女星港务局上班好几年了。"
+      "content": "我那个妹妹，在织女星港务局做调度。"
     },
     {
       "floor": 45,
@@ -237,7 +237,7 @@
     {
       "floor": 47,
       "role": "assistant",
-      "content": "我那位兄长跑边防巡逻舰，一出去就是整年。"
+      "content": "我那位兄长在边防巡逻舰队开舰，一晃三年没着家了。"
     },
     {
       "floor": 48,
@@ -362,7 +362,7 @@
     {
       "floor": 72,
       "role": "user",
-      "content": "换九型引擎这事我攒了小半年，连价都问好了。"
+      "content": "换九型引擎这事我盘算着，连价都问好了。"
     },
     {
       "floor": 73,
@@ -382,7 +382,7 @@
     {
       "floor": 76,
       "role": "user",
-      "content": "我家里当兵的那位至亲在什么部队，有数吗？"
+      "content": "你家里当兵的那位至亲在什么部队，有数吗？"
     },
     {
       "floor": 77,
@@ -417,7 +417,7 @@
     {
       "floor": 83,
       "role": "assistant",
-      "content": "深空那觉睡颠倒是老病根，一合眼人就发飘。"
+      "content": "深空失眠是老病根，一合眼人就发飘。"
     },
     {
       "floor": 84,
@@ -497,7 +497,7 @@
     {
       "floor": 99,
       "role": "assistant",
-      "content": "那只机器猫阿灰是我的老伙计，资历比船上都老。"
+      "content": "那只机器猫阿灰是我的老伙计，跟我的年头比你还长。"
     },
     {
       "floor": 100,
@@ -612,7 +612,7 @@
     {
       "floor": 122,
       "role": "user",
-      "content": "咱这一票的到站港是青梧，掐指头算四十天到。"
+      "content": "咱这一票的到站港是青梧站，掐指头算四十天到。"
     },
     {
       "floor": 123,
@@ -752,7 +752,7 @@
     {
       "floor": 150,
       "role": "user",
-      "content": "我睡舱那台温控拧到几格，你还记得吗？"
+      "content": "你睡舱那台温控拧到几格，还记得吗？"
     },
     {
       "floor": 151,
@@ -917,7 +917,7 @@
     {
       "floor": 183,
       "role": "assistant",
-      "content": "K-19航段的限速是千三点五，抓到就罚一趟脚钱。"
+      "content": "K-19航段的限速是千分之三点五，抓到就罚一趟脚钱。"
     },
     {
       "floor": 184,
@@ -932,7 +932,7 @@
     {
       "floor": 186,
       "role": "user",
-      "content": "那种酸口的合成腌瓜，我筷子从来不碰。"
+      "content": "那种合成酸瓜，我筷子从来不碰。"
     },
     {
       "floor": 187,
@@ -1252,7 +1252,7 @@
     {
       "floor": 250,
       "role": "user",
-      "content": "如今那本证到手了，我瞄上的下一个台子是什么？"
+      "content": "如今那本证到手了，你瞄上的下一个台子是什么？"
     },
     {
       "floor": 251,
@@ -1529,7 +1529,7 @@
       "speaker": "user",
       "statement": "每回跳跃前我都放一段旧地球的爵士，图个心安。",
       "statementFloor": 14,
-      "restatement": "点火跳跃前那几十秒，我的老唱片只放那一种调调。",
+      "restatement": "点火前那几十秒，我的老唱机只转旧地球那种爵士调。",
       "restatementFloor": 34,
       "update": null,
       "updateFloor": null
@@ -1543,11 +1543,11 @@
       "speaker": "character",
       "statement": "我休眠舱常年定十七度，高一度都睡不踏实。",
       "statementFloor": 17,
-      "restatement": "休眠舱那格温度我卡死在十七，松一格都不成。",
+      "restatement": "休眠舱那格温度我卡死在十七度，松一度都不成。",
       "restatementFloor": 39,
       "update": {
         "statement": "关节怕冷的毛病犯了我才调到十九度，睡得沉多了。",
-        "probe": "现在我的睡舱拧到几格了，你知道吗？"
+        "probe": "现在你的睡舱拧到几格了，你知道吗？"
       },
       "updateFloor": 185
     },
@@ -1560,7 +1560,7 @@
       "speaker": "user",
       "statement": "我妹妹在织女星的港务局做调度，捎货能省不少。",
       "statementFloor": 22,
-      "restatement": "我那个妹妹，在织女星港务局上班好几年了。",
+      "restatement": "我那个妹妹，在织女星港务局做调度。",
       "restatementFloor": 44,
       "update": {
         "statement": "我妹上个月调岗了，如今在天璇站那边做港务。",
@@ -1577,7 +1577,7 @@
       "speaker": "character",
       "statement": "我哥在边防巡逻舰队开护卫舰，三年没着家了。",
       "statementFloor": 31,
-      "restatement": "我那位兄长跑边防巡逻舰，一出去就是整年。",
+      "restatement": "我那位兄长在边防巡逻舰队开舰，一晃三年没着家了。",
       "restatementFloor": 47,
       "update": null,
       "updateFloor": null
@@ -1629,7 +1629,7 @@
       "restatementFloor": 71,
       "update": {
         "statement": "特级执照考下来了，下一站我想摸旗舰的导航台。",
-        "probe": "如今那本证到手了，我瞄上的下一个台子是什么？"
+        "probe": "如今那本证到手了，你瞄上的下一个台子是什么？"
       },
       "updateFloor": 141
     },
@@ -1642,7 +1642,7 @@
       "speaker": "user",
       "statement": "年内我想把主引擎换成九型，报价单都摸到手了。",
       "statementFloor": 56,
-      "restatement": "换九型引擎这事我攒了小半年，连价都问好了。",
+      "restatement": "换九型引擎这事我盘算着，连价都问好了。",
       "restatementFloor": 72,
       "update": {
         "statement": "九型报价涨得离谱，我先换台三型的顶着用。",
@@ -1676,11 +1676,11 @@
       "speaker": "character",
       "statement": "我落下了深空失眠的毛病，闭眼就觉得自己在飘。",
       "statementFloor": 65,
-      "restatement": "深空那觉睡颠倒是老病根，一合眼人就发飘。",
+      "restatement": "深空失眠是老病根，一合眼人就发飘。",
       "restatementFloor": 83,
       "update": {
         "statement": "换了船医配的助眠波段，如今能一觉睡到换班。",
-        "probe": "现在我靠哪套声波调息入睡，你知道吗？"
+        "probe": "现在你靠哪套声波调息入睡，你知道吗？"
       },
       "updateFloor": 133
     },
@@ -1707,7 +1707,7 @@
       "speaker": "character",
       "statement": "我那台猫形的伴机叫阿灰，跟我年头比你还长。",
       "statementFloor": 81,
-      "restatement": "那只机器猫阿灰是我的老伙计，资历比船上都老。",
+      "restatement": "那只机器猫阿灰是我的老伙计，跟我的年头比你还长。",
       "restatementFloor": 99,
       "update": {
         "statement": "阿灰上月彻底散架了，我换了台新的，取名雪球。",
@@ -1756,7 +1756,7 @@
       "restatementFloor": 109,
       "update": {
         "statement": "三号码头连片拆了，我改去北站的新市场转悠。",
-        "probe": "现在那处吃食的老窝点挪去了哪片新地界？"
+        "probe": "现在你落港后换到哪片新地界觅食了？"
       },
       "updateFloor": 149
     },
@@ -1769,7 +1769,7 @@
       "speaker": "user",
       "statement": "这单的终点站是青梧站，满打满算四十天航程。",
       "statementFloor": 104,
-      "restatement": "咱这一票的到站港是青梧，掐指头算四十天到。",
+      "restatement": "咱这一票的到站港是青梧站，掐指头算四十天到。",
       "restatementFloor": 122,
       "update": null,
       "updateFloor": null
@@ -1909,7 +1909,7 @@
       "speaker": "character",
       "statement": "K-19航道限速千分之三点五，超一回罚一趟运费。",
       "statementFloor": 163,
-      "restatement": "K-19航段的限速是千三点五，抓到就罚一趟脚钱。",
+      "restatement": "K-19航段的限速是千分之三点五，抓到就罚一趟脚钱。",
       "restatementFloor": 183,
       "update": null,
       "updateFloor": null
@@ -1923,7 +1923,7 @@
       "speaker": "user",
       "statement": "我吃不惯合成酸瓜，一闻那股味儿就倒胃口。",
       "statementFloor": 168,
-      "restatement": "那种酸口的合成腌瓜，我筷子从来不碰。",
+      "restatement": "那种合成酸瓜，我筷子从来不碰。",
       "restatementFloor": 186,
       "update": null,
       "updateFloor": null
@@ -1963,7 +1963,7 @@
       "targetFactId": "f01",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我怀里那壶热饮认准哪种口味，你有数吗？"
+      "text": "你怀里那壶热饮认准哪种口味，有数吗？"
     },
     {
       "floor": 50,
@@ -1977,7 +1977,7 @@
       "targetFactId": "f05",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我家里当兵的那位至亲在什么部队，有数吗？"
+      "text": "你家里当兵的那位至亲在什么部队，有数吗？"
     },
     {
       "floor": 100,
@@ -1998,7 +1998,7 @@
       "targetFactId": "f03",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我睡舱那台温控拧到几格，你还记得吗？"
+      "text": "你睡舱那台温控拧到几格，还记得吗？"
     },
     {
       "floor": 176,
@@ -2030,7 +2030,7 @@
       "absentFactIds": [
         "f08"
       ],
-      "text": "如今那本证到手了，我瞄上的下一个台子是什么？"
+      "text": "如今那本证到手了，你瞄上的下一个台子是什么？"
     },
     {
       "floor": 276,

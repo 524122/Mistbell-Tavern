@@ -31,7 +31,7 @@
    "object": "桂花糖粥",
    "statement": "镇口张婆的桂花糖粥，我能一口气吃两碗不带停的。",
    "speaker": "user",
-   "restatement": "张婆那锅糖粥撒桂花的，我回回都要盛两碗。",
+   "restatement": "张婆在镇口熬的那锅桂花糖粥，我回回都要盛上两碗。",
    "update": null,
    "probe": "街口那碗甜口的稀吃食，为啥我总惦记，还记得么？"
   },
@@ -79,9 +79,9 @@
    "object": "河埠头西首",
    "statement": "存仁堂在河埠头西首，进门要迈两级青石台阶。",
    "speaker": "character",
-   "restatement": "铺子面朝河埠头西首那头，青石台阶有两级。",
+   "restatement": "铺子就挨着河埠头西首，门前青石台阶有两级。",
    "update": {
-    "statement": "开春翻修铺面，大门挪去东边，青石台阶垫成了三级。",
+    "statement": "开春铺面翻修，整个挪去了河埠头东首，台阶垫成三级。",
     "probe": "上门槛要抬几回脚，还有数么？"
    },
    "probe": "咱们这爿店面临水的方位，你讲得出来么？"
@@ -94,7 +94,7 @@
    "object": "铜戥子",
    "statement": "柜上那杆小铜戥子是我太爷手上传下来的，称细料才动它。",
    "speaker": "character",
-   "restatement": "太爷传下来的那杆戥子，我只在称细料时才请出来。",
+   "restatement": "太爷传下来的那杆铜戥子，称细料时我才请它出来。",
    "update": null,
    "probe": "称贵重细货用的那杆老秤，来头你还记得么？"
   },
@@ -103,7 +103,7 @@
    "memoryType": "health",
    "subject": "宋敬堂",
    "relation": "has",
-   "object": "支气管炎",
+   "object": "咳嗽老毛病",
    "statement": "一入梅雨我的咳嗽老毛病就犯，得煮川贝梨水压着。",
    "speaker": "character",
    "restatement": null,
@@ -151,7 +151,7 @@
    "object": "杭州采买",
    "statement": "清明前我跟师父去杭州采买药材，头一回坐了火车。",
    "speaker": "user",
-   "restatement": "那年清明去杭州办药，我还是头一次乘火车。",
+   "restatement": "清明前那趟杭州采买药材的路，是我头一回搭火车，师父全程带着。",
    "update": null,
    "probe": "平生初次坐那种冒烟的铁车子，是跟谁去的哪座城？"
   },
@@ -175,7 +175,7 @@
    "object": "第三代",
    "statement": "这爿铺子传到我手里是第三代，光绪年间就立起来了。",
    "speaker": "character",
-   "restatement": "从光绪年间算起，存仁堂到我手上已传了三代。",
+   "restatement": "从光绪年间算起，存仁堂到我手上已是第三代。",
    "update": null,
    "probe": "柜台后头这户营生，传到你掌柜是第几辈？"
   },
@@ -292,7 +292,7 @@
    "object": "手抄方册",
    "statement": "我想把祖上手抄的方册补全，缺的方子都誊齐。",
    "speaker": "character",
-   "restatement": "祖上传的那本方册，我盘算着把缺页全补齐。",
+   "restatement": "祖上手抄的那本方册，我盘算着把缺掉的方子全补齐。",
    "update": null,
    "probe": "你笔头那桩没完工的文墨活计，还惦记着么？"
   },

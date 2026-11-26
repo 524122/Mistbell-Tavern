@@ -142,7 +142,7 @@
     {
       "floor": 28,
       "role": "user",
-      "content": "灶上蒸的那笼甜芋头，我隔着窗户都咽口水。"
+      "content": "灶上蒸的那笼糖蒸芋头，我隔着窗户都咽口水。"
     },
     {
       "floor": 29,
@@ -277,7 +277,7 @@
     {
       "floor": 55,
       "role": "assistant",
-      "content": "门规是初一十五灶房不开火，各屋啃干粮。"
+      "content": "门规是初一十五灶房歇火，各屋啃干粮。"
     },
     {
       "floor": 56,
@@ -502,7 +502,7 @@
     {
       "floor": 100,
       "role": "user",
-      "content": "一旬里头哪两天灶上不生烟，你还记得吗？"
+      "content": "一个月里头哪两天灶上不生烟，你还记得吗？"
     },
     {
       "floor": 101,
@@ -702,7 +702,7 @@
     {
       "floor": 140,
       "role": "user",
-      "content": "御风我练顺了，前儿还飘去后山摘桃。"
+      "content": "御风我练顺了，前儿还飘去后山采了把野花。"
     },
     {
       "floor": 141,
@@ -742,7 +742,7 @@
     {
       "floor": 148,
       "role": "user",
-      "content": "山货里那类伞伞朵朵，我从来不下筷。"
+      "content": "菌子那类伞伞朵朵，我从来不下筷。"
     },
     {
       "floor": 149,
@@ -782,7 +782,7 @@
     {
       "floor": 156,
       "role": "user",
-      "content": "窗台上那半盒晒好的桂花，我存着往后熏茶用。"
+      "content": "窗台上那半盒干桂花，我存着往后熏茶用。"
     },
     {
       "floor": 157,
@@ -862,7 +862,7 @@
     {
       "floor": 172,
       "role": "user",
-      "content": "我落地赶上谷雨，年年这天记得给我留块糖。"
+      "content": "我落地赶上谷雨那天，年年记得给我留块糖。"
     },
     {
       "floor": 173,
@@ -997,7 +997,7 @@
     {
       "floor": 199,
       "role": "assistant",
-      "content": "我见不得人作践吃食，一粒米都是汗珠子换的。"
+      "content": "我见不得人糟蹋粮食，一粒米都是汗珠子换的。"
     },
     {
       "floor": 200,
@@ -1515,7 +1515,7 @@
       "speaker": "user",
       "statement": "我最馋灶房那口糖蒸芋头，一顿不惦记就难受。",
       "statementFloor": 6,
-      "restatement": "灶上蒸的那笼甜芋头，我隔着窗户都咽口水。",
+      "restatement": "灶上蒸的那笼糖蒸芋头，我隔着窗户都咽口水。",
       "restatementFloor": 28,
       "update": null,
       "updateFloor": null
@@ -1591,7 +1591,7 @@
       "speaker": "character",
       "statement": "咱门里初一十五灶房歇火，各屋自己啃干粮。",
       "statementFloor": 35,
-      "restatement": "门规是初一十五灶房不开火，各屋啃干粮。",
+      "restatement": "门规是初一十五灶房歇火，各屋啃干粮。",
       "restatementFloor": 55,
       "update": null,
       "updateFloor": null
@@ -1774,7 +1774,7 @@
       "speaker": "user",
       "statement": "菌子我一口不碰，怕吃出毛病见小人儿。",
       "statementFloor": 106,
-      "restatement": "山货里那类伞伞朵朵，我从来不下筷。",
+      "restatement": "菌子那类伞伞朵朵，我从来不下筷。",
       "restatementFloor": 148,
       "update": null,
       "updateFloor": null
@@ -1792,7 +1792,7 @@
       "restatementFloor": null,
       "update": {
         "statement": "师弟随队下山历练去了，一走三年。",
-        "probe": "你那位闷声的胞弟如今人在何处，你还记得吗？"
+        "probe": "你那位闷声的兄弟如今人在何处，你还记得吗？"
       },
       "updateFloor": 143
     },
@@ -1805,7 +1805,7 @@
       "speaker": "user",
       "statement": "我窗台上晒着半盒干桂花，留着熏茶。",
       "statementFloor": 122,
-      "restatement": "窗台上那半盒晒好的桂花，我存着往后熏茶用。",
+      "restatement": "窗台上那半盒干桂花，我存着往后熏茶用。",
       "restatementFloor": 156,
       "update": null,
       "updateFloor": null
@@ -1822,7 +1822,7 @@
       "restatement": null,
       "restatementFloor": null,
       "update": {
-        "statement": "御风我练顺了，前儿还飘去后山摘桃。",
+        "statement": "御风我练顺了，前儿还飘去后山采了把野花。",
         "probe": "我如今下山坡是不是脚不沾地就到了，你还记得吗？"
       },
       "updateFloor": 140
@@ -1892,7 +1892,7 @@
       "speaker": "user",
       "statement": "我是谷雨那天生的，师姐记着给我留糖就行。",
       "statementFloor": 154,
-      "restatement": "我落地赶上谷雨，年年这天记得给我留块糖。",
+      "restatement": "我落地赶上谷雨那天，年年记得给我留块糖。",
       "restatementFloor": 172,
       "update": null,
       "updateFloor": null
@@ -1951,7 +1951,7 @@
       "speaker": "character",
       "statement": "看见糟蹋粮食的我嗓门就压不住，粒粒都金贵。",
       "statementFloor": 179,
-      "restatement": "我见不得人作践吃食，一粒米都是汗珠子换的。",
+      "restatement": "我见不得人糟蹋粮食，一粒米都是汗珠子换的。",
       "restatementFloor": 199,
       "update": null,
       "updateFloor": null
@@ -1984,7 +1984,7 @@
       "targetFactId": "f06",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "一旬里头哪两天灶上不生烟，你还记得吗？"
+      "text": "一个月里头哪两天灶上不生烟，你还记得吗？"
     },
     {
       "floor": 126,

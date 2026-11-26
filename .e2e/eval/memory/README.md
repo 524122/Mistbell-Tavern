@@ -22,18 +22,20 @@
 
 ```bash
 # 拼装（默认路径按脚本位置推导仓库根，不写死绝对路径）
-python -I .e2e/eval/memory/build_fixtures.py                 # 只处理 s01–s12 中已存在的
-python -I .e2e/eval/memory/build_fixtures.py --include-sample
-python -I .e2e/eval/memory/build_fixtures.py --spines <骨架目录> --out <输出目录>
+python -I -X utf8 .e2e/eval/memory/build_fixtures.py                 # 只处理 s01–s12 中已存在的
+python -I -X utf8 .e2e/eval/memory/build_fixtures.py --include-sample
+python -I -X utf8 .e2e/eval/memory/build_fixtures.py --spines <骨架目录> --out <输出目录>
 
 # 校验
-python -I .e2e/eval/memory/validate_fixtures.py              # 骨架 + 夹具 + manifest
-python -I .e2e/eval/memory/validate_fixtures.py --spines-only
-python -I .e2e/eval/memory/validate_fixtures.py --fixtures-only
-python -I .e2e/eval/memory/validate_fixtures.py --spines <目录> --fixtures <目录>
+python -I -X utf8 .e2e/eval/memory/validate_fixtures.py              # 骨架 + 夹具 + manifest
+python -I -X utf8 .e2e/eval/memory/validate_fixtures.py --spines-only
+python -I -X utf8 .e2e/eval/memory/validate_fixtures.py --fixtures-only
+python -I -X utf8 .e2e/eval/memory/validate_fixtures.py --spines <目录> --fixtures <目录>
 ```
 
 任何违规都会按 `[违规] <文件> :: <位置> :: <原因>` 逐行打印并以退出码 1 结束。骨架缺失时拼装脚本打印提示并跳过；`--include-sample` 只额外处理 `_sample.json`。
+
+`-X utf8` 必须加（Windows 下）：两个脚本都往标准输出打印中文骨架/违规信息，CPython 默认按控制台代码页（GBK）编码，一旦输出被重定向到文件就会乱码甚至抛 `UnicodeEncodeError`；`-X utf8` 强制按 UTF-8 走。脚本自己读写的 JSON 文件不受影响（显式指定了 UTF-8）。
 
 ## 布局规则（拼装脚本实现）
 
@@ -107,22 +109,24 @@ python -I .e2e/eval/memory/validate_fixtures.py --spines <目录> --fixtures <�
 2. 数量：facts 正好 30；带 update 正好 10；带 restatement ≥ 8；`event/identity/fact` 合计 ≥ 6 且都无 update；fillerTurns ≥ 90；deflections 正好 12 且互异；acknowledgements 正好 16 且互异；leadIns 正好 10 且互异；id 与文件名一致（`_` 开头文件豁免 s01–s12 限制）；事实 id 为 f01–f30 连续；probe / update.probe 彼此不同。
 3. 长度：statement、restatement、update.statement、probe、update.probe ≤ 40 个汉字；restatement / update.statement 不得与 statement 逐字相同。
 4. 探针换说法（与规范同一算法）：去人名 → 按固定顺序删 50 个豁免词 → 保留汉字与数字 → 连续两字符集合不相交；probe 对 statement 与 restatement，update.probe 对 update.statement。
-5. 不泄露答案：probe / update.probe 不含该事实的 object。
-6. 干扰内容与事实无关：greeting、fillerTurns、deflections、acknowledgements、leadIns 不含任何事实的 object。
+5. 不泄露答案：probe / update.probe 不含该事实的 object；object 的直白同义词也不该写进去（这条靠人工审）。
+6. 探针视角：`speaker` 为 character 的事实，probe / update.probe 里不得出现「我」（探针是用户对角色说的话，主体是「你」）。
+7. 重述保住取值词：object（或其中任一长度 ≥ 2 的连续词段）逐字出现在 statement 里时，restatement 里也必须出现。
+8. 干扰内容与事实无关：greeting、fillerTurns、deflections、acknowledgements、leadIns 不含任何事实的 object。
 
 夹具：
 
-7. 300 楼、楼层连续；第 1 楼 assistant；2–299 楼偶 user / 奇 assistant；第 300 楼 user。
-8. 每条事实的 statement / restatement / update.statement 在记录楼层逐字出现且说话角色与 speaker 一致；每条探针文本在其楼层逐字出现且该楼是 user。
-9. 探针指向的版本在探针楼之前 ≥ 6 楼出现；`absentFactIds` 里的旧版本在此之前已被更新（updateFloor 存在且 < 探针楼）；指向新版本的探针必须把同一条事实记入 `absentFactIds`。
-10. 探针之后的角色回复（第 300 楼除外）不含任何事实的 object。
-11. 探针共 12 个且楼层与布局规则一致；`targetFactId` 互不重复；指向原话版本的事实其更新不得已发生在探针之前；manifest 与实际文件逐字段一致（含 sessionCount、排序、totalChars 等）。
+9. 300 楼、楼层连续；第 1 楼 assistant；2–299 楼偶 user / 奇 assistant；第 300 楼 user。
+10. 每条事实的 statement / restatement / update.statement 在记录楼层逐字出现且说话角色与 speaker 一致；每条探针文本在其楼层逐字出现且该楼是 user。
+11. 探针指向的版本在探针楼之前 ≥ 6 楼出现；`absentFactIds` 里的旧版本在此之前已被更新（updateFloor 存在且 < 探针楼）；指向新版本的探针必须把同一条事实记入 `absentFactIds`。
+12. 探针之后的角色回复（第 300 楼除外）不含任何事实的 object。
+13. 探针共 12 个且楼层与布局规则一致；`targetFactId` 互不重复；指向原话版本的事实其更新不得已发生在探针之前；manifest 与实际文件逐字段一致（含 sessionCount、排序、totalChars 等）。
 
 ## 自测流程（样例骨架）
 
 ```bash
-python -I .e2e/eval/memory/build_fixtures.py --include-sample
-python -I .e2e/eval/memory/validate_fixtures.py
+python -I -X utf8 .e2e/eval/memory/build_fixtures.py --include-sample
+python -I -X utf8 .e2e/eval/memory/validate_fixtures.py
 ```
 
 已知取舍：校验器只执行上面列出的硬规则；greeting（20–60 字）、filler/ack/deflection 等的字数区间属于写手质量要求，未做机器检查。拼装脚本的布局常量（探针轮、deadline 等）以文件头部常量为准，与本 README 同步维护。

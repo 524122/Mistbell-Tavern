@@ -28,7 +28,7 @@
       "speaker": "user",
       "restatement": "冰美式那种凉咖啡我是真碰不得。",
       "update": null,
-      "probe": "中场那杯提神的，我该帮你避开哪一样凉饮？"
+      "probe": "中场那杯提神的，你该帮我避开哪一样凉饮？"
     },
     {
       "id": "f02",
@@ -99,7 +99,7 @@
       "subject": "沈晚晴",
       "relation": "has_injury_in",
       "object": "左腕腱鞘炎",
-      "statement": "我左腕的老伤又闹了，连排完就发僵。",
+      "statement": "我左腕的腱鞘炎又闹了，连排完就发僵。",
       "speaker": "character",
       "restatement": null,
       "update": {
@@ -191,7 +191,7 @@
       "object": "绿茶",
       "statement": "巡演路上我只靠绿茶提神，一天两泡。",
       "speaker": "character",
-      "restatement": "巡演在外我一日两回冲那罐绿汤，喝惯了的。",
+      "restatement": "巡演在外我一日两回冲那罐绿茶，喝惯了的。",
       "update": {
         "statement": "大夫叮嘱少碰浓茶，我改泡红枣枸杞水了。",
         "probe": "你保温杯如今泡的是啥？"
@@ -234,9 +234,9 @@
       "subject": "程一舟",
       "relation": "works_as",
       "object": "巡演经纪人",
-      "statement": "我这行吃的是行程表，机票酒店场地一肩挑。",
+      "statement": "我是团里的巡演经纪人，机票酒店场地一肩挑。",
       "speaker": "user",
-      "restatement": "我干的就是围着这摊行程打转的活计。",
+      "restatement": "我干的就是巡演经纪人这行，围着行程打转。",
       "update": null,
       "probe": "天天替全团盯日程的这份差事叫什么，你有数吗？"
     },
@@ -358,7 +358,7 @@
       "speaker": "user",
       "restatement": null,
       "update": null,
-      "probe": "出差路上帮你隔掉噪音的那件装备是啥，还记得吗？"
+      "probe": "出差路上帮我隔掉噪音的那件装备是啥，还记得吗？"
     },
     {
       "id": "f27",
@@ -380,7 +380,7 @@
       "object": "占座票",
       "statement": "咱这行的规矩，琴得单独买一张占座票。",
       "speaker": "character",
-      "restatement": "琴照样单独占一个座，票照买不误。",
+      "restatement": "琴照样单独买一张占座票，一张都不省。",
       "update": null,
       "probe": "坐飞机时那位不会说话的团员也得掏钱占位，你记得吗？"
     },

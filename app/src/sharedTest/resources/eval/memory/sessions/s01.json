@@ -142,7 +142,7 @@
     {
       "floor": 28,
       "role": "user",
-      "content": "香菜我是真沾不得，鼻子一凑近就头疼。"
+      "content": "香菜那味儿我是真受不了，闻见就躲开。"
     },
     {
       "floor": 29,
@@ -167,7 +167,7 @@
     {
       "floor": 33,
       "role": "assistant",
-      "content": "我那炉子使了八年，越烧越有劲。"
+      "content": "那口黑铁炉子我使了八年，越烧越有劲。"
     },
     {
       "floor": 34,
@@ -202,7 +202,7 @@
     {
       "floor": 40,
       "role": "user",
-      "content": "打春起我就住进了柳河这片，夜市遛两站就到。"
+      "content": "打春起我就住进了柳河小区，遛两站就到夜市。"
     },
     {
       "floor": 41,
@@ -352,7 +352,7 @@
     {
       "floor": 70,
       "role": "user",
-      "content": "手腕上那串琥珀珠子，越盘越润，我可稀罕了。"
+      "content": "我盘了一个月的那串琥珀手串，越盘越润。"
     },
     {
       "floor": 71,
@@ -522,7 +522,7 @@
     {
       "floor": 104,
       "role": "user",
-      "content": "你家那罐梅子汤，我回回进门先干一瓶。"
+      "content": "酸梅汤我回回进夜市先干上一瓶，解腻就靠它。"
     },
     {
       "floor": 105,
@@ -717,7 +717,7 @@
     {
       "floor": 143,
       "role": "assistant",
-      "content": "签子是我爸留下的铁家伙，用到今儿也没换。"
+      "content": "我爸留下的那把老铁签，我用到今儿也没换。"
     },
     {
       "floor": 144,
@@ -827,7 +827,7 @@
     {
       "floor": 165,
       "role": "assistant",
-      "content": "头一回来我这儿，赶上的就是中秋那晚。"
+      "content": "头一回来我这儿，赶上的就是去年中秋那晚。"
     },
     {
       "floor": 166,
@@ -862,7 +862,7 @@
     {
       "floor": 172,
       "role": "user",
-      "content": "那些小盒子我收了三年，差不多攒齐一百个。"
+      "content": "那些火柴盒我收了三年，快攒到一百个了。"
     },
     {
       "floor": 173,
@@ -1515,7 +1515,7 @@
       "speaker": "user",
       "statement": "我这人天生吃不了香菜，闻见味儿就绕着走。",
       "statementFloor": 6,
-      "restatement": "香菜我是真沾不得，鼻子一凑近就头疼。",
+      "restatement": "香菜那味儿我是真受不了，闻见就躲开。",
       "restatementFloor": 28,
       "update": null,
       "updateFloor": null
@@ -1543,7 +1543,7 @@
       "speaker": "character",
       "statement": "摊上那口黑铁炉子跟了我八年，火比新炉旺。",
       "statementFloor": 17,
-      "restatement": "我那炉子使了八年，越烧越有劲。",
+      "restatement": "那口黑铁炉子我使了八年，越烧越有劲。",
       "restatementFloor": 33,
       "update": null,
       "updateFloor": null
@@ -1557,7 +1557,7 @@
       "speaker": "user",
       "statement": "我开春搬进柳河小区了，离夜市两站地。",
       "statementFloor": 24,
-      "restatement": "打春起我就住进了柳河这片，夜市遛两站就到。",
+      "restatement": "打春起我就住进了柳河小区，遛两站就到夜市。",
       "restatementFloor": 40,
       "update": {
         "statement": "十一我挪去江北的望江阁了，房租还便宜些。",
@@ -1616,7 +1616,7 @@
       "speaker": "user",
       "statement": "隔壁摊那串琥珀手串我盘了一个月，油光锃亮。",
       "statementFloor": 48,
-      "restatement": "手腕上那串琥珀珠子，越盘越润，我可稀罕了。",
+      "restatement": "我盘了一个月的那串琥珀手串，越盘越润。",
       "restatementFloor": 70,
       "update": null,
       "updateFloor": null
@@ -1698,7 +1698,7 @@
       "speaker": "user",
       "statement": "一进夜市我就先灌一瓶酸梅汤，解腻。",
       "statementFloor": 74,
-      "restatement": "你家那罐梅子汤，我回回进门先干一瓶。",
+      "restatement": "酸梅汤我回回进夜市先干上一瓶，解腻就靠它。",
       "restatementFloor": 104,
       "update": null,
       "updateFloor": null
@@ -1802,7 +1802,7 @@
       "speaker": "character",
       "statement": "我串肉用的签子还是我爸留下的老铁签。",
       "statementFloor": 119,
-      "restatement": "签子是我爸留下的铁家伙，用到今儿也没换。",
+      "restatement": "我爸留下的那把老铁签，我用到今儿也没换。",
       "restatementFloor": 143,
       "update": null,
       "updateFloor": null
@@ -1861,7 +1861,7 @@
       "speaker": "character",
       "statement": "你头回上我摊子吃串，是去年中秋那晚。",
       "statementFloor": 147,
-      "restatement": "头一回来我这儿，赶上的就是中秋那晚。",
+      "restatement": "头一回来我这儿，赶上的就是去年中秋那晚。",
       "restatementFloor": 165,
       "update": null,
       "updateFloor": null
@@ -1889,7 +1889,7 @@
       "speaker": "user",
       "statement": "我攒火柴盒攒了三年，快一百个了。",
       "statementFloor": 156,
-      "restatement": "那些小盒子我收了三年，差不多攒齐一百个。",
+      "restatement": "那些火柴盒我收了三年，快攒到一百个了。",
       "restatementFloor": 172,
       "update": null,
       "updateFloor": null
@@ -1924,7 +1924,7 @@
       "restatementFloor": null,
       "update": {
         "statement": "粉丝破三千啦，还有人留言订串。",
-        "probe": "我那号如今涨到目标数没有，你还记得吗？"
+        "probe": "你那号如今涨到目标数没有，还记得不？"
       },
       "updateFloor": 149
     },

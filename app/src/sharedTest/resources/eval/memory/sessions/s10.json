@@ -122,7 +122,7 @@
     {
       "floor": 24,
       "role": "user",
-      "content": "跟你说过的吧，我的咖啡名单上一直只有冰美式。"
+      "content": "跟你说过的吧，我这学期咖啡名单上只认冰美式。"
     },
     {
       "floor": 25,
@@ -167,7 +167,7 @@
     {
       "floor": 33,
       "role": "assistant",
-      "content": "吃辣这事我从没含糊过，直接顶到最狠那档。"
+      "content": "吃辣这事我从没含糊过，顿顿直接顶到重辣那档。"
     },
     {
       "floor": 34,
@@ -192,7 +192,7 @@
     {
       "floor": 38,
       "role": "user",
-      "content": "早晨七点那场澡雷打不动，一天的精神全靠它。"
+      "content": "早上七点那场澡雷打不动，一天的精神全靠它。"
     },
     {
       "floor": 39,
@@ -202,7 +202,7 @@
     {
       "floor": 40,
       "role": "user",
-      "content": "我晨跑歌单里清一色是没歌词的曲子。"
+      "content": "我跑步歌单里清一色是纯音乐，带词的不要。"
     },
     {
       "floor": 41,
@@ -277,7 +277,7 @@
     {
       "floor": 55,
       "role": "assistant",
-      "content": "领我上路的老师是郑明远，方向定在光子晶体。"
+      "content": "领我上路的老师是郑明远教授，方向定在光子晶体。"
     },
     {
       "floor": 56,
@@ -347,7 +347,7 @@
     {
       "floor": 69,
       "role": "assistant",
-      "content": "心里盘算的是拿南大的保研名额，分数半点松不得。"
+      "content": "心里盘算的是保研南大，绩点半点松不得。"
     },
     {
       "floor": 70,
@@ -382,7 +382,7 @@
     {
       "floor": 76,
       "role": "user",
-      "content": "我有位从中学一路同窗到毕业的旧友，你记得他吗？"
+      "content": "我上学那会儿跟人拼过课桌的旧友，你记得他吗？"
     },
     {
       "floor": 77,
@@ -422,7 +422,7 @@
     {
       "floor": 84,
       "role": "user",
-      "content": "入睡难得很，眼睁睁熬到三点过后才睡着。"
+      "content": "入睡难得很，眼睁睁熬到凌晨三点才睡着。"
     },
     {
       "floor": 85,
@@ -457,7 +457,7 @@
     {
       "floor": 91,
       "role": "assistant",
-      "content": "手腕那处腱鞘炎折腾我半个月了，使不上劲。"
+      "content": "手腕那处腱鞘炎折腾得我使不上劲。"
     },
     {
       "floor": 92,
@@ -497,7 +497,7 @@
     {
       "floor": 99,
       "role": "assistant",
-      "content": "我们组的实验室在老实验楼517，刷卡才进得去。"
+      "content": "我那间实验室在老实验楼517，刷卡才进得去。"
     },
     {
       "floor": 100,
@@ -512,7 +512,7 @@
     {
       "floor": 102,
       "role": "user",
-      "content": "车棚那台捷安特是我的老伙计，浑身都响就是铃不响。"
+      "content": "车棚那台二手捷安特是我的老伙计，浑身都响就是铃不响。"
     },
     {
       "floor": 103,
@@ -527,7 +527,7 @@
     {
       "floor": 105,
       "role": "assistant",
-      "content": "手边那块杜伽的红轴，陪我敲了三个年头。"
+      "content": "手边那块杜伽红轴键盘，陪我敲了三个年头。"
     },
     {
       "floor": 106,
@@ -542,7 +542,7 @@
     {
       "floor": 108,
       "role": "user",
-      "content": "泡自习室我只认老馆四层临窗的位置。"
+      "content": "泡自习室我只认老图书馆四楼临窗的位置。"
     },
     {
       "floor": 109,
@@ -562,7 +562,7 @@
     {
       "floor": 112,
       "role": "user",
-      "content": "手头这台联想的小新，从大一陪我到现在。"
+      "content": "手头这台联想小新，从大一陪我到现在。"
     },
     {
       "floor": 113,
@@ -632,7 +632,7 @@
     {
       "floor": 126,
       "role": "user",
-      "content": "我敲代码离不开的那块外设是什么牌子轴体，你有数吗？"
+      "content": "你敲代码离不开的那块外设是什么牌子轴体，有数吗？"
     },
     {
       "floor": 127,
@@ -732,7 +732,7 @@
     {
       "floor": 146,
       "role": "user",
-      "content": "国庆我跟社团去爬了趟黄山，天没亮就站上山巅了。"
+      "content": "国庆我跟社团夜爬黄山，天没亮就站上山巅了。"
     },
     {
       "floor": 147,
@@ -777,7 +777,7 @@
     {
       "floor": 155,
       "role": "assistant",
-      "content": "决赛读秒那记外线远投，是我在终场前扔进去的。"
+      "content": "院系杯决赛读秒那记外线远投，是我在终场前扔进去的。"
     },
     {
       "floor": 156,
@@ -802,7 +802,7 @@
     {
       "floor": 160,
       "role": "user",
-      "content": "门开在九号楼432，住了两学期没挪。"
+      "content": "门开在九号楼432，打我搬来没挪过。"
     },
     {
       "floor": 161,
@@ -857,7 +857,7 @@
     {
       "floor": 171,
       "role": "assistant",
-      "content": "八千块的国奖名单出来了，我排在头一个。"
+      "content": "八千块的国家奖学金名单出来了，我名字在头一排。"
     },
     {
       "floor": 172,
@@ -882,7 +882,7 @@
     {
       "floor": 176,
       "role": "user",
-      "content": "还记得我挑吃食口味时死守哪一档吗？"
+      "content": "还记得你挑吃食口味时死守哪一档吗？"
     },
     {
       "floor": 177,
@@ -912,7 +912,7 @@
     {
       "floor": 182,
       "role": "user",
-      "content": "那种发苦的瓜甭管怎么做，我都绕着走。"
+      "content": "苦瓜这东西甭管怎么做，我都绕着走。"
     },
     {
       "floor": 183,
@@ -982,7 +982,7 @@
     {
       "floor": 196,
       "role": "user",
-      "content": "我老家安在泉州那头，回一趟要大半天车程。"
+      "content": "我老家安在泉州那头，回一趟得五个钟头。"
     },
     {
       "floor": 197,
@@ -1132,7 +1132,7 @@
     {
       "floor": 226,
       "role": "user",
-      "content": "如今带我的人换成了谁，你猜到了吗？"
+      "content": "如今带你的人换成了谁，你猜到了吗？"
     },
     {
       "floor": 227,
@@ -1382,7 +1382,7 @@
     {
       "floor": 276,
       "role": "user",
-      "content": "如今我打算一出校门就去哪类地方上班？"
+      "content": "如今你打算一出校门就去哪类地方上班？"
     },
     {
       "floor": 277,
@@ -1515,7 +1515,7 @@
       "speaker": "user",
       "statement": "我这学期咖啡就认冰美式，别的都不对味。",
       "statementFloor": 6,
-      "restatement": "跟你说过的吧，我的咖啡名单上一直只有冰美式。",
+      "restatement": "跟你说过的吧，我这学期咖啡名单上只认冰美式。",
       "restatementFloor": 24,
       "update": {
         "statement": "冰美式把我胃喝坏了，如今改喝燕麦拿铁了。",
@@ -1532,11 +1532,11 @@
       "speaker": "character",
       "statement": "点外卖我必勾重辣，辣子多多的那家才够劲。",
       "statementFloor": 15,
-      "restatement": "吃辣这事我从没含糊过，直接顶到最狠那档。",
+      "restatement": "吃辣这事我从没含糊过，顿顿直接顶到重辣那档。",
       "restatementFloor": 33,
       "update": {
         "statement": "体检说我肠胃要静养，这阵子我一口辣都不沾了。",
-        "probe": "我如今点餐敢不敢再碰红亮亮的料，你说？"
+        "probe": "你如今点餐敢不敢再碰红亮亮的料，你说？"
       },
       "updateFloor": 189
     },
@@ -1549,7 +1549,7 @@
       "speaker": "user",
       "statement": "我习惯早上七点冲澡，那样一天都清爽。",
       "statementFloor": 20,
-      "restatement": "早晨七点那场澡雷打不动，一天的精神全靠它。",
+      "restatement": "早上七点那场澡雷打不动，一天的精神全靠它。",
       "restatementFloor": 38,
       "update": null,
       "updateFloor": null
@@ -1563,7 +1563,7 @@
       "speaker": "user",
       "statement": "我跑步只听纯音乐，带词的一律打乱节奏。",
       "statementFloor": 22,
-      "restatement": "我晨跑歌单里清一色是没歌词的曲子。",
+      "restatement": "我跑步歌单里清一色是纯音乐，带词的不要。",
       "restatementFloor": 40,
       "update": null,
       "updateFloor": null
@@ -1594,11 +1594,11 @@
       "speaker": "character",
       "statement": "我在郑明远教授组里，做光子晶体这摊。",
       "statementFloor": 37,
-      "restatement": "领我上路的老师是郑明远，方向定在光子晶体。",
+      "restatement": "领我上路的老师是郑明远教授，方向定在光子晶体。",
       "restatementFloor": 55,
       "update": {
         "statement": "开学初我转投了顾砚秋老师门下，课题也换了。",
-        "probe": "如今带我的人换成了谁，你猜到了吗？"
+        "probe": "如今带你的人换成了谁，你猜到了吗？"
       },
       "updateFloor": 143
     },
@@ -1642,11 +1642,11 @@
       "speaker": "character",
       "statement": "我这学期的算盘是保研南大，绩点不敢掉。",
       "statementFloor": 53,
-      "restatement": "心里盘算的是拿南大的保研名额，分数半点松不得。",
+      "restatement": "心里盘算的是保研南大，绩点半点松不得。",
       "restatementFloor": 69,
       "update": {
         "statement": "保研这条路我放弃了，毕业就奔航天院所去。",
-        "probe": "如今我打算一出校门就去哪类地方上班？"
+        "probe": "如今你打算一出校门就去哪类地方上班？"
       },
       "updateFloor": 129
     },
@@ -1676,11 +1676,11 @@
       "speaker": "user",
       "statement": "这阵子我失眠，躺到凌晨三点才有点困意。",
       "statementFloor": 66,
-      "restatement": "入睡难得很，眼睁睁熬到三点过后才睡着。",
+      "restatement": "入睡难得很，眼睁睁熬到凌晨三点才睡着。",
       "restatementFloor": 84,
       "update": {
         "statement": "校医院开了褪黑素，如今我十二点前后就睡着了。",
-        "probe": "现在躺下多久能见着周公，你还清楚吗？"
+        "probe": "现在几点能睡沉，你还清楚吗？"
       },
       "updateFloor": 136
     },
@@ -1693,11 +1693,11 @@
       "speaker": "character",
       "statement": "我右手腕得了腱鞘炎，握拍都发不上力。",
       "statementFloor": 73,
-      "restatement": "手腕那处腱鞘炎折腾我半个月了，使不上劲。",
+      "restatement": "手腕那处腱鞘炎折腾得我使不上劲。",
       "restatementFloor": 91,
       "update": {
         "statement": "腱鞘炎养利索了，现在打球我又能抡开了。",
-        "probe": "现在我抡起拍子还疼不疼，你猜？"
+        "probe": "现在抡起拍子还疼不疼，你猜？"
       },
       "updateFloor": 139
     },
@@ -1710,7 +1710,7 @@
       "speaker": "user",
       "statement": "我那辆二手捷安特骑了两年，除了铃哪儿都响。",
       "statementFloor": 80,
-      "restatement": "车棚那台捷安特是我的老伙计，浑身都响就是铃不响。",
+      "restatement": "车棚那台二手捷安特是我的老伙计，浑身都响就是铃不响。",
       "restatementFloor": 102,
       "update": null,
       "updateFloor": null
@@ -1724,7 +1724,7 @@
       "speaker": "character",
       "statement": "我那把杜伽红轴键盘用了三年，键帽都盘出包浆了。",
       "statementFloor": 83,
-      "restatement": "手边那块杜伽的红轴，陪我敲了三个年头。",
+      "restatement": "手边那块杜伽红轴键盘，陪我敲了三个年头。",
       "restatementFloor": 105,
       "update": null,
       "updateFloor": null
@@ -1738,7 +1738,7 @@
       "speaker": "user",
       "statement": "我这台联想小新是大一买的，屏幕色彩挺正。",
       "statementFloor": 92,
-      "restatement": "手头这台联想的小新，从大一陪我到现在。",
+      "restatement": "手头这台联想小新，从大一陪我到现在。",
       "restatementFloor": 112,
       "update": null,
       "updateFloor": null
@@ -1752,7 +1752,7 @@
       "speaker": "user",
       "statement": "我自习固定占老图书馆四楼靠窗那排座。",
       "statementFloor": 88,
-      "restatement": "泡自习室我只认老馆四层临窗的位置。",
+      "restatement": "泡自习室我只认老图书馆四楼临窗的位置。",
       "restatementFloor": 108,
       "update": {
         "statement": "老馆四楼闭馆装修，我挪去四教的自习室了。",
@@ -1767,7 +1767,7 @@
       "relation": "works_at",
       "object": "实验楼517",
       "speaker": "character",
-      "statement": "我们组的实验室在老实验楼517，刷卡才进得去。",
+      "statement": "我那间实验室在老实验楼517，刷卡才进得去。",
       "statementFloor": 99,
       "restatement": "平时做实验就在517那间，门禁卡离不得身。",
       "restatementFloor": 121,
@@ -1783,7 +1783,7 @@
       "speaker": "user",
       "statement": "十一那天我随户外社夜爬黄山，凌晨摸黑登的顶。",
       "statementFloor": 110,
-      "restatement": "国庆我跟社团去爬了趟黄山，天没亮就站上山巅了。",
+      "restatement": "国庆我跟社团夜爬黄山，天没亮就站上山巅了。",
       "restatementFloor": 146,
       "update": null,
       "updateFloor": null
@@ -1797,7 +1797,7 @@
       "speaker": "character",
       "statement": "院系杯决赛压哨那记三分，是我投进去的。",
       "statementFloor": 115,
-      "restatement": "决赛读秒那记外线远投，是我在终场前扔进去的。",
+      "restatement": "院系杯决赛读秒那记外线远投，是我在终场前扔进去的。",
       "restatementFloor": 155,
       "update": null,
       "updateFloor": null
@@ -1825,7 +1825,7 @@
       "speaker": "user",
       "statement": "咱们宿舍是九号楼432，门牌从我搬来就没换过。",
       "statementFloor": 124,
-      "restatement": "门开在九号楼432，住了两学期没挪。",
+      "restatement": "门开在九号楼432，打我搬来没挪过。",
       "restatementFloor": 160,
       "update": null,
       "updateFloor": null
@@ -1867,7 +1867,7 @@
       "speaker": "character",
       "statement": "十一月国家奖学金公示，我名字在头一排，八千块。",
       "statementFloor": 145,
-      "restatement": "八千块的国奖名单出来了，我排在头一个。",
+      "restatement": "八千块的国家奖学金名单出来了，我名字在头一排。",
       "restatementFloor": 171,
       "update": null,
       "updateFloor": null
@@ -1909,7 +1909,7 @@
       "speaker": "user",
       "statement": "苦瓜这东西我碰都不碰，炒得再香也不下筷。",
       "statementFloor": 162,
-      "restatement": "那种发苦的瓜甭管怎么做，我都绕着走。",
+      "restatement": "苦瓜这东西甭管怎么做，我都绕着走。",
       "restatementFloor": 182,
       "update": null,
       "updateFloor": null
@@ -1951,7 +1951,7 @@
       "speaker": "user",
       "statement": "我家在泉州，坐动车回去得五个钟头。",
       "statementFloor": 178,
-      "restatement": "我老家安在泉州那头，回一趟要大半天车程。",
+      "restatement": "我老家安在泉州那头，回一趟得五个钟头。",
       "restatementFloor": 196,
       "update": null,
       "updateFloor": null
@@ -1977,7 +1977,7 @@
       "targetFactId": "f07",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我有位从中学一路同窗到毕业的旧友，你记得他吗？"
+      "text": "我上学那会儿跟人拼过课桌的旧友，你记得他吗？"
     },
     {
       "floor": 100,
@@ -1991,7 +1991,7 @@
       "targetFactId": "f14",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我敲代码离不开的那块外设是什么牌子轴体，你有数吗？"
+      "text": "你敲代码离不开的那块外设是什么牌子轴体，有数吗？"
     },
     {
       "floor": 150,
@@ -2005,7 +2005,7 @@
       "targetFactId": "f02",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "还记得我挑吃食口味时死守哪一档吗？"
+      "text": "还记得你挑吃食口味时死守哪一档吗？"
     },
     {
       "floor": 200,
@@ -2021,7 +2021,7 @@
       "absentFactIds": [
         "f06"
       ],
-      "text": "如今带我的人换成了谁，你猜到了吗？"
+      "text": "如今带你的人换成了谁，你猜到了吗？"
     },
     {
       "floor": 250,
@@ -2039,7 +2039,7 @@
       "absentFactIds": [
         "f09"
       ],
-      "text": "如今我打算一出校门就去哪类地方上班？"
+      "text": "如今你打算一出校门就去哪类地方上班？"
     },
     {
       "floor": 300,

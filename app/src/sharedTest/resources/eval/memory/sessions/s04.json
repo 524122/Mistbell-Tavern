@@ -182,7 +182,7 @@
     {
       "floor": 36,
       "role": "user",
-      "content": "杭州生杭州长，海腥味就是我的家乡味。"
+      "content": "杭州生杭州长，潮腥味就是我熟悉的家乡味。"
     },
     {
       "floor": 37,
@@ -247,7 +247,7 @@
     {
       "floor": 49,
       "role": "assistant",
-      "content": "那台苏联时代的老血压计是我的宝贝，比新仪器靠谱。"
+      "content": "那台苏制老血压计是我的宝贝，比新仪器靠谱。"
     },
     {
       "floor": 50,
@@ -687,7 +687,7 @@
     {
       "floor": 137,
       "role": "assistant",
-      "content": "闺女去年跟了她妈去新西兰，视频从每周改成每月。"
+      "content": "闺女上个月跟她妈去新西兰了，视频改成每月一回。"
     },
     {
       "floor": 138,
@@ -852,7 +852,7 @@
     {
       "floor": 170,
       "role": "user",
-      "content": "靠一次港收一枚，我这儿已钉了七枚徽章。"
+      "content": "床铺的软木板上，已经钉了七枚港口徽章。"
     },
     {
       "floor": 171,
@@ -927,7 +927,7 @@
     {
       "floor": 185,
       "role": "assistant",
-      "content": "那年护送危重病人横渡大洋，我连轴转了三天没合眼。"
+      "content": "那年跨洋医疗转运护送病人，我连轴转三天没合眼。"
     },
     {
       "floor": 186,
@@ -1382,7 +1382,7 @@
     {
       "floor": 276,
       "role": "user",
-      "content": "远在海外那孩子的近况，如今多久才联络一回？"
+      "content": "这阵子跟那孩子多久才联络一次，你还记得么？"
     },
     {
       "floor": 277,
@@ -1519,7 +1519,7 @@
       "restatementFloor": 24,
       "update": {
         "statement": "心脏查出毛病以后，我只敢喝低因的，浓的一口不敢碰。",
-        "probe": "现在让你碰带劲儿的咖啡还行么？"
+        "probe": "如今我是不是连带劲儿的咖啡都不敢沾了，你还记得么？"
       },
       "updateFloor": 160
     },
@@ -1546,7 +1546,7 @@
       "speaker": "user",
       "statement": "我老家在杭州，从小闻着潮腥味长大。",
       "statementFloor": 18,
-      "restatement": "杭州生杭州长，海腥味就是我的家乡味。",
+      "restatement": "杭州生杭州长，潮腥味就是我熟悉的家乡味。",
       "restatementFloor": 36,
       "update": null,
       "updateFloor": null
@@ -1574,7 +1574,7 @@
       "speaker": "character",
       "statement": "我留着一台苏制老血压计，量起来比船上新设备还准。",
       "statementFloor": 33,
-      "restatement": "那台苏联时代的老血压计是我的宝贝，比新仪器靠谱。",
+      "restatement": "那台苏制老血压计是我的宝贝，比新仪器靠谱。",
       "restatementFloor": 49,
       "update": null,
       "updateFloor": null
@@ -1757,8 +1757,8 @@
       "restatement": null,
       "restatementFloor": null,
       "update": {
-        "statement": "闺女去年跟了她妈去新西兰，视频从每周改成每月。",
-        "probe": "远在海外那孩子的近况，如今多久才联络一回？"
+        "statement": "闺女上个月跟她妈去新西兰了，视频改成每月一回。",
+        "probe": "这阵子跟那孩子多久才联络一次，你还记得么？"
       },
       "updateFloor": 137
     },
@@ -1865,7 +1865,7 @@
       "restatementFloor": null,
       "update": {
         "statement": "跟着医务室的康复操做了三周，腰总算不闹了。",
-        "probe": "那副折腾我半年的老毛病，如今还使绊子么？"
+        "probe": "我腰上那桩老毛病，如今还使绊子么？"
       },
       "updateFloor": 140
     },
@@ -1878,7 +1878,7 @@
       "speaker": "user",
       "statement": "我攒下七枚港口徽章，全钉在床铺的软木板上。",
       "statementFloor": 152,
-      "restatement": "靠一次港收一枚，我这儿已钉了七枚徽章。",
+      "restatement": "床铺的软木板上，已经钉了七枚港口徽章。",
       "restatementFloor": 170,
       "update": null,
       "updateFloor": null
@@ -1909,7 +1909,7 @@
       "speaker": "character",
       "statement": "前年我跟过一趟跨洋医疗转运，三天没合眼把病人送到岸。",
       "statementFloor": 165,
-      "restatement": "那年护送危重病人横渡大洋，我连轴转了三天没合眼。",
+      "restatement": "那年跨洋医疗转运护送病人，我连轴转三天没合眼。",
       "restatementFloor": 185,
       "update": null,
       "updateFloor": null
@@ -2039,7 +2039,7 @@
       "absentFactIds": [
         "f17"
       ],
-      "text": "远在海外那孩子的近况，如今多久才联络一回？"
+      "text": "这阵子跟那孩子多久才联络一次，你还记得么？"
     },
     {
       "floor": 300,

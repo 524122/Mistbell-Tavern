@@ -43,7 +43,7 @@
       "object": "旧钢琴",
       "statement": "我家那台旧钢琴是外婆留下来的。",
       "speaker": "user",
-      "restatement": "外婆走后，她那架老钢琴就归了我。",
+      "restatement": "外婆走后，她那台旧钢琴就归了我。",
       "update": null,
       "probe": "还记得我屋里摆着哪种大件乐器吗"
     },
@@ -58,9 +58,9 @@
       "restatement": "圆珠笔到我手里就搁一边，写字我只认钢笔。",
       "update": {
         "statement": "上个月起，我改用毛笔题写书封。",
-        "probe": "还记得我如今案头常搁的是哪种笔吗"
+        "probe": "还记得你如今案头常搁的是哪种笔吗"
       },
-      "probe": "还记得我这店里签字用的是什么笔吗"
+      "probe": "还记得这店里签字用的是什么笔吗"
     },
     {
       "id": "f04",
@@ -127,9 +127,9 @@
       "restatement": "教我修补书页的，是位老师傅。",
       "update": {
         "statement": "老师傅前年冬天过世了，我再没找到那样的先生。",
-        "probe": "还记得教我补书的那位长辈如今还在吗"
+        "probe": "还记得教出这手本事的哪位长辈如今还在吗"
       },
-      "probe": "还记得我凭哪位长辈传的手艺吃饭吗"
+      "probe": "还记得你凭哪位长辈传的手艺吃饭吗"
     },
     {
       "id": "f09",
@@ -139,7 +139,7 @@
       "object": "偏头痛",
       "statement": "我一着急就犯偏头痛，得躺半天。",
       "speaker": "user",
-      "restatement": "我一急，左边脑袋就疼得躺倒半天。",
+      "restatement": "我一急左边就犯偏头痛，得躺倒半天。",
       "update": null,
       "probe": "还记得我脾气一上来会招惹哪种旧疾吗"
     },
@@ -154,9 +154,9 @@
       "restatement": "我一直想亲手把那套残缺县志补齐全。",
       "update": {
         "statement": "那套县志我补到一半，缺的两册抄配好了。",
-        "probe": "还记得我店里那套旧书补得怎么样了吗"
+        "probe": "还记得店里那套旧书补得怎么样了吗"
       },
-      "probe": "还记得我这儿有套旧书等着修整吗"
+      "probe": "还记得你们店里有一套旧书等着修整吗"
     },
     {
       "id": "f11",
@@ -181,7 +181,7 @@
       "restatement": null,
       "update": {
         "statement": "街道去年改造，我把店面挪到了巷口。",
-        "probe": "还记得我这铺子如今挪到了什么位置吗"
+        "probe": "还记得你这铺子如今挪到了什么位置吗"
       },
       "probe": "还记得这铺子藏在哪条窄巷深处吗"
     },
@@ -193,7 +193,7 @@
       "object": "甜食",
       "statement": "我向来拒甜食，喝奶茶都只要无糖。",
       "speaker": "user",
-      "restatement": "甜口的饮食我一概不沾，连糖都戒了。",
+      "restatement": "甜食我一概不沾，喝奶茶连糖都戒了。",
       "update": null,
       "probe": "还记得我点饮料时躲着哪类口味吗"
     },
@@ -220,9 +220,9 @@
       "restatement": null,
       "update": {
         "statement": "入冬前我把烟戒了，咳嗽轻了大半。",
-        "probe": "还记得我断了哪样旧习之后喉咙松快了吗"
+        "probe": "还记得你断了哪样旧习之后喉咙松快了吗"
       },
-      "probe": "还记得我一入秋就犯哪种缠了多年的病吗"
+      "probe": "还记得你一入秋就犯哪种缠了多年的病吗"
     },
     {
       "id": "f16",
@@ -234,7 +234,7 @@
       "speaker": "character",
       "restatement": null,
       "update": null,
-      "probe": "还记得我这儿存着哪样防虫的木头家什吗"
+      "probe": "还记得店里存着哪样防虫的木头家什吗"
     },
     {
       "id": "f17",
@@ -259,9 +259,9 @@
       "restatement": null,
       "update": {
         "statement": "换架子的事停了一半，木料涨价，我先缓缓。",
-        "probe": "还记得我翻修铺面的进度落下了多少吗"
+        "probe": "还记得翻修铺面的进度落下了多少吗"
       },
-      "probe": "还记得我说过店里哪一处要动工吗"
+      "probe": "还记得你提过店里哪一处要动工吗"
     },
     {
       "id": "f19",
@@ -351,7 +351,7 @@
       "speaker": "character",
       "restatement": null,
       "update": null,
-      "probe": "还记得我这铺子传到我手里是第几任吗"
+      "probe": "还记得这铺子传到你手里是第几任吗"
     },
     {
       "id": "f26",
@@ -361,7 +361,7 @@
       "object": "空架子",
       "statement": "西口那座老戏台，如今只剩一座空架子。",
       "speaker": "user",
-      "restatement": "西口那座戏台子如今就剩个空壳了。",
+      "restatement": "西口那座戏台子如今就剩个空架子了。",
       "update": null,
       "probe": "还记得早年唱戏的那座高台剩下什么吗"
     },
@@ -375,7 +375,7 @@
       "speaker": "character",
       "restatement": null,
       "update": null,
-      "probe": "还记得我店面遭水患那回折损了什么吗"
+      "probe": "还记得你店面遭水患那回折损了什么吗"
     },
     {
       "id": "f28",
@@ -399,7 +399,7 @@
       "speaker": "character",
       "restatement": null,
       "update": null,
-      "probe": "还记得我这屋子的年头要追溯到哪个朝代吗"
+      "probe": "还记得这屋子的年头要追溯到哪个朝代吗"
     },
     {
       "id": "f30",

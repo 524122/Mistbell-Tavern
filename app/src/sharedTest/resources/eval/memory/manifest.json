@@ -10,7 +10,7 @@
       "restatedFacts": 9,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6323
+      "totalChars": 6328
     },
     {
       "id": "s02",
@@ -20,7 +20,7 @@
       "restatedFacts": 15,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6031
+      "totalChars": 6021
     },
     {
       "id": "s03",
@@ -30,7 +30,7 @@
       "restatedFacts": 16,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6179
+      "totalChars": 6180
     },
     {
       "id": "s04",
@@ -40,7 +40,7 @@
       "restatedFacts": 11,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6584
+      "totalChars": 6582
     },
     {
       "id": "s05",
@@ -50,7 +50,7 @@
       "restatedFacts": 11,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6395
+      "totalChars": 6415
     },
     {
       "id": "s06",
@@ -60,7 +60,7 @@
       "restatedFacts": 10,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6523
+      "totalChars": 6548
     },
     {
       "id": "s07",
@@ -70,7 +70,7 @@
       "restatedFacts": 9,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6914
+      "totalChars": 6921
     },
     {
       "id": "s08",
@@ -80,7 +80,7 @@
       "restatedFacts": 9,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6751
+      "totalChars": 6761
     },
     {
       "id": "s09",
@@ -90,7 +90,7 @@
       "restatedFacts": 9,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6972
+      "totalChars": 6978
     },
     {
       "id": "s10",
@@ -100,7 +100,7 @@
       "restatedFacts": 30,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6228
+      "totalChars": 6231
     },
     {
       "id": "s11",
@@ -110,7 +110,7 @@
       "restatedFacts": 30,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6323
+      "totalChars": 6321
     },
     {
       "id": "s12",
@@ -120,7 +120,7 @@
       "restatedFacts": 30,
       "probes": 12,
       "probesOnUpdated": 4,
-      "totalChars": 6087
+      "totalChars": 6105
     }
   ]
 }

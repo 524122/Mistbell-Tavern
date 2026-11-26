@@ -74,7 +74,7 @@
       "object": "绸缎庄失货",
       "statement": "前年替绸缎庄追过一批失窃的货，三天找回。",
       "speaker": "character",
-      "restatement": "绸缎庄丢货那桩，我三天就把货全数追讨回来。",
+      "restatement": "绸缎庄丢货那桩，我三天就把货都讨了回来。",
       "update": null,
       "probe": "替老字号追回失物那桩差事，你还记得吗？"
     },
@@ -110,7 +110,7 @@
       "object": "过目不忘",
       "statement": "我天生过目不忘，单子上的数目过一遍眼就锁进脑子。",
       "speaker": "user",
-      "restatement": "我这双眼睛扫过的数目，转头都还锁在脑子里。",
+      "restatement": "我这双眼睛过目不忘，扫过的数目转头都锁在脑子里。",
       "update": null,
       "probe": "我这颗脑袋装东西的本事，你领教过吧？"
     },
@@ -146,7 +146,7 @@
       "object": "樟木信箱",
       "statement": "我门口钉了只樟木信箱，收要紧的信从不走邮差。",
       "speaker": "character",
-      "restatement": "信箱钉在门侧，要紧的信都从它那儿走。",
+      "restatement": "信箱钉在门侧，要紧的信都从这只樟木信箱走。",
       "update": null,
       "probe": "你门边那件装信的木头家伙是什么料子？"
     },
@@ -158,7 +158,7 @@
       "object": "灰羽信鸽",
       "statement": "我养了只灰羽信鸽，要紧口信系在它腿上放飞。",
       "speaker": "user",
-      "restatement": "那只灰毛鸽子替我传口信，条子就绑腿上。",
+      "restatement": "那只灰羽信鸽替我传口信，条子就绑腿上。",
       "update": null,
       "probe": "我那只会送信的活物是什么羽色，你想得起来吗？"
     },
@@ -206,7 +206,7 @@
       "object": "一张去南洋的船票",
       "statement": "我一直攒着钱，想置办一张去南洋的船票。",
       "speaker": "user",
-      "restatement": "南洋船票的钱我一分一分攒着，早晚要置办一张。",
+      "restatement": "一张去南洋的船票，钱我一分一分攒着，早晚置办。",
       "update": null,
       "probe": "我这些年省吃俭用，图的是哪样远行的凭证？"
     },
@@ -244,7 +244,7 @@
       "speaker": "user",
       "restatement": null,
       "update": null,
-      "probe": "我贴身藏着的那样小铁物是什么来头，有印象吗？"
+      "probe": "我贴身藏着的那几枚小金属件，还各有来历，有印象吗？"
     },
     {
       "id": "f20",

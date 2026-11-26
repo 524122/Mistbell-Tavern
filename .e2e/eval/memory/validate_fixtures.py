@@ -105,6 +105,18 @@ def rephrase_ok(probe, other, names):
                 & bigram_set(normalize(other, names)))
 
 
+WORD_RUN = re.compile(r"[\u4e00-\u9fff]{2,}|[A-Za-z0-9]{2,}")
+
+
+def object_kept(text, objv):
+    """取值词是否被保住：object 整体出现，或 object 里任一长度 >= 2 的连续词段出现。"""
+    if not isinstance(text, str) or not objv:
+        return False
+    if objv in text:
+        return True
+    return any(run in text for run in WORD_RUN.findall(objv))
+
+
 class Violations:
     def __init__(self):
         self.items = []
@@ -260,6 +272,21 @@ def check_spine(path, v):
                 v.add(path, fid, f"probe 泄露了 object「{objv}」")
             if isinstance(upd, dict) and objv in upd.get("probe", ""):
                 v.add(path, fid, f"update.probe 泄露了 object「{objv}」")
+            # 取值词必须保住：object 常是规范化标签、与原话的口语说法不同字面，所以只在
+            # 「原话里逐字出现了取值词」时才要求重述也保住它——重述丢了取值词，
+            # 「重述负例」就可能被系统当成另一条事实或一次真更新，负例集失真
+            if (isinstance(rest, str) and object_kept(statement, objv)
+                    and not object_kept(rest, objv)):
+                v.add(path, fid, f"restatement 丢掉了 statement 里的取值词「{objv}」（重述必须断言同一取值）")
+
+        # 探针视角：探针由用户说出。事实由角色说出时，主体是「你（角色）」；
+        # 出现「我」等于让用户认领了角色的事实——这些句子会原样进入对话与抽取
+        if f.get("speaker") == "character":
+            for label, text in (("probe", probe),
+                                ("update.probe", upd.get("probe") if isinstance(upd, dict) else None)):
+                if isinstance(text, str) and "我" in text:
+                    v.add(path, fid,
+                          f"{label} 以用户口吻说出，但事实的主体是角色：不得出现「我」（改成「你」或角色名）")
 
         if probe is not None:
             probe_texts.append(probe)

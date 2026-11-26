@@ -132,7 +132,7 @@
     {
       "floor": 26,
       "role": "user",
-      "content": "中场那杯提神的，我该帮你避开哪一样凉饮？"
+      "content": "中场那杯提神的，你该帮我避开哪一样凉饮？"
     },
     {
       "floor": 27,
@@ -207,7 +207,7 @@
     {
       "floor": 41,
       "role": "assistant",
-      "content": "我左腕的老伤又闹了，连排完就发僵。"
+      "content": "我左腕的腱鞘炎又闹了，连排完就发僵。"
     },
     {
       "floor": 42,
@@ -472,7 +472,7 @@
     {
       "floor": 94,
       "role": "user",
-      "content": "我这行吃的是行程表，机票酒店场地一肩挑。"
+      "content": "我是团里的巡演经纪人，机票酒店场地一肩挑。"
     },
     {
       "floor": 95,
@@ -487,7 +487,7 @@
     {
       "floor": 97,
       "role": "assistant",
-      "content": "巡演在外我一日两回冲那罐绿汤，喝惯了的。"
+      "content": "巡演在外我一日两回冲那罐绿茶，喝惯了的。"
     },
     {
       "floor": 98,
@@ -572,7 +572,7 @@
     {
       "floor": 114,
       "role": "user",
-      "content": "我干的就是围着这摊行程打转的活计。"
+      "content": "我干的就是巡演经纪人这行，围着行程打转。"
     },
     {
       "floor": 115,
@@ -947,7 +947,7 @@
     {
       "floor": 189,
       "role": "assistant",
-      "content": "琴照样单独占一个座，票照买不误。"
+      "content": "琴照样单独买一张占座票，一张都不省。"
     },
     {
       "floor": 190,
@@ -1600,7 +1600,7 @@
       "relation": "has_injury_in",
       "object": "左腕腱鞘炎",
       "speaker": "character",
-      "statement": "我左腕的老伤又闹了，连排完就发僵。",
+      "statement": "我左腕的腱鞘炎又闹了，连排完就发僵。",
       "statementFloor": 41,
       "restatement": null,
       "restatementFloor": null,
@@ -1704,7 +1704,7 @@
       "speaker": "character",
       "statement": "巡演路上我只靠绿茶提神，一天两泡。",
       "statementFloor": 75,
-      "restatement": "巡演在外我一日两回冲那罐绿汤，喝惯了的。",
+      "restatement": "巡演在外我一日两回冲那罐绿茶，喝惯了的。",
       "restatementFloor": 97,
       "update": {
         "statement": "大夫叮嘱少碰浓茶，我改泡红枣枸杞水了。",
@@ -1753,9 +1753,9 @@
       "relation": "works_as",
       "object": "巡演经纪人",
       "speaker": "user",
-      "statement": "我这行吃的是行程表，机票酒店场地一肩挑。",
+      "statement": "我是团里的巡演经纪人，机票酒店场地一肩挑。",
       "statementFloor": 94,
-      "restatement": "我干的就是围着这摊行程打转的活计。",
+      "restatement": "我干的就是巡演经纪人这行，围着行程打转。",
       "restatementFloor": 114,
       "update": null,
       "updateFloor": null
@@ -1923,7 +1923,7 @@
       "speaker": "character",
       "statement": "咱这行的规矩，琴得单独买一张占座票。",
       "statementFloor": 171,
-      "restatement": "琴照样单独占一个座，票照买不误。",
+      "restatement": "琴照样单独买一张占座票，一张都不省。",
       "restatementFloor": 189,
       "update": null,
       "updateFloor": null
@@ -1963,7 +1963,7 @@
       "targetFactId": "f01",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "中场那杯提神的，我该帮你避开哪一样凉饮？"
+      "text": "中场那杯提神的，你该帮我避开哪一样凉饮？"
     },
     {
       "floor": 50,

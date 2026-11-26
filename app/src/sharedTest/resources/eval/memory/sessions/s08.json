@@ -317,7 +317,7 @@
     {
       "floor": 63,
       "role": "assistant",
-      "content": "那本潮汐手账我收了二十多年，纸都翻毛了。"
+      "content": "那本旧潮汐手账我收了二十多年，纸都翻毛了。"
     },
     {
       "floor": 64,
@@ -407,7 +407,7 @@
     {
       "floor": 81,
       "role": "assistant",
-      "content": "台风把凉亭顶掀飞那回，我捡瓦捡了三天。"
+      "content": "去年冬天那场台风掀飞凉亭顶那回，我捡瓦捡了三天。"
     },
     {
       "floor": 82,
@@ -447,7 +447,7 @@
     {
       "floor": 89,
       "role": "assistant",
-      "content": "我这鼻子一换季就喷嚏连天，纸不离手。"
+      "content": "我这过敏性鼻炎一换季就喷嚏连天，纸不离手。"
     },
     {
       "floor": 90,
@@ -547,7 +547,7 @@
     {
       "floor": 109,
       "role": "assistant",
-      "content": "我这换季的鼻子，犯起来半包纸都不够用。"
+      "content": "我这过敏性鼻炎换季发作，半包纸都不够用。"
     },
     {
       "floor": 110,
@@ -1613,7 +1613,7 @@
       "speaker": "character",
       "statement": "我抽屉里压着一本旧潮汐手账，记了二十多年。",
       "statementFloor": 47,
-      "restatement": "那本潮汐手账我收了二十多年，纸都翻毛了。",
+      "restatement": "那本旧潮汐手账我收了二十多年，纸都翻毛了。",
       "restatementFloor": 63,
       "update": null,
       "updateFloor": null
@@ -1641,7 +1641,7 @@
       "speaker": "character",
       "statement": "去年冬天那场台风掀了凉亭的顶，捡了三天瓦。",
       "statementFloor": 61,
-      "restatement": "台风把凉亭顶掀飞那回，我捡瓦捡了三天。",
+      "restatement": "去年冬天那场台风掀飞凉亭顶那回，我捡瓦捡了三天。",
       "restatementFloor": 81,
       "update": null,
       "updateFloor": null
@@ -1878,9 +1878,9 @@
       "relation": "has",
       "object": "过敏性鼻炎",
       "speaker": "character",
-      "statement": "我这鼻子一换季就喷嚏连天，纸不离手。",
+      "statement": "我这过敏性鼻炎一换季就喷嚏连天，纸不离手。",
       "statementFloor": 89,
-      "restatement": "我这换季的鼻子，犯起来半包纸都不够用。",
+      "restatement": "我这过敏性鼻炎换季发作，半包纸都不够用。",
       "restatementFloor": 109,
       "update": {
         "statement": "入了秋喷剂用上，鼻子总算消停了。",
@@ -1926,8 +1926,8 @@
       "id": "f29",
       "memoryType": "relationship",
       "subject": "柯远帆",
-      "relation": "reunited_with",
-      "object": "转回岛上的女儿",
+      "relation": "daughter_studies_in",
+      "object": "省城初中",
       "speaker": "character",
       "statement": "我闺女原本在省城读初中，爷俩一年见不上几面。",
       "statementFloor": 85,

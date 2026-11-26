@@ -277,7 +277,7 @@
     {
       "floor": 55,
       "role": "assistant",
-      "content": "绸缎庄丢货那桩，我三天就把货全数追讨回来。"
+      "content": "绸缎庄丢货那桩，我三天就把货都讨了回来。"
     },
     {
       "floor": 56,
@@ -312,7 +312,7 @@
     {
       "floor": 62,
       "role": "user",
-      "content": "我这双眼睛扫过的数目，转头都还锁在脑子里。"
+      "content": "我这双眼睛过目不忘，扫过的数目转头都锁在脑子里。"
     },
     {
       "floor": 63,
@@ -557,12 +557,12 @@
     {
       "floor": 111,
       "role": "assistant",
-      "content": "信箱钉在门侧，要紧的信都从它那儿走。"
+      "content": "信箱钉在门侧，要紧的信都从这只樟木信箱走。"
     },
     {
       "floor": 112,
       "role": "user",
-      "content": "那只灰毛鸽子替我传口信，条子就绑腿上。"
+      "content": "那只灰羽信鸽替我传口信，条子就绑腿上。"
     },
     {
       "floor": 113,
@@ -612,7 +612,7 @@
     {
       "floor": 122,
       "role": "user",
-      "content": "南洋船票的钱我一分一分攒着，早晚要置办一张。"
+      "content": "一张去南洋的船票，钱我一分一分攒着，早晚置办。"
     },
     {
       "floor": 123,
@@ -1571,7 +1571,7 @@
       "speaker": "character",
       "statement": "前年替绸缎庄追过一批失窃的货，三天找回。",
       "statementFloor": 33,
-      "restatement": "绸缎庄丢货那桩，我三天就把货全数追讨回来。",
+      "restatement": "绸缎庄丢货那桩，我三天就把货都讨了回来。",
       "restatementFloor": 55,
       "update": null,
       "updateFloor": null
@@ -1613,7 +1613,7 @@
       "speaker": "user",
       "statement": "我天生过目不忘，单子上的数目过一遍眼就锁进脑子。",
       "statementFloor": 46,
-      "restatement": "我这双眼睛扫过的数目，转头都还锁在脑子里。",
+      "restatement": "我这双眼睛过目不忘，扫过的数目转头都锁在脑子里。",
       "restatementFloor": 62,
       "update": null,
       "updateFloor": null
@@ -1655,7 +1655,7 @@
       "speaker": "character",
       "statement": "我门口钉了只樟木信箱，收要紧的信从不走邮差。",
       "statementFloor": 65,
-      "restatement": "信箱钉在门侧，要紧的信都从它那儿走。",
+      "restatement": "信箱钉在门侧，要紧的信都从这只樟木信箱走。",
       "restatementFloor": 111,
       "update": null,
       "updateFloor": null
@@ -1669,7 +1669,7 @@
       "speaker": "user",
       "statement": "我养了只灰羽信鸽，要紧口信系在它腿上放飞。",
       "statementFloor": 74,
-      "restatement": "那只灰毛鸽子替我传口信，条子就绑腿上。",
+      "restatement": "那只灰羽信鸽替我传口信，条子就绑腿上。",
       "restatementFloor": 112,
       "update": null,
       "updateFloor": null
@@ -1725,7 +1725,7 @@
       "speaker": "user",
       "statement": "我一直攒着钱，想置办一张去南洋的船票。",
       "statementFloor": 102,
-      "restatement": "南洋船票的钱我一分一分攒着，早晚要置办一张。",
+      "restatement": "一张去南洋的船票，钱我一分一分攒着，早晚置办。",
       "restatementFloor": 122,
       "update": null,
       "updateFloor": null

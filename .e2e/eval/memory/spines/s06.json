@@ -31,7 +31,7 @@
    "object": "剁椒罐头",
    "statement": "囤货里那几罐剁椒我一直私藏着，谁伸手都不给。",
    "speaker": "user",
-   "restatement": "最辣的那几罐好东西，我压在箱底谁也不匀。",
+   "restatement": "最辣的那几罐剁椒好货，我压在箱底谁也不匀。",
    "update": null,
    "probe": "存粮里口味最冲的那样下饭菜，我为啥轻易不动它？"
   },
@@ -132,7 +132,7 @@
     "statement": "上礼拜短波里真收到了姐姐的暗号，她人安全在北岸。",
     "probe": "我日思夜想的那位同胞，如今有了准信么？"
    },
-   "probe": "我惦记着寻的那个血亲，是你哪位亲人，还记得么？"
+   "probe": "我惦记着寻的那个血亲，是我哪位亲人，还记得么？"
   },
   {
    "id": "f09",
@@ -154,7 +154,7 @@
    "object": "高架桥遇袭",
    "statement": "上个月出城那趟，我们在高架桥下头撞上三只变异犬，丢了物资。",
    "speaker": "user",
-   "restatement": "前阵子出城，高架底下那群畜生扑上来，物资丢了一部分。",
+   "restatement": "上月出城那趟，高架桥底下扑上来的是三只变异犬，物资也丢了。",
    "update": null,
    "probe": "最险那回出行，我们在路上撞见了什么祸害，还记得么？"
   },
@@ -164,7 +164,7 @@
    "subject": "韩铮",
    "relation": "sheltered_in",
    "object": "地铁检修间避难",
-   "statement": "乱起来头一个月，我把自己锁在检修间里撑了二十天。",
+   "statement": "乱起来头一个月，我把自己锁在地铁检修间里撑了二十天。",
    "speaker": "character",
    "restatement": null,
    "update": null,
@@ -192,7 +192,7 @@
    "speaker": "user",
    "restatement": null,
    "update": null,
-   "probe": "分口粮时你死活不碰的那样圆豆子，为啥？"
+   "probe": "分口粮时我死活不碰的那样圆豆子，为啥？"
   },
   {
    "id": "f14",
@@ -224,7 +224,7 @@
    "subject": "陆野",
    "relation": "reaches_on_foot_in",
    "object": "步行两天",
-   "statement": "从这儿到最近的活人聚居点，步行要整整两天。",
+   "statement": "从这儿到最近的活人聚居点，绕开河道步行要整整两天。",
    "speaker": "user",
    "restatement": null,
    "update": null,
@@ -297,7 +297,7 @@
     "statement": "管子凑齐了，净化塔立起来通了水，赶在头场雪前完工。",
     "probe": "当初差零件的那项大工程，末了结果如何？"
    },
-   "probe": "上冻以前你要收尾的那套净水家伙，用途还记得么？"
+   "probe": "上冻以前你急着收尾的那套大家伙，当时还缺什么，记得么？"
   },
   {
    "id": "f22",
@@ -307,7 +307,7 @@
    "object": "十发八中",
    "statement": "我给自己定了数，入冬前把准头练到十发八中。",
    "speaker": "user",
-   "restatement": "练枪的硬指标我立下了，十发里头得中八个。",
+   "restatement": "练枪的硬指标我立下了，赶在入冬前得练到十发八中。",
    "update": null,
    "probe": "我私下立的那个打靶的成数，是多少还有印象么？"
   },
@@ -321,7 +321,7 @@
    "speaker": "character",
    "restatement": null,
    "update": {
-    "statement": "托你弄来的消炎针起效了，左耳的鸣响轻了大半。",
+    "statement": "托你弄来的消炎针起效了，左耳鸣响轻了大半，站左边说话也听得真。",
     "probe": "先前听岔的那半边耳朵，如今见好了么？"
    },
    "probe": "你偏听的那半边脑袋，毛病出在哪个方位？"
@@ -361,7 +361,7 @@
    "object": "方圆十公里",
    "statement": "方圆十公里里头，活人就剩咱们跟河对岸的渔村两拨。",
    "speaker": "character",
-   "restatement": "十公里地界内，除了咱们就只剩对岸渔村那几口人。",
+   "restatement": "方圆十公里地界内，除了咱们就只剩对岸渔村那几口人。",
    "update": null,
    "probe": "以据点画圈，能照面的邻居一共几拨，还记得么？"
   },

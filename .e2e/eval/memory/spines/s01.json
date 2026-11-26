@@ -26,7 +26,7 @@
       "object": "香菜",
       "statement": "我这人天生吃不了香菜，闻见味儿就绕着走。",
       "speaker": "user",
-      "restatement": "香菜我是真沾不得，鼻子一凑近就头疼。",
+      "restatement": "香菜那味儿我是真受不了，闻见就躲开。",
       "update": null,
       "probe": "你还记得我提过哪种绿叶子菜我死活不碰吗？"
     },
@@ -50,7 +50,7 @@
       "object": "黑铁炉子",
       "statement": "摊上那口黑铁炉子跟了我八年，火比新炉旺。",
       "speaker": "character",
-      "restatement": "我那炉子使了八年，越烧越有劲。",
+      "restatement": "那口黑铁炉子我使了八年，越烧越有劲。",
       "update": null,
       "probe": "你还说得上你这口做饭的家什跟了你多少年吗？"
     },
@@ -62,7 +62,7 @@
       "object": "柳河小区",
       "statement": "我开春搬进柳河小区了，离夜市两站地。",
       "speaker": "user",
-      "restatement": "打春起我就住进了柳河这片，夜市遛两站就到。",
+      "restatement": "打春起我就住进了柳河小区，遛两站就到夜市。",
       "update": {
         "statement": "十一我挪去江北的望江阁了，房租还便宜些。",
         "probe": "我如今住的那个临江小区叫啥，你还想得起来吗？"
@@ -113,7 +113,7 @@
       "object": "琥珀手串",
       "statement": "隔壁摊那串琥珀手串我盘了一个月，油光锃亮。",
       "speaker": "user",
-      "restatement": "手腕上那串琥珀珠子，越盘越润，我可稀罕了。",
+      "restatement": "我盘了一个月的那串琥珀手串，越盘越润。",
       "update": null,
       "probe": "我买过的那串黄澄澄物件，材质你还记得是啥不？"
     },
@@ -185,7 +185,7 @@
       "object": "酸梅汤",
       "statement": "一进夜市我就先灌一瓶酸梅汤，解腻。",
       "speaker": "user",
-      "restatement": "你家那罐梅子汤，我回回进门先干一瓶。",
+      "restatement": "酸梅汤我回回进夜市先干上一瓶，解腻就靠它。",
       "update": null,
       "probe": "进这条街我头一样要点的饮品是啥，你还记得吗？"
     },
@@ -265,7 +265,7 @@
         "statement": "科三上礼拜过了，本本已经到手啦。",
         "probe": "我如今开车上路是不是名正言顺了，你还记得吗？"
       },
-      "probe": "我说过入冬前要啃下哪样证来着，你还记得吗？"
+      "probe": "我说过年跟前要啃下哪样证来着，你还记得吗？"
     },
     {
       "id": "f20",
@@ -275,7 +275,7 @@
       "object": "老铁签",
       "statement": "我串肉用的签子还是我爸留下的老铁签。",
       "speaker": "character",
-      "restatement": "签子是我爸留下的铁家伙，用到今儿也没换。",
+      "restatement": "我爸留下的那把老铁签，我用到今儿也没换。",
       "update": null,
       "probe": "你穿串子那件家什的来历，你还记得吗？"
     },
@@ -304,7 +304,7 @@
       "speaker": "character",
       "restatement": null,
       "update": null,
-      "probe": "你骑车回家路上耳朵里听的是谁的段子，还记得吗？"
+      "probe": "回家路上你耳朵里听的是谁的段子，还记得吗？"
     },
     {
       "id": "f23",
@@ -326,7 +326,7 @@
       "object": "去年中秋",
       "statement": "你头回上我摊子吃串，是去年中秋那晚。",
       "speaker": "character",
-      "restatement": "头一回来我这儿，赶上的就是中秋那晚。",
+      "restatement": "头一回来我这儿，赶上的就是去年中秋那晚。",
       "update": null,
       "probe": "咱俩做买卖认识的那个节令，你还记得吗？"
     },
@@ -350,9 +350,9 @@
       "object": "火柴盒",
       "statement": "我攒火柴盒攒了三年，快一百个了。",
       "speaker": "user",
-      "restatement": "那些小盒子我收了三年，差不多攒齐一百个。",
+      "restatement": "那些火柴盒我收了三年，快攒到一百个了。",
       "update": null,
-      "probe": "我摆在窗台的那个小收藏，你还记得是攒啥吗？"
+      "probe": "我攒了好几年的那盒小收藏，你还记得是攒啥吗？"
     },
     {
       "id": "f27",
@@ -380,7 +380,7 @@
       "restatement": null,
       "update": {
         "statement": "粉丝破三千啦，还有人留言订串。",
-        "probe": "我那号如今涨到目标数没有，你还记得吗？"
+        "probe": "你那号如今涨到目标数没有，还记得不？"
       },
       "probe": "你说要学着把摊子拍进手机里那事，还记得吗？"
     },

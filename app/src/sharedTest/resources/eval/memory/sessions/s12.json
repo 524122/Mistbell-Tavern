@@ -132,7 +132,7 @@
     {
       "floor": 26,
       "role": "user",
-      "content": "我使的那把家伙刃口讲究什么来路，有数吗？"
+      "content": "您使的那把家伙刃口讲究什么来路，有数吗？"
     },
     {
       "floor": 27,
@@ -142,7 +142,7 @@
     {
       "floor": 28,
       "role": "user",
-      "content": "开工头一件事是泡杯酽酽的茶，苦味越重越提劲。"
+      "content": "开工头一件事是泡杯酽茶，苦味越重越提劲。"
     },
     {
       "floor": 29,
@@ -182,7 +182,7 @@
     {
       "floor": 36,
       "role": "user",
-      "content": "晚饭后我顺堤岸走到桥边，兜一圈才回屋。"
+      "content": "收了工我顺堤岸走到桥边，兜一圈才回屋。"
     },
     {
       "floor": 37,
@@ -202,7 +202,7 @@
     {
       "floor": 40,
       "role": "user",
-      "content": "我胞姐婆家安在泗水，来回得一个半钟头。"
+      "content": "我胞姐婆家安在泗水镇，坐车过去得一个半钟头。"
     },
     {
       "floor": 41,
@@ -282,7 +282,7 @@
     {
       "floor": 56,
       "role": "user",
-      "content": "阿椿是我打小一块长大的，如今在县城经营花铺。"
+      "content": "阿椿是我打小一块长大的，在县城开花店，喊我合伙我都推了。"
     },
     {
       "floor": 57,
@@ -312,7 +312,7 @@
     {
       "floor": 62,
       "role": "user",
-      "content": "我的盘算是年前出师，回镇自己撑一间门面。"
+      "content": "我的盘算是年底出师，回镇自己撑一间门面。"
     },
     {
       "floor": 63,
@@ -337,7 +337,7 @@
     {
       "floor": 67,
       "role": "assistant",
-      "content": "我下半辈子的大愿，是把榫卯的图谱归拢成书。"
+      "content": "我下半辈子的大愿，是把榫卯图谱归拢成书。"
     },
     {
       "floor": 68,
@@ -477,7 +477,7 @@
     {
       "floor": 95,
       "role": "assistant",
-      "content": "我手里那杆黑檀柄的量尺，传到我是第三个年头。"
+      "content": "我手里那杆黑檀柄的鲁班尺，传到我手上是第三代。"
     },
     {
       "floor": 96,
@@ -512,7 +512,7 @@
     {
       "floor": 102,
       "role": "user",
-      "content": "我老家安在榆树湾那片，一趟要跨过大石桥。"
+      "content": "我家安在榆树湾那片，一趟要跨过大石桥。"
     },
     {
       "floor": 103,
@@ -557,7 +557,7 @@
     {
       "floor": 111,
       "role": "assistant",
-      "content": "这只牛角做的墨斗跟了我四十年，包浆都养出来了。"
+      "content": "这只牛角墨斗跟了我四十年，包浆都养出来了。"
     },
     {
       "floor": 112,
@@ -632,7 +632,7 @@
     {
       "floor": 126,
       "role": "user",
-      "content": "我量木料用的那件传家宝，到我这辈是第几任了？"
+      "content": "您量木料用的那件传家宝，到您这辈是第几任了？"
     },
     {
       "floor": 127,
@@ -752,7 +752,7 @@
     {
       "floor": 150,
       "role": "user",
-      "content": "我干活前那杯提神的热饮要多酽，你还记得吗？"
+      "content": "我干活前那杯提神的热饮讲究泡到什么火候，你还记得吗？"
     },
     {
       "floor": 151,
@@ -772,7 +772,7 @@
     {
       "floor": 154,
       "role": "user",
-      "content": "手艺比武那回我名次排在第三，捧回一方砚台。"
+      "content": "手艺比武那回我名次排在第三名，捧回一方砚台。"
     },
     {
       "floor": 155,
@@ -797,12 +797,12 @@
     {
       "floor": 159,
       "role": "assistant",
-      "content": "头两年大风揭了咱坊里半片屋瓦，歇工半月才修好。"
+      "content": "前年大风揭了咱坊里半边瓦，歇工半月才修好。"
     },
     {
       "floor": 160,
       "role": "user",
-      "content": "前几天镇上老祠堂落架，我跑去瞧人家拆大梁。"
+      "content": "上周镇上老祠堂拆梁，我跑去瞧热闹偷师了两手榫法。"
     },
     {
       "floor": 161,
@@ -867,7 +867,7 @@
     {
       "floor": 173,
       "role": "assistant",
-      "content": "墨线弹下去就不兴描第二遍，返线的活砸招牌。"
+      "content": "墨线弹下去就得一次成，不兴描第二遍，回线的活这行没人接。"
     },
     {
       "floor": 174,
@@ -897,7 +897,7 @@
     {
       "floor": 179,
       "role": "assistant",
-      "content": "我师父那辈从浙东迁来，圆作的活计是家传。"
+      "content": "我师父从浙东迁来，一手圆作功夫传到了我手上。"
     },
     {
       "floor": 180,
@@ -917,7 +917,7 @@
     {
       "floor": 183,
       "role": "assistant",
-      "content": "我沾不得那股漆气，凡上漆的活都转给老魏做。"
+      "content": "我沾不得生漆那股气，凡上漆的活都转给老魏做。"
     },
     {
       "floor": 184,
@@ -937,7 +937,7 @@
     {
       "floor": 187,
       "role": "assistant",
-      "content": "内室那件黄花梨的案台，是我压箱底的念想。"
+      "content": "内室那件黄花梨画案，是我压箱底的念想。"
     },
     {
       "floor": 188,
@@ -997,12 +997,12 @@
     {
       "floor": 199,
       "role": "assistant",
-      "content": "我家就安在坊子后头院里，四十年没搬过家。"
+      "content": "我家就安在作坊后院，四十年没搬过家。"
     },
     {
       "floor": 200,
       "role": "user",
-      "content": "巷子里和我处得最久的老邻家是谁，还记得吗？"
+      "content": "巷子里和您处得最久的老邻家是谁，还记得吗？"
     },
     {
       "floor": 201,
@@ -1382,7 +1382,7 @@
     {
       "floor": 276,
       "role": "user",
-      "content": "如今我这处老患松快了吗？"
+      "content": "如今您这处老患松快了吗？"
     },
     {
       "floor": 277,
@@ -1515,7 +1515,7 @@
       "speaker": "user",
       "statement": "我一上工就得沏酽茶，越苦越来劲。",
       "statementFloor": 8,
-      "restatement": "开工头一件事是泡杯酽酽的茶，苦味越重越提劲。",
+      "restatement": "开工头一件事是泡杯酽茶，苦味越重越提劲。",
       "restatementFloor": 28,
       "update": {
         "statement": "体检说我胃受不了刺激，如今只喝淡淡的茶了。",
@@ -1546,7 +1546,7 @@
       "speaker": "user",
       "statement": "收了工我爱沿河堤遛到桥头，吹吹风再回。",
       "statementFloor": 18,
-      "restatement": "晚饭后我顺堤岸走到桥边，兜一圈才回屋。",
+      "restatement": "收了工我顺堤岸走到桥边，兜一圈才回屋。",
       "restatementFloor": 36,
       "update": null,
       "updateFloor": null
@@ -1560,7 +1560,7 @@
       "speaker": "user",
       "statement": "我姐嫁在泗水镇，坐车过去要一个半钟头。",
       "statementFloor": 24,
-      "restatement": "我胞姐婆家安在泗水，来回得一个半钟头。",
+      "restatement": "我胞姐婆家安在泗水镇，坐车过去得一个半钟头。",
       "restatementFloor": 40,
       "update": {
         "statement": "姐夫调去省城做事，我姐也跟着迁过去了。",
@@ -1581,7 +1581,7 @@
       "restatementFloor": 53,
       "update": {
         "statement": "老纪家上个月迁去他儿子那边，铺子也易了主。",
-        "probe": "如今我处得最久的那户老邻家挪窝了，你知道吗？"
+        "probe": "如今您处得最久的那户老邻家挪窝了，你知道吗？"
       },
       "updateFloor": 209
     },
@@ -1594,7 +1594,7 @@
       "speaker": "user",
       "statement": "我发小阿椿在县城开花店，几回喊我合伙我都推了。",
       "statementFloor": 38,
-      "restatement": "阿椿是我打小一块长大的，如今在县城经营花铺。",
+      "restatement": "阿椿是我打小一块长大的，在县城开花店，喊我合伙我都推了。",
       "restatementFloor": 56,
       "update": null,
       "updateFloor": null
@@ -1608,7 +1608,7 @@
       "speaker": "user",
       "statement": "我想赶在年底出师，回镇上开间自己的铺面。",
       "statementFloor": 44,
-      "restatement": "我的盘算是年前出师，回镇自己撑一间门面。",
+      "restatement": "我的盘算是年底出师，回镇自己撑一间门面。",
       "restatementFloor": 62,
       "update": {
         "statement": "出师的事我改主意了，先去省城木器厂历练两年。",
@@ -1625,7 +1625,7 @@
       "speaker": "character",
       "statement": "我这余生就想把那套榫卯图谱整理成册。",
       "statementFloor": 49,
-      "restatement": "我下半辈子的大愿，是把榫卯的图谱归拢成书。",
+      "restatement": "我下半辈子的大愿，是把榫卯图谱归拢成书。",
       "restatementFloor": 67,
       "update": {
         "statement": "图谱先搁一搁，文昌桥的廊亭等着修，要紧。",
@@ -1660,7 +1660,7 @@
       "restatementFloor": 81,
       "update": {
         "statement": "贴了半个月膏药，肩膀轻快多了，刨子推得动了。",
-        "probe": "如今我这处老患松快了吗？"
+        "probe": "如今您这处老患松快了吗？"
       },
       "updateFloor": 145
     },
@@ -1690,7 +1690,7 @@
       "speaker": "character",
       "statement": "那把黑檀柄的鲁班尺，传到我手里是第三代。",
       "statementFloor": 73,
-      "restatement": "我手里那杆黑檀柄的量尺，传到我是第三个年头。",
+      "restatement": "我手里那杆黑檀柄的鲁班尺，传到我手上是第三代。",
       "restatementFloor": 95,
       "update": null,
       "updateFloor": null
@@ -1718,7 +1718,7 @@
       "speaker": "character",
       "statement": "我这牛角墨斗使了四十年，斗身都包了浆。",
       "statementFloor": 91,
-      "restatement": "这只牛角做的墨斗跟了我四十年，包浆都养出来了。",
+      "restatement": "这只牛角墨斗跟了我四十年，包浆都养出来了。",
       "restatementFloor": 111,
       "update": null,
       "updateFloor": null
@@ -1749,7 +1749,7 @@
       "speaker": "user",
       "statement": "我家在河东榆树湾，来回要过大石桥。",
       "statementFloor": 86,
-      "restatement": "我老家安在榆树湾那片，一趟要跨过大石桥。",
+      "restatement": "我家安在榆树湾那片，一趟要跨过大石桥。",
       "restatementFloor": 102,
       "update": {
         "statement": "榆树湾开春拆迁，我家搬进了桥南的新小区。",
@@ -1797,7 +1797,7 @@
       "speaker": "user",
       "statement": "县里的手艺比试我拿了第三名，奖品是方砚台。",
       "statementFloor": 112,
-      "restatement": "手艺比武那回我名次排在第三，捧回一方砚台。",
+      "restatement": "手艺比武那回我名次排在第三名，捧回一方砚台。",
       "restatementFloor": 154,
       "update": null,
       "updateFloor": null
@@ -1811,7 +1811,7 @@
       "speaker": "character",
       "statement": "前年台风掀了作坊半边瓦，停工修了半个月。",
       "statementFloor": 119,
-      "restatement": "头两年大风揭了咱坊里半片屋瓦，歇工半月才修好。",
+      "restatement": "前年大风揭了咱坊里半边瓦，歇工半月才修好。",
       "restatementFloor": 159,
       "update": null,
       "updateFloor": null
@@ -1825,7 +1825,7 @@
       "speaker": "user",
       "statement": "上周我去镇上看老祠堂拆梁，偷师了两手榫法。",
       "statementFloor": 124,
-      "restatement": "前几天镇上老祠堂落架，我跑去瞧人家拆大梁。",
+      "restatement": "上周镇上老祠堂拆梁，我跑去瞧热闹偷师了两手榫法。",
       "restatementFloor": 160,
       "update": null,
       "updateFloor": null
@@ -1881,7 +1881,7 @@
       "speaker": "character",
       "statement": "弹墨线讲究一次成，回线的活儿这行没人接。",
       "statementFloor": 153,
-      "restatement": "墨线弹下去就不兴描第二遍，返线的活砸招牌。",
+      "restatement": "墨线弹下去就得一次成，不兴描第二遍，回线的活这行没人接。",
       "restatementFloor": 173,
       "update": null,
       "updateFloor": null
@@ -1895,7 +1895,7 @@
       "speaker": "character",
       "statement": "我师父是浙东过来的，一身圆作功夫。",
       "statementFloor": 157,
-      "restatement": "我师父那辈从浙东迁来，圆作的活计是家传。",
+      "restatement": "我师父从浙东迁来，一手圆作功夫传到了我手上。",
       "restatementFloor": 179,
       "update": null,
       "updateFloor": null
@@ -1909,7 +1909,7 @@
       "speaker": "character",
       "statement": "生漆味我一闻就晕，上漆的活都托给漆匠老魏。",
       "statementFloor": 163,
-      "restatement": "我沾不得那股漆气，凡上漆的活都转给老魏做。",
+      "restatement": "我沾不得生漆那股气，凡上漆的活都转给老魏做。",
       "restatementFloor": 183,
       "update": null,
       "updateFloor": null
@@ -1923,7 +1923,7 @@
       "speaker": "character",
       "statement": "里屋那张黄花梨画案，是我压箱底不舍得卖的。",
       "statementFloor": 167,
-      "restatement": "内室那件黄花梨的案台，是我压箱底的念想。",
+      "restatement": "内室那件黄花梨画案，是我压箱底的念想。",
       "restatementFloor": 187,
       "update": null,
       "updateFloor": null
@@ -1951,7 +1951,7 @@
       "speaker": "character",
       "statement": "我就住在作坊后院，四十年没挪过窝。",
       "statementFloor": 181,
-      "restatement": "我家就安在坊子后头院里，四十年没搬过家。",
+      "restatement": "我家就安在作坊后院，四十年没搬过家。",
       "restatementFloor": 199,
       "update": null,
       "updateFloor": null
@@ -1963,7 +1963,7 @@
       "targetFactId": "f02",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我使的那把家伙刃口讲究什么来路，有数吗？"
+      "text": "您使的那把家伙刃口讲究什么来路，有数吗？"
     },
     {
       "floor": 50,
@@ -1991,14 +1991,14 @@
       "targetFactId": "f12",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我量木料用的那件传家宝，到我这辈是第几任了？"
+      "text": "您量木料用的那件传家宝，到您这辈是第几任了？"
     },
     {
       "floor": 150,
       "targetFactId": "f01",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "我干活前那杯提神的热饮要多酽，你还记得吗？"
+      "text": "我干活前那杯提神的热饮讲究泡到什么火候，你还记得吗？"
     },
     {
       "floor": 176,
@@ -2012,7 +2012,7 @@
       "targetFactId": "f05",
       "targetVersion": "original",
       "absentFactIds": [],
-      "text": "巷子里和我处得最久的老邻家是谁，还记得吗？"
+      "text": "巷子里和您处得最久的老邻家是谁，还记得吗？"
     },
     {
       "floor": 226,
@@ -2039,7 +2039,7 @@
       "absentFactIds": [
         "f10"
       ],
-      "text": "如今我这处老患松快了吗？"
+      "text": "如今您这处老患松快了吗？"
     },
     {
       "floor": 300,
