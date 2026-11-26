@@ -9,6 +9,9 @@ on:
 # command-line tools → 接受许可 → sdkmanager 安装。两个 job 共用同一份，避免漂移。
 # 版本与 app/build.gradle 对齐：compileSdk 37、ndkVersion 28.2.13676358、CMake 3.22.1；
 # build-tools 由 AGP 按自身默认版本自动补装（许可已接受）。
+# 平台包名必须是带小版本号的 `platforms;android-37.0`：稳定通道里没有不带小版本号的
+# `platforms;android-37`（CI #48 的诊断注解：Failed to find package），而本地开发实际编译
+# 用的是 platforms/android-37.0/android.jar（经 android.bootClasspath 核实）——CI 装同一个包才算同门。
 # Gradle 命令统一经 ./.github/scripts/gradle-step.sh 执行：失败时把关键错误行转成注解。
 # Actions 的日志需要登录才能读，注解在公开仓库的运行页上匿名可见——没有 gh / 令牌的
 # 机器也能据此定位失败原因。
@@ -31,12 +34,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK (platform 37, NDK 28.2.13676358, CMake 3.22.1)
+      - name: Set up Android SDK (platform 37.0, NDK 28.2.13676358, CMake 3.22.1)
         uses: ./.github/actions/android-sdk
         with:
           packages: |
             platform-tools
-            platforms;android-37
+            platforms;android-37.0
             ndk;28.2.13676358
             cmake;3.22.1
 
@@ -100,16 +103,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK (platform 37, NDK, CMake, managed device image)
+      - name: Set up Android SDK (platform 37.0, NDK, CMake)
         uses: ./.github/actions/android-sdk
         with:
-          # 最后一项与 app/build.gradle 的 testOptions.managedDevices.ciPixel6Api34 对应
+          # 不预装托管设备的系统镜像：Gradle Managed Device 的 setup 任务会自己下载（许可已接受），
+          # 且 AGP DSL 里的 systemImageSource 与 sdkmanager 的镜像标签命名并不一致
+          # （镜像清单 sys-img/android/sys-img2-3.xml 里 API 34 的 AOSP 镜像标签已从 aosp 改为 default）
           packages: |
             platform-tools
-            platforms;android-37
+            platforms;android-37.0
             ndk;28.2.13676358
             cmake;3.22.1
-            system-images;android-34;aosp;x86_64
 
       - name: Enable KVM
         # 托管设备依赖 /dev/kvm；runner 镜像默认只允许 kvm 组访问

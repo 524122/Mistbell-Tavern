@@ -43,7 +43,9 @@ runs:
         diag "command-line tools：$(ls "$SDK_ROOT/cmdline-tools" 2>/dev/null | tr '\n' ' ' || echo 无)"
 
         CMDLINE_TOOLS="$SDK_ROOT/cmdline-tools/latest"
-        CMDLINE_TOOLS_VERSION="11076708"
+        # 仅在 runner 没有预装 command-line tools 时才会下载。16111833 是 2026-11-26 查
+        # https://dl.google.com/android/repository/repository2-3.xml 得到的稳定版 cmdline-tools;latest（23.0）
+        CMDLINE_TOOLS_VERSION="16111833"
         if [ ! -x "$CMDLINE_TOOLS/bin/sdkmanager" ]; then
           URL="https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
           ZIP="$RUNNER_TEMP/cmdline-tools.zip"
