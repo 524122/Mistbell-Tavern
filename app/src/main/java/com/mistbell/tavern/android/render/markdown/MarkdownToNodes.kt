@@ -3,13 +3,12 @@ package com.mistbell.tavern.android.render.markdown
 import com.mistbell.tavern.android.render.model.TextAlign
 import com.mistbell.tavern.android.render.model.TextBlock
 import com.mistbell.tavern.android.render.model.TextSpan
-import com.mistbell.tavern.android.ui.chat.MdSegment
-import com.mistbell.tavern.android.ui.chat.parseMarkdown
 
 /**
  * Markdown 叙述段 → [TextBlock] 列表（M3，设计文档 §9 M3 行）。
  *
- * 块级结构复用 `MarkdownRenderer.parseMarkdown` 纯函数（Paragraph/CodeBlock/Header/ListItem）；
+ * 块级结构复用同包 MarkdownParser.kt 的 parseMarkdown 纯函数（Paragraph/CodeBlock/Header/ListItem，
+ * 自 ui/chat/MarkdownRenderer 原样下沉，render 是叶子包不再反向依赖 ui.chat）；
  * 行内高亮按 ui/chat/MarkdownRenderer 的正则与优先级移植为 [TextSpan] 字段：
  * 引号→颜色、动作括号→斜体+颜色、链接→下划线+颜色+href、粗/斜体、行内代码→等宽小号。
  *

@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mistbell.tavern.android.render.markdown.MdSegment
+import com.mistbell.tavern.android.render.markdown.parseMarkdown
 import com.mistbell.tavern.android.ui.theme.AccentGreen
 import com.mistbell.tavern.android.ui.theme.AccentGreenDark
 import com.mistbell.tavern.android.ui.theme.AccentOrange
@@ -27,12 +29,8 @@ import com.mistbell.tavern.android.ui.theme.AccentOrangeDark
 
 // —— 正则常量：原先在每行/每段循环内重复编译 Regex，长消息解析开销被成倍放大；
 //    提升为顶层常量后整个进程只编译一次 ——
-
-// 块级结构（标题 / 列表）
-private val HEADER_REGEX = Regex("^(#{1,6})\\s+(.+)")
-private val HEADER_START_REGEX = Regex("^#{1,6}\\s+")
-private val BULLET_LIST_REGEX = Regex("^([\\s]*[-*+]\\s+)(.+)")
-private val NUMBERED_LIST_REGEX = Regex("^(\\s*\\d+\\.\\s+)(.+)")
+// （块级结构正则与 MdSegment / parseMarkdown 已原样下沉到 render/markdown/MarkdownParser.kt，
+//   render 是叶子包不允许依赖 ui.*；本文件经 ui → render 方向引用它们。）
 
 // 行内样式
 private val BOLD_PATTERN = Regex("\\*\\*(.+?)\\*\\*")
@@ -180,89 +178,6 @@ private fun CodeBlock(
         }
     }
 }
-
-// Simple markdown parser
-
-sealed class MdSegment {
-    data class Paragraph(val text: String) : MdSegment()
-
-    data class CodeBlock(val code: String, val language: String) : MdSegment()
-
-    data class Header(val text: String, val level: Int) : MdSegment()
-
-    data class ListItem(val text: String, val depth: Int) : MdSegment()
-}
-
-fun parseMarkdown(content: String): List<MdSegment> {
-    val segments = mutableListOf<MdSegment>()
-    val lines = content.lines()
-    var i = 0
-
-    while (i < lines.size) {
-        val line = lines[i]
-
-        // Code block
-        if (line.trimStart().startsWith("```")) {
-            val language = line.trimStart().removePrefix("```").trim()
-            val codeLines = mutableListOf<String>()
-            i++
-            while (i < lines.size && !lines[i].trimStart().startsWith("```")) {
-                codeLines.add(lines[i])
-                i++
-            }
-            i++ // skip closing ```
-            segments.add(MdSegment.CodeBlock(codeLines.joinToString("\n"), language))
-            continue
-        }
-
-        // Header
-        val headerMatch = HEADER_REGEX.find(line.trim())
-        if (headerMatch != null) {
-            val level = headerMatch.groupValues[1].length
-            segments.add(MdSegment.Header(headerMatch.groupValues[2], level))
-            i++
-            continue
-        }
-
-        // List item
-        val listMatch =
-            BULLET_LIST_REGEX.find(line)
-                ?: NUMBERED_LIST_REGEX.find(line)
-        if (listMatch != null) {
-            val depth = listMatch.groupValues[1].trimStart().length / 2
-            segments.add(MdSegment.ListItem(listMatch.groupValues[2], depth))
-            i++
-            continue
-        }
-
-        // Empty line
-        if (line.isBlank()) {
-            i++
-            continue
-        }
-
-        // Paragraph - collect consecutive non-empty, non-special lines
-        val paragraphLines = mutableListOf<String>()
-        while (i < lines.size && isParagraphContinuation(lines[i])) {
-            paragraphLines.add(lines[i])
-            i++
-        }
-        if (paragraphLines.isNotEmpty()) {
-            segments.add(MdSegment.Paragraph(paragraphLines.joinToString(" ")))
-        }
-    }
-
-    return segments
-}
-
-/**
- * 段落收集的继续条件抽为具名谓词：四个条件的复合直接内联在 while 里会触发
- * ComplexCondition，且具名后语义更清晰——空行、代码围栏、标题行都终止段落。
- */
-private fun isParagraphContinuation(line: String): Boolean =
-    line.isNotBlank() &&
-        !line.trimStart().startsWith("```") &&
-        !HEADER_START_REGEX.containsMatchIn(line.trim())
 
 /**
  * 行内 Markdown 解析：加粗、斜体、行内代码、链接、引号、动作括号。
