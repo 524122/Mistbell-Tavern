@@ -25,6 +25,10 @@ dependencyResolutionManagement {
         mavenCentral()
         // requery sqlite-android（sqlite-vec 扩展加载的载体）只在 JitPack 发布
         maven { url "https://jitpack.io" }
+        // skiko-android（Skia Kotlin 绑定的 Android 变体）不在 Maven Central，
+        // 只发布在 JetBrains Compose dev 仓库（渲染引擎 spike，见 app/build.gradle）。
+        // 注意：maven.pkg.jetbrains.space 本地网络不通，用 packages.jetbrains.team 直连。
+        maven { url "https://packages.jetbrains.team/maven/p/cmp/dev" }
     }
 }
 

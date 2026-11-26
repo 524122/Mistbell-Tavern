@@ -30,7 +30,7 @@ import com.mistbell.tavern.android.data.local.entity.*
         GlobalRegexRuleEntity::class,
         ExtensionPackEntity::class,
     ],
-    version = 38,
+    version = 39,
     // schema 导出到 app/schemas/，Room 编译期校验 + 迁移测试基线（ROADMAP"防静默清库"）
     exportSchema = true,
 )
@@ -884,6 +884,25 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        // v38→v39：主题渲染引擎（M4/M6，THEME_FRAMEWORK_DESIGN.md §3.2）。theme_packs 追加
+        // capabilities（cosmetic|layout 能力声明）与 template_version（目标模板版本，v0 冻结为 1）两列。
+        // 必须走迁移而非就地改 38：schema 纪律「绝不原地改」（MIGRATION_37_38 同款教训）。
+        // 纯加列迁移，DDL 默认值与 ThemePackEntity 的 @ColumnInfo(defaultValue) 逐字符一致，
+        // 存量 cosmetic 包升级后默认值即正确语义、行为不变。
+        internal val MIGRATION_38_39_SQL: List<String> =
+            listOf(
+                "ALTER TABLE theme_packs ADD COLUMN capabilities TEXT NOT NULL DEFAULT 'cosmetic'",
+                "ALTER TABLE theme_packs ADD COLUMN template_version INTEGER NOT NULL DEFAULT 1",
+            )
+
+        @Suppress("MagicNumber")
+        internal val MIGRATION_38_39 =
+            object : Migration(MIGRATION_37_38.endVersion, MIGRATION_37_38.endVersion + 1) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    MIGRATION_38_39_SQL.forEach(db::execSQL)
+                }
+            }
+
         internal val vectorSyncCallback =
             object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -934,6 +953,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_35_36,
                         MIGRATION_36_37,
                         MIGRATION_37_38,
+                        MIGRATION_38_39,
                     )
                     .addCallback(vectorSyncCallback)
                     // 不移除上面的任何迁移，也不加 fallbackToDestructiveMigration：

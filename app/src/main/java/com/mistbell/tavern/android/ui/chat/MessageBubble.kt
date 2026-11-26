@@ -121,6 +121,13 @@ fun MessageBubble(
     /** HTML 界面展开状态（宿主按会话持久化；默认折叠） */
     htmlExpanded: Boolean = false,
     onHtmlExpandedChange: (Boolean) -> Unit = {},
+    // —— 主题渲染引擎（M4，THEME_FRAMEWORK_DESIGN.md §2.2/§7）：开关 + layout 包 + 变量快照 ——
+    // 三者齐备（开关开 + 包命中 + 版本受支持 + 卡段无危险构造，见 resolveRenderPath）才走引擎
+    // 产图；任一不满足走下方既有分支（legacy），行为与历史版本一致
+    layoutRendererEnabled: Boolean = false,
+    layoutPack: com.mistbell.tavern.android.data.repository.ResolvedLayoutPack? = null,
+    engineVariables: com.mistbell.tavern.android.ui.chat.render.VariablesSnapshot =
+        com.mistbell.tavern.android.ui.chat.render.VariablesSnapshot.EMPTY,
 ) {
     // 编辑对话框开关；文本状态以 (对话框打开, 消息内容) 为 key 初始化——每次打开都预填
     // 当前存储正文（非正则处理后的展示文本），关闭再开不会残留上次未保存的输入
@@ -173,6 +180,11 @@ fun MessageBubble(
             htmlParts.any {
                 it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc
             }
+    val hasLayoutHtml =
+        htmlParts.any { part ->
+            part is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc &&
+                com.mistbell.tavern.android.render.litehtml.LiteHtmlPolicy.isLayoutHtml(part.html)
+        }
     val hasNarrativeHtml =
         htmlParts.any { it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc && it.narrative }
     val htmlFullBleed =
@@ -185,6 +197,20 @@ fun MessageBubble(
                             ?.isBlank() == true
                     )
             }
+
+    // 主题渲染引擎路由（M4 内容缝，THEME_FRAMEWORK_DESIGN.md §7）：开关/包/模板版本/卡段
+    // 可渲染性一次性判定（纯函数）。Engine = 内容体换引擎产图（气泡壳/手势/pill 不变）；
+    // Legacy = 完全走既有分支。渲染期故障（RenderResult.fallback）由 EngineMessageContent
+    // 原地回落 legacyMessageBody，此处无需二次处理
+    val enginePath =
+        remember(htmlParts, layoutRendererEnabled, layoutPack) {
+            com.mistbell.tavern.android.ui.chat.render.resolveRenderPath(
+                engineEnabled = layoutRendererEnabled,
+                pack = layoutPack,
+                segments = htmlParts,
+                engineReady = com.mistbell.tavern.android.render.engine.EngineBootstrap.isInitialized,
+            )
+        }
 
     val bubbleShape = MaterialTheme.shapes.medium
     val cardBackgroundColor =
@@ -269,6 +295,74 @@ fun MessageBubble(
                 add(pillAction(Icons.Default.ChevronRight, "下一个", onSwipeRight))
             }
         }
+
+    // legacy 内容体：既有渲染分支原样闭包（MessageMarkdown 全文，或 HTML 分段——Markdown 段
+    // 走 Markdown、卡段走 HtmlBubble）。引擎不可用/失败时是唯一渲染路径，观感与历史版本一致
+    val legacyMessageBody: @Composable () -> Unit = {
+        if (renderHtml || hasLayoutHtml) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                htmlParts.forEachIndexed { partIndex, part ->
+                    when (part) {
+                        is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.Markdown ->
+                            MessageMarkdown(
+                                displayedContent = part.text,
+                                dark = dark,
+                                isUser = isUser,
+                                cardTextColor = cardTextColor,
+                                // 与非 HTML 分支同语义：pill 打开期间卸载选择容器，
+                                // 长按选择的手柄/工具条不得与浮层并存
+                                selectable = !actionsVisible,
+                            )
+                        is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ->
+                            key(message.id, partIndex, part.html) {
+                                if (
+                                    com.mistbell.tavern.android.render.litehtml.LiteHtmlPolicy
+                                        .isLayoutHtml(part.html)
+                                ) {
+                                    com.mistbell.tavern.android.ui.chat.render.LiteHtmlMessage(
+                                        html = part.html,
+                                        textColor = cardTextColor,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                } else if (renderHtml) {
+                                    com.mistbell.tavern.android.ui.chat.htmlui.HtmlBubble(
+                                        messageId = message.id,
+                                        html = part.html,
+                                        scripts = htmlScripts,
+                                        host = htmlHost!!,
+                                        expanded = htmlExpanded,
+                                        onExpandedChange = onHtmlExpandedChange,
+                                        variablesVersion = variablesVersion,
+                                        chatEvents = chatEvents,
+                                        narrative = part.narrative,
+                                    )
+                                } else {
+                                    MessageMarkdown(
+                                        displayedContent = part.html,
+                                        dark = dark,
+                                        isUser = isUser,
+                                        cardTextColor = cardTextColor,
+                                        selectable = !actionsVisible,
+                                    )
+                                }
+                            }
+                    }
+                }
+            }
+        } else {
+            MessageMarkdown(
+                displayedContent = displayedContent,
+                dark = dark,
+                isUser = isUser,
+                cardTextColor = cardTextColor,
+                // pill 打开期间禁用气泡内文本选择：长按开 pill 的同一手势也会在
+                // SelectionContainer 里启动"长按选择"，抬指后系统浮动文本工具条
+                // （独立弹窗）会盖住浮层动作项，吞掉其点击。pill 打开即整体卸载
+                // 选择容器，句柄/工具条不再出现。
+                selectable = !actionsVisible,
+            )
+        }
+    }
 
     Column(
         modifier =
@@ -399,49 +493,20 @@ fun MessageBubble(
                                 vertical = if (htmlFullBleed) 0.dp else 13.dp,
                             ),
                 ) {
-                    if (renderHtml) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            htmlParts.forEachIndexed { partIndex, part ->
-                                when (part) {
-                                    is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.Markdown ->
-                                        MessageMarkdown(
-                                            displayedContent = part.text,
-                                            dark = dark,
-                                            isUser = isUser,
-                                            cardTextColor = cardTextColor,
-                                            // 与非 HTML 分支同语义：pill 打开期间卸载选择容器，
-                                            // 长按选择的手柄/工具条不得与浮层并存
-                                            selectable = !actionsVisible,
-                                        )
-                                    is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ->
-                                        key(message.id, partIndex, part.html) {
-                                            com.mistbell.tavern.android.ui.chat.htmlui.HtmlBubble(
-                                                messageId = message.id,
-                                                html = part.html,
-                                                scripts = htmlScripts,
-                                                host = htmlHost!!,
-                                                expanded = htmlExpanded,
-                                                onExpandedChange = onHtmlExpandedChange,
-                                                variablesVersion = variablesVersion,
-                                                chatEvents = chatEvents,
-                                                narrative = part.narrative,
-                                            )
-                                        }
-                                }
-                            }
-                        }
-                    } else {
-                        MessageMarkdown(
-                            displayedContent = displayedContent,
+                    if (enginePath is com.mistbell.tavern.android.ui.chat.render.RenderPath.Engine) {
+                        // 引擎内容体：Bitmap 展示（气泡壳/横滑/长按 pill/时间戳全部留在本层不动）
+                        com.mistbell.tavern.android.ui.chat.render.EngineMessageContent(
+                            content = displayedContent,
+                            pack = enginePath.pack,
                             dark = dark,
-                            isUser = isUser,
-                            cardTextColor = cardTextColor,
-                            // pill 打开期间禁用气泡内文本选择：长按开 pill 的同一手势也会在
-                            // SelectionContainer 里启动"长按选择"，抬指后系统浮动文本工具条
-                            // （独立弹窗）会盖住浮层动作项，吞掉其点击。pill 打开即整体卸载
-                            // 选择容器，句柄/工具条不再出现。
-                            selectable = !actionsVisible,
+                            characterName = characterName,
+                            variables = engineVariables,
+                            modifier = Modifier.fillMaxWidth(),
+                            // 渲染失败原地回落：与 legacy 同源内容，观感连续、内容不丢
+                            legacy = { legacyMessageBody() },
                         )
+                    } else {
+                        legacyMessageBody()
                     }
                 }
 

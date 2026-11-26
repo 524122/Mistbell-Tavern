@@ -272,6 +272,9 @@ class AppContainer(private val appContext: Context) {
      * 注册表本身是 object 单例，注册动作只需触发一次。
      */
     fun registerBuiltinExtensions() {
+        // 主题渲染引擎引导（M4，THEME_FRAMEWORK_DESIGN.md §2.1）：SoLoader + skiko FontCollection，
+        // 幂等、只在此进程入口调一次；未引导时 PanelRenderer 按 fallback 返回（绝不崩聊天页）
+        com.mistbell.tavern.android.render.engine.EngineBootstrap.init(appContext)
         ExtensionRegistry.register(CustomPromptExtension())
         ExtensionRegistry.register(HelpCommand())
         ExtensionRegistry.register(NoteCommand())

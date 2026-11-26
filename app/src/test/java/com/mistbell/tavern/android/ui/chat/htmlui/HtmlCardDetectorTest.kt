@@ -102,6 +102,26 @@ class HtmlCardDetectorTest {
     }
 
     @Test
+    fun `行内表格单独成段，前后正文仍是 Markdown`() {
+        val parts =
+            HtmlCardDetector.split(
+                "table fallback test: html <table><tr><td>cell-a</td></tr></table> end",
+            )
+        assertEquals(3, parts.size)
+        assertEquals("table fallback test: html", (parts[0] as HtmlCardDetector.Part.Markdown).text)
+        val table = parts[1] as HtmlCardDetector.Part.HtmlDoc
+        assertTrue(table.html.startsWith("<table"))
+        assertTrue(table.html.contains("cell-a"))
+        assertEquals("end", (parts[2] as HtmlCardDetector.Part.Markdown).text)
+    }
+
+    @Test
+    fun `未闭合表格留在 Markdown`() {
+        val parts = HtmlCardDetector.split("前文 <table><tr><td>cell-a")
+        assertTrue(parts.first() is HtmlCardDetector.Part.Markdown)
+    }
+
+    @Test
     fun `裸 HTML 文档不标记 narrative`() {
         val parts = HtmlCardDetector.split("<!DOCTYPE html><html><body><span class=\"x\">a</span></body></html>")
         assertFalse((parts.first() as HtmlCardDetector.Part.HtmlDoc).narrative)

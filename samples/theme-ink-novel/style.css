@@ -1,0 +1,56 @@
+/* 水墨小说（布局主题示例）· 样式表
+ *
+ * 设计意图：宣纸底、水墨字——衬线字体族 + 宽行距 + 大段距，正文如书页，
+ * 面板区承 HTML 卡片（状态栏/属性页等），靠 --mt-* 主题 token 与应用深浅色联动。
+ *
+ * 引擎约束备忘（docs/THEME_FRAMEWORK_DESIGN.md §5）：
+ * - 单位 1px = 1dp；% 相对父容器；em 相对字号；不支持 vw/vh/calc()。
+ * - 属性白名单：display/flex/gap/margin/padding/width/height/border/background-color/
+ *   color/font-size/font-weight/font-family/line-height/text-align/overflow/visibility。
+ * - font-family 仅内置字库白名单：sans-serif / serif / monospace。
+ * - var(--mt-*)：主题包 theme.json 的 10 色按当前深浅色注入，未设置的色位不注入
+ *   （回退值语义由样式表自行携带）。
+ */
+
+/* 全局排版基线：衬线 + 宽行距 + 水墨前景（随深浅色 token 联动） */
+.ink-novel {
+  font-family: serif;
+  font-size: 17px;
+  line-height: 1.9;
+  color: var(--mt-on-surface, #2b2b2b);
+}
+
+/* 叙述区：书页式段距，段间以呼吸感分隔而非空行 */
+.ink-body {
+  display: block;
+  padding: 0 0 4px 0;
+}
+
+.ink-body p {
+  margin: 0 0 16px 0;
+  line-height: 2;
+  text-align: left;
+}
+
+/* 章节标题：小字号加宽字距的墨色标题（引擎不支援 letter-spacing，以字号/字重分层） */
+.ink-body h3 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 20px 0 10px 0;
+  color: var(--mt-primary, #444444);
+}
+
+.ink-body code {
+  font-family: monospace;
+  font-size: 15px;
+}
+
+/* 面板区：卡片纵排、留出水墨边距；卡片自身样式由卡段 HTML 携带 */
+.ink-panels {
+  display: block;
+  margin-top: 6px;
+  padding: 0 0 2px 0;
+}
+
+/* 对话引文与动作括号着色由引擎叙述高亮承担（墨绿/赭橙，深浅色自动切换） */

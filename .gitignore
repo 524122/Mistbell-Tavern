@@ -44,3 +44,12 @@ _research_*/
 # E2E 实测取证产物不入库（基建本身入库，用法见 .e2e/README.md）
 .e2e/*.png
 .e2e/ui.xml
+
+# 实测截图留档不入库（设计文档引用的两张证据图除外）
+screenshots/*
+!screenshots/render-mvu-panel.png
+!screenshots/render-narrative.png
+
+# 示例主题包的打包产物与编辑器工具配置不入库
+samples/*.zip
+.cursor/

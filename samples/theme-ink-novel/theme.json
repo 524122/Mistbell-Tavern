@@ -1,0 +1,26 @@
+{
+  "colors": {
+    "primary": "#4a4238",
+    "background": "#f4efe4",
+    "surface": "#faf6ec",
+    "surfaceVariant": "#e8e0cd",
+    "userBubble": "#e3dac5",
+    "assistantBubble": "#f8f4e9",
+    "onUserBubble": "#2b2620",
+    "onAssistantBubble": "#2b2b2b",
+    "onBackground": "#2b2b2b",
+    "onSurface": "#2b2b2b"
+  },
+  "dark": {
+    "primary": "#c8bfa8",
+    "background": "#1d1b18",
+    "surface": "#262420",
+    "surfaceVariant": "#33302a",
+    "userBubble": "#37342d",
+    "assistantBubble": "#211f1b",
+    "onUserBubble": "#e6e0d2",
+    "onAssistantBubble": "#d9d4c7",
+    "onBackground": "#d9d4c7",
+    "onSurface": "#d9d4c7"
+  }
+}

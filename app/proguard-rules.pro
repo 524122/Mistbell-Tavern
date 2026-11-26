@@ -51,6 +51,21 @@
 -keep class androidx.compose.** { *; }
 -keep class androidx.compose.runtime.** { *; }
 
+# Yoga（M1 spike）：JNI native 方法按 C++ 符号（Java_com_facebook_yoga_*）绑定，类/方法不能被改名或剔除。
+# AAR 自带的 consumer 规则只 keep @DoNotStrip 成员，这里对 native 宿主类兜底（release 开了 minify）。
+-keepclasseswithmembers class com.facebook.yoga.** {
+    native <methods>;
+}
+-keep class com.facebook.yoga.YogaNative { *; }
+-keep class com.facebook.yoga.YogaNodeJNIBase { *; }
+-keep class com.facebook.yoga.YogaNodeJNIFinalizer { *; }
+-keep class com.facebook.yoga.YogaConfigJNIBase { *; }
+-keep class com.facebook.yoga.YogaConfigJNIFinalizer { *; }
+
+# litehtml JNI：R8 看不到 native 对 LiteHtmlPaint 静态方法的调用，必须按原名保留。
+-keep class com.mistbell.tavern.android.render.litehtml.LiteHtmlRenderer { *; }
+-keep class com.mistbell.tavern.android.render.litehtml.LiteHtmlPaint { *; }
+
 # Keep line numbers for debugging
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile

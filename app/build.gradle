@@ -30,6 +30,20 @@ android {
         targetSdk 37
         versionCode 19
         versionName "0.9.8-beta"
+        externalNativeBuild {
+            cmake {
+                arguments "-DLITEHTML_BUILD_TESTING=OFF"
+            }
+        }
+    }
+
+    ndkVersion "28.2.13676358"
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
     }
 
     // v0.9：onnxruntime 原生库按 ABI 分包（arm64 ≈16MB / x86 等），避免单 universal APK 被
@@ -111,9 +125,46 @@ android {
     }
 }
 
+// skiko 的 Android 原生库不在 AAR 里（AAR 只有字节码），官方 sample（SKIKO-934）的做法：
+// 单独解析 skiko-android-runtime-{x64,arm64} jar，解包出 libskiko-android-*.so 放进 jniLibs，
+// 且必须在 merge*JniLibFolders 之前完成。运行时 System.loadLibrary("skiko-android-x64"/"-arm64")
+// 按 os.arch 命中。skiko 无 armeabi-v7a/x86 产物，对应 split APK 不含 skiko native（冒烟只跑 x86_64/arm64）。
+configurations {
+    skikoNativeX64
+    skikoNativeArm64
+}
+
 dependencies {
     // JS 脚本沙箱（规则包 script.js 的宿主）：纯 JVM、无网络/文件能力，指令数限流防失控
     implementation "org.mozilla:rhino:1.8.0"
+
+    // ---- M1 spike：主题渲染引擎三依赖（仅冒烟测试消费，引擎实现待 M2） ----
+
+    // jsoup：HTML/富文本解析（MIT）
+    implementation "org.jsoup:jsoup:1.21.1"
+
+    // skiko-android：Skia 的 Kotlin 绑定（软件光栅文本渲染）。坐标注意：
+    // skiko-android 不在 Maven Central，只发布在 JetBrains Compose dev 仓库
+    // （见 settings.gradle）。版本必须 >= 0.9.19：0.9.18 的运行时 .so 有大量
+    // sksg（Skia 场景图）符号未定义（BIND_NOW 下 dlopen 直接失败），且 LOAD 段
+    // 只按 4KB 对齐（16K 页模拟器/设备不兼容）；0.9.47 两项均已修复（0.9.47
+    // 为 dev 仓库最高版，实测 sksg 零未定义 + 0x4000 对齐）。
+    // androidx.compose 自身不依赖 skiko（走 android.graphics），无类冲突。
+    // 排除 jbr-api：它是 JetBrains 桌面运行时（JBR）API，引用 java.awt 等 Android
+    // 没有的类（skiko 的 Android 代码路径不使用它；留着会让 release R8 报 Missing class）。
+    implementation("org.jetbrains.skiko:skiko-android:0.9.47") {
+        exclude group: "org.jetbrains.runtime", module: "jbr-api"
+    }
+
+    // Yoga 3.2.1（MIT）：flexbox 布局引擎，JNI 实现。其 YogaNative 的 static 块走
+    // SoLoader.loadLibrary("yoga")，而 soloader 在 pom 中是 optional（不传递），必须显式声明；
+    // 使用前需 SoLoader.init(context)。
+    implementation "com.facebook.yoga:yoga:3.2.1"
+    implementation "com.facebook.soloader:soloader:0.10.5"
+
+    // skiko Android 原生库（jar 内含 libskiko-android-*.so，由下方 Copy 任务解包进 jniLibs）
+    skikoNativeX64 "org.jetbrains.skiko:skiko-android-runtime-x64:0.9.47"
+    skikoNativeArm64 "org.jetbrains.skiko:skiko-android-runtime-arm64:0.9.47"
 
     // Compose BOM
     def composeBom = platform('androidx.compose:compose-bom:2024.12.01')
@@ -181,6 +232,27 @@ dependencies {
     androidTestImplementation "androidx.test:runner:1.6.2"
     androidTestImplementation "androidx.test.ext:junit:1.2.1"
     androidTestImplementation "androidx.test:core:1.6.1"
+}
+
+// skiko native 解包：产物放 build 目录（不进源码树），注册为 main 的 jniLibs 源目录，
+// 并挂到 merge*JniLibFolders 前保证打包时 .so 已就位（SKIKO-934 官方写法）。
+def unpackSkikoX64 = tasks.register("unpackSkikoNativeX64", Copy) {
+    from { configurations.skikoNativeX64.collect { zipTree(it) } }
+    include "**/*.so"
+    into layout.buildDirectory.dir("skiko-jni/x86_64")
+}
+def unpackSkikoArm64 = tasks.register("unpackSkikoNativeArm64", Copy) {
+    from { configurations.skikoNativeArm64.collect { zipTree(it) } }
+    include "**/*.so"
+    into layout.buildDirectory.dir("skiko-jni/arm64-v8a")
+}
+// AGP 9 禁止向 SourceSet 传 Provider（无法区分生成/静态目录）；这里传静态 File，
+// 任务依赖由下方 MergeSourceSetFolders 的 dependsOn 显式补上。
+android.sourceSets.main.jniLibs.srcDir layout.buildDirectory.dir("skiko-jni").get().asFile
+tasks.withType(com.android.build.gradle.tasks.MergeSourceSetFolders).configureEach {
+    if (name.endsWith("JniLibFolders")) {
+        dependsOn unpackSkikoX64, unpackSkikoArm64
+    }
 }
 
 // ---- F0 质量门配置（见 docs/FOUNDATION.md）----

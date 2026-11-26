@@ -9,6 +9,8 @@ import com.mistbell.tavern.android.data.api.normalizeApiType
 import com.mistbell.tavern.android.data.local.dao.SettingsDao
 import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
@@ -145,4 +147,29 @@ class SettingsRepository {
         withContext(Dispatchers.IO) {
             ChatSettingsResolver.globalDefaultContextTokens(db.settingsDao().getValue("default_context_tokens"))
         }
+
+    // --- 主题渲染引擎（M4/M6，THEME_FRAMEWORK_DESIGN.md §7 总开关）---
+
+    /**
+     * 原生渲染引擎开关（聊天设置页）：缺省开启（仅显式写 "0" 才关闭）。默认 true 安全——
+     * 无 layout 能力的主题包时开关无任何效果（降级路由"无包即 legacy"）。
+     */
+    fun observeLayoutRendererEnabled(): Flow<Boolean> {
+        val stored = db.settingsDao().observeValue(KEY_LAYOUT_RENDERER_ENABLED)
+        return stored.map { it != "0" }
+    }
+
+    suspend fun setLayoutRendererEnabled(enabled: Boolean) =
+        withContext(Dispatchers.IO) {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(
+                    KEY_LAYOUT_RENDERER_ENABLED,
+                    if (enabled) "1" else "0",
+                ),
+            )
+        }
+
+    companion object {
+        const val KEY_LAYOUT_RENDERER_ENABLED = "layout_renderer_enabled"
+    }
 }

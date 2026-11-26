@@ -67,6 +67,11 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
+    // 原生渲染引擎开关（M4，THEME_FRAMEWORK_DESIGN.md §7 总开关；缺省开——无 layout 包时无效果）
+    val layoutRendererEnabled: StateFlow<Boolean> =
+        settingsRepo.observeLayoutRendererEnabled()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     // 可选主题包列表
     val availableThemes: StateFlow<List<ThemePackEntity>> =
         themeRepo.observePacks()
@@ -224,6 +229,11 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
                 }
             }
         }
+    }
+
+    // 原生渲染引擎开关保存（逐键静默写库，与其他开关同语义）
+    fun setLayoutRendererEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepo.setLayoutRendererEnabled(enabled) }
     }
 
     // 设置本会话专属主题；"" = 跟随角色 / 全局
@@ -410,6 +420,7 @@ fun ChatSettingsScreen(
     val selectedWorldBookId by viewModel.selectedWorldBookId.collectAsState()
     val sessionTheme by viewModel.sessionTheme.collectAsState()
     val availableThemes by viewModel.availableThemes.collectAsState()
+    val layoutRendererEnabled by viewModel.layoutRendererEnabled.collectAsState()
     val characterDefaultWorldBookId by viewModel.characterDefaultWorldBookId.collectAsState()
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
     val contextTokenLimit by viewModel.contextTokenLimit.collectAsState()
@@ -634,6 +645,34 @@ fun ChatSettingsScreen(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // 原生渲染引擎开关（M4，总开关；行样式照「设置 → 实验性功能」的 HTML 界面开关）。
+            // 仅对声明 layout 能力的主题包生效：无此类包时开关无效果，消息内容渲染行为不变
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("原生渲染引擎（布局主题）", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text =
+                                "布局主题包用原生引擎渲染消息排版（skiko/Yoga）；关闭即回到原有渲染。" +
+                                    "未安装布局主题包时本开关无效果",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = layoutRendererEnabled,
+                        onCheckedChange = { viewModel.setLayoutRendererEnabled(it) },
                     )
                 }
             }

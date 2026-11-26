@@ -22,11 +22,21 @@ object HtmlCardDetector {
     /** 行内 HTML 特征：<style> 块或带 class 属性的 span/div（心声魂音/对话玉简类卡片常用）。 */
     private val NARRATIVE_HTML = Regex("""<style\b|<(?:span|div)\b[^>]*class="""", RegexOption.IGNORE_CASE)
 
+    /** 行内表格。不进叙事包装，避免把表格前后的正文一起变成 HTML。 */
+    private val TABLE_HTML = Regex("""<table\b""", RegexOption.IGNORE_CASE)
+
+    private val TABLE_BLOCK =
+        Regex(
+            """<table\b.*?</table>""",
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+        )
+
     /** 消息是否包含可渲染的 HTML 界面（快速预检，避免每条消息全量拆分）。 */
     fun containsHtml(content: String): Boolean =
         content.contains("```html", ignoreCase = true) ||
             BARE_HTML_PREFIX.containsMatchIn(content) ||
-            NARRATIVE_HTML.containsMatchIn(content)
+            NARRATIVE_HTML.containsMatchIn(content) ||
+            TABLE_HTML.containsMatchIn(content)
 
     /**
      * 拆分消息为有序片段列表。无 HTML 时返回单个 Markdown 段（零分配开销路径）。
@@ -39,6 +49,8 @@ object HtmlCardDetector {
                 listOf(Part.HtmlDoc(content))
             // 叙事内容中的行内 HTML：整段包装为文档（保留全部叙事文本与 <style>）
             NARRATIVE_HTML.containsMatchIn(content) && !content.contains("```") -> splitNarrative(content)
+            // 行内表格单独成段，前后正文仍走 Markdown
+            TABLE_HTML.containsMatchIn(content) && !content.contains("```") -> splitTables(content)
             else -> splitByFences(content)
         }
 
@@ -72,6 +84,27 @@ object HtmlCardDetector {
                 else -> Part.Markdown(section)
             }
         }.ifEmpty { listOf(Part.Markdown(content)) }
+    }
+
+    /** 把闭合的 table 抽成 HTML 段。未闭合的表格留在 Markdown 里，不按半截标签渲染。 */
+    private fun splitTables(content: String): List<Part> {
+        val parts = mutableListOf<Part>()
+        var lastEnd = 0
+        TABLE_BLOCK.findAll(content).forEach { match ->
+            appendPlain(parts, content.substring(lastEnd, match.range.first))
+            parts += Part.HtmlDoc(match.value, narrative = true)
+            lastEnd = match.range.last + 1
+        }
+        appendPlain(parts, content.substring(lastEnd))
+        return parts.ifEmpty { listOf(Part.Markdown(content)) }
+    }
+
+    private fun appendPlain(
+        parts: MutableList<Part>,
+        text: String,
+    ) {
+        val trimmed = text.trim()
+        if (trimmed.isNotEmpty()) parts += Part.Markdown(trimmed)
     }
 
     /** 小节包装：共享样式头 + 本节内容，小文档不会撑爆布局。 */

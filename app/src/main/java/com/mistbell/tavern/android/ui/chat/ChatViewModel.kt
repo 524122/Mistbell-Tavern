@@ -40,6 +40,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val repo = ChatRepository(application)
     private val networkMonitor = NetworkMonitor(application)
     private val themeRepo = ThemePackRepository(application)
+    private val settingsRepo = com.mistbell.tavern.android.data.repository.SettingsRepository()
 
     val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
 
@@ -752,6 +753,51 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     .flowOn(Dispatchers.Default)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // ---- 主题渲染引擎数据源（M4，THEME_FRAMEWORK_DESIGN.md §2.2/§6.2；内容体接线三件套，全部只读） ----
+
+    /** 引擎总开关（settings layout_renderer_enabled，缺省开；无 layout 包时开关无效果） */
+    val layoutRendererEnabled: StateFlow<Boolean> =
+        settingsRepo.observeLayoutRendererEnabled()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    /** 引擎布局包：应用链命中且 capabilities=layout 且模板版本受支持；null = 引擎不激活走 legacy */
+    val layoutPack: StateFlow<com.mistbell.tavern.android.data.repository.ResolvedLayoutPack?> =
+        sessionCharacterKey
+            .flatMapLatest { (sid, cid) -> themeRepo.observeResolvedLayoutPack(sid, cid) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * 引擎变量快照（变量桥）：复用 mvuVariablesVersion 作缓存键（版本变化触发 Bitmap 缓存失效），
+     * 并以会话 id 联合驱动——版本不变切会话时也重读 ext.mvu.<sessionId>，避免旧会话变量串场。
+     */
+    val engineVariables: StateFlow<com.mistbell.tavern.android.ui.chat.render.VariablesSnapshot> =
+        combine(_activeSessionId, mvuVariablesVersion) { sid, version -> sid to version }
+            .flatMapLatest { (sid, version) ->
+                flow {
+                    val raw =
+                        if (sid.isBlank()) {
+                            null
+                        } else {
+                            db.settingsDao().getValue(
+                                com.mistbell.tavern.android.extension.builtin.MvuExtension.statKey(sid),
+                            )
+                        }
+                    emit(
+                        com.mistbell.tavern.android.ui.chat.render.VariablesSnapshot(
+                            version = version,
+                            variables = com.mistbell.tavern.android.ui.chat.render.flattenMvuVariables(raw),
+                        ),
+                    )
+                }
+            }
+            // stat_data 读取（Room）+ JSON 扁平化：切 IO 线程，不阻塞收集方（主线程）
+            .flowOn(Dispatchers.IO)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                com.mistbell.tavern.android.ui.chat.render.VariablesSnapshot.EMPTY,
+            )
 
     val darkModeSetting: StateFlow<String> =
         db.settingsDao().observeValue("dark_mode")

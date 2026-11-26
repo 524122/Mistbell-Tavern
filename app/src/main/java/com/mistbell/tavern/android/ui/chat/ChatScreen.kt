@@ -240,6 +240,10 @@ fun ChatScreen(
     val mvuVariablesVersion by viewModel.mvuVariablesVersion.collectAsStateWithLifecycle()
     val htmlChatEvents by viewModel.htmlChatEvents.collectAsStateWithLifecycle()
     val htmlExpandedIds by viewModel.htmlExpandedIds.collectAsStateWithLifecycle()
+    // 主题渲染引擎（M4）：开关 / layout 包 / MVU 变量快照（内容缝数据源，透传给 MessageBubble）
+    val layoutRendererEnabled by viewModel.layoutRendererEnabled.collectAsStateWithLifecycle()
+    val layoutPack by viewModel.layoutPack.collectAsStateWithLifecycle()
+    val engineVariables by viewModel.engineVariables.collectAsStateWithLifecycle()
     val currentCharacter by viewModel.currentCharacter.collectAsStateWithLifecycle()
     val participantCharacters by viewModel.participantCharacters.collectAsStateWithLifecycle()
     // 预热 WebView：提前初始化 Chromium 进程，首个 HTML 消息直接复用（只预热不加载文档）
@@ -680,6 +684,9 @@ fun ChatScreen(
                                                 onHtmlExpandedChange = { exp ->
                                                     viewModel.setHtmlExpanded(message.id, exp)
                                                 },
+                                                layoutRendererEnabled = layoutRendererEnabled,
+                                                layoutPack = layoutPack,
+                                                engineVariables = engineVariables,
                                             )
                                         }
                                         AssistChip(
@@ -730,6 +737,9 @@ fun ChatScreen(
                                             onHtmlExpandedChange = { exp ->
                                                 viewModel.setHtmlExpanded(message.id, exp)
                                             },
+                                            layoutRendererEnabled = layoutRendererEnabled,
+                                            layoutPack = layoutPack,
+                                            engineVariables = engineVariables,
                                         )
                                     }
                                 }
