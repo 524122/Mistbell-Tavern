@@ -1,5 +1,20 @@
 # 主题框架 v0 设计：从 token 包到完整渲染定义权
 
+> 状态：**冻结**（2026-11-26，依据 [ROADMAP.md](ROADMAP.md) 二、P1「自绘引擎冻结」）。
+> 冻结的含义：**代码保留、路由不变**——引擎只有在「原生渲染引擎开关开启 + 当前主题包声明
+> `capabilities=layout` + 模板版本受支持 + 引擎已引导 + 卡段可渲染」时才接管消息内容体，
+> 否则整条走 legacy（核对：`app/src/main/java/com/mistbell/tavern/android/ui/chat/render/EngineMessageContent.kt:108-125`
+> 的 `resolveRenderPath`，`app/src/main/java/com/mistbell/tavern/android/ui/chat/MessageBubble.kt:201-213`
+> 的 `enginePath` 与 `:496-510` 的接管分支）。冻结范围内不再扩展 CSS 白名单、选择器、交互
+> 与作者工具；缺陷修复不受冻结限制（例：P0 已做的「渲染缓存跨渲染复用」，
+> commit `ab2b824`），但新能力一律不做。**解冻条件**（两项同时成立）：(1) 以 `HtmlBubble`
+> （WebView）为对照，冷首帧、滚动掉帧率、常驻 10 个面板的内存增量三项均不超过 WebView
+> 的 50% 且无泄漏；(2) 至少有 3 个非作者的 layout 主题包，或用户明确提出。解冻时才做
+> 测量，规划原先预留的两天 go/no-go 测量在冻结期间不执行。现状判断：layout 包只有
+> 作者自己的示例 `samples/theme-ink-novel/`（`samples/theme-pokemon-battle/` 是 cosmetic
+> 包，不参与引擎），条件 (2) 不成立。
+> ——以下为冻结前的状态与实施补记，原文保留：
+>
 > 状态：**M0-M6 全部已实施**（M1 依赖 spike → M2 协议解析层 → M3 渲染管线 → M4 聊天接线
 > + M5 链接点击与长按选词 + M6 Room 迁移与示例包，go/no-go 出口达标：真实 MVU 面板渲染
 > 正确、滚动/流式帧预算内、Bitmap 缓存无泄漏）。实施后补记（保留原设计正文，偏差以代码
@@ -294,6 +309,10 @@ theme-pack.zip
 **不达标则引擎可用但默认不激活**（开关默认关），不阻塞其余阶段合入。每阶段按既有惯例：
 单测 + 模拟器实测后提交。
 
+> 状态更新（2026-11-26）：M3 出口已达标（见开头实施补记）；此后引擎整体进入**冻结**
+> （文档开头状态块、[ROADMAP.md](ROADMAP.md) 二、P1），冻结期间不再执行 go/no-go 复测，
+> 解冻条件以开头状态块为准。
+
 ---
 
 ## 10. 风险与对策
@@ -332,4 +351,5 @@ theme-pack.zip
   `BindingResolver` 数据源替换为 Schema 树，**绑定协议（data-bind 语法）不变**。
 - **HTML 卡片**（[WEB_CONTENT_RUNTIME_DESIGN.md](WEB_CONTENT_RUNTIME_DESIGN.md)）：WebView 沙箱
   保留为**兜底与复杂卡路径**（JS 交互型卡片永远走 WebView）；纯展示型卡片逐步由引擎接管
-  （降级路由即两者的分界，§7）。
+  （降级路由即两者的分界，§7）。**冻结注记（2026-11-26）**：「逐步接管」暂停，引擎已冻结，
+  见文档开头状态块。

@@ -20,9 +20,15 @@ litehtml 只解析 HTML/CSS 并给出布局。它不画像素，也不执行 Jav
 | 含 `<style>` 或 `<table>`，且没有脚本运行面 | `LiteHtmlPolicy.isLayoutHtml` → `LiteHtmlMessage` | litehtml 位图 |
 | `<script>`、`<iframe>`、`<object>`、`<embed>`、`on*` 事件、`javascript:` | `LiteHtmlPolicy.requiresScriptRuntime` → `HtmlBubble` | 现有 WebView。HTML 界面开关关闭时不执行，按原文显示 |
 
+补充（2026-11-26）：脚本路径的启用条件有两项。`renderHtml = htmlUiEnabled && htmlHost != null && htmlParts 有 HtmlDoc 段`（`app/src/main/java/com/mistbell/tavern/android/ui/chat/MessageBubble.kt:178-182`），所以 HTML 界面开关关闭**或没有桥宿主（`htmlHost == null`）**时，脚本卡片都不执行，按原文显示（交给 `MessageMarkdown` 原样排字）。上表「HTML 界面开关关闭时不执行」只说了其中一项。
+
 `style` 和 `table` 在主题引擎里属于危险元素，整段会被丢掉。所以 `resolveRenderPath` 仍把这种消息判为 Legacy，再由 Legacy 交给 litehtml。不要为了画表格去放宽 `TemplateParser` 的白名单。
 
 主题引擎关闭时，只要片段被判定为布局 HTML，仍然走 litehtml，不依赖 HTML 界面开关。
+
+HTML 界面开关**开启**时，判定顺序同样是先 litehtml、后 WebView：legacy 内容体里每个 HTML 段先判 `LiteHtmlPolicy.isLayoutHtml(part.html)`，为真就走 `LiteHtmlMessage`，`else if (renderHtml)` 才进 `HtmlBubble`（`app/src/main/java/com/mistbell/tavern/android/ui/chat/MessageBubble.kt:316-347`）。所以即使 `html_ui_enabled` 开启，含 `<style>` 的叙事拆段也走 litehtml 而不是 WebView——进 WebView 的分界是脚本运行面（`LiteHtmlPolicy.requiresScriptRuntime`，`LiteHtmlPolicy.kt:23`），不是布局 HTML。上文「主题引擎关闭时不依赖 HTML 界面开关」只写了开关关闭的一侧，此条补上开关开启的一侧（2026-11-26）。
+
+自绘引擎已冻结：见 [THEME_FRAMEWORK_DESIGN.md](THEME_FRAMEWORK_DESIGN.md) 开头的状态块与 [ROADMAP.md](ROADMAP.md) 二、P1「自绘引擎冻结」。litehtml 自身「保持现状、不扩功能」，已知限制仍以 §8 为准（2026-11-26）。
 
 ---
 
@@ -137,6 +143,8 @@ Release 混淆必须保留这两个类，见 `app/proguard-rules.pro`：
 ---
 
 ## 8. 继续改时的边界
+
+> 更正（2026-11-26）：自绘引擎冻结期间，litehtml 保持现状、不扩功能，本节所述「继续改」暂缓；以下边界保留原文，供解冻后参考（冻结状态见 [THEME_FRAMEWORK_DESIGN.md](THEME_FRAMEWORK_DESIGN.md) 开头状态块）。defects 修复不受此限。
 
 - 缺的布局能力改 `third_party/litehtml` 或 `AndroidContainer`，不要把 `TemplateParser` 的白名单扩成浏览器。
 - 不把 `<style>` 当可执行代码。不把 `<script>`、事件处理和 `javascript:` 送进 litehtml。
