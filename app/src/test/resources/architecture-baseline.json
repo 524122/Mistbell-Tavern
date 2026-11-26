@@ -1,0 +1,36 @@
+{
+    "meta": {
+        "生成日期": "2026-11-27",
+        "更新方式": "./gradlew :app:testDebugUnitTest -ParchBaselineUpdate=true（更新后与代码一并提交）",
+        "扫描范围": "app/src/main/java 下全部 .kt",
+        "引用口径": "import 行 + 正文全限定名；注释与字符串内容剔除（行号保留）",
+        "包组口径": "最长已知包前缀归组；data.*/ui.* 三级包主源集文件数>=3 成三级组，否则二级组；其余一级组；根包记 (root)",
+        "render口径": "render 组不得指向 ui 组（硬性为 0，无基线）",
+        "data口径": "data.* 组不得指向 ui 组（硬性为 0，无基线）",
+        "extension口径": "extension→ui.* 各边受 extensionToUiEdges 约束，只减不增",
+        "dao口径": "ui.* 里指向 data.local.dao 的 import 与全限定名都必须为 0",
+        "entity口径": "ui.* 里指向 data.local.entity 的 import 与全限定名都计入，只减不增（规划原文写的是 entity import，实施时按意图收紧为与 DAO 同口径，防改写全限定名绕过）",
+        "instance口径": "代码里 TavernApplication.instance 的出现次数（注释已剔除），只减不增",
+        "互赖对口径": "组 A→B 与 B→A 同时存在记一对；允许对全列于 mutualPairs，出现新对即失败"
+    },
+    "extensionToUiEdges": {
+        "extension->ui.chat.htmlui": 1
+    },
+    "mutualPairs": [
+        "(root)↔navigation",
+        "(root)↔ui.theme",
+        "(root)↔util",
+        "data.extensionpack↔data.rulepack",
+        "data.prompt↔data.repository",
+        "data.prompt↔extension",
+        "data.prompt↔util",
+        "data.repository↔data.vector",
+        "data.repository↔extension",
+        "data.repository↔service",
+        "extension↔ui.chat.htmlui"
+    ],
+    "uiToEntityRefCount": 38,
+    "uiToEntityRefFiles": 22,
+    "tavernInstanceCount": 51,
+    "tavernInstanceFiles": 30
+}

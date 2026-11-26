@@ -123,6 +123,13 @@ android {
     testOptions {
         unitTests {
             returnDefaultValues = true
+            // 依赖棘轮基线更新开关（P1，见 ArchitectureRulesTest）：命令行加
+            // -ParchBaselineUpdate=true 时，ArchitectureRulesTest 进入"重写基线后通过"模式；
+            // 默认 "false" 为校验模式。用 providers 读 Gradle 属性以兼容配置缓存。
+            all {
+                systemProperty "arch.baseline.update",
+                    providers.gradleProperty("archBaselineUpdate").getOrElse("false")
+            }
         }
 
         // CI 托管设备（.github/workflows/ci.yml 的 androidTest job）：API 34 的 aosp x86_64 镜像是

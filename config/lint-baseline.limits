@@ -1,0 +1,10 @@
+# lint 基线棘轮上限（docs/ROADMAP.md「P1 立规矩与冻结」第 3 项）
+# 断言方：app/src/test/java/com/mistbell/tavern/android/LintBaselineRatchetTest.kt
+# 语义与依赖棘轮一致，只减不增：
+#   条目数超过上限 = 有人往 baseline 里塞了新条目，测试失败；
+#   条目数低于上限 = 基线变干净了，同样测试失败——必须把上限下调到新值并一并提交。
+#   不提供自动更新模式：上限是手写的承诺，下调必须过人。
+# detekt 条目 = config/detekt/baseline.xml 里 <ID> 元素个数（当前存量告警，新代码零容忍）
+# ktlint 条目 = app/config/ktlint/baseline.xml 里 <error 元素个数（同上）
+detekt=927
+ktlint=229
