@@ -32,7 +32,7 @@ data class RegexHubUiState(
 /** 「正则」Tab 宿主：全局规则概览 + 各角色卡内嵌正则聚合 */
 class RegexHubViewModel(application: Application) : AndroidViewModel(application) {
     private val db = (application as TavernApplication).container.database
-    private val characterRepo = CharacterRepository(application)
+    private val characterRepo = CharacterRepository()
 
     val state: StateFlow<RegexHubUiState> =
         combine(

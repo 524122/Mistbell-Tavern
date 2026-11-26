@@ -1,8 +1,6 @@
 package com.mistbell.tavern.android.data.repository
 
-import android.content.Context
 import com.mistbell.tavern.android.TavernApplication
-import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.api.model.WorldBookEntry
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntity
@@ -14,9 +12,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import java.util.UUID
 
-class WorldBookRepository(private val context: Context) {
+class WorldBookRepository {
     private val db get() = TavernApplication.instance.container.database
-    private val api get() = ApiClient.getApi(context)
 
     fun observeWorldBooks(): Flow<List<WorldBook>> {
         return db.worldBookDao().getAll().map { bookEntities ->
@@ -118,16 +115,6 @@ class WorldBookRepository(private val context: Context) {
     suspend fun deleteEntry(entryId: String) {
         withContext(Dispatchers.IO) {
             db.worldBookDao().deleteEntryById(entryId)
-        }
-    }
-
-    suspend fun exportWorldBook(): JsonElement? {
-        return withContext(Dispatchers.IO) {
-            try {
-                api.exportWorldBook()
-            } catch (_: Exception) {
-                null
-            }
         }
     }
 

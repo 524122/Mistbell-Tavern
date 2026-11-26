@@ -40,9 +40,9 @@ import kotlinx.coroutines.launch
 
 @Suppress("TooManyFunctions") // 会话设置面板按功能拆方法，AN 落点等新设置各一个小保存函数
 class ChatSettingsViewModel(application: Application) : AndroidViewModel(application) {
-    private val worldBookRepo = WorldBookRepository(application)
+    private val worldBookRepo = WorldBookRepository()
     private val themeRepo = ThemePackRepository(application)
-    private val settingsRepo = SettingsRepository(application)
+    private val settingsRepo = SettingsRepository()
     private val db = TavernApplication.instance.container.database
 
     // 全局默认值（用于「全局默认：X」提示行）

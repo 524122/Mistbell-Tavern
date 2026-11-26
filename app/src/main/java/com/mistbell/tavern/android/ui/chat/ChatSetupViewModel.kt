@@ -26,7 +26,7 @@ internal const val MAX_SELECTABLE_CHARACTERS = MAX_GROUP_PARTICIPANTS
 
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
-    private val worldBookRepo = WorldBookRepository(application)
+    private val worldBookRepo = WorldBookRepository()
 
     // 所有角色
     val characters: StateFlow<List<Character>> =

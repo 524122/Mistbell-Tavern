@@ -36,8 +36,8 @@ data class CharacterForm(
 )
 
 class CharacterEditorViewModel(application: Application) : AndroidViewModel(application) {
-    private val characterRepo = CharacterRepository(application)
-    private val worldBookRepo = WorldBookRepository(application)
+    private val characterRepo = CharacterRepository()
+    private val worldBookRepo = WorldBookRepository()
 
     private val _form = MutableStateFlow(CharacterForm())
     val form: StateFlow<CharacterForm> = _form

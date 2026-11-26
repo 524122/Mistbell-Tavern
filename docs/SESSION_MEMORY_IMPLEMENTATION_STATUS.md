@@ -205,7 +205,7 @@
 - **detekt**：78 weighted issues，全部为存量债务（本会话新/改动行的告警已全部修复）。
 - **ktlint**：main 89 项、test 51 项（test 侧全部在用户既有文件 ApiConfigDocumentTest.kt），本会话改动的文件零违规；androidTest 源零违规。
 - **归因更正**：此前文档写的"本轮开工快照 145"不准确——145 是 validation-03 中间实现快照的报告数，开工 baseline manifest 并未包含 detekt 报告；"存量 vs 新增"以 validation-05 的 detekt-changed-lines.json / ktlint-origin-details.json 与 validation-06 复验为准。
-- **存量债务（本会话从未触碰的文件，保持原样）**：ApiConfigEditorDialog.kt、ApiConfigDocument.kt、ApiConfigViewModel.kt、ChatViewModel.kt、ChatScreen.kt、SessionImporter/Exporter、LocalWorldBookService.kt、VectorIndexMaintenance.kt、ApiConfigMigration.kt 等的 ktlint/detekt 违规，以及 ApiConfigDocumentTest.kt。需单独治理，不在本轮范围。
+- **存量债务（本会话从未触碰的文件，保持原样）**：ApiConfigEditorDialog.kt、ApiConfigDocument.kt、ApiConfigViewModel.kt、ChatViewModel.kt、ChatScreen.kt、SessionImporter/Exporter、VectorIndexMaintenance.kt、ApiConfigMigration.kt 等的 ktlint/detekt 违规，以及 ApiConfigDocumentTest.kt。需单独治理，不在本轮范围。
 
 ## 已知遗留
 

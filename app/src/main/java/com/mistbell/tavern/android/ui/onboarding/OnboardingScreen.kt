@@ -62,7 +62,7 @@ val sampleCharacters =
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     private val db get() = TavernApplication.instance.container.database
-    private val characterRepo = CharacterRepository(application)
+    private val characterRepo = CharacterRepository()
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()

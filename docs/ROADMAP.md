@@ -84,15 +84,9 @@
 - **验收**：`adb backup` 产物中不含密钥文件。
 
 #### M1-9 日志泄漏聊天内容
-- **位置**：`ApiClient.kt:33-35`（`Level.BODY` 记录全部请求体）；`CrashLogger.kt:45-53`（导出黑名单漏了 OkHttp 默认 tag `okhttp.OkHttpClient`，导致"已自动过滤聊天内容"承诺失效）；`ChatViewModel.kt:192`（打印用户消息全文）；`MemoryExtractionService.kt:259`（打印 LLM 响应前 500 字符）。
+- **位置**：`CrashLogger.kt:45-53`（导出黑名单漏了 OkHttp 默认 tag `okhttp.OkHttpClient`，导致"已自动过滤聊天内容"承诺失效）；`ChatViewModel.kt:192`（打印用户消息全文）；`MemoryExtractionService.kt:259`（打印 LLM 响应前 500 字符）。
 - **修法**：release 构建日志级别降为 NONE / BASIC（用 `BuildConfig.DEBUG` 区分）；黑名单补 okhttp tag；删除消息全文打印。
 - **验收**：导出诊断报告后人工检查，无聊天内容与 API Key。
-
-#### M1-10 ApiClient 单例线程安全
-- **位置**：`ApiClient.kt:18-19,27-28,59-65`
-- **问题**：`retrofit/api` 是普通 var，`getApi` 为 check-then-act，并发下可能重复创建或读到半初始化实例。
-- **修法**：`@Volatile` + synchronized（或 Mutex）。
-- **验收**：代码评审通过；无功能回归。
 
 ### M1 验收清单
 
@@ -179,7 +173,7 @@
 - **CI**：GitHub Actions / Gitee Go，流水线 = `gradlew assembleDebug test`，PR 必须绿。
 - **数据库防静默清库**：`AppDatabase.kt:103` 的 `fallbackToDestructiveMigration` 会在升级遗漏迁移时清空全部数据。改 `exportSchema=true` + Room 迁移测试，最终移除 destructive fallback。
 - **提交规范**：小步提交（现状仅 2 个大提交），feature 分支 + PR。
-- **Deprecation 清理**（2026-08 盘点，约 37 处编译警告）：`Icons.Filled.ArrowBack/Chat/Undo/VolumeOff/KeyboardArrowRight/ArrowForward` → AutoMirrored 版本（~12 处，纯改名）；`Modifier.menuAnchor()` → 带 MenuAnchorType 的新重载（~15 处）；`outlinedButtonBorder` → 带 enabled 参数版本（~7 处）；协程 `@OptIn(ExperimentalCoroutinesApi)` 缺失 2 处（StructuredMemoryViewModel/WorldBookEditorViewModel）；ExportViewModel 重复创建 Json 实例 1 处提为复用；`ChatListScreen.kt:379` SearchBar 旧 overload → inputField 新结构（唯一需要小重构的）。LocalTavernService 恒真条件随 M2-1 死代码清创一并消失。与 CI 批次同做，清零后可在 CI 开 `-Werror` 防回潮。
+- **Deprecation 清理**（2026-08 盘点，约 37 处编译警告）：`Icons.Filled.ArrowBack/Chat/Undo/VolumeOff/KeyboardArrowRight/ArrowForward` → AutoMirrored 版本（~12 处，纯改名）；`Modifier.menuAnchor()` → 带 MenuAnchorType 的新重载（~15 处）；`outlinedButtonBorder` → 带 enabled 参数版本（~7 处）；协程 `@OptIn(ExperimentalCoroutinesApi)` 缺失 2 处（StructuredMemoryViewModel/WorldBookEditorViewModel）；`ChatListScreen.kt:379` SearchBar 旧 overload → inputField 新结构（唯一需要小重构的）。LocalTavernService 恒真条件随 M2-1 死代码清创一并消失。与 CI 批次同做，清零后可在 CI 开 `-Werror` 防回潮。
 
 ### 功能补全
 
@@ -192,7 +186,6 @@
 - **消息长会话窗口分页（已完成，v16 性能修复）**：Paging 3 方案已废弃并移除依赖；现为 DAO 层窗口分页——`MessageDao.getLatestBySession`（只观察最新 200 条）+ `getOlderBySession`（上滚按 (created_at, id) 复合游标补加载一页），ViewModel 侧 `loadOlderMessages`/`mergeMessageWindow` 合并 prepend 缓存。若未来数据量再超阈值，优先扩展此方案（如更大窗口/懒加载页大小）而非引入 Paging 3。
 - **导入功能**：世界书导入（WorldBookListScreen.kt:185）、聊天导入（ChatListScreen.kt:104）——UI 入口已存在但未实现。
 - **continueMessage / swipeMessage 实装**（ChatRepository.kt:238-250 现为空函数体，UI 上可点无反应）。
-- **记忆归属修复**：`MemoryRepository.loadFromServer/createMemory` 不落 session_id，服务端拉回的记忆按会话查询不到。
 - **设置页空入口收敛**：SettingsScreen.kt:193-258 六个 onClick 为空的入口要么实装要么从界面隐藏。
 
 ### 明确不做（复议条件见括号）

@@ -1,25 +1,19 @@
 package com.mistbell.tavern.android.data.repository
 
-import android.content.Context
 import com.mistbell.tavern.android.TavernApplication
-import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.ApiConfigJson
 import com.mistbell.tavern.android.data.api.ApiType
 import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.api.RequestSamplingParams
 import com.mistbell.tavern.android.data.api.normalizeApiType
 import com.mistbell.tavern.android.data.local.dao.SettingsDao
-import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
-class SettingsRepository(private val context: Context) {
+class SettingsRepository {
     private val db get() = TavernApplication.instance.container.database
-    private val api get() = ApiClient.getApi(context)
 
     // --- LLM Config (local) ---
 
@@ -27,7 +21,7 @@ class SettingsRepository(private val context: Context) {
         withContext(Dispatchers.IO) {
             val dao = db.settingsDao()
             // 三元组真相源：api_configs 默认配置（卡片式配置页写入）；表为空时回退
-            // llm_* 平铺键（服务器同步 loadAndCacheSettings 仍写这组键）
+            // llm_* 平铺键（历史遗留，仅老版本数据库中存在）
             buildBaseConfig(normalizeApiConfig(db.apiConfigDao().getDefault()), dao)
         }
 
@@ -151,38 +145,4 @@ class SettingsRepository(private val context: Context) {
         withContext(Dispatchers.IO) {
             ChatSettingsResolver.globalDefaultContextTokens(db.settingsDao().getValue("default_context_tokens"))
         }
-
-    // --- Server settings (sync from API) ---
-
-    fun observeSettings(): Flow<JsonObject?> {
-        return db.settingsDao().getAll().map { entities ->
-            val map = entities.associate { it.key to it.value }
-            buildJsonObject {
-                map.forEach { (k, v) ->
-                    put(k, JsonPrimitive(v))
-                }
-            }
-        }
-    }
-
-    suspend fun loadAndCacheSettings() {
-        try {
-            val result = api.getSettings()
-            if (result is JsonObject) {
-                val dao = db.settingsDao()
-                result.forEach { (key, value) ->
-                    val strValue =
-                        when (value) {
-                            is JsonPrimitive -> value.content
-                            else -> value.toString()
-                        }
-                    // 敏感 key 同样走加密写入，避免服务器同步把已加密值降级为明文落盘
-                    val stored = if (key == "llm_api_key") SecureStore.wrap(strValue) else strValue
-                    dao.upsert(SettingsEntity(key, stored))
-                }
-            }
-        } catch (_: Exception) {
-            // Server unreachable, local cache remains valid
-        }
-    }
 }

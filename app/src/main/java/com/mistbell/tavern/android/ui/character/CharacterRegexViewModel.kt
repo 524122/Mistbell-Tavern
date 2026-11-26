@@ -32,7 +32,7 @@ data class CharacterRegexUiState(
 class CharacterRegexViewModel(application: Application) :
     AndroidViewModel(application),
     RegexEditingContract {
-    private val characterRepo = CharacterRepository(application)
+    private val characterRepo = CharacterRepository()
     private val _state = MutableStateFlow(CharacterRegexUiState())
     val state: StateFlow<CharacterRegexUiState> = _state.asStateFlow()
 

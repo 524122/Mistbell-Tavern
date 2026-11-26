@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
-import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.repository.BackupManager
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
@@ -22,14 +21,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         private const val SUBSCRIBE_TIMEOUT_MS = 5000L
     }
 
-    private val repo = SettingsRepository(application)
+    private val repo = SettingsRepository()
     private val db get() = TavernApplication.instance.container.database
 
     private val _llmConfig = MutableStateFlow(LlmConfig())
     val llmConfig: StateFlow<LlmConfig> = _llmConfig
-
-    private val _settings = MutableStateFlow<JsonObject?>(null)
-    val settings: StateFlow<JsonObject?> = _settings
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -189,7 +185,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val defaultContextTokens: StateFlow<Int> = _defaultContextTokens
 
     init {
-        loadSettings()
         loadLlmConfig()
         loadDarkMode()
         observeGenerationSettings()
@@ -239,20 +234,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             db.settingsDao().upsert(com.mistbell.tavern.android.data.local.entity.SettingsEntity("dark_mode", mode))
             _darkMode.value = mode
-        }
-    }
-
-    fun loadSettings() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                repo.loadAndCacheSettings()
-                _settings.value = repo.observeSettings().first() as? JsonObject
-            } catch (e: Exception) {
-                _message.value = "加载设置失败: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
         }
     }
 
@@ -310,16 +291,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun loadChangelog() {
         viewModelScope.launch {
             _isLoadingChangelog.value = true
-            try {
-                val api = ApiClient.getApi(getApplication())
-                val response = api.getChangelog()
-                _changelog.value = response.versions
-            } catch (e: Exception) {
-                // 降级到默认数据
-                _changelog.value = getDefaultChangelog()
-            } finally {
-                _isLoadingChangelog.value = false
-            }
+            _changelog.value = getDefaultChangelog()
+            _isLoadingChangelog.value = false
         }
     }
 

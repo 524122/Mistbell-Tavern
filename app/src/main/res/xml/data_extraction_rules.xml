@@ -3,14 +3,12 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="tavern_settings.xml" />
-        <exclude domain="sharedpref" path="mistbell_android.xml" />
         <exclude domain="database" path="tavern.db" />
         <exclude domain="database" path="tavern.db-wal" />
         <exclude domain="database" path="tavern.db-shm" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="tavern_settings.xml" />
-        <exclude domain="sharedpref" path="mistbell_android.xml" />
         <exclude domain="database" path="tavern.db" />
         <exclude domain="database" path="tavern.db-wal" />
         <exclude domain="database" path="tavern.db-shm" />

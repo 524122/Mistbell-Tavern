@@ -11,6 +11,11 @@
 
 ## [Unreleased]
 
+### Removed
+- 遗留远程服务端链路整体删除：`TavernApi` 全部 39 个端点与唯一消费方 `ApiClient` 单例一并移除（默认指向从未实际存在的 `10.0.2.2:3000`，纯本地架构下所有请求必然失败），仅为其服务的 Retrofit、`converter-kotlinx-serialization`、`logging-interceptor` 三个依赖同步删除——两处用户可见行为随之改善：版本日志页不再先请求 `http://10.0.2.2:3000/api/changelog`（原会等待最长 30 秒超时才回落本地默认列表，现直接秒开本地列表、内容不变），设置页不再在每次进入时静默拉取远端 `/api/settings` 并整表覆盖本地设置（含 `llm_api_key`；服务端实际不存在、该请求必然失败，删除是纯改善）。
+- 6 个孤儿文件删除（约 1000 行）：`ui/prompt/PromptPreviewScreen.kt`、`ui/prompt/PromptPreviewViewModel.kt`、`ui/export/ExportViewModel.kt`、`service/LocalProviderService.kt`、`service/LocalWorldBookService.kt`、`service/models/PromptModels.kt`——全部入口早已移除、全库零引用，用户可达功能零损失（兑现 0.9.2-beta「界面与 ViewModel 文件暂留待确认删除」的承诺）。
+- 随删除收尾：`LlmClient.testConnection`（唯一调用方为已删的本地提供商通路，0.8.0-beta 曾因「仍被本地提供商使用」而保留）、`SettingsRepository.observeSettings`（唯一消费链为已删的远端设置同步）、未使用的 `datastore-preferences` 依赖、proguard 中 Retrofit 相关 keep 段、detekt/ktlint baseline 中仅由被删代码命中的条目、`backup_rules.xml` 对 `mistbell_android.xml` 的排除项。
+
 ### Changed
 - 世界书全局参数从 Tab 内嵌分组改为「顶栏齿轮 + 底部弹层」形态：删除世界书 Tab 书卡列表头部的「⚙️ 全局设置」常驻分组（即使收起也占用书卡列表位置），Tab 主视区完全归还书卡列表；顶栏在导入/刷新旁新增齿轮图标（contentDescription「世界书全局参数」，仅底部导航 Tab 场景显示，独立路由无齿轮），点击唤起 ModalBottomSheet——固定头部（标题「世界书全局参数」+ 副标题「扫描深度、token 预算与多来源合并」+ 关闭按钮）+ 内容列整体 verticalScroll（弹层内无 LazyColumn，无同向嵌套滚动），高度自适应内容、封顶约 85% 屏高，skipPartiallyExpanded 直达全高；键盘/手势条避让由 material3 1.3.1 内建 imePadding 与底部 safeDrawing insets 处理（内容不叠加 insets 防双重空隙），X 关闭先播收起动画、下滑拖拽与遮罩点击关闭为默认行为、弹层开关不影响底下列表滚动位置。12 项控件（扫描深度、Token 预算 (%)、预算上限 (token)、深度插入进历史、递归扫描、最小激活数、加深扫描上限、扫描带名字前缀、分组按匹配分选拔、全局世界书多选、Persona 世界书绑定、插入策略）与上批紧凑形态逐字保留，设置键与逐键静默保存语义不变；MainScreen 调用方零改动。
 - 「世界书」Tab 全局设置分组布局紧凑化重排：分组默认收起（打开 Tab 先见书卡列表，点「世界书全局参数」行展开）；扫描深度 / Token 预算 (%) / 预算上限 / 最小激活数 / 加深扫描上限五个数字行改为「左标题+右行内小输入框（80dp、48dp 触达高度）」单行布局；组标题与折叠行合并为单行不再叠两层大标题；副标题删除「对齐酒馆 / 英文字段名」类开发注记（保留默认值等有用提示）；插入策略 chips 标签缩短为「角色书优先 / 混排 / 全局书优先」并改用 FlowRow 窄屏自动换行——设置键、整数校验与逐键保存行为均不变。

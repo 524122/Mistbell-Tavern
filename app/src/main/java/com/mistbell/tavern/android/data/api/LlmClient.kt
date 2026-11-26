@@ -509,14 +509,4 @@ object LlmClient {
             // 取消双保险: 收集方取消时同时断开 SSE（eventSource.cancel() 内部会取消底层 call）
             awaitClose { es.cancel() }
         }.buffer(Channel.UNLIMITED)
-
-    suspend fun testConnection(config: LlmConfig): Boolean {
-        return try {
-            val testMessages = listOf(ChatMessage(role = "user", content = "Hi"))
-            chat(config.withCallOverrides(maxTokens = 5), testMessages)
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
 }

@@ -8,10 +8,6 @@
     <file name="src/main/java/com/mistbell/tavern/android/TavernApplication.kt">
         <error line="7" column="1" source="standard:no-wildcard-imports" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/data/api/TavernApi.kt">
-        <error line="3" column="1" source="standard:no-wildcard-imports" />
-        <error line="5" column="1" source="standard:no-wildcard-imports" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/data/api/model/StructuredMemory.kt">
         <error line="11" column="34" source="standard:discouraged-comment-location" />
         <error line="12" column="30" source="standard:discouraged-comment-location" />
@@ -112,14 +108,6 @@
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/navigation/AppNavigation.kt">
         <error line="138" column="5" source="standard:function-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/service/LocalWorldBookService.kt">
-        <error line="76" column="42" source="standard:discouraged-comment-location" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/service/models/PromptModels.kt">
-        <error line="145" column="27" source="standard:discouraged-comment-location" />
-        <error line="156" column="23" source="standard:discouraged-comment-location" />
-        <error line="174" column="23" source="standard:discouraged-comment-location" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/character/CharacterEditorScreen.kt">
         <error line="11" column="1" source="standard:no-wildcard-imports" />
@@ -248,11 +236,6 @@
     <file name="src/main/java/com/mistbell/tavern/android/ui/components/SectionHeader.kt">
         <error line="11" column="5" source="standard:function-naming" />
     </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/export/ExportViewModel.kt">
-        <error line="9" column="1" source="standard:no-wildcard-imports" />
-        <error line="11" column="1" source="standard:no-wildcard-imports" />
-        <error line="14" column="1" source="standard:no-wildcard-imports" />
-    </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/main/MainScreen.kt">
         <error line="10" column="1" source="standard:no-wildcard-imports" />
         <error line="11" column="1" source="standard:no-wildcard-imports" />
@@ -272,18 +255,6 @@
         <error line="15" column="17" source="standard:property-naming" />
         <error line="16" column="17" source="standard:property-naming" />
         <error line="17" column="17" source="standard:property-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/prompt/PromptPreviewScreen.kt">
-        <error line="3" column="1" source="standard:no-wildcard-imports" />
-        <error line="8" column="1" source="standard:no-wildcard-imports" />
-        <error line="9" column="1" source="standard:no-wildcard-imports" />
-        <error line="15" column="1" source="standard:no-wildcard-imports" />
-        <error line="17" column="1" source="standard:no-wildcard-imports" />
-        <error line="21" column="5" source="standard:function-naming" />
-    </file>
-    <file name="src/main/java/com/mistbell/tavern/android/ui/prompt/PromptPreviewViewModel.kt">
-        <error line="11" column="1" source="standard:no-wildcard-imports" />
-        <error line="13" column="1" source="standard:no-wildcard-imports" />
     </file>
     <file name="src/main/java/com/mistbell/tavern/android/ui/provider/ProviderEditorScreen.kt">
         <error line="4" column="1" source="standard:no-wildcard-imports" />

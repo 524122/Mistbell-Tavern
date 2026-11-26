@@ -31,7 +31,7 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
         private const val OWNER_ID = "local-user"
     }
 
-    private val repository = CharacterRepository(application)
+    private val repository = CharacterRepository()
     private val db = TavernApplication.instance.container.database
     private val pinnedCharactersKey = "pinned_character_ids"
 

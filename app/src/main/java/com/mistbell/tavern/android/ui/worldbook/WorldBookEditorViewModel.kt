@@ -145,7 +145,7 @@ const val MIN_PROBABILITY = 0.0
 const val MAX_PROBABILITY = 1.0
 
 class WorldBookEditorViewModel(application: Application) : AndroidViewModel(application) {
-    private val repo = WorldBookRepository(application)
+    private val repo = WorldBookRepository()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery

@@ -18,7 +18,7 @@
 |---|---|---|---|
 | **宏引擎 Tier1+Tier2**：`{{char}}/{{user}}/{{persona}}/{{description}}/{{scenario}}/{{time}}` 系列 + 旧名别名兼容；`{{random::a::b}}`、`{{roll::3d6}}`；`{{#if 宏}}…{{/if}}` 仅非空判断（不做 else/比较——Tavo 验证单一非空覆盖多数需求）；**未知宏原样保留 + 字段级错误回退**（坏卡不崩会话） | Tavo 宏文档 | 新 `util/MacroEngine.kt` 纯函数（可单测），PromptBuilder 各字段渲染前统一 pass；生效位置：角色定义/首条消息/世界书条目/历史后指令 | 中 |
 | **导入转化报告**：每次导入列出"完整/降级/暂缓"字段清单（如 keysecondary 未映射、extensions 已透传） | OMate | CardParser 返回诊断列表，导入 UI Snackbar→详情 | 低 |
-| **上下文调试面板**：显示每次请求实际发出的系统提示词/世界书激活条目/宏替换结果/token 统计 | OMate | 升级现有 PromptPreviewScreen 为"实际请求快照"（排障刚需） | 低 |
+| **上下文调试面板**：显示每次请求实际发出的系统提示词/世界书激活条目/宏替换结果/token 统计 | OMate | 落地为聊天页顶栏「查看提示词」的 PromptTraceSheet（`ui/chat/PromptTracePreview.kt`，与真实请求同一装配路径的"实际请求快照"，排障刚需） | 低 |
 | **think 标签过滤**：`<think>` 推理文本在发给 API 前剔除、气泡内折叠显示（思考型模型必配） | OMate | 流式渲染层 + PromptBuilder 历史清洗 | 低 |
 
 ## 中期吸收（并入既有批次）

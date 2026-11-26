@@ -2,7 +2,6 @@
 <!-- API<=30 全量备份规则：排除敏感存储 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="tavern_settings.xml" />
-    <exclude domain="sharedpref" path="mistbell_android.xml" />
     <exclude domain="database" path="tavern.db" />
     <exclude domain="database" path="tavern.db-wal" />
     <exclude domain="database" path="tavern.db-shm" />

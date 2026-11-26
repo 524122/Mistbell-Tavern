@@ -3,7 +3,6 @@ package com.mistbell.tavern.android.data.repository
 import android.content.Context
 import androidx.room.withTransaction
 import com.mistbell.tavern.android.TavernApplication
-import com.mistbell.tavern.android.data.api.ApiClient
 import com.mistbell.tavern.android.data.api.ChatMessage
 import com.mistbell.tavern.android.data.api.LlmClient
 import com.mistbell.tavern.android.data.api.LlmConfig
@@ -33,8 +32,7 @@ import java.util.UUID
 
 class ChatRepository(private val context: Context) {
     private val db get() = TavernApplication.instance.container.database
-    private val api get() = ApiClient.getApi(context)
-    private val settingsRepo = SettingsRepository(context)
+    private val settingsRepo = SettingsRepository()
     private val structuredMemoryRepo = StructuredMemoryRepository(context)
     private val memoryExtractionService = MemoryExtractionService(context, structuredMemoryRepo)
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

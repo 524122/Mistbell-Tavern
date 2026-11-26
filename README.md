@@ -179,7 +179,6 @@ MVVM + Repository + Flow，Compose UI + ViewModel + Room。
 
 ### 数据层
 - **Room Database** - 本地存储（36 个 schema 版本）
-- **DataStore** - 键值存储
 - **SecureStore** - Keystore 加密密钥
 - **onnxruntime-android** - 本地语义向量（MIT）
 - **sqlite-vec**（计划） - 向量存储规模升级
@@ -187,7 +186,7 @@ MVVM + Repository + Flow，Compose UI + ViewModel + Room。
 ### 网络层
 - **OkHttp** - HTTP 客户端 + SSE（okhttp-sse 4.12），LLM 请求自研 `LlmClient`
 - **Kotlinx Serialization** - JSON 序列化
-- **Retrofit** - REST 客户端（保留的实验性远程 provider 通路，见 ROADMAP）
+- **直连端点** - 网络层仅保留 OkHttp(+SSE)，直连用户自配 LLM 端点，无 REST 框架
 
 ### 性能
 - **R8** - 代码压缩混淆
@@ -264,18 +263,16 @@ app/src/main/java/com/mistbell/tavern/android/
 │   ├── theme/           # 主题包数据模型
 │   └── vector/          # 向量存储、本地 ONNX 推理、分词器
 ├── navigation/          # 导航
-├── service/             # 后台服务（记忆抽取、本地提供商）
+├── service/             # 后台服务（记忆抽取）
 ├── ui/                  # UI 层（Compose）
 │   ├── character/      # 角色管理
 │   ├── chat/           # 聊天界面
 │   ├── chatlist/       # 会话列表
 │   ├── common/         # 通用工具
 │   ├── components/     # 通用组件
-│   ├── export/         # 聊天导出
 │   ├── main/           # 主界面
 │   ├── memory/         # 记忆管理
 │   ├── onboarding/     # 首启引导
-│   ├── prompt/         # 提示词预览
 │   ├── provider/       # LLM 提供商配置
 │   ├── settings/       # 设置页面
 │   ├── themepack/      # 主题包管理
