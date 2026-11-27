@@ -25,6 +25,8 @@ data class CharacterImportResult(
     val worldBookEntries: List<WorldBookEntryEntity>,
     // 导入诊断：非阻断性提示（如未映射字段、v1 老格式等），错误不阻断导入
     val warnings: List<String> = emptyList(),
+    // 「需要高级模式」能力概况（P3 导入报告，docs/UI_MODE.md §5）：解析失败或缺字段一律 NONE
+    val advancedCapabilities: AdvancedCapabilityProfile = AdvancedCapabilityProfile.NONE,
 )
 
 /**
@@ -200,6 +202,7 @@ object CardParser {
                 worldBook = worldBookEntity,
                 worldBookEntries = worldBookEntries,
                 warnings = warnings.toList(),
+                advancedCapabilities = AdvancedCapabilityDetector.detect(characterEntity, worldBookEntries),
             )
         } catch (e: Exception) {
             // 纯函数不依赖 android.util.Log（JVM 单测环境不可用）；薄壳层负责日志
@@ -440,6 +443,7 @@ object CharacterImporter {
                 worldBook = null,
                 worldBookEntries = emptyList(),
                 warnings = warnings,
+                advancedCapabilities = AdvancedCapabilityDetector.detect(charxResult.character, emptyList()),
             )
         } catch (e: Exception) {
             android.util.Log.e("CharacterImporter", "CHARX 导入失败", e)

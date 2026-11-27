@@ -12,25 +12,20 @@ import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.api.model.Message
 import com.mistbell.tavern.android.data.api.model.SessionSummary
-import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
-import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.mvu.MvuVariableKeys
 import com.mistbell.tavern.android.data.repository.SessionMutationLocks
 import com.mistbell.tavern.android.data.vector.deleteSessionVectors
-import com.mistbell.tavern.android.util.SessionExportData
 import com.mistbell.tavern.android.util.SessionExportFormat
 import com.mistbell.tavern.android.util.SessionExportResult
 import com.mistbell.tavern.android.util.SessionExporter
-import com.mistbell.tavern.android.util.SessionImporter
+import com.mistbell.tavern.android.util.SessionImportOutcome
+import com.mistbell.tavern.android.util.SessionImportPersist
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -522,156 +517,23 @@ class ChatListViewModel(application: Application) : AndroidViewModel(application
     val importSuccess: StateFlow<String?> = _importSuccess.asStateFlow()
 
     /**
-     * 从 JSON 文件导入会话
+     * 从 JSON 文件导入会话（解析与落库走共享核心 [SessionImportPersist]，
+     * 与「导入」页共用一份，P3 导入层）。
      * @param uri 文件 URI
      */
     fun importSession(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                importSessionData(uri)
+                when (val outcome = SessionImportPersist.importFromUri(getApplication(), uri, db)) {
+                    is SessionImportOutcome.Success -> _importSuccess.value = outcome.summary
+                    is SessionImportOutcome.Failure -> _importError.value = outcome.reason
+                }
             } catch (e: Exception) {
                 _importError.value = "导入失败：${e.message}"
                 e.printStackTrace()
             }
         }
     }
-
-    private suspend fun importSessionData(uri: Uri) {
-        // 1. 解析 JSON 文件
-        val exportData = SessionImporter.importFromAny(getApplication(), uri)
-        if (exportData == null) {
-            _importError.value = "无法解析导入文件，请检查文件格式"
-            return
-        }
-
-        // 2. 检查角色是否存在
-        val characterKey =
-            exportData.session.characterId?.takeIf { it.isNotBlank() }
-                ?: exportData.messages.firstOrNull { it.role == "assistant" }?.characterId.orEmpty()
-        val character = findImportCharacter(characterKey)
-        if (character == null) {
-            _importError.value =
-                "导入失败：找不到角色 ${characterKey.ifBlank { "ID 未提供" }}，请先导入对应角色卡"
-            return
-        }
-        val knownCharacters = db.characterDao().getAll().first()
-
-        // 3. 生成新的会话 ID（避免冲突）
-        val newSessionId = "session-${System.currentTimeMillis()}-${(0..9999).random()}"
-        val now = nowUtc()
-        val characterId = character.id
-
-        // 4. 创建并插入会话
-        val sessionEntity = createImportedSession(exportData, newSessionId, now, characterId)
-        db.sessionDao().upsert(sessionEntity)
-
-        // 5. 插入消息（生成新的消息 ID）
-        importMessages(exportData.messages, knownCharacters, characterId, newSessionId, now)
-
-        // 6. 成功提示
-        withContext(Dispatchers.Main) {
-            _importSuccess.value = "导入成功：${exportData.session.title}\n包含 ${exportData.messages.size} 条消息"
-        }
-    }
-
-    private suspend fun findImportCharacter(characterKey: String): CharacterEntity? =
-        db.characterDao().getById(characterKey)
-            ?: db.characterDao().getAll().first().firstOrNull {
-                it.name.equals(characterKey, ignoreCase = true)
-            }
-
-    private fun createImportedSession(
-        exportData: SessionExportData,
-        newSessionId: String,
-        now: String,
-        characterId: String,
-    ): SessionEntity =
-        SessionEntity(
-            id = newSessionId,
-            ownerId = ownerId,
-            characterId = characterId,
-            title = exportData.session.title + " (导入)",
-            createdAt = now,
-            updatedAt = now,
-            // 使用默认提供商与模型
-            messageCount = exportData.messages.size,
-            providerId = "",
-            modelId = "",
-            worldBookId = "",
-            summaryJson = "",
-            unreadCount = 0,
-            isPinned = false,
-            pinnedAt = null,
-            isMuted = false,
-            enableLongTermMemory = null,
-            contextTokenLimit = null,
-            participantCharacterIdsJson = "",
-            themeId = "",
-            authorNote = "",
-            mode = exportData.session.mode,
-            modeConfigJson = "",
-        )
-
-    private suspend fun importMessages(
-        messages: List<Message>,
-        knownCharacters: List<CharacterEntity>,
-        characterId: String,
-        newSessionId: String,
-        now: String,
-    ) {
-        val json = Json
-        val stringListSerializer = ListSerializer(serializer<String>())
-        messages.forEach { message ->
-            val newMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
-            val messageCharacterId = resolveImportedCharacterId(message, knownCharacters, characterId)
-            val swipesJson = encodeImportStringList(message.swipes, json, stringListSerializer)
-            val thinkingSwipesJson = encodeImportStringList(message.thinkingSwipes, json, stringListSerializer)
-            val memoryIdsJson = encodeImportStringList(message.memoryIds, json, stringListSerializer)
-            val messageEntity =
-                MessageEntity(
-                    id = newMessageId,
-                    ownerId = ownerId,
-                    // Preserve per-message speaker attribution for group chats;
-                    // classic/legacy exports without it fall back to the session character.
-                    characterId = messageCharacterId,
-                    sessionId = newSessionId,
-                    role = message.role,
-                    content = message.content,
-                    thinking = message.thinking,
-                    createdAt = message.createdAt.ifBlank { now },
-                    memoryIdsJson = memoryIdsJson,
-                    swipesJson = swipesJson,
-                    swipeIndex = message.swipeIndex,
-                    thinkingSwipesJson = thinkingSwipesJson,
-                    isRead = true,
-                )
-            db.messageDao().upsert(messageEntity)
-        }
-    }
-
-    private fun resolveImportedCharacterId(
-        message: Message,
-        knownCharacters: List<CharacterEntity>,
-        fallbackCharacterId: String,
-    ): String =
-        if (message.role == "assistant" && message.characterId.isNotBlank()) {
-            knownCharacters.firstOrNull {
-                it.id == message.characterId || it.name.equals(message.characterId, ignoreCase = true)
-            }?.id ?: fallbackCharacterId
-        } else {
-            fallbackCharacterId
-        }
-
-    private fun encodeImportStringList(
-        values: List<String>?,
-        json: Json,
-        serializer: KSerializer<List<String>>,
-    ): String =
-        if (values != null && values.isNotEmpty()) {
-            json.encodeToString(serializer, values)
-        } else {
-            ""
-        }
 
     fun clearImportError() {
         _importError.value = null

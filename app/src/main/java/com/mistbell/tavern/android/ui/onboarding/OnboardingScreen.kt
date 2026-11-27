@@ -1,9 +1,6 @@
 package com.mistbell.tavern.android.ui.onboarding
 
 import android.app.Application
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +37,6 @@ import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.CharacterRepository
 import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.util.CharacterImportResult
-import com.mistbell.tavern.android.util.CharacterImporter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -102,31 +98,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    /** 导入用户自选的角色卡文件（json / png 埋卡）。广捕异常同理 */
-    @Suppress("TooGenericExceptionCaught")
-    fun importFromUri(uri: Uri) {
-        viewModelScope.launch {
-            try {
-                _busy.value = true
-                val context = getApplication<Application>()
-                val result =
-                    CharacterImporter.importFromPng(context, uri)
-                        ?: CharacterImporter.importFromJson(context, uri)
-                if (result == null) {
-                    _error.value = "无法解析所选文件：请确认是角色卡 JSON 或 PNG 埋卡"
-                    return@launch
-                }
-                persistImport(result)
-                _importedName.value = result.character.name
-            } catch (e: Exception) {
-                android.util.Log.e("Onboarding", "Card import failed", e)
-                _error.value = "导入失败：${e.message ?: "未知错误"}"
-            } finally {
-                _busy.value = false
-            }
-        }
-    }
-
     // 与 CharacterListViewModel 的导入落库路径保持一致：世界书先行、角色随后（不打印卡内容，隐私）
     private suspend fun persistImport(result: CharacterImportResult) {
         if (result.worldBook != null) {
@@ -163,6 +134,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
+    /** 「导入角色卡」按钮的去向：「导入」页（P3 第 3 项），角色卡 / 数据文件夹 / 世界书等都在那里 */
+    onOpenImport: () -> Unit = {},
     viewModel: OnboardingViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
             factory =
@@ -173,11 +146,6 @@ fun OnboardingScreen(
 ) {
     val busy by viewModel.busy.collectAsState()
     var step by remember { mutableStateOf(0) }
-
-    val cardPicker =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { viewModel.importFromUri(it) }
-        }
 
     Column(
         modifier =
@@ -193,7 +161,7 @@ fun OnboardingScreen(
             1 ->
                 CharacterStep(
                     viewModel = viewModel,
-                    onPickCardFile = { cardPicker.launch("*/*") },
+                    onOpenImport = onOpenImport,
                     onNext = { step = 2 },
                 )
             else ->
@@ -229,7 +197,8 @@ private fun WelcomeStep(onStart: () -> Unit) {
 @Composable
 private fun CharacterStep(
     viewModel: OnboardingViewModel,
-    onPickCardFile: () -> Unit,
+    /** 「导入我的角色卡」按钮：进入「导入」页（含角色卡 / 数据文件夹 / 世界书等入口） */
+    onOpenImport: () -> Unit,
     onNext: () -> Unit,
 ) {
     val busy by viewModel.busy.collectAsState()
@@ -276,7 +245,7 @@ private fun CharacterStep(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = onPickCardFile, enabled = !busy, modifier = Modifier.weight(1f)) {
+            Button(onClick = onOpenImport, modifier = Modifier.weight(1f)) {
                 Text("导入我的角色卡")
             }
             TextButton(onClick = onNext) { Text("跳过") }

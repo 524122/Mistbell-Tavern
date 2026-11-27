@@ -6,7 +6,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.withTransaction
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
@@ -14,6 +13,7 @@ import com.mistbell.tavern.android.data.repository.CharacterRepository
 import com.mistbell.tavern.android.util.CharacterExportFormat
 import com.mistbell.tavern.android.util.CharacterExportResult
 import com.mistbell.tavern.android.util.CharacterExporter
+import com.mistbell.tavern.android.util.CharacterImportPersist
 import com.mistbell.tavern.android.util.StSyncImporter
 import com.mistbell.tavern.android.util.SyncReport
 import kotlinx.coroutines.Dispatchers
@@ -198,66 +198,26 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
                     com.mistbell.tavern.android.util.CharacterImporter.importFromPng(context, uri)
                         ?: com.mistbell.tavern.android.util.CharacterImporter.importFromJson(context, uri)
                 if (importResult != null) {
-                    var characterEntity = importResult.character
                     // 注意：不要把角色描述/性格/开场白等全文打进 logcat（隐私）
-                    android.util.Log.d("CharacterImport", "Parsed character: ${characterEntity.name}")
+                    android.util.Log.d("CharacterImport", "Parsed character: ${importResult.character.name}")
 
-                    // 保存世界书（如果有）：按书名匹配——同名书原地更新（保 id、保既有链接），否则新建。
-                    // 此前每次导入都新建副本，同名书会越堆越多，且旧副本仍是旧版映射的深度数据
-                    var bookUpdatedExisting = false
-                    if (importResult.worldBook != null) {
+                    // 落库走共享核心（与「导入」页共用一份，P3 导入层）：世界书先行、按名匹配原地更新
+                    val outcome = CharacterImportPersist.persist(db, importResult)
+                    if (outcome.worldBookUpdatedExisting) {
                         android.util.Log.d(
                             "CharacterImport",
-                            "Saving world book: ${importResult.worldBook.name} with ${importResult.worldBookEntries.size} entries",
+                            "Updated existing world book with ${outcome.worldBookEntryCount} entries",
                         )
-                        val parsedBook = importResult.worldBook
-                        val existingBook =
-                            db.worldBookDao().getAllBooksOnce()
-                                .firstOrNull { it.name.trim() == parsedBook.name.trim() }
-                        if (existingBook != null) {
-                            db.withTransaction {
-                                db.worldBookDao().upsertBook(existingBook.copy(name = parsedBook.name))
-                                db.worldBookDao().deleteEntriesByBookId(existingBook.id)
-                                if (importResult.worldBookEntries.isNotEmpty()) {
-                                    db.worldBookDao()
-                                        .upsertEntries(importResult.worldBookEntries.map { it.copy(bookId = existingBook.id) })
-                                }
-                            }
-                            characterEntity = characterEntity.copy(worldBookId = existingBook.id)
-                            bookUpdatedExisting = true
-                        } else {
-                            db.worldBookDao().upsertBook(parsedBook)
-                            if (importResult.worldBookEntries.isNotEmpty()) {
-                                db.worldBookDao().upsertEntries(importResult.worldBookEntries)
-                            }
-                        }
-                    }
-
-                    // 保存角色：按名匹配——同名角色原地更新（保 id=聊天记录不断、保本地颜色/主题），否则新建
-                    val existingCharacter =
-                        db.characterDao().getAllOnce()
-                            .firstOrNull { it.name.trim() == characterEntity.name.trim() }
-                    var updatedExisting = false
-                    if (existingCharacter != null) {
-                        val merged =
-                            com.mistbell.tavern.android.util.applyCardToExisting(
-                                existingCharacter,
-                                importResult,
-                                characterEntity.worldBookId,
-                            )
-                        repository.createCharacter(merged.toDomain())
-                        updatedExisting = true
-                    } else {
-                        repository.createCharacter(characterEntity.toDomain())
                     }
 
                     val worldBookInfo =
                         if (importResult.worldBook != null) {
-                            "（世界书${if (bookUpdatedExisting) "更新" else "新增"} ${importResult.worldBookEntries.size} 条）"
+                            val bookAction = if (outcome.worldBookUpdatedExisting) "更新" else "新增"
+                            "（世界书$bookAction ${outcome.worldBookEntryCount} 条）"
                         } else {
                             ""
                         }
-                    // 导入诊断明细：仅记录提示条数与内容摘要到 logcat（不含卡片正文，隐私）
+                    // 导入诊断明细：仅记录提示内容摘要到 logcat（不含卡片正文，隐私）；页面明细见「导入」页
                     if (importResult.warnings.isNotEmpty()) {
                         importResult.warnings.forEach { warning ->
                             android.util.Log.i("CharacterImport", "导入提示: $warning")
@@ -270,8 +230,8 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
                         } else {
                             ""
                         }
-                    val action = if (updatedExisting) "已更新角色" else "成功导入角色"
-                    _message.value = "$action：${characterEntity.name}$worldBookInfo$warningsInfo"
+                    val action = if (outcome.updatedExistingCharacter) "已更新角色" else "成功导入角色"
+                    _message.value = "$action：${outcome.characterName}$worldBookInfo$warningsInfo"
                 } else {
                     _message.value = "导入失败：无法解析角色卡文件（支持 JSON 与 PNG 埋卡）"
                 }

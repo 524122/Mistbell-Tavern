@@ -35,6 +35,7 @@ import kotlinx.coroutines.withContext
 object Routes {
     const val MAIN = "main"
     const val ONBOARDING = "onboarding"
+    const val IMPORT = "import"
     const val CHAT = "chat/{sessionId}/{characterId}"
     const val CHAT_SETUP = "chat_setup?characterId={characterId}"
     const val CHAT_SETTINGS = "chat_settings/{sessionId}"
@@ -203,6 +204,10 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
                         }
                     },
+                    // 首启引导的「导入角色卡」按钮改为进入「导入」页（P3 第 3 项）；引导其余内容不动
+                    onOpenImport = {
+                        navController.navigate(Routes.IMPORT)
+                    },
                 )
             }
             composable(
@@ -224,6 +229,9 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                     },
                     onNewCharacter = {
                         navController.navigate(Routes.characterEditor())
+                    },
+                    onOpenImport = {
+                        navController.navigate(Routes.IMPORT)
                     },
                     onNavigateToPromptManagement = {
                         navController.navigate(Routes.promptManagement())
@@ -386,6 +394,19 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                             ),
                         )
                     },
+                )
+            }
+
+            // 「导入」页（P3 第 3 项）：角色卡 / 酒馆数据文件夹 / 世界书 / 聊天记录 / 备份
+            composable(
+                route = Routes.IMPORT,
+                enterTransition = { defaultEnterTransition() },
+                exitTransition = { defaultExitTransition() },
+                popEnterTransition = { defaultPopEnterTransition() },
+                popExitTransition = { defaultPopExitTransition() },
+            ) {
+                com.mistbell.tavern.android.ui.import.ImportScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
 

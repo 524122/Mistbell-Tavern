@@ -74,6 +74,8 @@ fun MainScreen(
     onNewChatClick: () -> Unit,
     onEditCharacter: (String) -> Unit,
     onNewCharacter: () -> Unit,
+    /** 「导入」页入口（P3 第 3 项）：从角色 Tab 与聊天空态可达 */
+    onOpenImport: () -> Unit = {},
     onNavigateToPromptManagement: () -> Unit = {},
     onNavigateToRulePacks: () -> Unit = {},
     onNavigateToExtensionPacks: () -> Unit = {},
@@ -153,10 +155,12 @@ fun MainScreen(
                 ChatListScreen(
                     onChatClick = onChatClick,
                     onNewChatClick = onNewChatClick,
+                    onOpenImport = onOpenImport,
                     modifier = contentModifier,
                 )
             MainTab.CHARACTERS ->
                 CharacterListScreen(
+                    uiMode = uiMode,
                     onCharacterClick = { character ->
                         scope.launch {
                             val latestSession =
@@ -179,6 +183,7 @@ fun MainScreen(
                     },
                     onEditCharacter = onEditCharacter,
                     onNewCharacter = onNewCharacter,
+                    onOpenImport = onOpenImport,
                     showTopBarBackButton = false,
                     modifier = contentModifier,
                 )

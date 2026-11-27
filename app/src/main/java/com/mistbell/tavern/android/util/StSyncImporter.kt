@@ -45,6 +45,8 @@ data class SyncReport(
     // 批内同名被先到先得挡下的文件
     val duplicateNames: List<String>,
     val durationMs: Long,
+    // 「需要高级模式」聚合（P3 导入报告，docs/UI_MODE.md §5）：各类能力的数量与涉及的角色名
+    val advancedCapabilities: AdvancedCapabilityTotals = AdvancedCapabilityTotals.NONE,
 )
 
 /** JSON 文件分类：决定走世界书导入、角色卡导入还是跳过（纯函数） */
@@ -184,6 +186,8 @@ object StSyncImporter {
         val skippedFiles = mutableListOf<String>()
         val failedFiles = mutableListOf<String>()
         val duplicateNames = mutableListOf<String>()
+        // 「需要高级模式」逐卡概况（含更新项：以文件版为准），报告时聚合成数量 + 角色名
+        val capabilityProfiles = mutableListOf<Pair<String, AdvancedCapabilityProfile>>()
         var skippedSprites = 0
         var createdCharacters = 0
         var updatedCharacters = 0
@@ -290,6 +294,7 @@ object StSyncImporter {
                     duplicateNames += "${file.relPath}（角色「$charName」同名，先到先得）"
                     return@forEach
                 }
+                capabilityProfiles += charName to AdvancedCapabilityDetector.detect(parsed)
 
                 // 卡→书链接：内嵌书先按书名同步（同批重复只链接不覆盖），再退 extensions.world
                 var embeddedBookName: String? = null
@@ -334,6 +339,7 @@ object StSyncImporter {
                 failedFiles = failedFiles.toList(),
                 duplicateNames = duplicateNames.toList(),
                 durationMs = System.currentTimeMillis() - startedAt,
+                advancedCapabilities = AdvancedCapabilityTotals.aggregate(capabilityProfiles),
             )
         // 只记计数与文件路径，不落卡片正文（隐私约定同 importCharacter）
         Log.i(

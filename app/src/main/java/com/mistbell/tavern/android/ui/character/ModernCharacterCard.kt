@@ -46,6 +46,8 @@ fun ModernCharacterCard(
     onLongClick: () -> Unit,
     onMenuClick: () -> Unit = onLongClick,
     isSelected: Boolean = false,
+    /** 「含高级能力，未启用」小标记（简洁模式专用；判定在列表侧用同一纯函数现场算，不落库） */
+    advancedCapabilityBadgeVisible: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // 动画效果
@@ -273,6 +275,21 @@ fun ModernCharacterCard(
                                     color = Color.White,
                                 )
                             }
+                        }
+                    }
+
+                    // 「含高级能力，未启用」小标记（P3 导入报告）：保持简洁时能力保持关闭，此处如实提示
+                    if (advancedCapabilityBadgeVisible) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.White.copy(alpha = 0.2f),
+                        ) {
+                            Text(
+                                text = "含高级能力，未启用",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            )
                         }
                     }
                 }

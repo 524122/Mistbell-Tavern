@@ -29,7 +29,7 @@
         "data.repository↔service",
         "extension↔ui.chat.htmlui"
     ],
-    "uiToEntityRefCount": 38,
+    "uiToEntityRefCount": 36,
     "uiToEntityRefFiles": 22,
     "tavernInstanceCount": 51,
     "tavernInstanceFiles": 30

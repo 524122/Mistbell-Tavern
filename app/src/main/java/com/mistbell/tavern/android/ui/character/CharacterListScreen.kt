@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -28,13 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.data.api.model.Character
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.components.EmptyStateView
 import com.mistbell.tavern.android.ui.components.SearchBar
+import com.mistbell.tavern.android.util.AdvancedCapabilityDetector
 import com.mistbell.tavern.android.util.CharacterExportFormat
 import com.mistbell.tavern.android.util.CharacterExporter
 
-@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod") // Compose 屏幕级组件的既有形态
+@Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod", "LongParameterList") // Compose 屏幕级组件的既有形态
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterListScreen(
@@ -48,8 +51,11 @@ fun CharacterListScreen(
     onCharacterClick: (Character) -> Unit = {},
     onEditCharacter: (String) -> Unit = {},
     onNewCharacter: () -> Unit = {},
+    onOpenImport: () -> Unit = {},
     onBack: () -> Unit = {},
     showTopBarBackButton: Boolean = true,
+    /** 界面模式（进程级常驻流直通；null = 未知，不渲染随模式变化的标记） */
+    uiMode: UiMode? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -220,6 +226,11 @@ fun CharacterListScreen(
                         IconButton(onClick = { importLauncher.launch("*/*") }) {
                             Icon(Icons.Default.FileUpload, contentDescription = "导入角色")
                         }
+                        // 「导入」页入口（P3 第 3 项）：角色卡 / 数据文件夹 / 世界书 / 聊天记录 / 备份
+                        // 与直接导入并排——高级模式下原有的直接导入路径保持可达
+                        IconButton(onClick = onOpenImport) {
+                            Icon(Icons.Default.SaveAlt, contentDescription = "导入中心")
+                        }
                         IconButton(
                             onClick = { if (!isBatchImporting) folderImportLauncher.launch(null) },
                             enabled = !isBatchImporting,
@@ -273,12 +284,18 @@ fun CharacterListScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(filteredCharacters, key = { it.id }, contentType = { "character-card" }) { character ->
+                    // 「含高级能力，未启用」小标记（P3 导入报告）：只在简洁模式按需用同一纯函数
+                    // 现场判定（不落库，无 schema 变更）；模式未知或高级模式不显示
+                    val showCapabilityBadge =
+                        uiMode == UiMode.SIMPLE &&
+                            remember(character.id) { AdvancedCapabilityDetector.detect(character).hasAny }
                     ModernCharacterCard(
                         character = character,
                         onClick = { onCharacterClick(character) },
                         onLongClick = { actionCharacter = character },
                         onMenuClick = { actionCharacter = character },
                         isSelected = false,
+                        advancedCapabilityBadgeVisible = showCapabilityBadge,
                     )
                 }
             }

@@ -30,10 +30,9 @@ import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.components.*
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.utils.clearFocusOnTap
-import com.mistbell.tavern.android.util.WorldBookParser
-import kotlinx.coroutines.Dispatchers
+import com.mistbell.tavern.android.util.WorldBookImportOutcome
+import com.mistbell.tavern.android.util.WorldBookImporter
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** 书籍列表 LazyColumn 里空态 item 的稳定 key（避免与 UUID 书卡 key 冲突） */
 private const val EMPTY_STATE_ITEM_KEY = "empty_state"
@@ -73,7 +72,7 @@ fun WorldBookListScreen(
     var showGlobalSettings by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // 导入世界书：SAF 选 JSON → WorldBookParser 解析 → 落库（参照角色导入的提示风格）
+    // 导入世界书：SAF 选 JSON → 共享核心解析落库（与「导入」页共用一份，P3 导入层）
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val importLauncher =
@@ -82,49 +81,19 @@ fun WorldBookListScreen(
         ) { uri ->
             if (uri != null) {
                 scope.launch {
-                    val result =
-                        withContext(Dispatchers.IO) {
-                            try {
-                                val jsonString =
-                                    context.contentResolver.openInputStream(uri)
-                                        ?.bufferedReader()?.use { it.readText() }
-                                if (jsonString != null) {
-                                    // 兜底书名：取文件显示名去后缀，取不到用固定文案
-                                    val fallbackName =
-                                        queryDisplayName(context, uri)
-                                            ?.substringBeforeLast('.')
-                                            ?.takeIf { it.isNotBlank() }
-                                            ?: "导入的世界书"
-                                    WorldBookParser.parse(jsonString, fallbackName)
-                                } else {
-                                    null
-                                }
-                            } catch (e: Exception) {
-                                android.util.Log.e("WorldBookImport", "导入世界书失败", e)
-                                null
-                            }
-                        }
-                    if (result != null) {
-                        val (book, entryList) = result
-                        try {
-                            withContext(Dispatchers.IO) {
-                                val db = TavernApplication.instance.container.database
-                                db.worldBookDao().upsertBook(book)
-                                if (entryList.isNotEmpty()) {
-                                    db.worldBookDao().upsertEntries(entryList)
-                                }
-                            }
+                    val db = TavernApplication.instance.container.database
+                    when (val outcome = WorldBookImporter.importFromUri(context, uri, db)) {
+                        is WorldBookImportOutcome.Success -> {
                             snackbarHostState.showSnackbar(
-                                "成功导入世界书：${book.name}（${entryList.size} 条条目）",
+                                "成功导入世界书：${outcome.bookName}（${outcome.entryCount} 条条目）",
                             )
                             // 刷新列表
                             viewModel.loadFromServer()
-                        } catch (e: Exception) {
-                            android.util.Log.e("WorldBookImport", "保存世界书失败", e)
-                            snackbarHostState.showSnackbar("导入失败: ${e.message}")
                         }
-                    } else {
-                        snackbarHostState.showSnackbar("导入失败：无法解析世界书文件")
+                        is WorldBookImportOutcome.ParseFailed ->
+                            snackbarHostState.showSnackbar("导入失败：无法解析世界书文件")
+                        is WorldBookImportOutcome.IoFailed ->
+                            snackbarHostState.showSnackbar("导入失败: ${outcome.reason}")
                     }
                 }
             }
@@ -708,20 +677,5 @@ fun WorldBookListScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
-    }
-}
-
-/** 查询 SAF 文件的显示名（用于世界书导入的书名兜底），失败返回 null */
-private fun queryDisplayName(
-    context: android.content.Context,
-    uri: android.net.Uri,
-): String? {
-    return try {
-        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-            if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
-        }
-    } catch (_: Exception) {
-        null
     }
 }

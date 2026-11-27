@@ -1,8 +1,9 @@
 # 界面模式：简洁模式是执行边界
 
-> P3 第 1、2 项（docs/ROADMAP.md「简洁模式是执行边界」一节 + 「P3 门面」第 1、2 项）。
-> 本文档是这两项的规则表、测试矩阵与实现接法的唯一落地说明。
-> §1–§3 是第 1 项（执行边界与闸门）；§4 起是第 2 项（按模式收拢界面、缺省与升级判定）。
+> P3 第 1、2、3 项（docs/ROADMAP.md「简洁模式是执行边界」一节 + 「P3 门面」第 1、2、3 项）。
+> 本文档是这三项的规则表、测试矩阵与实现接法的唯一落地说明。
+> §1–§3 是第 1 项（执行边界与闸门）；§4 是第 2 项（按模式收拢界面、缺省与升级判定）；
+> §5 是第 3 项（导入层与导入报告）。
 
 ## 1. 规则
 
@@ -67,6 +68,81 @@
 | MVU 变量更新 | ✘ | ✔ | `MvuExtensionUiModeGateTest`（cleanedText、无写库、无事件、块不外漏） | 无 `ext.mvu.*` 键、HTML 界面无变量推送 |
 | 切回简洁的响应式卸载 | — | — | 两个 RuntimeManager 测试的「切回简洁」段 | 实测第 3 步：高级→简洁后脚本与钩子被卸载 |
 | 设置项切换 | — | — | 界面可见性断言见 §4.6（`UserModeConfigVisibilityTest` 等） | 设置 → 界面模式，改写即时生效 |
+
+## 5. 导入报告（第 3 项：导入层）
+
+> P3 第 3 项（docs/ROADMAP.md「导入报告」小节 +「P3 门面」第 3 项）。执行边界是 §1–§3，
+> 本节只回答一件事：**导入时如实告诉用户哪些能力要切到高级模式才生效**。本项不写任何闸门。
+
+### 5.1 页面与到达入口
+
+新页面「导入」（路由 `import`，`ui/import/ImportScreen.kt` + `ImportViewModel.kt`），五类入口全部
+复用现有导入实现，不复制逻辑：
+
+| 入口 | 复用的现有实现 | 说明 |
+|---|---|---|
+| 角色卡 | `CharacterImporter.importFromUri`（PNG 埋卡 / CHARX / JSON 按文件头识别）+ 共享落库 `CharacterImportPersist` | 落库核心从 `CharacterListViewModel.importCharacter` 提取，角色 Tab 直接导入与导入页共用一份（世界书先行、按名匹配原地更新） |
+| 酒馆数据文件夹 | `StSyncImporter.syncFromFolder` | 与角色 Tab 的批量导入同一实现 |
+| 世界书 | `WorldBookImporter.importFromUri` | 从 `WorldBookListScreen` 的内联导入分支提取，世界书 Tab 与导入页共用一份 |
+| 聊天记录 | `SessionImportPersist.importFromUri` | 从 `ChatListViewModel` 的导入分支提取，聊天 Tab 与导入页共用一份 |
+| 备份 | `BackupManager.restoreFromUri` | 与设置页数据备份同一实现 |
+
+三个到达入口：角色 Tab 顶栏新增「导入中心」按钮（在现有直接导入按钮**旁**——高级模式下
+原有的直接导入与批量导入路径保持可达）；聊天列表空态的「从酒馆导入…」次要按钮；
+首启引导第 1 步的「导入我的角色卡」按钮（改为进入导入页，引导其余内容不动）。
+
+### 5.2 「需要高级模式」的判定
+
+判定是零依赖纯函数 `util/AdvancedCapabilityDetector.kt`（唯一换算点；核心只吃
+`extensions + 文本语料`，再提供三种输入适配）。`CharacterImportResult` 与 `SyncReport` 各有
+默认为「无」的字段（`AdvancedCapabilityProfile` / `AdvancedCapabilityTotals`）：
+
+| 字段 | 判定口径 |
+|---|---|
+| `regexCount` | `extensions.regex_scripts` 的条目数（缺字段 / 非数组计 0） |
+| `scriptCount` | `extensions.tavern_helper.scripts` 的段数（数组取长度、对象取键数） |
+| `hasHtmlUi` | 开场白（含 `alternate_greetings`）、示例对话、角色描述、世界书条目里出现 `HtmlCardText.containsHtml` 口径的片段。该判定已从 `HtmlCardDetector.containsHtml` 下沉为 `util/HtmlCardText`（零依赖），楼层检测器改为委托它——导入判定与楼层拆分共用同一口径，行为逐字节不变 |
+| `hasMvuUpdates` | 同一语料里出现 `<UpdateVariable>` 标记（忽略大小写） |
+
+单卡报告按数量列出（正则 N 条 / 卡内脚本 N 段 / HTML 界面 / 状态栏变量更新）；批量
+（`SyncReport.advancedCapabilities`）给聚合：正则 / 脚本按条数（段数）累加，HTML / MVU 按命中
+角色计数，并附涉及角色名（去重保序）。
+
+原来只进 logcat 的导入诊断提示（「N 条提示」那批）在导入页的报告明细里**全部可见**
+（诊断提示 / 同名跳过 / 跳过文件 / 失败文件，超 50 条截断并提示总数）。
+
+### 5.3 两个选择的语义
+
+导入完成后报告同页展示。当前简洁且确有高级能力（`hasAny`）时，报告下方给两个按钮
+（`ImportReportCoordinator.modeChoiceFor` 是唯一换算点，模式未知不渲染）：
+
+- **切换到高级模式**：只写 `ui_mode = advanced`（`SettingsRepository.setUiMode`），
+  报告保留；执行闸门（§1–§3）与 Tab 收拢（§4.1）经既有 Flow 响应式生效，能力立即恢复。
+- **保持简洁**：**不写任何设置**，只关掉报告。上表能力保持关闭，不在后台悄悄跑
+  （闸门在 §1，本项不再新增任何闸门）。
+
+当前已是高级模式时只做说明（「以上能力照常运行」），不给切换按钮。模式未知（null）
+期间不渲染选择区，与 §1「未知不渲染」同一口径。
+
+包宏的 `{{x}}` 占位符会原样留在文本里，不处理——导入报告的能力栏下方固定附一句说明。
+
+### 5.4 「含高级能力，未启用」标记（不落库）
+
+角色列表在**简洁模式**下给带高级能力的卡显示小标记「含高级能力，未启用」。标记**不落库、
+无 schema 变更**：列表按需用同一个 `AdvancedCapabilityDetector.detect(领域模型)` 现场计算
+（与导入时 `detect(实体, 条目)` 是同一核心、同一口径，同一张卡两种表示判定一致，单测背书）。
+高级模式不显示（能力已启用）；模式未知不显示（§1 口径）。
+
+### 5.5 测试矩阵（第 3 项）
+
+| 验证点 | 单测 | 装机实测（后续任务） |
+|---|---|---|
+| 四字段命中 / 不命中、世界书条目 HTML、默认值、extensions 容错 | `AdvancedCapabilityDetectorTest` | 探测卡四类能力各导入一次，报告逐栏核对 |
+| 三种输入一致（导入结果 = 实体+条目 = 领域模型） | 同上（`CardParser填充能力概况…`、`同一张卡实体与领域模型判定一致`） | 简洁模式下角色卡出现「含高级能力，未启用」标记 |
+| 批量聚合（数量累加、角色名去重保序、空批为无） | 同上 | 文件夹同步后批量报告的数量与角色名 |
+| 报告字段缺省为「无」（既有测试兼容） | 同上（`SyncReport新字段默认为无`）+ 既有 `CardParserTest` / `StSyncImporterTest` 全绿 | — |
+| 两个选择的状态机 | `ImportReportCoordinatorTest` | 简洁导入探测卡 → 出现两按钮；切换后正则 / 脚本 / HTML / MVU 生效；再导入一张 → 无切换按钮只有说明；「保持简洁」后设置里 ui_mode 不变 |
+| 楼层检测器口径不漂移 | `HtmlCardDetectorTest`（原样通过）+ `下沉后的HtmlCardText与楼层检测器同一口径` | — |
 
 ## 3. 实现接法（闸门在哪些文件）
 

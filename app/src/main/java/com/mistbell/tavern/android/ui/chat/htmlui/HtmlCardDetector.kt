@@ -1,5 +1,7 @@
 package com.mistbell.tavern.android.ui.chat.htmlui
 
+import com.mistbell.tavern.android.util.HtmlCardText
+
 /**
  * 楼层 HTML 检测器：把消息文本拆成 Markdown 段与 HTML 文档段。
  *
@@ -8,6 +10,8 @@ package com.mistbell.tavern.android.ui.chat.htmlui
  * 2. 整段消息以 <!DOCTYPE html 或 <html 开头（卡级正则替换出的裸 HTML）
  *
  * 纯函数、无 Android 依赖，可直接 JVM 单测。
+ * containsHtml 的判定集合已下沉到零依赖的 [HtmlCardText]（P3 导入报告与楼层渲染共用同一
+ * 口径，docs/UI_MODE.md §5）；本类持有其 internal 正则做楼层拆分，行为与下沉前逐字节一致。
  */
 object HtmlCardDetector {
     sealed interface Part {
@@ -17,26 +21,14 @@ object HtmlCardDetector {
         data class HtmlDoc(val html: String, val narrative: Boolean = false) : Part
     }
 
-    private val BARE_HTML_PREFIX = Regex("""^\s*(<!DOCTYPE\s+html|<html[\s>])""", RegexOption.IGNORE_CASE)
-
-    /** 行内 HTML 特征：<style> 块或带 class 属性的 span/div（心声魂音/对话玉简类卡片常用）。 */
-    private val NARRATIVE_HTML = Regex("""<style\b|<(?:span|div)\b[^>]*class="""", RegexOption.IGNORE_CASE)
-
-    /** 行内表格。不进叙事包装，避免把表格前后的正文一起变成 HTML。 */
-    private val TABLE_HTML = Regex("""<table\b""", RegexOption.IGNORE_CASE)
-
     private val TABLE_BLOCK =
         Regex(
             """<table\b.*?</table>""",
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
         )
 
-    /** 消息是否包含可渲染的 HTML 界面（快速预检，避免每条消息全量拆分）。 */
-    fun containsHtml(content: String): Boolean =
-        content.contains("```html", ignoreCase = true) ||
-            BARE_HTML_PREFIX.containsMatchIn(content) ||
-            NARRATIVE_HTML.containsMatchIn(content) ||
-            TABLE_HTML.containsMatchIn(content)
+    /** 消息是否包含可渲染的 HTML 界面（快速预检，避免每条消息全量拆分）。委托下沉的判定，口径不变 */
+    fun containsHtml(content: String): Boolean = HtmlCardText.containsHtml(content)
 
     /**
      * 拆分消息为有序片段列表。无 HTML 时返回单个 Markdown 段（零分配开销路径）。
@@ -45,12 +37,12 @@ object HtmlCardDetector {
         when {
             !containsHtml(content) -> listOf(Part.Markdown(content))
             // 整段裸 HTML（卡级正则产物）：以 doctype/html 开头且无围栏
-            BARE_HTML_PREFIX.containsMatchIn(content.trimStart()) && !content.contains("```") ->
+            HtmlCardText.BARE_HTML_PREFIX.containsMatchIn(content.trimStart()) && !content.contains("```") ->
                 listOf(Part.HtmlDoc(content))
             // 叙事内容中的行内 HTML：整段包装为文档（保留全部叙事文本与 <style>）
-            NARRATIVE_HTML.containsMatchIn(content) && !content.contains("```") -> splitNarrative(content)
+            HtmlCardText.NARRATIVE_HTML.containsMatchIn(content) && !content.contains("```") -> splitNarrative(content)
             // 行内表格单独成段，前后正文仍走 Markdown
-            TABLE_HTML.containsMatchIn(content) && !content.contains("```") -> splitTables(content)
+            HtmlCardText.TABLE_HTML.containsMatchIn(content) && !content.contains("```") -> splitTables(content)
             else -> splitByFences(content)
         }
 
@@ -79,7 +71,7 @@ object HtmlCardDetector {
             when {
                 // 仅含 <style> 的小节不单独成段——样式已并入共享头，无内容可渲染
                 styleRegex.replace(section, "").isBlank() -> null
-                NARRATIVE_HTML.containsMatchIn(section) ->
+                HtmlCardText.NARRATIVE_HTML.containsMatchIn(section) ->
                     Part.HtmlDoc(wrapNarrativeSection(sharedHead, section), narrative = true)
                 else -> Part.Markdown(section)
             }

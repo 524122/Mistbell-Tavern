@@ -39,6 +39,8 @@ fun ChatListScreen(
     viewModel: ChatListViewModel = viewModel(),
     onChatClick: (sessionId: String, characterId: String) -> Unit = { _, _ -> },
     onNewChatClick: () -> Unit = {},
+    /** 「导入」页入口（P3 第 3 项）：空态时的次要按钮，把酒馆资产（含聊天记录）带进来 */
+    onOpenImport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -215,11 +217,13 @@ fun ChatListScreen(
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 if (chatItems.isEmpty()) {
-                    item {
+                    item(key = "empty_state") {
                         EmptyStateView(
                             icon = "💬",
                             title = "暂无对话",
                             subtitle = "点击右下角 + 开始新对话",
+                            actionLabel = "从酒馆导入…",
+                            onAction = onOpenImport,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
