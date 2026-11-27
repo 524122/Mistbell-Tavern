@@ -1697,19 +1697,50 @@ class ChatRepository(private val context: Context) {
     // 采样预设、超时与重试设置对聊天请求不生效（双源真相 bug）
     // sessionId 非空时应用会话级覆盖：会话在聊天设置里指定的 API 配置
     // （providerId → api_configs；modelId 压过配置默认模型）优先于全局默认配置
+    //
+    // 发送时的可用性回落（装机实测：绑定只在创建时解析一次，绑上的配置没填密钥时发送
+    // 直接报「LLM 未配置」，不会改用库里已有的可用配置）。逐条规则：
+    //   规则 1 绑定行存在且可用（有密钥，isExplicitUsableBinding）→ 用绑定（现状不变）；
+    //   规则 2 绑定行存在但没密钥——内置默认（早期版本自动绑上的）视同没绑定，进规则 3；
+    //          非默认的是用户显式选的，尊重选择原样返回（发送时照旧报「LLM 未配置」）；
+    //   规则 3 没绑定（providerId 为空 / 行已删 / 规则 2；sessionId 为 null 的后台调用方
+    //          同走此处）→ 默认配置可用用默认（现状不变）；默认不可用回落到第一个填了
+    //          密钥的配置（模型仍按会话 modelId 优先）；一个可用的都没有 → 保持默认配置
+    //          （发送时照旧报「LLM 未配置」）。
+    // 「可用」的口径与创建时绑定共用一处定义（hasUsableApiKey，SessionProviderResolution.kt）。
     private suspend fun loadLlmConfig(sessionId: String? = null): LlmConfig {
         val base = settingsRepo.getLlmConfig()
         val session = sessionId?.let { db.sessionDao().getById(it) }
-        val apiConfig =
+        val bound =
             session?.providerId
                 ?.takeIf { it.isNotBlank() }
                 ?.let { db.apiConfigDao().getById(it) }
-        return if (apiConfig != null) {
-            val selected = settingsRepo.getLlmConfig(apiConfig)
-            selected.copy(model = session.modelId.ifBlank { selected.model })
-        } else {
-            base
-        }
+        // 三段规则选出「最终生效的配置行」；null = 用全局默认 base
+        val resolved: ApiConfigEntity? =
+            when {
+                // 规则 1：显式且可用的绑定（有密钥）直接生效
+                isExplicitUsableBinding(bound) -> bound
+                // 规则 2：绑定了但没密钥——非默认的是用户显式选的，尊重选择，不回落
+                bound != null && !bound.isDefault -> bound
+                // 规则 3：没绑定（providerId 空 / 行已删 / 绑的是没密钥的内置默认）——
+                // 默认配置可用用默认；否则回落到第一个填了密钥的配置；一个可用的都没有 → null（保持 base）
+                else ->
+                    if (base.apiKey.isNotBlank()) {
+                        null
+                    } else {
+                        firstUsableProviderId(db.apiConfigDao().getAll())?.let { db.apiConfigDao().getById(it) }
+                    }
+            }
+        return resolved?.let { sessionLlmConfig(it, session) } ?: base
+    }
+
+    // 绑定行/回落行 → LlmConfig：模型按会话 modelId 优先（session 为空时用配置自己的模型）
+    private suspend fun sessionLlmConfig(
+        apiConfig: ApiConfigEntity,
+        session: SessionEntity?,
+    ): LlmConfig {
+        val selected = settingsRepo.getLlmConfig(apiConfig)
+        return selected.copy(model = session?.modelId.orEmpty().ifBlank { selected.model })
     }
 
     /**
@@ -2193,6 +2224,14 @@ internal suspend fun appendBridgeMessageWithSessionLock(
             msgId
         }
     }
+
+/**
+ * 「会话绑定是否算显式且可用」的纯判定（便于 JVM 单测）：绑定行存在**且**填了密钥
+ * （「可用」口径与创建时绑定共用一处定义：hasUsableApiKey，SessionProviderResolution.kt）。
+ * 绑定了没密钥的配置不算可用，交由 loadLlmConfig 决定「内置默认视同没绑定回落 /
+ * 非默认尊重用户选择」。
+ */
+internal fun isExplicitUsableBinding(bound: ApiConfigEntity?): Boolean = bound != null && hasUsableApiKey(bound)
 
 /**
  * 桥批量删除的锁内写路径（bridgeDeleteMessages 的事务体；调用方负责事务边界）：

@@ -20,6 +20,7 @@ import com.mistbell.tavern.android.data.local.dao.ThemePackDao
 import com.mistbell.tavern.android.data.local.dao.VectorMemoryDao
 import com.mistbell.tavern.android.data.local.dao.VectorSyncOutboxDao
 import com.mistbell.tavern.android.data.local.dao.WorldBookDao
+import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.GlobalRegexRuleEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
@@ -46,9 +47,11 @@ import java.util.concurrent.Executor
  * 反射把 Room 的内部执行器字段设为直通执行器。事务原子性在内存集合上退化为顺序执行——
  * Room 的事务语义本身由真库在设备侧证据里覆盖。
  */
+@Suppress("LargeClass") // 各 DAO 的处理器表按域分组收在同一个替身里，处理器即该表的真实语义（拆散反而对不上 DAO）
 class FakeTavernDb {
     private val lock = Any()
     private val settings = LinkedHashMap<String, String>()
+    private val apiConfigs = LinkedHashMap<String, ApiConfigEntity>()
     private val sessions = LinkedHashMap<String, SessionEntity>()
     private val characters = LinkedHashMap<String, CharacterEntity>()
     private val messages = LinkedHashMap<String, MessageEntity>()
@@ -195,17 +198,35 @@ class FakeTavernDb {
     private fun outboxDaoProxy() = daoProxy(VectorSyncOutboxDao::class.java, outboxHandlers())
 
     /**
-     * api_configs 替身：恒返回 null（空表）。这是生产 SettingsRepository 的回退语义——
-     * 没有默认配置时 LLM 三元组改读 llm_* 平铺键，聊天链路测试据此用 settings 直配假 LLM 地址。
+     * api_configs 替身：默认空表（生产 SettingsRepository 的回退语义——没有默认配置时
+     * LLM 三元组改读 llm_* 平铺键，聊天链路测试据此用 settings 直配假 LLM 地址）。
+     * 需要配置行语义的测试（如会话绑定的发送时回落）经 [registerApiConfig] 登记行，
+     * getAll/getById/getDefault/update 即按真实语义返回/写回登记的行。
      */
     private fun apiConfigDaoProxy() =
         daoProxy(
             ApiConfigDao::class.java,
             mapOf(
-                "getDefault" to { _ -> null },
-                "getById" to { _ -> null },
+                "getDefault" to { _ -> apiConfigs.values.firstOrNull { it.isDefault } },
+                "getById" to { args -> apiConfigs[args[0] as String] },
+                // 与生产 DAO 的 ORDER BY sortOrder ASC, createdAt DESC 同序
+                "getAll" to {
+                    apiConfigs.values.sortedWith(
+                        compareBy<ApiConfigEntity> { it.sortOrder }.thenByDescending { it.createdAt },
+                    )
+                },
+                "update" to { args ->
+                    val entity = args[0] as ApiConfigEntity
+                    apiConfigs[entity.id] = entity
+                    null
+                },
             ),
         )
+
+    /** 登记一条 API 配置（api_configs 表替身；id 相同视为覆盖，与 INSERT REPLACE 同语义） */
+    fun registerApiConfig(entity: ApiConfigEntity) {
+        synchronized(lock) { apiConfigs[entity.id] = entity }
+    }
 
     private fun globalRegexDaoProxy() = daoProxy(GlobalRegexDao::class.java, globalRegexHandlers())
 

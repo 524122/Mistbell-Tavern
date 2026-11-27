@@ -1,15 +1,19 @@
-package com.mistbell.tavern.android.ui.chat
+package com.mistbell.tavern.android.data.repository
 
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * 新建会话的提供商解析纯函数（resolveSessionProviderId）的单测。
+ * 提供商解析纯函数的单测：
+ * - [resolveSessionProviderId]：新建会话的绑定解析（ChatSetupViewModel 建会话时用）；
+ * - [firstUsableProviderId]：发送时的回落解析（ChatRepository.loadLlmConfig 规则 3 用）。
  *
  * 装机实测复现的缺陷：用户没选提供商时，旧实现直接取配置表的第一行——那一行是没填密钥的内置
  * 「OpenAI API」。新用户在设置里连好 AI 之后开聊，会话却绑在没密钥的配置上，发送时报
- * 「LLM 未配置」。
+ * 「LLM 未配置」。绑定只在创建时解析一次还不够（首启时配置表尚未加载完 / 早期版本一律绑第一行），
+ * 发送时按同一「可用」口径回落（见 ChatRepository.loadLlmConfig）。
  */
 class ChatSetupProviderResolutionTest {
     private fun config(
@@ -67,5 +71,28 @@ class ChatSetupProviderResolutionTest {
     @Test
     fun `配置表为空时返回空串_由发送路径回落到全局默认配置`() {
         assertEquals("", resolveSessionProviderId(emptyList(), null))
+    }
+
+    // ---- firstUsableProviderId：发送时的回落目标 ----
+
+    @Test
+    fun `有可用的配置时回落到第一个填了密钥的配置`() {
+        val configs =
+            listOf(
+                config("builtin", isDefault = true),
+                config("a", apiKey = "sk-a"),
+                config("b", apiKey = "sk-b"),
+            )
+        assertEquals("a", firstUsableProviderId(configs))
+    }
+
+    @Test
+    fun `全都没有密钥时返回null_发送路径保持默认配置`() {
+        assertNull(firstUsableProviderId(listOf(config("a"), config("main", isDefault = true))))
+    }
+
+    @Test
+    fun `配置表为空时返回null`() {
+        assertNull(firstUsableProviderId(emptyList()))
     }
 }

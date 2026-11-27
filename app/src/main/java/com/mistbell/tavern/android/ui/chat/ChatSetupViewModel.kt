@@ -15,6 +15,7 @@ import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
+import com.mistbell.tavern.android.data.repository.resolveSessionProviderId
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -310,22 +311,3 @@ internal fun buildGreetingOptions(
     firstMes: String,
     alternateGreetings: List<String>,
 ): List<String> = listOf(firstMes).filter { it.isNotBlank() } + alternateGreetings.filter { it.isNotBlank() }
-
-/**
- * 新建会话时绑定的提供商（纯函数，唯一换算点）：
- * - 用户选了就用所选；
- * - 没选：优先「默认且填了密钥」的配置，其次「第一个填了密钥」的配置，都没有则保持旧取法（第一行）。
- *
- * 此前不看默认标记也不看密钥，直接取第一行——新用户在设置里连好 AI 之后开聊，会话却绑在
- * 没填密钥的内置配置上，发送时报「LLM 未配置」（P3 装机实测复现）。
- */
-internal fun resolveSessionProviderId(
-    configs: List<ApiConfigEntity>,
-    selectedId: String?,
-): String {
-    if (!selectedId.isNullOrBlank()) return selectedId
-    return configs.firstOrNull { it.isDefault && it.apiKey.isNotBlank() }?.id
-        ?: configs.firstOrNull { it.apiKey.isNotBlank() }?.id
-        ?: configs.firstOrNull()?.id
-        ?: ""
-}
