@@ -27,7 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -172,7 +172,9 @@ fun OnboardingScreen(
         ),
 ) {
     val selectedId by viewModel.selectedId.collectAsState()
-    var step by remember { mutableStateOf(OnboardingFlow.STEP_WELCOME) }
+    // 屏序必须可保存：选角色屏的「导入已有角色」会跳去「导入」页，返回时本页的组合作废重建——
+    // 用 remember 的话屏序丢回欢迎屏（装机实测复现），rememberSaveable 才能回到选角色屏
+    var step by rememberSaveable { mutableStateOf(OnboardingFlow.STEP_WELCOME) }
 
     Column(
         modifier =

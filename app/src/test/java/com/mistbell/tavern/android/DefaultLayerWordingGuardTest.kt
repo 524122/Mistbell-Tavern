@@ -239,6 +239,40 @@ class DefaultLayerWordingGuardTest {
     }
 
     /**
+     * 内置角色资产（随 APK 分发、全新安装就进角色 Tab）是默认层文案的一部分：
+     * 卡的描述、开场白、人设与自带世界书条目都会直接显示在界面上。装机实测发现阿莉雅的卡里
+     * 出现「酒馆」——上面的源文件清单只扫 Kotlin 字面量，扫不到 assets 里的 JSON，这里补上。
+     * JSON 的键与值一并检查（内置卡不该带任何生态字段）；应用名「Mistbell Tavern」除外。
+     */
+    @Test
+    fun `内置角色资产不出现酒馆生态术语`() {
+        val assetDir = File(root, "app/src/main/assets/sample_characters")
+        assertTrue("内置角色资产目录不存在: ${assetDir.path}", assetDir.isDirectory)
+        val assets =
+            assetDir
+                .listFiles { file -> file.isFile && file.extension == "json" }
+                .orEmpty()
+                .sortedBy { it.name }
+        assertTrue("内置角色资产目录里没有 JSON 卡", assets.isNotEmpty())
+        val violations = mutableListOf<String>()
+        assets.forEach { asset ->
+            asset.readLines().forEachIndexed { index, line ->
+                val visible = line.replace("Mistbell Tavern", "")
+                bannedTerms.filter { visible.contains(it) }.forEach { term ->
+                    violations += "${asset.name}:${index + 1} [$term] ${line.trim().take(80)}"
+                }
+            }
+        }
+        if (violations.isNotEmpty()) {
+            fail(
+                "内置角色资产里出现酒馆生态术语（P3 验收：全新安装 5 分钟内不出现酒馆术语）。\n" +
+                    "内置卡的描述 / 开场白 / 人设 / 世界书条目会直接显示给新用户，请改用中性措辞：\n" +
+                    violations.joinToString("\n"),
+            )
+        }
+    }
+
+    /**
      * 提取字符串字面量（含三引号），返回（行号, 字面量内容）；注释与字符字面量一律跳过。
      * 状态机与 ArchitectureScan.stripComments 同构（六状态），行号按字面量结束处计。
      */

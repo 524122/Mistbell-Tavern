@@ -171,11 +171,10 @@ class ChatSetupViewModel(application: Application) : AndroidViewModel(applicatio
         val sessionId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
 
-        // 获取选中的 provider 信息，如果未选择则使用第一个可用的
-        var selectedProvider = _selectedProviderId.value
-        if (selectedProvider.isNullOrBlank()) {
-            selectedProvider = apiConfigs.value.firstOrNull()?.id ?: ""
-            android.util.Log.d("ChatSetup", "No provider selected, using first available: $selectedProvider")
+        // 选中的 provider；未选择时按「默认且可用 → 第一个可用 → 第一行」解析（见 resolveSessionProviderId）
+        val selectedProvider = resolveSessionProviderId(apiConfigs.value, _selectedProviderId.value)
+        if (_selectedProviderId.value.isNullOrBlank()) {
+            android.util.Log.d("ChatSetup", "No provider selected, resolved provider: $selectedProvider")
         }
 
         val selectedModel = apiConfigs.value.find { it.id == selectedProvider }?.model ?: ""
@@ -311,3 +310,22 @@ internal fun buildGreetingOptions(
     firstMes: String,
     alternateGreetings: List<String>,
 ): List<String> = listOf(firstMes).filter { it.isNotBlank() } + alternateGreetings.filter { it.isNotBlank() }
+
+/**
+ * 新建会话时绑定的提供商（纯函数，唯一换算点）：
+ * - 用户选了就用所选；
+ * - 没选：优先「默认且填了密钥」的配置，其次「第一个填了密钥」的配置，都没有则保持旧取法（第一行）。
+ *
+ * 此前不看默认标记也不看密钥，直接取第一行——新用户在设置里连好 AI 之后开聊，会话却绑在
+ * 没填密钥的内置配置上，发送时报「LLM 未配置」（P3 装机实测复现）。
+ */
+internal fun resolveSessionProviderId(
+    configs: List<ApiConfigEntity>,
+    selectedId: String?,
+): String {
+    if (!selectedId.isNullOrBlank()) return selectedId
+    return configs.firstOrNull { it.isDefault && it.apiKey.isNotBlank() }?.id
+        ?: configs.firstOrNull { it.apiKey.isNotBlank() }?.id
+        ?: configs.firstOrNull()?.id
+        ?: ""
+}
