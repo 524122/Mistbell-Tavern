@@ -24,6 +24,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mistbell.tavern.android.data.api.model.SESSION_MODE_CLASSIC
 import com.mistbell.tavern.android.data.api.model.SESSION_MODE_GROUP
+import com.mistbell.tavern.android.ui.settings.TechnicalDetailFeature
+import com.mistbell.tavern.android.ui.settings.toConfig
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,6 +52,10 @@ fun ChatSetupScreen(
     val characterDefaultWorldBookId by viewModel.characterDefaultWorldBookId.collectAsState()
     val enableLongTermMemory by viewModel.enableLongTermMemory.collectAsState()
     val toast by viewModel.toast.collectAsState()
+    // 界面可见性（P3 第 2 项/第 4 项）：世界书选择只在高级模式出现；模式未知（null）不渲染。
+    // 简洁模式不选也没关系——没手动选过时，选中角色的默认世界书由 ViewModel 照常自动绑定
+    val uiMode by viewModel.uiMode.collectAsState()
+    val userModeConfig = uiMode?.toConfig()
 
     var showProviderDropdown by remember { mutableStateOf(false) }
     var showWorldBookDropdown by remember { mutableStateOf(false) }
@@ -264,72 +270,74 @@ fun ChatSetupScreen(
                 }
             }
 
-            // 世界书选择
+            // 世界书选择（仅高级模式，P3 第 2 项/第 4 项：世界书入口收进高级；自动默认不受影响）
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "世界书",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-
-                    val fieldValue =
-                        if (selectedWorldBookId.isBlank()) {
-                            "无"
-                        } else {
-                            worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
-                        }
-
-                    ExposedDropdownMenuBox(
-                        expanded = showWorldBookDropdown,
-                        onExpandedChange = { showWorldBookDropdown = it },
-                    ) {
-                        OutlinedTextField(
-                            value = fieldValue,
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showWorldBookDropdown) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                TechnicalDetailFeature(userModeConfig) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "世界书",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                         )
 
-                        ExposedDropdownMenu(
+                        val fieldValue =
+                            if (selectedWorldBookId.isBlank()) {
+                                "无"
+                            } else {
+                                worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
+                            }
+
+                        ExposedDropdownMenuBox(
                             expanded = showWorldBookDropdown,
-                            onDismissRequest = { showWorldBookDropdown = false },
+                            onExpandedChange = { showWorldBookDropdown = it },
                         ) {
-                            // "无" 选项
-                            DropdownMenuItem(
-                                text = { Text("无", fontWeight = FontWeight.Medium) },
-                                onClick = {
-                                    viewModel.setSelectedWorldBook("")
-                                    showWorldBookDropdown = false
-                                },
-                                leadingIcon =
-                                    if (selectedWorldBookId.isBlank()) {
-                                        { Icon(Icons.Default.Check, contentDescription = null) }
-                                    } else {
-                                        null
-                                    },
+                            OutlinedTextField(
+                                value = fieldValue,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showWorldBookDropdown) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             )
 
-                            // 世界书列表
-                            worldBooks.forEach { book ->
+                            ExposedDropdownMenu(
+                                expanded = showWorldBookDropdown,
+                                onDismissRequest = { showWorldBookDropdown = false },
+                            ) {
+                                // "无" 选项
                                 DropdownMenuItem(
-                                    text = { Text(book.name.ifBlank { "未命名世界书" }) },
+                                    text = { Text("无", fontWeight = FontWeight.Medium) },
                                     onClick = {
-                                        viewModel.setSelectedWorldBook(book.id)
+                                        viewModel.setSelectedWorldBook("")
                                         showWorldBookDropdown = false
                                     },
                                     leadingIcon =
-                                        if (selectedWorldBookId == book.id) {
+                                        if (selectedWorldBookId.isBlank()) {
                                             { Icon(Icons.Default.Check, contentDescription = null) }
                                         } else {
                                             null
                                         },
                                 )
+
+                                // 世界书列表
+                                worldBooks.forEach { book ->
+                                    DropdownMenuItem(
+                                        text = { Text(book.name.ifBlank { "未命名世界书" }) },
+                                        onClick = {
+                                            viewModel.setSelectedWorldBook(book.id)
+                                            showWorldBookDropdown = false
+                                        },
+                                        leadingIcon =
+                                            if (selectedWorldBookId == book.id) {
+                                                { Icon(Icons.Default.Check, contentDescription = null) }
+                                            } else {
+                                                null
+                                            },
+                                    )
+                                }
                             }
                         }
                     }

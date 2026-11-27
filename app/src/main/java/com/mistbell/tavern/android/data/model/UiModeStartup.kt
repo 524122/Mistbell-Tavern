@@ -28,7 +28,7 @@ data class UiModeEcosystemSignals(
     val hasEnabledPacks: Boolean,
     /** HTML 界面开着（settings `html_ui_enabled == "1"`） */
     val hasHtmlUiEnabled: Boolean,
-    /** 导入过酒馆卡（近似判定：角色表非空；误差与口径见 UiModeEcosystemProbe 注释） */
+    /** 导入过酒馆卡（角色表存在非内置角色；内置排除口径见 UiModeEcosystemProbe 注释） */
     val hasImportedTavernCard: Boolean,
 ) {
     /** 任一信号为真（预选高级的谓词） */

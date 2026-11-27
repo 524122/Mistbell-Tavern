@@ -10,6 +10,7 @@ import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.model.Character
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.data.repository.CharacterRepository
+import com.mistbell.tavern.android.util.BuiltInCharacters
 import com.mistbell.tavern.android.util.CharacterExportFormat
 import com.mistbell.tavern.android.util.CharacterExportResult
 import com.mistbell.tavern.android.util.CharacterExporter
@@ -49,6 +50,9 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
                 decodePinnedIds(json)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    /** 全量角色（不受搜索过滤）：「内置角色」弹层据此判断哪几位还没添加 */
+    val allCharacters: StateFlow<List<Character>> = charactersFlow
 
     val filteredCharacters: StateFlow<List<Character>> =
         combine(
@@ -106,6 +110,35 @@ class CharacterListViewModel(application: Application) : AndroidViewModel(applic
 
     fun clearBatchImportReport() {
         _batchImportReport.value = null
+    }
+
+    /**
+     * 添加内置角色（P3 第 4 项）：老用户升级后不会被自动塞进新内置角色，这里是显式的补齐入口
+     * （角色 Tab 顶栏「添加内置角色」）。落库走 [BuiltInCharacters.install]——同 id / 同名已存在
+     * 则跳过，重复点击不产生重复角色。
+     */
+    fun addBuiltInCharacter(defId: String) {
+        val def = BuiltInCharacters.byId(defId) ?: return
+        viewModelScope.launch {
+            try {
+                val added =
+                    BuiltInCharacters.install(db, listOf(def)) { assetName ->
+                        getApplication<Application>().assets
+                            .open(BuiltInCharacters.ASSET_DIR + assetName)
+                            .bufferedReader()
+                            .use { it.readText() }
+                    }
+                _message.value =
+                    if (added.isEmpty()) {
+                        "「${def.displayName}」已在角色列表里"
+                    } else {
+                        "已添加：${added.joinToString()}"
+                    }
+            } catch (e: Exception) {
+                android.util.Log.e("CharacterList", "添加内置角色失败", e)
+                _message.value = "添加失败：${e.message ?: "未知错误"}"
+            }
+        }
     }
 
     // 每个角色的真实会话数（ownerId 与其他会话查询保持一致）

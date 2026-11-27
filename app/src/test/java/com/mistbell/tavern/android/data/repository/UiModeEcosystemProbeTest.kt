@@ -24,6 +24,7 @@ import com.mistbell.tavern.android.data.local.entity.ExtensionPackEntity
 import com.mistbell.tavern.android.data.local.entity.GlobalRegexRuleEntity
 import com.mistbell.tavern.android.data.local.entity.RulePackEntity
 import com.mistbell.tavern.android.data.model.UiModeEcosystemSignals
+import com.mistbell.tavern.android.util.BuiltInCharacters
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
@@ -348,10 +349,10 @@ class UiModeEcosystemProbeTest {
         }
     }
 
-    // ---- 四个信号：导入过酒馆卡（近似：角色表非空，口径见探针 KDoc）----
+    // ---- 四个信号：导入过酒馆卡（P3 第 4 项起排除内置角色，口径见探针 KDoc）----
 
     @Test
-    fun `角色表非空即导入信号为真`() {
+    fun `用户导入的随机id角色算导入信号`() {
         runBlocking {
             tables.characters += character("c1")
             assertTrue(probe().hasImportedTavernCard)
@@ -362,6 +363,37 @@ class UiModeEcosystemProbeTest {
     fun `角色表为空则导入信号为假`() {
         runBlocking {
             assertFalse(probe().hasImportedTavernCard)
+        }
+    }
+
+    @Test
+    fun `全新安装只有内置角色时导入信号为假`() {
+        runBlocking {
+            // 首启引导选了角色 → 四位内置角色以稳定 id 落库（util/BuiltInCharacters）
+            BuiltInCharacters.all.forEach { def ->
+                tables.characters += character(def.id)
+            }
+            assertFalse(probe().hasImportedTavernCard)
+            // 汇总口径不被殃及：全新安装四信号仍全为假
+            assertEquals(UiModeEcosystemSignals.NONE, probe())
+        }
+    }
+
+    @Test
+    fun `内置角色与用户自己的角色并存时导入信号为真`() {
+        runBlocking {
+            tables.characters += character("builtin_aria")
+            tables.characters += character("user-imported-uuid")
+            assertTrue(probe().hasImportedTavernCard)
+        }
+    }
+
+    @Test
+    fun `升级前的旧示例卡（随机id）仍触发导入信号`() {
+        runBlocking {
+            // 老版本把示例卡经导入路径落库（随机 UUID，无来源标记）——升级后照旧偏向预选高级
+            tables.characters += character("legacy-sample-uuid")
+            assertTrue(probe().hasImportedTavernCard)
         }
     }
 

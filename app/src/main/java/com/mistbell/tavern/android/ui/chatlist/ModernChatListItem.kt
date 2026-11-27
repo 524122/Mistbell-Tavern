@@ -514,7 +514,7 @@ fun ModernChatListItem(
                                 ignoreCase = true,
                             )
                         ) {
-                            "酒馆 JSONL"
+                            "对话记录（JSONL）"
                         } else {
                             "JSON"
                         }}",

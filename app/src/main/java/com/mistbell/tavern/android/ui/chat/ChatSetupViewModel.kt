@@ -12,6 +12,7 @@ import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
 import kotlinx.coroutines.flow.*
@@ -27,6 +28,11 @@ internal const val MAX_SELECTABLE_CHARACTERS = MAX_GROUP_PARTICIPANTS
 class ChatSetupViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
     private val worldBookRepo = WorldBookRepository()
+
+    // 界面模式（P3 第 2 项/第 4 项，docs/UI_MODE.md）：本页的世界书选择入口只在高级模式出现
+    // （自动默认仍生效：用户没手动选过时，选中角色的默认书照常绑定）。直接暴露进程级常驻流
+    // AppContainer.uiMode（null = 模式未知，入口不渲染，与「未知不渲染」同一口径），不做本页 stateIn
+    val uiMode: StateFlow<UiMode?> = getApplication<TavernApplication>().container.uiMode
 
     // 所有角色
     val characters: StateFlow<List<Character>> =

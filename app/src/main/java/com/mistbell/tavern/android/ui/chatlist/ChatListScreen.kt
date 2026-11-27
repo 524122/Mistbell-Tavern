@@ -39,7 +39,7 @@ fun ChatListScreen(
     viewModel: ChatListViewModel = viewModel(),
     onChatClick: (sessionId: String, characterId: String) -> Unit = { _, _ -> },
     onNewChatClick: () -> Unit = {},
-    /** 「导入」页入口（P3 第 3 项）：空态时的次要按钮，把酒馆资产（含聊天记录）带进来 */
+    /** 「导入」页入口（P3 第 3 项）：空态时的次要按钮（P3 第 4 项起用中性措辞，不提酒馆） */
     onOpenImport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -222,7 +222,7 @@ fun ChatListScreen(
                             icon = "💬",
                             title = "暂无对话",
                             subtitle = "点击右下角 + 开始新对话",
-                            actionLabel = "从酒馆导入…",
+                            actionLabel = "导入角色或聊天记录…",
                             onAction = onOpenImport,
                             modifier = Modifier.fillMaxWidth(),
                         )

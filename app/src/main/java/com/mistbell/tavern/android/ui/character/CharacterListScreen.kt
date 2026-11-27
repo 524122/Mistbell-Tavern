@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.*
@@ -34,6 +35,7 @@ import com.mistbell.tavern.android.ui.common.ModernTopBar
 import com.mistbell.tavern.android.ui.components.EmptyStateView
 import com.mistbell.tavern.android.ui.components.SearchBar
 import com.mistbell.tavern.android.util.AdvancedCapabilityDetector
+import com.mistbell.tavern.android.util.BuiltInCharacters
 import com.mistbell.tavern.android.util.CharacterExportFormat
 import com.mistbell.tavern.android.util.CharacterExporter
 
@@ -66,6 +68,7 @@ fun CharacterListScreen(
     val message by viewModel.message.collectAsState()
     var actionCharacter by remember { mutableStateOf<Character?>(null) }
     var deleteCharacter by remember { mutableStateOf<Character?>(null) }
+    var showBuiltInSheet by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -136,7 +139,7 @@ fun CharacterListScreen(
                     viewModel.copyCharacter(context, character)
                     actionCharacter = null
                 }
-                CharacterActionItem("导出角色卡（JSON）", Icons.Default.FileDownload) {
+                CharacterActionItem("导出角色（JSON 文件）", Icons.Default.FileDownload) {
                     viewModel.exportCharacter(
                         context = context,
                         character = character,
@@ -212,6 +215,51 @@ fun CharacterListScreen(
         )
     }
 
+    // 「内置角色」弹层（P3 第 4 项）：四位随应用内置的角色，缺哪位补哪位（幂等）
+    if (showBuiltInSheet) {
+        val allCharacters by viewModel.allCharacters.collectAsState()
+        ModalBottomSheet(
+            onDismissRequest = { showBuiltInSheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            ) {
+                Text(
+                    text = "内置角色",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 12.dp),
+                )
+                Text(
+                    text = "随应用内置的角色，直接添加即可开聊；已添加的不会重复。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                BuiltInCharacters.all.forEach { def ->
+                    val added = allCharacters.any { it.id == def.id || it.name.trim() == def.displayName }
+                    ListItem(
+                        headlineContent = { Text(def.displayName) },
+                        supportingContent = { Text(def.blurb) },
+                        trailingContent = {
+                            if (added) {
+                                Text(
+                                    "已添加",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                TextButton(onClick = { viewModel.addBuiltInCharacter(def.id) }) {
+                                    Text("添加")
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -223,6 +271,11 @@ fun CharacterListScreen(
                     subtitle = "管理你的角色",
                     onBack = if (showTopBarBackButton) onBack else null,
                     actions = {
+                        // 「内置角色」入口（P3 第 4 项）：老用户升级不自动写入新内置角色，
+                        // 在这里显式补齐；全新安装也可以回到这里把四位都加齐
+                        IconButton(onClick = { showBuiltInSheet = true }) {
+                            Icon(Icons.Default.PersonAdd, contentDescription = "添加内置角色")
+                        }
                         IconButton(onClick = { importLauncher.launch("*/*") }) {
                             Icon(Icons.Default.FileUpload, contentDescription = "导入角色")
                         }

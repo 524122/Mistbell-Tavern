@@ -1,6 +1,7 @@
 package com.mistbell.tavern.android.ui.onboarding
 
 import android.app.Application
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,10 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,107 +38,130 @@ import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
 import com.mistbell.tavern.android.data.model.UiMode
-import com.mistbell.tavern.android.data.repository.CharacterRepository
 import com.mistbell.tavern.android.data.repository.SettingsRepository
-import com.mistbell.tavern.android.util.CharacterImportResult
+import com.mistbell.tavern.android.util.BuiltInCharacters
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // 引导完成标记：写入 settings KV，AppNavigation 据此决定 startDestination
 const val ONBOARDING_DONE_KEY = "onboarding_done"
 
-/** 内置示例角色（assets/sample_characters/ 下的 v2 卡片，随 APK 分发） */
-data class SampleCharacter(
-    val assetName: String,
-    val displayName: String,
-    val blurb: String,
-)
+/**
+ * 首启三屏（P3 第 4 项，docs/ROADMAP.md「P3 门面」）：欢迎 → 选一位角色 → 连接 AI。
+ * 步骤推进的纯规则（零依赖，可 JVM 单测）：任何一步都是软性的——每屏的主按钮都能前进，
+ * 选角色可以不选直接过（「稍后再选」），连接 AI 可以稍后配置。
+ */
+object OnboardingFlow {
+    const val STEP_WELCOME = 0
+    const val STEP_CHARACTER = 1
+    const val STEP_API = 2
 
-val sampleCharacters =
-    listOf(
-        SampleCharacter("aria.json", "阿莉雅", "雾铃镇「夜航灯」酒馆的老板娘，记性极好，认得镇上每一张脸"),
-        SampleCharacter("kael.json", "凯尔", "星痕航道的独行者，话少，但每一句都算数"),
-    )
+    /** 下一步（最后一屏不再推进——由「进入应用」结束引导，导航层弹出引导栈） */
+    fun next(step: Int): Int = minOf(step + 1, STEP_API)
+
+    /** 选角色步的安装决策：选了角色才落库；没选（「稍后再选」）不写任何数据 */
+    fun shouldInstallBuiltIns(selectedId: String?): Boolean = selectedId != null
+}
+
+/**
+ * 引导完成时的 settings 落库内容（纯函数，可 JVM 单测）。
+ *
+ * 全新安装默认简洁（P3 第 2 项，docs/UI_MODE.md §5）：引导未完成的设备被判定为全新安装，
+ * 引导完成即把 `ui_mode = "simple"` 落库——是显式写值，不改 `UiMode.fromSetting` 的缺省
+ * （执行闸门缺省高级不变）。主导航层的升级首启判定（UiModePromptViewModel）据此把
+ * 全新安装识别为「保持 simple」，不再弹模式选择；升级用户（引导标记早已存在）不受影响。
+ */
+object OnboardingCompletion {
+    /** 键值对列表：引导完成标记 + 简洁模式缺省（写入者只有 OnboardingViewModel.markDone） */
+    fun settingsWrites(): List<Pair<String, String>> =
+        listOf(
+            ONBOARDING_DONE_KEY to "1",
+            SettingsRepository.KEY_UI_MODE to UiMode.SIMPLE.storedValue,
+        )
+}
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     private val db get() = TavernApplication.instance.container.database
-    private val characterRepo = CharacterRepository()
 
-    private val _busy = MutableStateFlow(false)
-    val busy: StateFlow<Boolean> = _busy.asStateFlow()
+    /** 首启可选的全部内置角色（与角色 Tab 的「内置角色」入口同一份目录） */
+    val builtIns: List<BuiltInCharacters.Definition> = BuiltInCharacters.all
 
-    private val _importedName = MutableStateFlow<String?>(null)
-    val importedName: StateFlow<String?> = _importedName.asStateFlow()
+    private val _selectedId = MutableStateFlow<String?>(null)
+    val selectedId: StateFlow<String?> = _selectedId.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    /** 导入 assets 内置示例角色（落库 + 可能的世界书）。广捕异常：任何失败都转化为界面错误提示，不崩溃 */
-    @Suppress("TooGenericExceptionCaught")
-    fun importSample(sample: SampleCharacter) {
-        viewModelScope.launch {
-            try {
-                _busy.value = true
-                val json =
-                    getApplication<Application>()
-                        .assets.open("sample_characters/${sample.assetName}")
-                        .bufferedReader()
-                        .use { it.readText() }
-                val result = com.mistbell.tavern.android.util.CardParser.parse(json)
-                if (result == null) {
-                    _error.value = "示例角色解析失败，请跳过此步骤"
-                    return@launch
-                }
-                persistImport(result)
-                _importedName.value = result.character.name
-            } catch (e: Exception) {
-                android.util.Log.e("Onboarding", "Sample import failed", e)
-                _error.value = "导入失败：${e.message ?: "未知错误"}"
-            } finally {
-                _busy.value = false
-            }
-        }
-    }
-
-    // 与 CharacterListViewModel 的导入落库路径保持一致：世界书先行、角色随后（不打印卡内容，隐私）
-    private suspend fun persistImport(result: CharacterImportResult) {
-        if (result.worldBook != null) {
-            db.worldBookDao().upsertBook(result.worldBook)
-            if (result.worldBookEntries.isNotEmpty()) {
-                db.worldBookDao().upsertEntries(result.worldBookEntries)
-            }
-        }
-        characterRepo.createCharacter(result.character.toDomain())
-        android.util.Log.d("Onboarding", "Imported character: ${result.character.name}")
+    /** 点选一位内置角色（再点取消；单选） */
+    fun select(id: String) {
+        _selectedId.value = if (_selectedId.value == id) null else id
     }
 
     /**
-     * 引导完成：置标记 + 写简洁缺省 + 回调导航（由界面层在导航成功后语义闭合）。
+     * 选角色步完成：选了角色 → 全部内置角色落库（[BuiltInCharacters.install] 按 id 幂等，
+     * 选中的那位因此落库即可以直接开始聊天）；没选 → 不写任何数据（「稍后再选」），
+     * 角色 Tab 的「内置角色」入口随时可补。
      *
-     * 全新安装默认简洁（P3 第 2 项，docs/UI_MODE.md §5）：引导未完成的设备被判定为全新安装，
-     * 引导完成即把 `ui_mode = "simple"` 落库——是显式写值，不改 `UiMode.fromSetting` 的缺省
-     * （执行闸门缺省高级不变）。主导航层的升级首启判定（UiModePromptViewModel）据此把
-     * 全新安装识别为「保持 simple」，不再弹模式选择；升级用户（引导标记早已存在）不受影响。
+     * 几 KB 资产的解析落库在后台跑完即可，不阻塞进入下一屏；失败只记日志（资产可解析性
+     * 由 SampleCharactersTest 守住，走到这里基本不可能失败）。
+     *
+     * 写入包在 [NonCancellable] 里：用户选完角色可能马上点「稍后配置，先进入应用」，导航会把
+     * 引导页弹掉、本 ViewModel 被清掉——不包的话协程会在写到一半时被取消，四个角色只落了一两个，
+     * 而引导标记已置上、不会再出第二次。[markDone] 会先等这个任务结束再写标记。
+     */
+    @Suppress("TooGenericExceptionCaught") // 广捕异常：内置安装失败只记日志不崩溃（资产可解析性由单测守住）
+    fun completeCharacterStep() {
+        if (!OnboardingFlow.shouldInstallBuiltIns(_selectedId.value)) return
+        builtInInstallJob =
+            viewModelScope.launch {
+                withContext(NonCancellable) {
+                    try {
+                        BuiltInCharacters.install(db, BuiltInCharacters.all) { assetName ->
+                            getApplication<Application>()
+                                .assets
+                                .open(BuiltInCharacters.ASSET_DIR + assetName)
+                                .bufferedReader()
+                                .use { it.readText() }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("Onboarding", "Built-in character install failed", e)
+                    }
+                }
+            }
+    }
+
+    /** 选角色步的落库任务；[markDone] 先等它结束再写引导标记 */
+    private var builtInInstallJob: Job? = null
+
+    /**
+     * 引导完成：置标记 + 写简洁缺省（内容见 [OnboardingCompletion]）；导航由界面层回调。
+     * 同样包在 [NonCancellable] 里，并且先等内置角色落库结束——保证「引导已完成」成立时，
+     * 选角色那一步承诺写入的数据已经全部写完。
      */
     fun markDone() {
         viewModelScope.launch {
-            db.settingsDao().upsert(SettingsEntity(ONBOARDING_DONE_KEY, "1"))
-            db.settingsDao().upsert(SettingsEntity(SettingsRepository.KEY_UI_MODE, UiMode.SIMPLE.storedValue))
+            withContext(NonCancellable) {
+                builtInInstallJob?.join()
+                OnboardingCompletion.settingsWrites().forEach { (key, value) ->
+                    db.settingsDao().upsert(SettingsEntity(key, value))
+                }
+            }
         }
     }
 }
 
 /**
- * 首启引导（v0.8）：欢迎 → 准备角色（示例卡/导入卡/跳过）→ 配置 API → 进入应用。
- * 三步均为软性步骤——任何一步可跳过，先让用户体验应用本体。
+ * 首启引导（P3 第 4 项）：欢迎 → 选一位角色 → 连接 AI。
+ * 三屏均为软性步骤——任何一步可跳过，先让用户体验应用本体；
+ * 酒馆导入退为选角色页的次要按钮（「导入已有角色」，进入「导入」页）。
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
-    /** 「导入角色卡」按钮的去向：「导入」页（P3 第 3 项），角色卡 / 数据文件夹 / 世界书等都在那里 */
+    /** 次要按钮「导入已有角色」的去向：「导入」页（P3 第 3 项），老卡 / 数据文件夹 / 聊天记录都在那里 */
     onOpenImport: () -> Unit = {},
     viewModel: OnboardingViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel(
@@ -144,8 +171,8 @@ fun OnboardingScreen(
                 ),
         ),
 ) {
-    val busy by viewModel.busy.collectAsState()
-    var step by remember { mutableStateOf(0) }
+    val selectedId by viewModel.selectedId.collectAsState()
+    var step by remember { mutableStateOf(OnboardingFlow.STEP_WELCOME) }
 
     Column(
         modifier =
@@ -157,16 +184,20 @@ fun OnboardingScreen(
     ) {
         Spacer(modifier = Modifier.height(24.dp))
         when (step) {
-            0 -> WelcomeStep(onStart = { step = 1 })
-            1 ->
+            OnboardingFlow.STEP_WELCOME -> WelcomeStep(onStart = { step = OnboardingFlow.next(step) })
+            OnboardingFlow.STEP_CHARACTER ->
                 CharacterStep(
-                    viewModel = viewModel,
+                    builtIns = viewModel.builtIns,
+                    selectedId = selectedId,
+                    onSelect = viewModel::select,
                     onOpenImport = onOpenImport,
-                    onNext = { step = 2 },
+                    onNext = {
+                        viewModel.completeCharacterStep()
+                        step = OnboardingFlow.next(step)
+                    },
                 )
             else ->
                 ApiStep(
-                    busy = busy,
                     onFinish = {
                         viewModel.markDone()
                         onFinished()
@@ -182,10 +213,14 @@ private fun WelcomeStep(onStart: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("欢迎来到 Mistbell Tavern", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(
-            "口袋里的 AI 角色酒馆：自定义角色、会话记忆、群聊。所有数据只存在你的设备上。",
+            "在这里和 AI 角色聊天：他们按各自的性格与你说话，也会记住你们聊过的事。",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(modifier = Modifier.height(4.dp))
+        WelcomePoint("选一位角色，随时开始对话")
+        WelcomePoint("角色会记住你们聊过的细节，越聊越熟")
+        WelcomePoint("所有数据只保存在这台设备上，没有账号，也不会上传")
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
             Text("开始")
@@ -195,75 +230,102 @@ private fun WelcomeStep(onStart: () -> Unit) {
 
 @Suppress("FunctionNaming")
 @Composable
+private fun WelcomePoint(text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("·", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class) // Card(onClick) 为 M3 实验 API
+@Suppress("FunctionNaming")
+@Composable
 private fun CharacterStep(
-    viewModel: OnboardingViewModel,
-    /** 「导入我的角色卡」按钮：进入「导入」页（含角色卡 / 数据文件夹 / 世界书等入口） */
+    builtIns: List<BuiltInCharacters.Definition>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    /** 次要按钮「导入已有角色」：进入「导入」页（含老卡 / 数据文件夹 / 世界书 / 聊天记录 / 备份） */
     onOpenImport: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val busy by viewModel.busy.collectAsState()
-    val importedName by viewModel.importedName.collectAsState()
-    val error by viewModel.error.collectAsState()
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        StepTitle("第 1 步 · 准备一位角色")
+        StepTitle("选一位角色")
         Text(
-            "导入 SillyTavern 生态的角色卡（JSON 或 PNG 埋卡），或从内置示例开始。",
+            "点选一位作为你的第一位角色；也可以先不选，之后再挑。",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        importedName?.let {
-            Text("已导入：$it", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
-        }
-        error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-        if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-
-        sampleCharacters.forEach { sample ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        sample.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        sample.blurb,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(onClick = { viewModel.importSample(sample) }, enabled = !busy) {
-                        Text("导入这位角色")
-                    }
-                }
-            }
+        builtIns.forEach { def ->
+            BuiltInCharacterRow(
+                def = def,
+                selected = def.id == selectedId,
+                onClick = { onSelect(def.id) },
+            )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = onOpenImport, modifier = Modifier.weight(1f)) {
-                Text("导入我的角色卡")
-            }
-            TextButton(onClick = onNext) { Text("跳过") }
-        }
         Button(onClick = onNext, modifier = Modifier.fillMaxWidth()) {
-            Text(if (importedName != null) "下一步" else "暂不导入，下一步")
+            Text(if (selectedId != null) "就这样，下一步" else "稍后再选")
+        }
+        // 次要入口（P3 第 4 项）：酒馆导入退为中性措辞的次要按钮，用户主动进入「导入」页后才谈老格式
+        TextButton(onClick = onOpenImport, modifier = Modifier.fillMaxWidth()) {
+            Text("导入已有角色")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class) // Card(onClick) 为 M3 实验 API
+@Suppress("FunctionNaming")
+@Composable
+private fun BuiltInCharacterRow(
+    def: BuiltInCharacters.Definition,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+            ),
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (selected) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "已选",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(def.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    def.blurb,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
 @Suppress("FunctionNaming")
 @Composable
-private fun ApiStep(
-    busy: Boolean,
-    onFinish: () -> Unit,
-) {
+private fun ApiStep(onFinish: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        StepTitle("第 2 步 · 连接 AI（可稍后配置）")
+        StepTitle("连接 AI（可稍后配置）")
         Text(
             "Mistbell 通过 OpenAI 兼容接口对话。你需要：\n" +
                 "1. 任选一家 LLM 服务商（官方 OpenAI、DeepSeek、月之暗面或任意兼容网关）获取 API Key；\n" +
@@ -272,7 +334,7 @@ private fun ApiStep(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = onFinish, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
             Text("进入应用")
         }
         TextButton(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
