@@ -186,6 +186,24 @@ class ImportReportCoordinatorTest {
         assertTrue(lines.isEmpty())
     }
 
+    /** 装机实测发现的缺陷：干净卡导入后出现了一栏「未检出需要高级模式的能力」——整栏都不该出现 */
+    @Test
+    fun `干净卡_全干净的批量_没有这一栏的导入_都不渲染需要高级模式一栏`() {
+        assertFalse(showAdvancedSection(ImportAdvancedSummary.Single(AdvancedCapabilityProfile.NONE)))
+        assertFalse(showAdvancedSection(ImportAdvancedSummary.Batch(AdvancedCapabilityTotals.NONE)))
+        assertFalse(showAdvancedSection(null))
+        assertTrue(
+            showAdvancedSection(
+                ImportAdvancedSummary.Single(AdvancedCapabilityProfile(hasMvuUpdates = true)),
+            ),
+        )
+        assertTrue(
+            showAdvancedSection(
+                ImportAdvancedSummary.Batch(AdvancedCapabilityTotals(scriptCount = 1, scriptCharacters = listOf("甲"))),
+            ),
+        )
+    }
+
     @Test
     fun `批量报告行附涉及角色名`() {
         val lines =

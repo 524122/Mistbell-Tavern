@@ -254,7 +254,11 @@ private fun ImportReportCard(
                 )
             }
 
-            report.advanced?.let { advanced -> AdvancedCapabilitySection(advanced) }
+            // 「需要高级模式」一栏只在确有高级能力时出现（规划：报告写明哪些能力要切到高级模式才生效）；
+            // 干净卡与全干净的批量不渲染这一栏，而不是渲染一句「未检出」
+            if (showAdvancedSection(report.advanced)) {
+                report.advanced?.let { advanced -> AdvancedCapabilitySection(advanced) }
+            }
 
             report.sections.forEach { section -> ReportSectionLines(section) }
 
@@ -359,6 +363,12 @@ private fun ReportSectionLines(section: ImportReportSection) {
         )
     }
 }
+
+/**
+ * 「需要高级模式」一栏是否出现：只有确有高级能力才出现。干净卡与全干净的批量不渲染这一栏
+ * （而不是渲染标题加一句「未检出」）；导入类没有这一栏（null）同样不出现。
+ */
+internal fun showAdvancedSection(advanced: ImportAdvancedSummary?): Boolean = advanced?.hasAny == true
 
 /**
  * 「需要高级模式」一栏的行（纯函数，唯一换算点）：
