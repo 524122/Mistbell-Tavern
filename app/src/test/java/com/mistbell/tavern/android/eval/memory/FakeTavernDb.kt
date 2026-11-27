@@ -161,7 +161,7 @@ class FakeTavernDb {
 
                 override fun themePackDao(): ThemePackDao = unsupportedDao("themePackDao")
 
-                override fun apiConfigDao(): ApiConfigDao = unsupportedDao("apiConfigDao")
+                override fun apiConfigDao(): ApiConfigDao = apiConfigDaoProxy()
 
                 override fun customPromptDao(): CustomPromptDao = unsupportedDao("customPromptDao")
 
@@ -193,6 +193,19 @@ class FakeTavernDb {
     private fun unsupportedDaoError(name: String) = UnsupportedOperationException("$name 未在评测链路使用")
 
     private fun outboxDaoProxy() = daoProxy(VectorSyncOutboxDao::class.java, outboxHandlers())
+
+    /**
+     * api_configs 替身：恒返回 null（空表）。这是生产 SettingsRepository 的回退语义——
+     * 没有默认配置时 LLM 三元组改读 llm_* 平铺键，聊天链路测试据此用 settings 直配假 LLM 地址。
+     */
+    private fun apiConfigDaoProxy() =
+        daoProxy(
+            ApiConfigDao::class.java,
+            mapOf(
+                "getDefault" to { _ -> null },
+                "getById" to { _ -> null },
+            ),
+        )
 
     private fun globalRegexDaoProxy() = daoProxy(GlobalRegexDao::class.java, globalRegexHandlers())
 

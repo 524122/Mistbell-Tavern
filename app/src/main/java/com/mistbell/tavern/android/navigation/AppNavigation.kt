@@ -380,6 +380,15 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                             navController.navigate(Routes.chatSettings(targetSessionId))
                         }
                     },
+                    // 「记忆可见 v0」：注入明细弹层 → 记忆管理页（按当前会话/主角色过滤）
+                    onNavigateToMemoryManagement = {
+                        navController.navigate(
+                            Routes.memoryList(
+                                sessionId = chatVm.activeSessionId.value,
+                                characterId = chatVm.activeCharacterId.value,
+                            ),
+                        )
+                    },
                 )
             }
 

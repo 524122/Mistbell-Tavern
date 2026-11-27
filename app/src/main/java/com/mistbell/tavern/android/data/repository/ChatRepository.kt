@@ -23,6 +23,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
@@ -32,6 +34,27 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import java.util.UUID
 
+/**
+ * 「记忆可见 v0」（docs/ROADMAP.md P2 第 4 项）：一轮回复**实际注入**的会话记忆清单。
+ *
+ * 数据与本次发送的提示词装配**同源**（`PromptTrace.recallDiagnostics` 的注入清单，记录点在
+ * token 裁剪与去重之后），在 assistant 消息落库之后发布——聊天界面据此在该条 AI 回复下方
+ * 显示「记得 N 件」轻标记。**不落库**：事件只进内存，进程重启后旧消息不再显示标记（v0 已知限制）。
+ *
+ * 语义：结构化记忆 id 为空时不发布（没有结构化记忆就没有标记，召回的历史消息行是另一类只读信息，
+ * 不构成标记）；记忆关闭、本轮无注入、回复失败/取消（无落库）都走不到发布点，自然没有事件。
+ */
+data class InjectedMemoriesEvent(
+    val ownerId: String,
+    val sessionId: String,
+    /** 本次回复落库的 assistant 消息 id（继续/swipe 是同一条消息的新内容） */
+    val assistantMessageId: String,
+    /** 实际注入的结构化记忆 id（字符串化的 structured_memory.id） */
+    val structuredMemoryIds: List<String>,
+    /** 实际注入的召回历史行对应的消息 id（只读展示用，与结构化记忆分开） */
+    val recallMessageIds: List<String>,
+)
+
 class ChatRepository(private val context: Context) {
     private val db get() = TavernApplication.instance.container.database
     private val settingsRepo = SettingsRepository()
@@ -39,9 +62,44 @@ class ChatRepository(private val context: Context) {
     private val memoryExtractionService = MemoryExtractionService(context, structuredMemoryRepo)
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    // 「记忆可见 v0」事件总线：replay=0 + extraBufferCapacity，tryEmit 永不挂起也永不失败，
+    // 无订阅者（如 TavernHelper 触发的后台生成）时事件被丢弃——标记本来只服务于当前聊天页
+    private val _injectedMemoriesEvents =
+        MutableSharedFlow<InjectedMemoriesEvent>(extraBufferCapacity = DEFAULT_INJECTED_MEMORIES_BUFFER)
+    val injectedMemoriesEvents: SharedFlow<InjectedMemoriesEvent> = _injectedMemoriesEvents
+
+    /**
+     * 发布「本轮注入的记忆」事件（五个生成路径在回复成功落库后调用）。
+     *
+     * 只认发送时**那一次装配**的注入清单（`buildPromptTrace` 的 recallDiagnostics），绝不事后
+     * 重算：重算时的访问次数、记忆库都可能已变，与实际发送给模型的内容对不上。结构化 id 为空
+     * 即不发布（见 [InjectedMemoriesEvent] 的语义说明）。
+     */
+    private fun publishInjectedMemoriesIfAny(
+        promptTrace: PromptBuilder.PromptTrace,
+        ownerId: String,
+        sessionId: String,
+        assistantMessageId: String,
+    ) {
+        val structuredIds = promptTrace.recallDiagnostics?.injectedStructuredMemoryIds.orEmpty()
+        if (structuredIds.isEmpty()) return
+        _injectedMemoriesEvents.tryEmit(
+            InjectedMemoriesEvent(
+                ownerId = ownerId,
+                sessionId = sessionId,
+                assistantMessageId = assistantMessageId,
+                structuredMemoryIds = structuredIds,
+                recallMessageIds = promptTrace.recallDiagnostics?.injectedRecallMessageIds.orEmpty(),
+            ),
+        )
+    }
+
     companion object {
         // 消息窗口默认大小（v16 性能修复）：首屏只观察最新 200 条，更旧消息由 loadOlderMessages 按页补加载
         const val DEFAULT_MESSAGE_WINDOW = 200
+
+        // 「记忆可见」事件缓冲：同一时刻至多一条生成在途，几格余量足够订阅者短暂迟到
+        private const val DEFAULT_INJECTED_MEMORIES_BUFFER = 8
 
         // 群聊推动语（continueGroupChat）：由 ChatRepository 作为 system 消息传给 PromptBuilder
         // （classic 路径不涉及）；文案要求"让最合适的下一位角色自然接话"
@@ -261,8 +319,10 @@ class ChatRepository(private val context: Context) {
         if (llmConfig.baseUrl.isBlank() || llmConfig.apiKey.isBlank()) {
             throw Exception("LLM 未配置：请在设置中配置 API 密钥")
         }
-        val promptMessages =
-            PromptBuilder.buildPrompt(
+        // 装配走 buildPromptTrace（buildPrompt 本就是它的 segments.map { it.message }，逐字节等价），
+        // 拿到 trace 是为了在回复落库后发布「本轮注入的记忆」事件（发送时那一次装配的清单）
+        val promptTrace =
+            PromptBuilder.buildPromptTrace(
                 db,
                 PromptBuilder.PromptRequest(
                     ownerId = request.ownerId,
@@ -274,21 +334,33 @@ class ChatRepository(private val context: Context) {
                     contextTokenLimitOverride = llmConfig.contextTokenLimit,
                 ),
             )
+        val promptMessages = promptTrace.segments.map { it.message }
         TavernEventBus.emit(TavernEvent.GenerationStarted(request.sessionId))
         try {
             collectReply(llmConfig, promptMessages, sb, onPartial)
             // 公共尾部：群聊归属解析 + 落库 + 向量化 + 计数回写 + 记忆提取
             // （classic 时 speakerNames 为 null，归属/内容与改动前逐字节一致）
-            return persistAssistantReply(
-                fullReply = sb.toString(),
-                scope = SessionScope(request.ownerId, request.characterId, request.sessionId),
-                speakerNames = request.groupContext?.speakerNames,
-                mode =
-                    ReplyTailMode.Append(
-                        userMessageForMemory = request.userMessage,
-                        userMessageId = request.userMessageId,
-                    ),
-            )
+            val persisted =
+                persistAssistantReply(
+                    fullReply = sb.toString(),
+                    scope = SessionScope(request.ownerId, request.characterId, request.sessionId),
+                    speakerNames = request.groupContext?.speakerNames,
+                    mode =
+                        ReplyTailMode.Append(
+                            userMessageForMemory = request.userMessage,
+                            userMessageId = request.userMessageId,
+                        ),
+                )
+            // 回复成功落库才发布；取消/失败路径没落库，事件对不存在的消息没有意义
+            if (persisted.persisted) {
+                publishInjectedMemoriesIfAny(
+                    promptTrace = promptTrace,
+                    ownerId = request.ownerId,
+                    sessionId = request.sessionId,
+                    assistantMessageId = persisted.message.id,
+                )
+            }
+            return persisted.message
         } finally {
             // 成功/失败/取消统一在此收尾，与 GenerationStarted 严格配对
             TavernEventBus.emit(TavernEvent.GenerationEnded(request.sessionId))
@@ -388,8 +460,8 @@ class ChatRepository(private val context: Context) {
                 check(llmConfig.baseUrl.isNotBlank() && llmConfig.apiKey.isNotBlank()) {
                     "LLM 未配置：请在设置中配置 API 密钥"
                 }
-                val promptMessages =
-                    PromptBuilder.buildPrompt(
+                val promptTrace =
+                    PromptBuilder.buildPromptTrace(
                         db,
                         PromptBuilder.PromptRequest(
                             ownerId = ownerId,
@@ -402,7 +474,7 @@ class ChatRepository(private val context: Context) {
                             contextTokenLimitOverride = llmConfig.contextTokenLimit,
                         ),
                     )
-                collectReply(llmConfig, promptMessages, sb, onPartial)
+                collectReply(llmConfig, promptTrace.segments.map { it.message }, sb, onPartial)
                 // 公共尾部：归属解析/落库/计数回写与 sendMessage 完全一致；本轮无用户消息参与记忆提取
                 val assistantMsg =
                     persistAssistantReply(
@@ -411,9 +483,12 @@ class ChatRepository(private val context: Context) {
                         speakerNames = groupContext.speakerNames,
                         mode = ReplyTailMode.Append(userMessageForMemory = "", userMessageId = null),
                     )
-                insertedAssistantId = assistantMsg.id
+                insertedAssistantId = assistantMsg.message.id
+                if (assistantMsg.persisted) {
+                    publishInjectedMemoriesIfAny(promptTrace, ownerId, sessionId, assistantMsg.message.id)
+                }
 
-                return@withContext assistantMsg
+                return@withContext assistantMsg.message
             } catch (e: CancellationException) {
                 // 用户主动停止生成：已收到部分回复则落库并回写计数。
                 // 取消路径统一（跨代理契约 3）：群聊部分回复先做与 persistAssistantReply 一致的
@@ -630,8 +705,8 @@ class ChatRepository(private val context: Context) {
 
             // excludeFromMessageId：截断目标消息及其之后的历史，
             // 保证正要被替换的旧回复不进入上下文（否则模型会复述旧答案）
-            val prompt =
-                PromptBuilder.buildPrompt(
+            val promptTrace =
+                PromptBuilder.buildPromptTrace(
                     db,
                     PromptBuilder.PromptRequest(
                         ownerId = ownerId,
@@ -644,6 +719,7 @@ class ChatRepository(private val context: Context) {
                         contextTokenLimitOverride = llmConfig.contextTokenLimit,
                     ),
                 )
+            val prompt = promptTrace.segments.map { it.message }
             val sb = StringBuilder()
             val replacedMessageIds =
                 userMessages
@@ -675,13 +751,19 @@ class ChatRepository(private val context: Context) {
                 // 成功拿到新回复：落库复用 persistAssistantReply 公共尾部（跨代理契约 4）——
                 // 归属解析 + 替换事务（删目标及其后、落新消息、按真实行数回写计数）+ 向量化。
                 // 已知残留：被替换的旧消息向量没有按消息删除的接口，暂无法清理（见 ROADMAP 向量双写一致性问题）
-                persistAssistantReply(
-                    fullReply = sb.toString(),
-                    scope = scope,
-                    speakerNames = groupContext?.speakerNames,
-                    mode = ReplyTailMode.Replace(fromMessageId = messageId),
-                )
+                val persisted =
+                    persistAssistantReply(
+                        fullReply = sb.toString(),
+                        scope = scope,
+                        speakerNames = groupContext?.speakerNames,
+                        mode = ReplyTailMode.Replace(fromMessageId = messageId),
+                    )
                 replacedMessageIds.forEach { deleteMessageVectors(it) }
+                // 替换语义：落库的是一条**新 id** 的消息，事件按新消息发布（旧消息的标记随之失效——
+                // 旧 id 已不在消息流里，映射里的旧条目自然不可达）
+                if (persisted.persisted) {
+                    publishInjectedMemoriesIfAny(promptTrace, ownerId, sessionId, persisted.message.id)
+                }
             } finally {
                 // 成功/失败/取消统一在此收尾，与 GenerationStarted 严格成对
                 TavernEventBus.emit(TavernEvent.GenerationEnded(sessionId))
@@ -705,8 +787,8 @@ class ChatRepository(private val context: Context) {
                     ?: error("没有可继续的用户消息")
             val config = loadLlmConfig(sessionId)
             check(config.baseUrl.isNotBlank() && config.apiKey.isNotBlank()) { "LLM 未配置：请在设置中配置 API 密钥" }
-            val prompt =
-                PromptBuilder.buildPrompt(
+            val promptTrace =
+                PromptBuilder.buildPromptTrace(
                     db,
                     PromptBuilder.PromptRequest(
                         ownerId = ownerId,
@@ -717,6 +799,7 @@ class ChatRepository(private val context: Context) {
                         contextTokenLimitOverride = config.contextTokenLimit,
                     ),
                 )
+            val prompt = promptTrace.segments.map { it.message }
             val sb = StringBuilder()
             try {
                 collectReply(config, prompt, sb, onPartial)
@@ -724,7 +807,10 @@ class ChatRepository(private val context: Context) {
                 if (sb.isNotEmpty()) appendContinuation(target, sb.toString(), ownerId, characterId, sessionId)
                 throw e
             }
-            appendContinuation(target, sb.toString(), ownerId, characterId, sessionId)
+            // 续写是同一条消息（target.id）的内容合并：合并成功落库后按同 id 发布注入事件
+            if (appendContinuation(target, sb.toString(), ownerId, characterId, sessionId)) {
+                publishInjectedMemoriesIfAny(promptTrace, ownerId, sessionId, target.id)
+            }
         }
     }
 
@@ -793,8 +879,8 @@ class ChatRepository(private val context: Context) {
                     ?: error("没有可用于生成替代回复的用户消息")
             val config = loadLlmConfig(sessionId)
             check(config.baseUrl.isNotBlank() && config.apiKey.isNotBlank()) { "LLM 未配置：请在设置中配置 API 密钥" }
-            val prompt =
-                PromptBuilder.buildPrompt(
+            val promptTrace =
+                PromptBuilder.buildPromptTrace(
                     db,
                     PromptBuilder.PromptRequest(
                         ownerId = ownerId,
@@ -807,6 +893,7 @@ class ChatRepository(private val context: Context) {
                         contextTokenLimitOverride = config.contextTokenLimit,
                     ),
                 )
+            val prompt = promptTrace.segments.map { it.message }
             val sb = StringBuilder()
             try {
                 collectReply(config, prompt, sb, onPartial)
@@ -844,23 +931,34 @@ class ChatRepository(private val context: Context) {
                     characterId,
                 )
             if (newContent.isBlank() && newThinking.isNullOrBlank()) return@withContext
-            persistSwipeCandidate(
-                entity,
-                existing,
-                thinkingSwipes,
-                step,
-                newContent,
-                newThinking,
-                storedCharacterId,
-                ownerId,
-                characterId,
-                sessionId,
-            )
+            // swipe 是同一条消息（entity.id）的新候选：候选成功落库后按同 id 发布注入事件
+            // （取消路径落库的部分候选不发布——本轮没有完整生成，见 persistPartialReplyOnCancel 同语义）
+            if (
+                persistSwipeCandidate(
+                    entity,
+                    existing,
+                    thinkingSwipes,
+                    step,
+                    newContent,
+                    newThinking,
+                    storedCharacterId,
+                    ownerId,
+                    characterId,
+                    sessionId,
+                )
+            ) {
+                publishInjectedMemoriesIfAny(promptTrace, ownerId, sessionId, entity.id)
+            }
         }
     }
 
     // 参数即一条 swipe 候选落库所需的全部上下文（收对象只会把同一批字段在调用方再拼一遍），
     // 函数先于本轮改造存在，豁免。
+
+    /**
+     * 一条 swipe 候选落库。@return 是否真的写进了库（会话/目标消息已消失则整段放弃，
+     * 调用方据此决定是否发布「本轮注入的记忆」事件）。
+     */
     @Suppress("LongParameterList")
     private suspend fun persistSwipeCandidate(
         entity: MessageEntity,
@@ -873,7 +971,7 @@ class ChatRepository(private val context: Context) {
         ownerId: String,
         characterId: String,
         sessionId: String,
-    ) {
+    ): Boolean {
         if (step > 0) {
             existing += content
             thinkingSwipes += thinking.orEmpty()
@@ -909,7 +1007,7 @@ class ChatRepository(private val context: Context) {
                 )
                 true
             }
-        if (!persisted) return
+        if (!persisted) return false
         deleteMessageVectors(entity.id)
         storeAssistantMessageVector(
             content = content,
@@ -921,6 +1019,7 @@ class ChatRepository(private val context: Context) {
             // 不解除的话新 swipe 的向量会被永久压住
             replacePrevious = true,
         )
+        return true
     }
 
     suspend fun clearConversation(
@@ -950,20 +1049,24 @@ class ChatRepository(private val context: Context) {
     // 体量因本轮锁内复查从阈值下升到 68 行；合并逻辑（swipes 对齐 + 锁内 upsert）强耦合，
     // 拆分需引入参数对象且收益有限，豁免。
     @Suppress("LongMethod")
+    /**
+     * 续写合并落库。@return 是否真的写进了库（空续写、会话/目标消息已消失均为 false——
+     * 调用方据此决定是否发布「本轮注入的记忆」事件，没落库就不该有标记）。
+     */
     private suspend fun appendContinuation(
         target: MessageEntity,
         rawReply: String,
         ownerId: String,
         characterId: String,
         sessionId: String,
-    ) {
+    ): Boolean {
         val (continuation, continuationThinking, storedCharacterId) =
             resolveReplyAttribution(
                 rawReply,
                 loadGroupContext(ownerId, characterId, sessionId)?.speakerNames,
                 characterId,
             )
-        if (continuation.isBlank() && continuationThinking.isNullOrBlank()) return
+        if (continuation.isBlank() && continuationThinking.isNullOrBlank()) return false
         val mergedContent =
             listOf(target.content.trimEnd(), continuation.trimStart())
                 .filter { it.isNotBlank() }
@@ -1014,20 +1117,22 @@ class ChatRepository(private val context: Context) {
                 )
                 true
             }
-        if (!persisted) return
-        deleteMessageVectors(target.id)
-        storeAssistantMessageVector(
-            content = mergedContent,
-            ownerId = ownerId,
-            characterId = storedCharacterId,
-            sessionId = sessionId,
-            messageId = target.id,
-            // 同上：继续生成是"合并进同一条消息"，属于替换而非新增
-            replacePrevious = true,
-        )
-        db.sessionDao().get(sessionId, ownerId, characterId)?.let { session ->
-            db.sessionDao().upsert(session.copy(updatedAt = java.time.Instant.now().toString()))
+        if (persisted) {
+            deleteMessageVectors(target.id)
+            storeAssistantMessageVector(
+                content = mergedContent,
+                ownerId = ownerId,
+                characterId = storedCharacterId,
+                sessionId = sessionId,
+                messageId = target.id,
+                // 同上：继续生成是"合并进同一条消息"，属于替换而非新增
+                replacePrevious = true,
+            )
+            db.sessionDao().get(sessionId, ownerId, characterId)?.let { session ->
+                db.sessionDao().upsert(session.copy(updatedAt = java.time.Instant.now().toString()))
+            }
         }
+        return persisted
     }
 
     private fun decodeStringList(jsonText: String): List<String> =
@@ -1353,6 +1458,19 @@ class ChatRepository(private val context: Context) {
     }
 
     /**
+     * persistAssistantReply 的返回值：落库的 assistant 消息 + 是否**真的写进了库**。
+     * 慢 LLM 期间会话可能已被删，此时返回的消息仅供调用方展示，persisted=false——
+     * 「记忆可见」等一切以"消息已存在"为前提的下游动作都必须先看这个标志。
+     */
+    private data class PersistedReply(
+        val message: Message,
+        val persisted: Boolean,
+    )
+
+    // 体量在会话锁改造前已超阈值（基线吸收）；本轮只改返回值（补 persisted 标志供「记忆可见」
+    // 事件判定），替换事务/追加语义与取消路径的控制流不动——拆分风险高于收益，豁免。
+
+    /**
      * sendMessage / continueGroupChat / regenerateMessage 共用的回复落库公共尾部（避免复制粘贴）：
      * 1) 回复清洗（think 块提取）；2) 群聊归属解析（resolveReplyAttribution）；3) 助手消息落库；
      * 4) 向量化；5) 会话计数回写；6) 记忆提取（Append 入缓冲攒批，满批合并抽取；
@@ -1365,12 +1483,13 @@ class ChatRepository(private val context: Context) {
      * mode：Append 走完整尾部（计数 +1 + 记忆提取）；Replace（regenerateMessage）在同一事务内
      * 原子完成「删目标及其后的全部消息 → 落新回复 → 按真实行数回写计数」，随后仅向量化。
      */
+    @Suppress("LongMethod")
     private suspend fun persistAssistantReply(
         fullReply: String,
         scope: SessionScope,
         speakerNames: Map<String, String>?,
         mode: ReplyTailMode,
-    ): Message {
+    ): PersistedReply {
         // 回复清洗 + 群聊归属解析（与取消路径共用 resolveReplyAttribution）
         val (rawStoredContent, replyThinking, storedCharacterId) =
             resolveReplyAttribution(fullReply, speakerNames, scope.characterId)
@@ -1474,7 +1593,7 @@ class ChatRepository(private val context: Context) {
             )
         }
 
-        return assistantMsg
+        return PersistedReply(assistantMsg, persisted)
     }
 
     /**

@@ -107,6 +107,10 @@ fun MessageBubble(
     onActionsDismiss: () -> Unit = {},
     onSwipeLeft: () -> Unit = {},
     onSwipeRight: () -> Unit = {},
+    // 「记得 N 件」轻标记（记忆可见 v0）：N = 本轮注入的结构化记忆条数；null/0 不显示。
+    // 清单只进内存（不落库），点击打开注入明细底部弹层（编辑/忘记/进记忆管理）
+    memoryBadgeCount: Int? = null,
+    onMemoryBadgeClick: () -> Unit = {},
     // HTML 界面：桥宿主 + 卡片脚本 + 全局开关（三者齐备且消息含 HTML 才渲染 WebView）
     htmlHost: com.mistbell.tavern.android.ui.chat.htmlui.HtmlBridgeHost? = null,
     htmlScripts: List<com.mistbell.tavern.android.ui.chat.htmlui.HtmlScript> = emptyList(),
@@ -133,6 +137,8 @@ fun MessageBubble(
     // 当前存储正文（非正则处理后的展示文本），关闭再开不会残留上次未保存的输入
     var showEditDialog by remember { mutableStateOf(false) }
     var editText by remember(showEditDialog, message.content) { mutableStateOf(message.content) }
+    // 「记得 N 件」轻标记（记忆可见 v0）：点开本轮注入记忆明细弹层
+    val showMemoryBadge = !isUser && memoryBadgeCount != null && memoryBadgeCount > 0
     // 有思维链的消息进入聊天页时直接显示正文；仍可点击标题收起，避免用户误以为思维链没有生成。
     var thinkingExpanded by remember { mutableStateOf(true) }
     // 长按 pill 与系统浮动文本工具条（FloatingActionMode，独立窗口）互斥：
@@ -616,6 +622,21 @@ fun MessageBubble(
             }
 
             // 头像已完全移除
+        }
+
+        // 「记得 N 件」轻标记（仅 AI 回复、本轮有结构化记忆注入时显示）：低强调、可点开明细
+        if (showMemoryBadge) {
+            Text(
+                text = "记得 $memoryBadgeCount 件",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier =
+                    Modifier
+                        .padding(start = if (isUser) 0.dp else 16.dp, end = 16.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClick = onMemoryBadgeClick)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+            )
         }
 
         // Timestamp

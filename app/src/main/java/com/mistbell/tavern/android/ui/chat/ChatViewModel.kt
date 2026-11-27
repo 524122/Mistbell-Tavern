@@ -12,6 +12,7 @@ import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.QuickReplyRepository
+import com.mistbell.tavern.android.data.repository.StructuredMemoryRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.theme.ThemeSupport
 import com.mistbell.tavern.android.data.theme.ThemeTokens
@@ -38,6 +39,7 @@ import kotlinx.serialization.json.jsonPrimitive
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TavernApplication.instance.container.database
     private val repo = ChatRepository(application)
+    private val structuredMemoryRepo = StructuredMemoryRepository(application)
     private val networkMonitor = NetworkMonitor(application)
     private val themeRepo = ThemePackRepository(application)
     private val settingsRepo = com.mistbell.tavern.android.data.repository.SettingsRepository()
@@ -724,6 +726,88 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         copyMessage(text)
     }
 
+    // ---- 「记忆可见 v0」（P2 第 4 项）：「记得 N 件」轻标记与注入明细弹层 ----
+
+    /**
+     * assistant 消息 id → 本轮注入的记忆清单。**只进内存、不落库**：进程重启后旧消息不再
+     * 显示标记，切换会话即清空（见 [InjectedMemoriesStore] 与 [InjectedMemoriesEvent] 的语义说明）。
+     */
+    private val injectedMemoriesStore = InjectedMemoriesStore()
+    val injectedMemories: StateFlow<Map<String, InjectedMemories>> = injectedMemoriesStore.state
+
+    /** 当前打开的注入明细弹层数据（null = 关闭）。打开时按 id 回库取正文，已被删除的条目不显示 */
+    private val _injectedMemoriesDetail = MutableStateFlow<InjectedMemoriesDetail?>(null)
+    val injectedMemoriesDetail: StateFlow<InjectedMemoriesDetail?> = _injectedMemoriesDetail.asStateFlow()
+
+    /** 点开「记得 N 件」轻标记：按消息 id 回库解析本轮注入的记忆正文 */
+    fun openInjectedMemoriesSheet(messageId: String) {
+        if (_injectedMemoriesDetail.value?.messageId == messageId) return
+        viewModelScope.launch {
+            _injectedMemoriesDetail.value = loadInjectedMemoriesDetail(messageId)
+        }
+    }
+
+    fun dismissInjectedMemoriesSheet() {
+        _injectedMemoriesDetail.value = null
+    }
+
+    /** 编辑一条注入记忆的正文：updateMemory 后即时刷新弹层列表 */
+    fun updateInjectedMemoryContent(
+        memoryId: Long,
+        newContent: String,
+    ) {
+        if (newContent.isBlank()) return
+        viewModelScope.launch {
+            try {
+                val memory = structuredMemoryRepo.getMemoryById(memoryId) ?: return@launch
+                structuredMemoryRepo.updateMemory(memory.copy(content = newContent))
+                _toast.value = "已更新"
+                refreshInjectedMemoriesSheet()
+            } catch (e: Exception) {
+                _toast.value = "更新失败: ${e.message}"
+            }
+        }
+    }
+
+    /** 忘记一条注入记忆：deleteMemory（归属按记忆自身声明）→ 从所有消息的清单移除 → 弹层刷新 */
+    fun forgetInjectedMemory(memoryId: Long) {
+        viewModelScope.launch {
+            try {
+                val memory = structuredMemoryRepo.getMemoryById(memoryId) ?: return@launch
+                val sessionId = memory.sessionId
+                if (sessionId.isNullOrBlank()) return@launch
+                structuredMemoryRepo.deleteMemory(memoryId, memory.ownerId, sessionId)
+                injectedMemoriesStore.forgetMemory(memoryId.toString())
+                _toast.value = "已忘记"
+                refreshInjectedMemoriesSheet()
+            } catch (e: Exception) {
+                _toast.value = "忘记失败: ${e.message}"
+            }
+        }
+    }
+
+    /** 注入明细：结构化记忆按 id 回库取正文（已删的不出现）；召回行取历史消息正文 */
+    private suspend fun loadInjectedMemoriesDetail(messageId: String): InjectedMemoriesDetail? {
+        val injected = injectedMemoriesStore.state.value[messageId] ?: return null
+        val memories =
+            injected.structuredMemoryIds
+                .mapNotNull { it.toLongOrNull() }
+                .mapNotNull { structuredMemoryRepo.getMemoryById(it) }
+        val recallLines =
+            injected.recallMessageIds
+                .mapNotNull { db.messageDao().getAnyById(it) }
+                .map { entity -> RecalledMessageLine(entity.id, entity.content) }
+        return InjectedMemoriesDetail(messageId, memories, recallLines)
+    }
+
+    /** 编辑/忘记后的即时刷新：条目没了（全部被忘光且无召回行）就顺势关掉弹层 */
+    private suspend fun refreshInjectedMemoriesSheet() {
+        val messageId = _injectedMemoriesDetail.value?.messageId ?: return
+        val fresh = loadInjectedMemoriesDetail(messageId)
+        _injectedMemoriesDetail.value =
+            fresh?.takeIf { it.memories.isNotEmpty() || it.recallLines.isNotEmpty() }
+    }
+
     // 主题包状态：应用链为 会话 → 角色 → 全局（ThemeSupport 内逐层回落）
     // 双键驱动：会话 id + 角色 id 任一变化都重新解析（tokens / 背景图共用同一条解析链）
     private val sessionCharacterKey: Flow<Pair<String, String?>> =
@@ -821,8 +905,19 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         com.mistbell.tavern.android.extension.scripting.ActiveChatHookBridge.host = hookCapableBridgeHost
 
         // HTML 界面展开状态跟随会话切换重载（按会话隔离持久化）
+        // 「记忆可见」账本同点清空：标记属于会话，切走即作废（与提示词预览的清理同语义）
         viewModelScope.launch {
-            _activeSessionId.collect { reloadHtmlExpanded(it) }
+            _activeSessionId.collect { sessionId ->
+                reloadHtmlExpanded(sessionId)
+                injectedMemoriesStore.onSessionChanged(sessionId)
+            }
+        }
+
+        // 「记忆可见 v0」：收集仓库发布的一轮注入事件进内存账本（只进内存，不落库）。
+        // 事件只在回复成功落库后由发送路径发出，与本页同生命周期收集即可赶上（发送本身
+        // 走的就是本页这条 repo 实例）
+        viewModelScope.launch {
+            repo.injectedMemoriesEvents.collect { injectedMemoriesStore.onEvent(it) }
         }
 
         // HTML 聊天事件常驻收集（修复推送断裂）：TavernEventBus 是 replay=0 的 SharedFlow，

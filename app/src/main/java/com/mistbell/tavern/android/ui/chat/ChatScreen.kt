@@ -219,11 +219,16 @@ private fun ChatErrorBanner(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+// 体量/复杂度基线吸收存量（v16 以前即超阈值）；本轮只加一个导航回调参数，拆分
+// 聊天页主组合属于独立重构，不在「记忆可见 v0」范围内，豁免。
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel,
     onMenuClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    // 「记忆可见 v0」：注入明细弹层的「进入记忆管理」（宿主层导航到 Routes.memoryList）
+    onNavigateToMemoryManagement: () -> Unit = {},
 ) {
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val isTyping by viewModel.isTyping.collectAsStateWithLifecycle()
@@ -349,6 +354,11 @@ fun ChatScreen(
     val isLoadingPromptTrace by viewModel.isLoadingPromptTrace.collectAsStateWithLifecycle()
     val promptTraceError by viewModel.promptTraceError.collectAsStateWithLifecycle()
     var showPromptSheet by remember { mutableStateOf(false) }
+
+    // 「记忆可见 v0」（P2 第 4 项）：AI 回复下方「记得 N 件」轻标记 + 注入明细弹层
+    // （清单只进内存：切会话清空，进程重启后旧消息不再显示标记）
+    val injectedMemories by viewModel.injectedMemories.collectAsStateWithLifecycle()
+    val injectedMemoriesDetail by viewModel.injectedMemoriesDetail.collectAsStateWithLifecycle()
 
     // “贴底”判定：derivedStateOf 只在最后可见项 index 跨过阈值时才触发重组
     val atBottom by remember {
@@ -640,6 +650,10 @@ fun ChatScreen(
                                     remember(message.id) { { viewModel.swipeMessage(message.id, "left") } }
                                 val onSwipeRight =
                                     remember(message.id) { { viewModel.swipeMessage(message.id, "right") } }
+                                // 「记得 N 件」轻标记：N = 本轮注入的结构化记忆条数（无清单/无注入 = 不显示）
+                                val memoryBadgeCount = injectedMemoryBadgeCount(injectedMemories[message.id])
+                                val onMemoryBadgeClick =
+                                    remember(message.id) { { viewModel.openInjectedMemoriesSheet(message.id) } }
                                 val isGreetingSlot = canSwapGreeting && message.id == greetingMessage?.id
                                 if (isGreetingSlot) {
                                     // 开场白槽位：气泡下挂「切换开场白」入口（仅 greeting-only 会话）
@@ -675,6 +689,8 @@ fun ChatScreen(
                                                 onActionsDismiss = dismissActionsPill,
                                                 onSwipeLeft = onSwipeLeft,
                                                 onSwipeRight = onSwipeRight,
+                                                memoryBadgeCount = memoryBadgeCount,
+                                                onMemoryBadgeClick = onMemoryBadgeClick,
                                                 htmlHost = viewModel.htmlBridgeHost,
                                                 // tavern_helper.scripts 已移交全局宿主层执行，面板只渲染消息内联 HTML
                                                 htmlScripts = emptyList(),
@@ -728,6 +744,8 @@ fun ChatScreen(
                                             onActionsDismiss = dismissActionsPill,
                                             onSwipeLeft = onSwipeLeft,
                                             onSwipeRight = onSwipeRight,
+                                            memoryBadgeCount = memoryBadgeCount,
+                                            onMemoryBadgeClick = onMemoryBadgeClick,
                                             htmlHost = viewModel.htmlBridgeHost,
                                             // tavern_helper.scripts 已移交全局宿主层执行，面板只渲染消息内联 HTML
                                             htmlScripts = emptyList(),
@@ -1064,6 +1082,26 @@ fun ChatScreen(
                     onDismiss = {
                         showPromptSheet = false
                         viewModel.clearPromptTrace()
+                    },
+                ),
+        )
+    }
+
+    // 「记得 N 件」注入明细弹层（记忆可见 v0）：本轮注入的结构化记忆可编辑/可忘记，
+    // 召回的早先对话只读；「进入记忆管理」由宿主层导航（不经 ui → navigation 依赖）
+    injectedMemoriesDetail?.let { detail ->
+        InjectedMemoriesSheet(
+            detail = detail,
+            callbacks =
+                InjectedMemoriesSheetCallbacks(
+                    onDismiss = { viewModel.dismissInjectedMemoriesSheet() },
+                    onEditMemory = { memory, newContent ->
+                        viewModel.updateInjectedMemoryContent(memory.id, newContent)
+                    },
+                    onForgetMemory = { memory -> viewModel.forgetInjectedMemory(memory.id) },
+                    onOpenMemoryManagement = {
+                        viewModel.dismissInjectedMemoriesSheet()
+                        onNavigateToMemoryManagement()
                     },
                 ),
         )
