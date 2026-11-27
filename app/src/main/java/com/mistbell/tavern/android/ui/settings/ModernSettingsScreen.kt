@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -120,6 +121,8 @@ fun ModernSettingsScreen(
 
             // ============ 基础设置（直接展示）============
 
+            UiModeSettingsSection(viewModel)
+
             ApiSettingsSection(
                 apiConfigViewModel = apiConfigViewModel,
             )
@@ -204,6 +207,45 @@ private fun ApiSettingsSection(
     ModernSettingsGroup(title = "🔧 AI 连接") {
         // 内联 API 卡片管理：左右滑动切换配置，长按预览所有配置
         InlineApiCardsSection(viewModel = apiConfigViewModel)
+    }
+}
+
+/**
+ * 界面模式（P3 第 1 项，docs/UI_MODE.md）：设置列表最前面的一项。只提供切换入口，
+ * 不隐藏任何其他入口（按模式收拢界面是第 2 项）；执行闸门读同一 settings 值，
+ * 改写后响应式生效，无需重启。
+ */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun UiModeSettingsSection(viewModel: SettingsViewModel) {
+    val uiMode by viewModel.uiMode.collectAsState()
+    var showModeDialog by remember { mutableStateOf(false) }
+
+    ModernSettingsGroup(title = "🧭 界面模式") {
+        ModernSettingsItem(
+            title = "界面模式",
+            subtitle = "简洁模式下正则、规则包、脚本、扩展钩子、HTML 界面与 MVU 不运行；全局书、人设书和自定义提示词仍会进提示词",
+            icon = Icons.Default.School,
+            onClick = { showModeDialog = true },
+            trailing = {
+                Text(
+                    text = uiMode.displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            },
+        )
+    }
+
+    if (showModeDialog) {
+        UserModeSelectionDialog(
+            currentMode = uiMode,
+            onModeSelected = { mode ->
+                showModeDialog = false
+                if (mode != uiMode) viewModel.setUiMode(mode)
+            },
+            onDismiss = { showModeDialog = false },
+        )
     }
 }
 

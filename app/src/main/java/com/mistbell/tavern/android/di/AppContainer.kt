@@ -6,11 +6,14 @@ import com.mistbell.tavern.android.data.extensionpack.BuiltinPackSeeder
 import com.mistbell.tavern.android.data.extensionpack.ExtensionPreloadProvider
 import com.mistbell.tavern.android.data.extensionpack.NetworkAllowlistProvider
 import com.mistbell.tavern.android.data.local.AppDatabase
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.EnabledRulePacksCache
 import com.mistbell.tavern.android.data.repository.ExtensionPackRepository
 import com.mistbell.tavern.android.data.repository.MemoryResetPendingException
 import com.mistbell.tavern.android.data.repository.PendingExtractionStore
 import com.mistbell.tavern.android.data.repository.SessionMemoryReset
+import com.mistbell.tavern.android.data.repository.SettingsRepository
+import com.mistbell.tavern.android.data.repository.UiModeGatedRulePackSource
 import com.mistbell.tavern.android.data.repository.VectorIndexRecoveryReconciler
 import com.mistbell.tavern.android.data.repository.VectorRecallValidator
 import com.mistbell.tavern.android.data.repository.VectorSyncRecovery
@@ -35,6 +38,8 @@ import com.mistbell.tavern.android.extension.scripting.ExtensionHookRuntimeManag
 import com.mistbell.tavern.android.extension.scripting.ScriptRuntimeManager
 import com.mistbell.tavern.android.extension.scripting.ScriptedPackExtension
 import com.mistbell.tavern.android.util.SecureStore
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.stateIn
 import java.io.File
 
 /**
@@ -235,10 +240,42 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
+    /**
+     * 界面模式（进程级单一真相的读取口，P3 执行边界 docs/UI_MODE.md）：settings ui_mode
+     * 的常驻收集。**初值 null = 模式未知**：数据库读回来之前各闸门一律先不放行（简洁
+     * 模式用户启用了带脚本的规则包时，绝不能在模式读回前的几毫秒里把脚本加载执行）。
+     * 给执行闸门用；设置页展示用 [SettingsRepository.observeUiMode]（非空、缺省高级）。
+     */
+    val uiMode: kotlinx.coroutines.flow.StateFlow<UiMode?> by lazy {
+        val residentScope =
+            kotlinx.coroutines.CoroutineScope(
+                kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+            )
+        SettingsRepository()
+            .observeUiMode()
+            .stateIn(residentScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, null)
+    }
+
+    /**
+     * 规则包源的模式闸（P3 执行边界）：简洁模式给空表。挂在脚本运行时与规则包扩展上，
+     * 脚本卸载 / 提示词块 / 输入输出正则 / 包宏 / 动态斜杠命令全部顺此生效。
+     * 原始 [rulePackCache] 保留给规则包管理页（读 DAO，不经此）与快捷回复聚合。
+     */
+    val uiModeGatedRulePackSource: com.mistbell.tavern.android.data.repository.RulePackSource by lazy {
+        UiModeGatedRulePackSource(
+            delegate = rulePackCache,
+            mode = uiMode,
+            scope =
+                kotlinx.coroutines.CoroutineScope(
+                    kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+                ),
+        )
+    }
+
     /** 脚本包运行时管理器（JS 沙箱生命周期；start() 幂等，注册扩展时启动） */
     val scriptRuntimeManager: ScriptRuntimeManager by lazy {
         ScriptRuntimeManager(
-            source = rulePackCache,
+            source = uiModeGatedRulePackSource,
             settingsDaoProvider = { database.settingsDao() },
             scope =
                 kotlinx.coroutines.CoroutineScope(
@@ -262,6 +299,8 @@ class AppContainer(private val appContext: Context) {
                 kotlinx.coroutines.CoroutineScope(
                     kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
                 ),
+            // P3 执行边界：简洁模式给 onPacksChanged 空表，已加载钩子走现有 unload 卸载
+            modeProvider = { uiMode },
         )
     }
 
@@ -278,11 +317,15 @@ class AppContainer(private val appContext: Context) {
         ExtensionRegistry.register(CustomPromptExtension())
         ExtensionRegistry.register(HelpCommand())
         ExtensionRegistry.register(NoteCommand())
-        // 触碰 rulePackCache 即预热缓存（注册期开始收集 Room Flow），与 awaitPacks 共同消除冷启动竞态
-        ExtensionRegistry.register(RulePackExtension(rulePackCache))
+        // 触碰 rulePackCache 即预热缓存（注册期开始收集 Room Flow），与 awaitPacks 共同消除冷启动竞态。
+        // P3 执行边界：规则包扩展与脚本运行时都挂模式闸源（uiModeGatedRulePackSource），
+        // 简洁模式给空表；管理页与快捷回复仍读原始 rulePackCache / DAO，不受闸影响。
+        ExtensionRegistry.register(RulePackExtension(uiModeGatedRulePackSource))
         ExtensionRegistry.register(ScriptedPackExtension(scriptRuntimeManager))
         ExtensionRegistry.register(ExtensionHookExtension(extensionHookRuntimeManager))
-        ExtensionRegistry.register(MvuExtension())
+        // P3 执行边界：MVU 简洁模式只剥块返回 cleanedText，不写 ext.mvu.*、不发 VariablesUpdated；
+        // filterNotNull 保证模式未知（启动头几毫秒）时 process 挂起等待，绝不按高级放行
+        ExtensionRegistry.register(MvuExtension(modeProvider = { uiMode.filterNotNull() }))
         scriptRuntimeManager.start()
         // P3 扩展包宿主钩子：观察启用中且声明 hostHooks 的扩展包（启停/覆盖安装即装卸）
         extensionHookRuntimeManager.start()

@@ -14,6 +14,8 @@ import com.mistbell.tavern.android.data.local.entity.MessageEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.local.entity.StructuredMemoryEntity
 import com.mistbell.tavern.android.data.local.entity.WorldBookEntryEntity
+import com.mistbell.tavern.android.data.model.UiMode
+import com.mistbell.tavern.android.data.model.enabledCapabilities
 import com.mistbell.tavern.android.data.regex.CardRegexEngine
 import com.mistbell.tavern.android.data.regex.GlobalRegexStore
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
@@ -21,6 +23,7 @@ import com.mistbell.tavern.android.data.repository.LexicalMemoryService
 import com.mistbell.tavern.android.data.repository.MemoryScope
 import com.mistbell.tavern.android.data.repository.RecallRanker
 import com.mistbell.tavern.android.data.repository.RecallWindow
+import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.vector.VectorMemoryService
 import com.mistbell.tavern.android.data.vector.VectorStore
 import com.mistbell.tavern.android.extension.ExtensionRegistry
@@ -768,7 +771,7 @@ object PromptBuilder {
      * 中间产物（WI 计划/预算/激活结果/记忆/历史窗口等）一律经本类属性在阶段间传递；
      * 嵌套在 object 内：阶段函数直接使用外层全部既有 helper（worldInfoBlock 等），零搬迁。
      */
-    @Suppress("TooManyFunctions") // 阶段化装配：按职责拆小函数优于挤进单体函数
+    @Suppress("TooManyFunctions", "LargeClass") // 阶段化装配：装配状态与阶段函数是同一装配路径的内聚拆分
     private class AssemblyCtx(
         val db: AppDatabase,
         val request: PromptRequest,
@@ -844,17 +847,27 @@ object PromptBuilder {
                     .mapNotNull { participantById[it] }
                     .ifEmpty { participantById[request.characterId]?.let { listOf(it) } ?: emptyList() }
             character = participantCharacters.firstOrNull() ?: participantById[request.characterId]
-            // 正则管线：全局规则（跨角色）先、卡级规则后；被逐角色停用的卡视为无规则
-            globalRegexScripts = GlobalRegexStore.toScripts(db.globalRegexDao().getAll())
+            // 正则管线：全局规则（跨角色）先、卡级规则后；被逐角色停用的卡视为无规则；
+            // 界面模式（P3 执行边界）：简洁模式两份脚本置空（读 settingsDao 手边的值，
+            // 不经应用单例），提示词三路拿空表即逐字节原样
+            val rawGlobalRegex = GlobalRegexStore.toScripts(db.globalRegexDao().getAll())
             val cardRegexDisabledIds =
                 GlobalRegexStore.parseDisabledIds(settingsDao.getValue(GlobalRegexStore.KEY_CARD_REGEX_DISABLED))
             val mainCharacter = character
-            cardRegexScripts =
+            val rawCardRegex =
                 if (mainCharacter == null || mainCharacter.id in cardRegexDisabledIds) {
                     emptyList()
                 } else {
                     CardRegexEngine.parse(mainCharacter.toDomain().data?.extensions)
                 }
+            val (gatedGlobalRegex, gatedCardRegex) =
+                gatedRegexScriptsForUiMode(
+                    settingsDao.getValue(SettingsRepository.KEY_UI_MODE),
+                    rawGlobalRegex,
+                    rawCardRegex,
+                )
+            globalRegexScripts = gatedGlobalRegex
+            cardRegexScripts = gatedCardRegex
             // F2.1 宏引擎上下文（契约 B）：用户名与人设统一取全局设置（键常量收敛在 ChatSettingsResolver，
             // 禁止手写字面量）；用户名缺省 "User"，人设缺省空串（不注入该段）
             userName = ChatSettingsResolver.userName(settingsDao.getValue(ChatSettingsResolver.KEY_USER_NAME))
@@ -1591,6 +1604,23 @@ object PromptBuilder {
             ?: characterId.take(GROUP_SPEAKER_NAME_FALLBACK_LENGTH)
                 .takeIf { it.length == GROUP_SPEAKER_NAME_FALLBACK_LENGTH }
             ?: GROUP_SPEAKER_FALLBACK_NAME
+
+    /**
+     * 界面模式的正则闸（P3 执行边界，docs/UI_MODE.md）：简洁模式下全局与卡级两份脚本
+     * 都置空——historyForPrompt 与 appendFinalMessage 两个应用点拿到的 combine 结果即
+     * 空表，applyToPrompt 逐字节原样返回。rawMode 来自 settingsDao（loadCore 唯一调用）。
+     * internal 仅为单元测试开放（独立纯函数，脱离 Room 直接验证闸门语义）。
+     */
+    internal fun gatedRegexScriptsForUiMode(
+        rawMode: String?,
+        global: List<CardRegexEngine.CardRegexScript>,
+        card: List<CardRegexEngine.CardRegexScript>,
+    ): Pair<List<CardRegexEngine.CardRegexScript>, List<CardRegexEngine.CardRegexScript>> =
+        if (enabledCapabilities(UiMode.fromSetting(rawMode)).cardAndGlobalRegex) {
+            global to card
+        } else {
+            emptyList<CardRegexEngine.CardRegexScript>() to emptyList()
+        }
 
     // internal 仅为单元测试开放（ROADMAP M2-2：token 预算截断逻辑需要回归测试）
     internal fun selectHistoryWithinBudget(

@@ -193,6 +193,26 @@ fun MessageBubble(
         }
     val hasNarrativeHtml =
         htmlParts.any { it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc && it.narrative }
+
+    // 底部兜底（P3 执行边界，docs/UI_MODE.md）：HTML 界面关闭且无布局段（纯脚本界面卡）时，
+    // 逐段分支整段不走，会落到 legacyMessageBody 最下面的 else——把文档段剥成可读纯文本后
+    // 按原顺序重拼，Markdown 段原样；纯文本/Markdown（无 HtmlDoc 段）保持逐字节不变。
+    val hasHtmlDocParts =
+        htmlParts.any { it is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc }
+    val fallbackDisplayedContent =
+        if (!renderHtml && !hasLayoutHtml && hasHtmlDocParts) {
+            remember(htmlParts) {
+                htmlParts.joinToString(separator = "") { part ->
+                    when (part) {
+                        is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.Markdown -> part.text
+                        is com.mistbell.tavern.android.ui.chat.htmlui.HtmlCardDetector.Part.HtmlDoc ->
+                            com.mistbell.tavern.android.util.HtmlPlainText.toPlainText(part.html)
+                    }
+                }
+            }
+        } else {
+            displayedContent
+        }
     val htmlFullBleed =
         renderHtml && !hasNarrativeHtml &&
             htmlParts.all { part ->
@@ -343,8 +363,12 @@ fun MessageBubble(
                                         narrative = part.narrative,
                                     )
                                 } else {
+                                    // 兜底（P3，docs/UI_MODE.md）：HTML 界面关闭且片段不是布局
+                                    // HTML——原来这里把原始标签当纯文本裸露，改为剥标签的可读文本。
+                                    // 带 <style>/<table> 的布局片段已在上面走 litehtml，不经过此处
                                     MessageMarkdown(
-                                        displayedContent = part.html,
+                                        displayedContent =
+                                            com.mistbell.tavern.android.util.HtmlPlainText.toPlainText(part.html),
                                         dark = dark,
                                         isUser = isUser,
                                         cardTextColor = cardTextColor,
@@ -356,8 +380,10 @@ fun MessageBubble(
                 }
             }
         } else {
+            // 底部兜底：见上方 fallbackDisplayedContent 的注释（纯脚本界面卡在 HTML 界面
+            // 关闭时也走这里，文档段剥为纯文本，不再裸露原始标签）
             MessageMarkdown(
-                displayedContent = displayedContent,
+                displayedContent = fallbackDisplayedContent,
                 dark = dark,
                 isUser = isUser,
                 cardTextColor = cardTextColor,

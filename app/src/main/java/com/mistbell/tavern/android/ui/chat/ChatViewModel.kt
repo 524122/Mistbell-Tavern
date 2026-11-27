@@ -9,6 +9,7 @@ import com.mistbell.tavern.android.data.api.model.*
 import com.mistbell.tavern.android.data.network.NetworkMonitor
 import com.mistbell.tavern.android.data.prompt.PromptBuilder
 import com.mistbell.tavern.android.data.prompt.PromptBuilder.PromptTrace
+import com.mistbell.tavern.android.data.regex.CardRegexEngine
 import com.mistbell.tavern.android.data.repository.ChatRepository
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.QuickReplyRepository
@@ -167,10 +168,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     // ---- HTML 界面（楼层 WebView 渲染，沙箱 + 桥） ----
 
-    /** 全局开关（设置 → 高级设置 → 实验性功能；默认关） */
+    /**
+     * 全局开关（设置 → 高级设置 → 实验性功能；默认关）∧ 界面模式（P3 执行边界）：
+     * 简洁模式下能力关闭，与设置关着同语义——气泡、宿主层、悬浮球、WebView 预热
+     * （ChatScreen 只看本 Flow）都以此为准，不另设第二套条件。
+     */
     val htmlUiEnabled: StateFlow<Boolean> =
-        db.settingsDao().observeValue("html_ui_enabled")
-            .map { it == "1" }
+        combine(
+            db.settingsDao().observeValue("html_ui_enabled"),
+            settingsRepo.observeUiMode(),
+        ) { stored, mode -> htmlUiEnabledForUiMode(stored, mode) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     /** 当前角色卡的 tavern_helper.scripts（CharacterData.extensions 透传而来；无则为空表） */
@@ -202,9 +209,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // ---- 界面模式生效版正则（P3 执行边界，docs/UI_MODE.md）：简洁模式吐空表，----
+    // ---- 展示（ChatScreen）、用户输入（sendMessage）、HTML 界面脚本（getTavernRegexesJson）三路共用 ----
+
+    private val effectiveGlobalRegexScripts: StateFlow<List<CardRegexEngine.CardRegexScript>> =
+        combine(globalRegexScripts, settingsRepo.observeUiMode()) { scripts, mode ->
+            regexScriptsForUiMode(scripts, mode)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val effectiveCardRegexScripts: StateFlow<List<CardRegexEngine.CardRegexScript>> =
+        combine(cardRegexScripts, settingsRepo.observeUiMode()) { scripts, mode ->
+            regexScriptsForUiMode(scripts, mode)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     /** 实际生效的正则管线 = 全局 + 卡级（列表顺序即执行顺序，全局产物可被卡级继续改写） */
     val activeRegexScripts: StateFlow<List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>> =
-        kotlinx.coroutines.flow.combine(globalRegexScripts, cardRegexScripts) { global, card ->
+        kotlinx.coroutines.flow.combine(effectiveGlobalRegexScripts, effectiveCardRegexScripts) { global, card ->
             com.mistbell.tavern.android.data.regex.GlobalRegexStore.combine(global, card)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -385,8 +405,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             override fun getTavernRegexesJson(): String =
                 com.mistbell.tavern.android.data.regex.TavernRegexJson.toTavernJson(
-                    globalRegexScripts.value,
-                    cardRegexScripts.value,
+                    effectiveGlobalRegexScripts.value,
+                    effectiveCardRegexScripts.value,
                 )
 
             override fun showToast(message: String) {
@@ -1615,4 +1635,26 @@ internal fun resolveMentionTarget(
     }
 
     return null
+}
+
+// 界面模式正则闸纯函数（便于单测，P3 执行边界 docs/UI_MODE.md）：简洁模式下正则能力
+// 关闭，全局/卡级两路各自与模式 combine 后吐空表——展示、用户输入、HTML 界面脚本三路
+// 拿到的都是空表，apply 系列逐字节原样返回。advanced 原样透传（同一列表实例）。
+internal fun regexScriptsForUiMode(
+    scripts: List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript>,
+    mode: com.mistbell.tavern.android.data.model.UiMode,
+): List<com.mistbell.tavern.android.data.regex.CardRegexEngine.CardRegexScript> =
+    if (com.mistbell.tavern.android.data.model.enabledCapabilities(mode).cardAndGlobalRegex) {
+        scripts
+    } else {
+        emptyList()
+    }
+
+// HTML 界面闸纯函数（便于单测）：设置开着（"1"）且模式允许卡内脚本与 HTML 界面才生效；
+// 设置关着或简洁模式都是 false。
+internal fun htmlUiEnabledForUiMode(
+    stored: String?,
+    mode: com.mistbell.tavern.android.data.model.UiMode,
+): Boolean {
+    return stored == "1" && com.mistbell.tavern.android.data.model.enabledCapabilities(mode).cardScriptsAndHtmlUi
 }

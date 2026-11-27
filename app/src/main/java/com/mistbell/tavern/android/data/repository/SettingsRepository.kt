@@ -7,6 +7,7 @@ import com.mistbell.tavern.android.data.api.LlmConfig
 import com.mistbell.tavern.android.data.api.RequestSamplingParams
 import com.mistbell.tavern.android.data.api.normalizeApiType
 import com.mistbell.tavern.android.data.local.dao.SettingsDao
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.util.SecureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
+@Suppress("TooManyFunctions") // KV 仓库按域分组（LLM/生成/主题渲染/界面模式），读写实为同一表的三态存取
 class SettingsRepository {
     private val db get() = TavernApplication.instance.container.database
 
@@ -169,7 +171,25 @@ class SettingsRepository {
             )
         }
 
+    // --- 界面模式（P3「简洁模式是执行边界」，docs/UI_MODE.md）---
+
+    /**
+     * 界面模式（缺省 [UiMode.ADVANCED]）：本项只落设置项与执行闸门，缺省行为与历史
+     * 版本完全一致；全新安装默认简洁、升级首启弹选择是 P3 第 2 项。
+     */
+    fun observeUiMode(): Flow<UiMode> = db.settingsDao().observeValue(KEY_UI_MODE).map { UiMode.fromSetting(it) }
+
+    suspend fun setUiMode(mode: UiMode) =
+        withContext(Dispatchers.IO) {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(KEY_UI_MODE, mode.storedValue),
+            )
+        }
+
     companion object {
         const val KEY_LAYOUT_RENDERER_ENABLED = "layout_renderer_enabled"
+
+        /** 界面模式（"simple" / "advanced"；缺省与无法识别一律按高级执行） */
+        const val KEY_UI_MODE = "ui_mode"
     }
 }

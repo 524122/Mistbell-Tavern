@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.api.LlmConfig
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.BackupManager
 import com.mistbell.tavern.android.data.repository.ChatSettingsResolver
 import com.mistbell.tavern.android.data.repository.SettingsRepository
@@ -35,6 +36,29 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _darkMode = MutableStateFlow("system")
     val darkMode: StateFlow<String> = _darkMode
+
+    // --- 界面模式（P3 执行边界，docs/UI_MODE.md）---
+
+    /**
+     * 界面模式：observeUiMode 响应式收集——本页或模式选择弹窗改写后实时同步；
+     * 缺省高级（默认简洁的切换是 P3 第 2 项，不在本次范围）。
+     */
+    val uiMode: StateFlow<UiMode> =
+        repo.observeUiMode()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), UiMode.ADVANCED)
+
+    /** 切换界面模式（执行闸门是响应式的，改写 settings 即生效，无需重启） */
+    fun setUiMode(mode: UiMode) {
+        viewModelScope.launch {
+            repo.setUiMode(mode)
+            _message.value =
+                if (mode == UiMode.SIMPLE) {
+                    "已切换到简洁模式：正则、规则包、脚本、扩展钩子、HTML 界面与 MVU 不再运行"
+                } else {
+                    "已切换到高级模式：全部能力已恢复"
+                }
+        }
+    }
 
     // --- 提示词模板（全局 KV，明文存储；空值语义见各 resolver） ---
     //

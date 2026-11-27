@@ -4,11 +4,16 @@ import android.util.Log
 import com.mistbell.tavern.android.data.extensionpack.ExtensionPackStore
 import com.mistbell.tavern.android.data.local.dao.ExtensionPackDao
 import com.mistbell.tavern.android.data.local.entity.ExtensionPackEntity
+import com.mistbell.tavern.android.data.model.UiMode
+import com.mistbell.tavern.android.data.model.enabledCapabilities
 import com.mistbell.tavern.android.data.rulepack.RulePackManifest
 import com.mistbell.tavern.android.data.rulepack.RulePackParser
 import com.mistbell.tavern.android.extension.TavernEvent
 import com.mistbell.tavern.android.extension.TavernEventBus
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -32,7 +37,7 @@ import java.io.File
  * 全部 JS 执行收敛在 [RhinoSandbox] 的单线程内，本类只做编排；钩子异常/超时由沙箱
  * 降级为 null，消费方按「该钩子无产出」继续（与规则包一致，绝不掀翻聊天链路）。
  */
-@Suppress("TooManyFunctions") // 生命周期 + 钩子分发 + 事件转发是同一职责的内聚拆分（ScriptRuntimeManager 同型）
+@Suppress("TooManyFunctions", "LongParameterList") // 生命周期 + 钩子分发 + 事件转发同一职责内聚拆分；构造参数为注入缝（ScriptRuntimeManager 同型）
 class ExtensionHookRuntimeManager(
     private val daoProvider: () -> ExtensionPackDao,
     private val filesRoot: File,
@@ -40,6 +45,13 @@ class ExtensionHookRuntimeManager(
     private val capabilityHostProvider: () -> HookCapabilityHost?,
     private val scope: CoroutineScope,
     internal val sandbox: RhinoSandbox = RhinoSandbox(),
+    /**
+     * 界面模式源（P3 执行边界，docs/UI_MODE.md）：简洁模式给 [onPacksChanged] 空表，
+     * 走现有 unload 卸载已加载钩子；**null = 模式未知（启动头几毫秒）→ 同样给空表**，
+     * 先不加载，等模式读回后再由下一次发射触发装载。默认恒为高级，未接模式的既有
+     * 调用方行为不变。
+     */
+    private val modeProvider: () -> Flow<UiMode?> = { flowOf(UiMode.ADVANCED) },
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -52,12 +64,14 @@ class ExtensionHookRuntimeManager(
 
     private var started = false
 
-    /** 启动常驻收集（幂等）：包启停/覆盖安装/删除经 Room Flow 推到 [onPacksChanged] */
+    /** 启动常驻收集（幂等）：包启停/覆盖安装/删除经 Room Flow 推到 [onPacksChanged]；模式并入同一条流 */
     fun start() {
         if (started) return
         started = true
         scope.launch {
-            daoProvider().observeEnabled().collect { packs -> onPacksChanged(packs) }
+            combine(daoProvider().observeEnabled(), modeProvider()) { packs, mode ->
+                if (mode != null && enabledCapabilities(mode).extensionPackHooks) packs else emptyList()
+            }.collect { packs -> onPacksChanged(packs) }
         }
         scope.launch {
             TavernEventBus.events.collect { dispatchEvent(it) }

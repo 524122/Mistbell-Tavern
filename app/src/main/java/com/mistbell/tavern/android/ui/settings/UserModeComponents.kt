@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // 文件按组件族命名（对话框/开关/包装器），ROADMAP 引用的就是这个文件名
+
 package com.mistbell.tavern.android.ui.settings
 
 import androidx.compose.animation.*
@@ -11,20 +13,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mistbell.tavern.android.data.model.UiMode
 
 /**
- * 用户模式枚举
- */
-enum class UserMode {
-    BEGINNER, // 新手模式 - 简化界面，隐藏高级功能
-    ADVANCED, // 老手模式 - 完整功能，高级设置
-}
-
-/**
- * 用户模式数据类
+ * 界面模式组件（P3「界面模式」设置项；模式本体是 data.model.UiMode 的单一真相）。
+ *
+ * [UserModeConfig] 是**界面可见性**配置（哪些设置区块展示），与执行闸门的
+ * EnabledCapabilities 是两回事：可见性收拢是 P3 第 2 项，本文件当前只服务设置页的
+ * 「界面模式」切换入口。
  */
 data class UserModeConfig(
-    val mode: UserMode,
+    val mode: UiMode,
     val showAdvancedSettings: Boolean,
     val showTechnicalDetails: Boolean,
     val showExperimentalFeatures: Boolean,
@@ -33,18 +32,18 @@ data class UserModeConfig(
 /**
  * 默认配置
  */
-fun UserMode.toConfig(): UserModeConfig {
+fun UiMode.toConfig(): UserModeConfig {
     return when (this) {
-        UserMode.BEGINNER ->
+        UiMode.SIMPLE ->
             UserModeConfig(
-                mode = UserMode.BEGINNER,
+                mode = UiMode.SIMPLE,
                 showAdvancedSettings = false,
                 showTechnicalDetails = false,
                 showExperimentalFeatures = false,
             )
-        UserMode.ADVANCED ->
+        UiMode.ADVANCED ->
             UserModeConfig(
-                mode = UserMode.ADVANCED,
+                mode = UiMode.ADVANCED,
                 showAdvancedSettings = true,
                 showTechnicalDetails = true,
                 showExperimentalFeatures = true,
@@ -52,13 +51,29 @@ fun UserMode.toConfig(): UserModeConfig {
     }
 }
 
+/** 模式中文名（设置项与对话框共用同一份文案） */
+val UiMode.displayName: String
+    get() =
+        when (this) {
+            UiMode.SIMPLE -> "简洁"
+            UiMode.ADVANCED -> "高级"
+        }
+
+/** 简洁模式下不运行的能力清单（规划原文的两句话之一；对话框与设置副标题共用） */
+private const val SIMPLE_DISABLED_SUMMARY =
+    "简洁模式下这些能力不运行：正则、规则包（含脚本）、扩展包钩子、卡内脚本与 HTML 界面、MVU 变量更新。"
+
+/** 提示词不受影响的说明（规划原文的另一句） */
+private const val PROMPT_PASSTHROUGH_NOTE =
+    "全局书、人设书和自定义提示词仍会进提示词，只是不能在简洁模式里改。"
+
 /**
- * 用户模式选择对话框
+ * 界面模式选择对话框
  */
 @Composable
 fun UserModeSelectionDialog(
-    currentMode: UserMode,
-    onModeSelected: (UserMode) -> Unit,
+    currentMode: UiMode,
+    onModeSelected: (UiMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
@@ -72,7 +87,7 @@ fun UserModeSelectionDialog(
         },
         title = {
             Text(
-                text = "选择使用模式",
+                text = "选择界面模式",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -80,58 +95,67 @@ fun UserModeSelectionDialog(
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = "根据你的经验选择合适的界面模式",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                UserModePrinciplesText()
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 新手模式卡片
+                // 简洁模式卡片
                 UserModeCard(
-                    title = "新手模式",
-                    description = "简化界面，隐藏高级功能，适合初次使用",
+                    title = "简洁模式",
+                    description = "三个标签页的默认界面，高级能力不在后台运行",
                     icon = Icons.Default.School,
                     features =
                         listOf(
-                            "简洁的设置选项",
-                            "引导式操作流程",
-                            "隐藏技术细节",
-                            "推荐配置",
+                            "聊天、角色、设置三栏",
+                            "正则、脚本、HTML 界面不运行",
+                            "适合只用基础功能的用户",
                         ),
-                    isSelected = currentMode == UserMode.BEGINNER,
-                    onClick = { onModeSelected(UserMode.BEGINNER) },
+                    isSelected = currentMode == UiMode.SIMPLE,
+                    onClick = { onModeSelected(UiMode.SIMPLE) },
                 )
 
-                // 老手模式卡片
+                // 高级模式卡片
                 UserModeCard(
-                    title = "老手模式",
-                    description = "完整功能，高级设置，适合有经验的用户",
+                    title = "高级模式",
+                    description = "完整功能，与酒馆生态导入能力配合",
                     icon = Icons.Default.Engineering,
                     features =
                         listOf(
-                            "完整的设置选项",
-                            "高级参数调整",
-                            "技术细节展示",
-                            "实验性功能",
+                            "全部设置与世界书入口",
+                            "正则、脚本、HTML 界面照常运行",
+                            "适合导入酒馆资产的用户",
                         ),
-                    isSelected = currentMode == UserMode.ADVANCED,
-                    onClick = { onModeSelected(UserMode.ADVANCED) },
+                    isSelected = currentMode == UiMode.ADVANCED,
+                    onClick = { onModeSelected(UiMode.ADVANCED) },
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("确定")
+                Text("完成")
             }
         },
     )
 }
 
+/** 对话框开头两句话（规划原文）：简洁模式关什么；提示词不受影响的边界 */
+@Composable
+private fun UserModePrinciplesText() {
+    Text(
+        text = SIMPLE_DISABLED_SUMMARY,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        text = PROMPT_PASSTHROUGH_NOTE,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+}
+
 /**
- * 用户模式卡片
+ * 界面模式卡片
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,12 +301,12 @@ private fun UserModeCard(
 }
 
 /**
- * 用户模式切换按钮（用于设置界面）
+ * 界面模式切换按钮（用于设置界面）
  */
 @Composable
 fun UserModeToggle(
-    currentMode: UserMode,
-    onModeChange: (UserMode) -> Unit,
+    currentMode: UiMode,
+    onModeChange: (UiMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -294,10 +318,10 @@ fun UserModeToggle(
             modifier = Modifier.padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // 新手模式按钮
+            // 简洁模式按钮
             FilterChip(
-                selected = currentMode == UserMode.BEGINNER,
-                onClick = { onModeChange(UserMode.BEGINNER) },
+                selected = currentMode == UiMode.SIMPLE,
+                onClick = { onModeChange(UiMode.SIMPLE) },
                 label = {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -308,7 +332,7 @@ fun UserModeToggle(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
-                        Text("新手")
+                        Text("简洁")
                     }
                 },
                 colors =
@@ -318,10 +342,10 @@ fun UserModeToggle(
                     ),
             )
 
-            // 老手模式按钮
+            // 高级模式按钮
             FilterChip(
-                selected = currentMode == UserMode.ADVANCED,
-                onClick = { onModeChange(UserMode.ADVANCED) },
+                selected = currentMode == UiMode.ADVANCED,
+                onClick = { onModeChange(UiMode.ADVANCED) },
                 label = {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -332,7 +356,7 @@ fun UserModeToggle(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
-                        Text("老手")
+                        Text("高级")
                     }
                 },
                 colors =
