@@ -28,6 +28,7 @@ import com.mistbell.tavern.android.data.api.model.WorldBook
 import com.mistbell.tavern.android.data.local.entity.ApiConfigEntity
 import com.mistbell.tavern.android.data.local.entity.SessionEntity
 import com.mistbell.tavern.android.data.local.entity.ThemePackEntity
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.data.repository.ThemePackRepository
 import com.mistbell.tavern.android.data.repository.WorldBookRepository
@@ -35,6 +36,8 @@ import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MAX
 import com.mistbell.tavern.android.ui.components.CONTEXT_TOKEN_MIN
 import com.mistbell.tavern.android.ui.components.ContextTokenLimitSelector
 import com.mistbell.tavern.android.ui.components.formatTokenLimit
+import com.mistbell.tavern.android.ui.settings.TechnicalDetailFeature
+import com.mistbell.tavern.android.ui.settings.toConfig
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -48,6 +51,12 @@ class ChatSettingsViewModel(application: Application) : AndroidViewModel(applica
     // 全局默认值（用于「全局默认：X」提示行）
     private val _globalDefaultContextTokens = MutableStateFlow(4096)
     val globalDefaultContextTokens: StateFlow<Int> = _globalDefaultContextTokens.asStateFlow()
+
+    // 界面模式（P3 第 2 项「按模式收拢界面」，docs/UI_MODE.md）：本页的世界书绑定、
+    // 附加指令、原生渲染引擎开关三个技术细节入口按模式收拢（UserModeConfig），其余恒可见。
+    // 直接暴露进程级常驻流 AppContainer.uiMode（null=模式未知，界面此时不渲染模式相关入口，
+    // 与执行闸门「未知不放行」同一口径）；不做本页 stateIn（初值高级 + WhileSubscribed 会反复闪错）
+    val uiMode: StateFlow<UiMode?> = getApplication<TavernApplication>().container.uiMode
 
     init {
         viewModelScope.launch {
@@ -427,6 +436,10 @@ fun ChatSettingsScreen(
     val globalDefaultContextTokens by viewModel.globalDefaultContextTokens.collectAsState()
     val selectedCharacterIds by viewModel.selectedCharacterIds.collectAsState()
     val authorNote by viewModel.authorNote.collectAsState()
+    // 界面可见性（P3 第 2 项）：世界书绑定 / 附加指令 / 原生渲染引擎开关只在高级模式出现。
+    // 模式为 null（常驻流尚未读回，未知）期间不渲染随模式变化的入口，与闸门「未知不放行」同一口径
+    val uiMode by viewModel.uiMode.collectAsState()
+    val userModeConfig = uiMode?.toConfig()
     var showProviderDialog by remember { mutableStateOf(false) }
     var showCharacterDialog by remember { mutableStateOf(false) }
     var showWorldBookDialog by remember { mutableStateOf(false) }
@@ -566,44 +579,48 @@ fun ChatSettingsScreen(
                 }
             }
 
-            // 世界书设置
-            Text(
-                text = "世界书",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { showWorldBookDialog = true },
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("当前世界书", style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            text =
-                                if (selectedWorldBookId.isBlank()) {
-                                    "无"
-                                } else {
-                                    worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
-                                },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(
-                        Icons.Default.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            // 世界书设置（仅高级模式：世界书四源照常进提示词，绑定/编辑入口收进高级，docs/UI_MODE.md §5）
+            TechnicalDetailFeature(userModeConfig) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = "世界书",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                     )
+                    Card(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { showWorldBookDialog = true },
+                    ) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("当前世界书", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    text =
+                                        if (selectedWorldBookId.isBlank()) {
+                                            "无"
+                                        } else {
+                                            worldBooks.find { it.id == selectedWorldBookId }?.name ?: "未知世界书"
+                                        },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(
+                                Icons.Default.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -650,129 +667,45 @@ fun ChatSettingsScreen(
             }
 
             // 原生渲染引擎开关（M4，总开关；行样式照「设置 → 实验性功能」的 HTML 界面开关）。
-            // 仅对声明 layout 能力的主题包生效：无此类包时开关无效果，消息内容渲染行为不变
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("原生渲染引擎（布局主题）", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text =
-                                "布局主题包用原生引擎渲染消息排版（skiko/Yoga）；关闭即回到原有渲染。" +
-                                    "未安装布局主题包时本开关无效果",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // 仅对声明 layout 能力的主题包生效：无此类包时开关无效果，消息内容渲染行为不变。
+            // 仅高级模式（渲染引擎开关的入口收进高级，docs/UI_MODE.md §5）；已有开关状态照常生效
+            TechnicalDetailFeature(userModeConfig) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("原生渲染引擎（布局主题）", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text =
+                                    "布局主题包用原生引擎渲染消息排版（skiko/Yoga）；关闭即回到原有渲染。" +
+                                        "未安装布局主题包时本开关无效果",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = layoutRendererEnabled,
+                            onCheckedChange = { viewModel.setLayoutRendererEnabled(it) },
                         )
                     }
-                    Switch(
-                        checked = layoutRendererEnabled,
-                        onCheckedChange = { viewModel.setLayoutRendererEnabled(it) },
-                    )
                 }
             }
 
-            // 附加指令（会话级 author_note）
-            Text(
-                text = "附加指令",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            var authorNoteDraft by remember(authorNote) { mutableStateOf(authorNote) }
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                ) {
+            // 附加指令（会话级 author_note；仅高级模式——已配置的指令照常注入，编辑入口收进高级）
+            TechnicalDetailFeature(userModeConfig) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        text = "会话附加指令",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
+                        text = "附加指令",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        text = "默认注入在最近对话之后；填了深度则插进历史倒数第 N 条（对齐酒馆）",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = authorNoteDraft,
-                        onValueChange = { authorNoteDraft = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = {
-                            Text(
-                                "可选。注入在最近对话之后、你的消息之前，支持 {{char}} 等宏",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        minLines = 3,
-                        maxLines = 8,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // AN 深度化（对齐酒馆 Author's Note 的 IN_CHAT 深度插入）：深度>0 插进历史倒数第 N 条
-                    val anDepth by viewModel.authorNoteDepth.collectAsState()
-                    val anRole by viewModel.authorNoteRole.collectAsState()
-                    var anDepthDraft by
-                        remember(anDepth) { mutableStateOf(if (anDepth > 0) anDepth.toString() else "") }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        OutlinedTextField(
-                            value = anDepthDraft,
-                            onValueChange = { text ->
-                                if (text.isBlank() || text.toIntOrNull() != null) {
-                                    anDepthDraft = text
-                                    viewModel.saveAuthorNotePlacement(text.toIntOrNull() ?: 0, anRole)
-                                }
-                            },
-                            label = { Text("插入深度（空=尾部现状）", style = MaterialTheme.typography.bodySmall) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                        )
-                        // 角色三档：0=系统 1=用户 2=角色（酒馆 extension_prompt_roles）
-                        val roleOptions = listOf("系统", "用户", "角色")
-                        roleOptions.forEachIndexed { index, label ->
-                            FilterChip(
-                                selected = anRole == index,
-                                onClick = {
-                                    viewModel.saveAuthorNotePlacement(anDepthDraft.toIntOrNull() ?: 0, index)
-                                },
-                                label = { Text(label, style = MaterialTheme.typography.bodySmall) },
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        // 清空草稿并保存空值 = 清除附加指令
-                        TextButton(
-                            onClick = {
-                                authorNoteDraft = ""
-                                viewModel.saveAuthorNote("")
-                            },
-                            enabled = authorNote.isNotBlank() || authorNoteDraft.isNotBlank(),
-                        ) {
-                            Text("清除")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = { viewModel.saveAuthorNote(authorNoteDraft) },
-                            enabled = authorNoteDraft.trim() != authorNote,
-                        ) {
-                            Text("保存")
-                        }
-                    }
+                    AuthorNoteSection(viewModel, authorNote)
                 }
             }
 
@@ -1217,5 +1150,109 @@ fun ChatSettingsScreen(
                 }
             },
         )
+    }
+}
+
+/**
+ * 会话附加指令编辑卡（author note + AN 深度化落点）。
+ * 入口按模式收拢（P3 第 2 项）：仅高级模式挂载；已配置的指令在简洁模式下照常注入。
+ */
+@Suppress("FunctionNaming", "LongMethod") // Compose 组件按官方约定 PascalCase 命名；编辑卡含深度/角色三档整行
+@Composable
+private fun AuthorNoteSection(
+    viewModel: ChatSettingsViewModel,
+    authorNote: String,
+) {
+    var authorNoteDraft by remember(authorNote) { mutableStateOf(authorNote) }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+        ) {
+            Text(
+                text = "会话附加指令",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "默认注入在最近对话之后；填了深度则插进历史倒数第 N 条（对齐酒馆）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = authorNoteDraft,
+                onValueChange = { authorNoteDraft = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        "可选。注入在最近对话之后、你的消息之前，支持 {{char}} 等宏",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
+                minLines = 3,
+                maxLines = 8,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            // AN 深度化（对齐酒馆 Author's Note 的 IN_CHAT 深度插入）：深度>0 插进历史倒数第 N 条
+            val anDepth by viewModel.authorNoteDepth.collectAsState()
+            val anRole by viewModel.authorNoteRole.collectAsState()
+            var anDepthDraft by
+                remember(anDepth) { mutableStateOf(if (anDepth > 0) anDepth.toString() else "") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = anDepthDraft,
+                    onValueChange = { text ->
+                        if (text.isBlank() || text.toIntOrNull() != null) {
+                            anDepthDraft = text
+                            viewModel.saveAuthorNotePlacement(text.toIntOrNull() ?: 0, anRole)
+                        }
+                    },
+                    label = { Text("插入深度（空=尾部现状）", style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                )
+                // 角色三档：0=系统 1=用户 2=角色（酒馆 extension_prompt_roles）
+                val roleOptions = listOf("系统", "用户", "角色")
+                roleOptions.forEachIndexed { index, label ->
+                    FilterChip(
+                        selected = anRole == index,
+                        onClick = {
+                            viewModel.saveAuthorNotePlacement(anDepthDraft.toIntOrNull() ?: 0, index)
+                        },
+                        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                // 清空草稿并保存空值 = 清除附加指令
+                TextButton(
+                    onClick = {
+                        authorNoteDraft = ""
+                        viewModel.saveAuthorNote("")
+                    },
+                    enabled = authorNote.isNotBlank() || authorNoteDraft.isNotBlank(),
+                ) {
+                    Text("清除")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { viewModel.saveAuthorNote(authorNoteDraft) },
+                    enabled = authorNoteDraft.trim() != authorNote,
+                ) {
+                    Text("保存")
+                }
+            }
+        }
     }
 }

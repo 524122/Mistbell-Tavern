@@ -40,12 +40,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     // --- 界面模式（P3 执行边界，docs/UI_MODE.md）---
 
     /**
-     * 界面模式：observeUiMode 响应式收集——本页或模式选择弹窗改写后实时同步；
-     * 缺省高级（默认简洁的切换是 P3 第 2 项，不在本次范围）。
+     * 界面模式：**直接暴露进程级常驻流** `AppContainer.uiMode`（Eagerly 收集，从不停止）——
+     * 不做本页 stateIn。理由：stateIn 初值 + WhileSubscribed 会造成「未知按高级」的窗口且
+     * 订阅断开 5 秒后重置，简洁模式用户每次冷启动/回页都会看到五个 Tab 闪一下；常驻流的
+     * 初值是 null（模式未知），界面在 null 期间不渲染任何随模式变化的入口，与执行闸门的
+     * 「未知不放行」同一口径（docs/UI_MODE.md §1 通用约定）。
+     * 本页或模式选择弹窗改写 settings 后经同一流实时同步。
      */
-    val uiMode: StateFlow<UiMode> =
-        repo.observeUiMode()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIBE_TIMEOUT_MS), UiMode.ADVANCED)
+    val uiMode: StateFlow<UiMode?> = getApplication<TavernApplication>().container.uiMode
 
     /** 切换界面模式（执行闸门是响应式的，改写 settings 即生效，无需重启） */
     fun setUiMode(mode: UiMode) {

@@ -36,7 +36,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mistbell.tavern.android.TavernApplication
 import com.mistbell.tavern.android.data.local.entity.SettingsEntity
+import com.mistbell.tavern.android.data.model.UiMode
 import com.mistbell.tavern.android.data.repository.CharacterRepository
+import com.mistbell.tavern.android.data.repository.SettingsRepository
 import com.mistbell.tavern.android.util.CharacterImportResult
 import com.mistbell.tavern.android.util.CharacterImporter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,10 +139,18 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         android.util.Log.d("Onboarding", "Imported character: ${result.character.name}")
     }
 
-    /** 引导完成：置标记 + 回调导航（由界面层在导航成功后语义闭合） */
+    /**
+     * 引导完成：置标记 + 写简洁缺省 + 回调导航（由界面层在导航成功后语义闭合）。
+     *
+     * 全新安装默认简洁（P3 第 2 项，docs/UI_MODE.md §5）：引导未完成的设备被判定为全新安装，
+     * 引导完成即把 `ui_mode = "simple"` 落库——是显式写值，不改 `UiMode.fromSetting` 的缺省
+     * （执行闸门缺省高级不变）。主导航层的升级首启判定（UiModePromptViewModel）据此把
+     * 全新安装识别为「保持 simple」，不再弹模式选择；升级用户（引导标记早已存在）不受影响。
+     */
     fun markDone() {
         viewModelScope.launch {
             db.settingsDao().upsert(SettingsEntity(ONBOARDING_DONE_KEY, "1"))
+            db.settingsDao().upsert(SettingsEntity(SettingsRepository.KEY_UI_MODE, UiMode.SIMPLE.storedValue))
         }
     }
 }

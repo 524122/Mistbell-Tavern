@@ -26,7 +26,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mistbell.tavern.android.ui.chat.ChatScreen
 import com.mistbell.tavern.android.ui.chat.ChatViewModel
-import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
 import com.mistbell.tavern.android.ui.themepack.ThemeManagerScreen
 import kotlinx.coroutines.Dispatchers
@@ -39,11 +38,9 @@ object Routes {
     const val CHAT = "chat/{sessionId}/{characterId}"
     const val CHAT_SETUP = "chat_setup?characterId={characterId}"
     const val CHAT_SETTINGS = "chat_settings/{sessionId}"
-    const val SETTINGS = "settings"
     const val CHARACTER_EDITOR = "character_editor/{characterId}"
     const val CHARACTER_REGEX = "character_regex/{characterId}"
     const val GLOBAL_REGEX = "global_regex"
-    const val WORLD_BOOK_LIST = "world_book_list"
     const val WORLD_BOOK_DETAIL = "world_book_detail/{bookId}"
     const val MEMORY_LIST = "memory_list?sessionId={sessionId}&characterId={characterId}"
     const val VERSION_CHANGELOG = "version_changelog"
@@ -441,45 +438,6 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
             }
 
             composable(
-                route = Routes.SETTINGS,
-                enterTransition = { defaultEnterTransition() },
-                exitTransition = { defaultExitTransition() },
-                popEnterTransition = { defaultPopEnterTransition() },
-                popExitTransition = { defaultPopExitTransition() },
-            ) {
-                val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
-                ModernSettingsScreen(
-                    viewModel = settingsViewModel,
-                    onBack = { navController.popBackStack() },
-                    onNavigateToPromptManagement = {
-                        navController.navigate(Routes.promptManagement())
-                    },
-                    onNavigateToRulePacks = {
-                        navController.navigate(Routes.RULE_PACKS)
-                    },
-                    onNavigateToExtensionPacks = {
-                        navController.navigate(Routes.EXTENSION_PACKS)
-                    },
-                    onNavigateToQuickReplies = {
-                        navController.navigate(Routes.QUICK_REPLIES)
-                    },
-                    onNavigateToModelParams = {
-                        navController.navigate(Routes.MODEL_PARAMS)
-                    },
-                    onNavigateToVersionChangelog = {
-                        android.util.Log.d("AppNavigation", "导航到版本更新日志页面")
-                        navController.navigate(Routes.VERSION_CHANGELOG)
-                    },
-                    onNavigateToAbout = {
-                        navController.navigate(Routes.ABOUT)
-                    },
-                    onNavigateToThemeManager = {
-                        navController.navigate(Routes.themeManager())
-                    },
-                )
-            }
-
-            composable(
                 route = Routes.CHARACTER_EDITOR,
                 arguments = listOf(navArgument("characterId") { type = NavType.StringType }),
                 enterTransition = { defaultEnterTransition() },
@@ -521,18 +479,6 @@ fun AppNavigation(chatViewModel: ChatViewModel? = null) {
                 popExitTransition = { defaultPopExitTransition() },
             ) {
                 com.mistbell.tavern.android.ui.regex.GlobalRegexManagerScreen(
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            composable(
-                route = Routes.WORLD_BOOK_LIST,
-                enterTransition = { defaultEnterTransition() },
-                exitTransition = { defaultExitTransition() },
-                popEnterTransition = { defaultPopEnterTransition() },
-                popExitTransition = { defaultPopExitTransition() },
-            ) {
-                com.mistbell.tavern.android.ui.worldbook.WorldBookListScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

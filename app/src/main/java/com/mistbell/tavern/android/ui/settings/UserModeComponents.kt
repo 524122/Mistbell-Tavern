@@ -16,21 +16,49 @@ import androidx.compose.ui.unit.dp
 import com.mistbell.tavern.android.data.model.UiMode
 
 /**
- * 界面模式组件（P3「界面模式」设置项；模式本体是 data.model.UiMode 的单一真相）。
+ * 界面模式组件（P3「界面模式」设置项 + 第 2 项「按模式收拢界面」的界面可见性表；
+ * 模式本体是 data.model.UiMode 的单一真相）。
  *
- * [UserModeConfig] 是**界面可见性**配置（哪些设置区块展示），与执行闸门的
- * EnabledCapabilities 是两回事：可见性收拢是 P3 第 2 项，本文件当前只服务设置页的
- * 「界面模式」切换入口。
+ * [UserModeConfig] 是**界面可见性**配置：只决定入口/区块是否展示，与执行闸门的
+ * EnabledCapabilities（某能力是否运行，data.model）是两回事——简洁模式下世界书四源、
+ * 自定义提示词、会话记忆等照常执行，只是改它们的入口收进高级模式。
+ *
+ * 三个布尔的语义（第 2 项定稿；每个入口归哪一项见各 Composable 调用点）：
+ * - [showAdvancedSettings]：「⚙️ 高级设置」折叠组——自定义提示词 / 规则包 / 扩展包、
+ *   全局提示词模板（主提示词 / 用户名 / 人设 / 群聊规范）。
+ * - [showTechnicalDetails]：技术细节项——世界书入口（Tab 已收拢，这里是会话世界书绑定）、
+ *   会话附加指令、原生渲染引擎开关。
+ * - [showExperimentalFeatures]：「🔬 实验性功能」整组（含 HTML 界面开关）。
+ *
+ * 恒可见（不设字段，与模式无关——「照常执行」或与执行无关的入口）：API 连接、模型参数、
+ * 对话设置（默认上下文长度）、外观与主题、快捷回复、数据备份、会话记忆开关与记忆管理入口、
+ * 界面模式本身、关于。可见性表的单测见 UserModeConfigVisibilityTest。
  */
 data class UserModeConfig(
     val mode: UiMode,
     val showAdvancedSettings: Boolean,
     val showTechnicalDetails: Boolean,
     val showExperimentalFeatures: Boolean,
-)
+) {
+    /** 「📝 提示词管理」组（自定义提示词 / 规则包 / 扩展包 + 全局提示词模板卡） */
+    val showPromptManagement: Boolean
+        get() = showAdvancedSettings
+
+    /** 世界书编辑 / 绑定入口（主导航 Tab 与会话世界书选择） */
+    val showWorldBookEntries: Boolean
+        get() = showTechnicalDetails
+
+    /** 会话附加指令（author note）编辑区 */
+    val showSessionAuthorNote: Boolean
+        get() = showTechnicalDetails
+
+    /** 原生渲染引擎（布局主题）开关 */
+    val showLayoutRendererToggle: Boolean
+        get() = showTechnicalDetails
+}
 
 /**
- * 默认配置
+ * 模式 → 可见性配置（唯一换算点；简单模式三组全收，高级模式全开）
  */
 fun UiMode.toConfig(): UserModeConfig {
     return when (this) {
@@ -369,16 +397,35 @@ fun UserModeToggle(
     }
 }
 
+// ---- 模式相关入口的渲染谓词（纯函数，供包装器与 JVM 单测共用） ----
+//
+// 配置为 null（模式未知：AppContainer.uiMode 尚未从数据库读回）一律 false——界面与执行闸门
+// 的「未知不放行」同一口径（docs/UI_MODE.md §1 通用约定）：宁可少渲染一帧，不闪错误的入口。
+// 三个谓词独立成具名扩展，是为了「未知不渲染」可被 JVM 单测（UserModeConfigVisibilityTest）。
+
+/** 「⚙️ 高级设置」折叠组（提示词管理组 / 全局提示词模板） */
+internal val UserModeConfig?.advancedVisible: Boolean
+    get() = this?.showAdvancedSettings == true
+
+/** 技术细节项（世界书绑定 / 附加指令 / 原生渲染引擎开关） */
+internal val UserModeConfig?.technicalDetailVisible: Boolean
+    get() = this?.showTechnicalDetails == true
+
+/** 「🔬 实验性功能」整组（含 HTML 界面开关） */
+internal val UserModeConfig?.experimentalVisible: Boolean
+    get() = this?.showExperimentalFeatures == true
+
 /**
- * 高级功能包装器 - 根据用户模式显示/隐藏内容
+ * 高级功能包装器 - 根据用户模式显示/隐藏内容。
+ * 配置为 null（模式未知）时不渲染：口径见 [advancedVisible]。
  */
 @Composable
 fun AdvancedFeature(
-    userModeConfig: UserModeConfig,
+    userModeConfig: UserModeConfig?,
     content: @Composable () -> Unit,
 ) {
     AnimatedVisibility(
-        visible = userModeConfig.showAdvancedSettings,
+        visible = userModeConfig.advancedVisible,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
     ) {
@@ -387,15 +434,33 @@ fun AdvancedFeature(
 }
 
 /**
- * 实验性功能包装器
+ * 技术细节包装器（世界书入口 / 附加指令 / 原生渲染引擎开关）。
+ * 配置为 null（模式未知）时不渲染，口径同 [AdvancedFeature]。
  */
 @Composable
-fun ExperimentalFeature(
-    userModeConfig: UserModeConfig,
+fun TechnicalDetailFeature(
+    userModeConfig: UserModeConfig?,
     content: @Composable () -> Unit,
 ) {
     AnimatedVisibility(
-        visible = userModeConfig.showExperimentalFeatures,
+        visible = userModeConfig.technicalDetailVisible,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically(),
+    ) {
+        content()
+    }
+}
+
+/**
+ * 实验性功能包装器。配置为 null（模式未知）时不渲染，口径同 [AdvancedFeature]。
+ */
+@Composable
+fun ExperimentalFeature(
+    userModeConfig: UserModeConfig?,
+    content: @Composable () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = userModeConfig.experimentalVisible,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
     ) {

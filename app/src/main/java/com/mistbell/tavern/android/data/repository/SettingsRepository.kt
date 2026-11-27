@@ -186,10 +186,24 @@ class SettingsRepository {
             )
         }
 
+    /**
+     * 升级首启模式选择弹窗的一次性标记（P3 第 2 项）：确认与关掉都写——
+     * 关掉弹窗的语义是「保持预选项」（预选项先经 [setUiMode] 落库），此后不再弹。
+     */
+    suspend fun markUiModePrompted() =
+        withContext(Dispatchers.IO) {
+            db.settingsDao().upsert(
+                com.mistbell.tavern.android.data.local.entity.SettingsEntity(KEY_UI_MODE_PROMPTED, "1"),
+            )
+        }
+
     companion object {
         const val KEY_LAYOUT_RENDERER_ENABLED = "layout_renderer_enabled"
 
         /** 界面模式（"simple" / "advanced"；缺省与无法识别一律按高级执行） */
         const val KEY_UI_MODE = "ui_mode"
+
+        /** 升级首启模式选择弹窗已弹出标记（一次性；"1" = 已弹过，无论确认还是关掉） */
+        const val KEY_UI_MODE_PROMPTED = "ui_mode_prompted"
     }
 }

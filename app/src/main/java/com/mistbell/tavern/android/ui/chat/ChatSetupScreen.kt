@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -122,7 +121,8 @@ fun ChatSetupScreen(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            // 聊天模式选择：经典 / 群聊（「扮演」与 ④⑤ 骨架一律不露出——不做空入口纪律）。
+            // 聊天模式选择：经典 / 群聊。未实装的「扮演」不露入口（P3 第 2 项移除占位；
+            // 实装时引用 Models.kt 的 SESSION_MODE_* 常量接入叙事者链路，不做空入口）。
             // 默认经典；经典模式下单选角色，群聊模式允许多选（见 ChatSetupViewModel.toggleCharacter）
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -150,19 +150,6 @@ fun ChatSetupScreen(
                                 ),
                             selected = mode == SESSION_MODE_GROUP,
                             onClick = remember { { viewModel.setMode(SESSION_MODE_GROUP) } },
-                            modifier = Modifier.weight(1f),
-                        )
-                        // 模式②「扮演」占位（MODES.md 骨架预留的 UI 版）：先露入口、后实功能。
-                        // 点击不写入 mode、不可创建，仅提示即将推出——绝不让用户创建出无叙事者链路的会话
-                        ModeOption(
-                            spec =
-                                ModeSpec(
-                                    label = "扮演",
-                                    description = "由 AI 主持世界，你扮演角色",
-                                    badge = "即将推出",
-                                ),
-                            selected = false,
-                            onClick = remember { { viewModel.showToast("「扮演」模式即将推出，敬请期待") } },
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -494,15 +481,11 @@ private fun CharacterCard(
 
 // 聊天模式选项卡（分段按钮）：选中态用 secondaryContainer + 描边高亮，样式从简。
 // 用 Box + clickable 而非 Surface(onClick)——避免依赖版本相关的实验性 M3 API
-// 模式选项的展示规格；badge 非空 = 未实装占位（置灰 + 不可创建）
+// 模式选项的展示规格（只收实装模式；未实装模式不露入口，P3 第 2 项）
 private data class ModeSpec(
     val label: String,
     val description: String,
-    val badge: String? = null,
 )
-
-// 占位模式置灰透明度
-private const val DISABLED_MODE_ALPHA = 0.55f
 
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
@@ -514,16 +497,11 @@ private fun ModeOption(
 ) {
     val label = spec.label
     val description = spec.description
-    val badge = spec.badge
-    // 占位模式（带徽标=未实装）：置灰展示，点击由调用方决定（toast 提示，不写入 mode）
-    val enabled = badge == null
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier =
             modifier
                 .clip(shape)
-                // 未实装的占位模式置灰展示（即将推出）：可见但不可选，杜绝"创建出行为不确定的会话"
-                .alpha(if (enabled) 1f else DISABLED_MODE_ALPHA)
                 .background(
                     if (selected) {
                         MaterialTheme.colorScheme.secondaryContainer
@@ -545,7 +523,7 @@ private fun ModeOption(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            ModeOptionLabelRow(label = label, selected = selected, badge = badge)
+            ModeOptionLabelRow(label = label, selected = selected)
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
@@ -560,7 +538,6 @@ private fun ModeOption(
 private fun ModeOptionLabelRow(
     label: String,
     selected: Boolean,
-    badge: String?,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -577,12 +554,5 @@ private fun ModeOptionLabelRow(
                     MaterialTheme.colorScheme.onSurface
                 },
         )
-        badge?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
     }
 }

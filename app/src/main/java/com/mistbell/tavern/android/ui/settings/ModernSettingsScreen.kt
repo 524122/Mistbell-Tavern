@@ -85,7 +85,12 @@ fun ModernSettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val message by viewModel.message.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    var showAdvancedSettings by remember { mutableStateOf(false) }
+    var advancedExpanded by remember { mutableStateOf(false) }
+    // 界面可见性（P3 第 2 项「按模式收拢界面」）：简洁模式收起世界书/提示词/规则包/扩展包/
+    // 实验功能/渲染引擎等入口（见 UserModeConfig KDoc），恒可见项不受影响。
+    // 模式为 null（常驻流尚未读回，未知）期间不渲染任何随模式变化的入口，与闸门「未知不放行」同一口径
+    val uiMode by viewModel.uiMode.collectAsState()
+    val userModeConfig = uiMode?.toConfig()
 
     LaunchedEffect(message) {
         message?.let {
@@ -133,56 +138,70 @@ fun ModernSettingsScreen(
 
             DataManagementSection(viewModel, isLoading)
 
-            // ============ 高级设置（折叠）============
+            // ============ 恒可见（简洁模式也显示：模型参数属「照常执行」，快捷回复不在执行闸门链上）============
+            // 模型参数入口（原在「高级设置」折叠组内；收拢后两种模式都保留，移出折叠）
+            ModelParamsEntrySection(onNavigateToModelParams)
 
-            ModernSettingsGroup(title = "⚙️ 高级设置") {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "高级功能",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            text = "提示词、采样、网络与实验功能",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            // 快捷回复（原在「提示词管理」组内；执行边界之外，恒可见——单独成组）
+            QuickReplyEntrySection(onNavigateToQuickReplies)
 
-                    TextButton(onClick = { showAdvancedSettings = !showAdvancedSettings }) {
-                        Text(if (showAdvancedSettings) "收起" else "展开")
-                        Icon(
-                            imageVector = if (showAdvancedSettings) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                        )
-                    }
-                }
-            }
+            // ============ 仅高级模式（世界书/正则/提示词/规则包/扩展包/实验功能的入口收进高级）============
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = showAdvancedSettings,
-                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
-            ) {
+            AdvancedFeature(userModeConfig) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PromptSettingsSection(
-                        onNavigateToPromptManagement,
-                        onNavigateToRulePacks,
-                        onNavigateToExtensionPacks,
-                        onNavigateToQuickReplies,
-                    )
+                    ModernSettingsGroup(title = "⚙️ 高级设置") {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "高级功能",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = "提示词、规则包、扩展包与实验功能",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
 
-                    ModelParamsEntrySection(onNavigateToModelParams)
+                            TextButton(onClick = { advancedExpanded = !advancedExpanded }) {
+                                Text(if (advancedExpanded) "收起" else "展开")
+                                Icon(
+                                    imageVector =
+                                        if (advancedExpanded) {
+                                            Icons.Default.ExpandLess
+                                        } else {
+                                            Icons.Default.ExpandMore
+                                        },
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+                    }
 
-                    ExperimentalFeaturesSection()
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = advancedExpanded,
+                        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+                        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // 自定义提示词 / 规则包 / 扩展包 + 全局提示词模板卡（快捷回复已移出恒可见区）
+                            PromptSettingsSection(
+                                onNavigateToPromptManagement,
+                                onNavigateToRulePacks,
+                                onNavigateToExtensionPacks,
+                            )
+
+                            ExperimentalFeaturesSection()
+                        }
+                    }
                 }
             }
 
@@ -211,9 +230,10 @@ private fun ApiSettingsSection(
 }
 
 /**
- * 界面模式（P3 第 1 项，docs/UI_MODE.md）：设置列表最前面的一项。只提供切换入口，
- * 不隐藏任何其他入口（按模式收拢界面是第 2 项）；执行闸门读同一 settings 值，
- * 改写后响应式生效，无需重启。
+ * 界面模式（P3 第 1 项，docs/UI_MODE.md）：设置列表最前面的一项。只提供切换入口；
+ * 执行闸门读同一 settings 值，改写后响应式生效，无需重启。第 2 项起它同时驱动本页
+ * 其余入口的可见性（见 UserModeConfig）。模式未知（null）期间显示「读取中…」占位、
+ * 不开弹窗，不落「高级」的缺省观感。
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
@@ -226,10 +246,10 @@ private fun UiModeSettingsSection(viewModel: SettingsViewModel) {
             title = "界面模式",
             subtitle = "简洁模式下正则、规则包、脚本、扩展钩子、HTML 界面与 MVU 不运行；全局书、人设书和自定义提示词仍会进提示词",
             icon = Icons.Default.School,
-            onClick = { showModeDialog = true },
+            onClick = { if (uiMode != null) showModeDialog = true },
             trailing = {
                 Text(
-                    text = uiMode.displayName,
+                    text = uiMode?.displayName ?: "读取中…",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -237,9 +257,9 @@ private fun UiModeSettingsSection(viewModel: SettingsViewModel) {
         )
     }
 
-    if (showModeDialog) {
+    if (showModeDialog && uiMode != null) {
         UserModeSelectionDialog(
-            currentMode = uiMode,
+            currentMode = uiMode!!,
             onModeSelected = { mode ->
                 showModeDialog = false
                 if (mode != uiMode) viewModel.setUiMode(mode)
@@ -314,7 +334,24 @@ private fun ConversationSettingsSection(viewModel: SettingsViewModel) {
 }
 
 /**
- * 提示词设置区域：自定义提示词管理入口 + 全局提示词模板（主提示词/用户名/人设/群聊规范）
+ * 快捷回复入口（恒可见：快捷回复聚合不在执行闸门链上，docs/UI_MODE.md §1）
+ */
+@Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
+@Composable
+private fun QuickReplyEntrySection(onNavigateToQuickReplies: () -> Unit) {
+    ModernSettingsGroup(title = "⚡ 快捷回复") {
+        ModernSettingsItem(
+            title = "快捷回复",
+            subtitle = "输入区上方的可点击按钮：发送、填入、执行命令",
+            icon = Icons.Default.Edit,
+            onClick = onNavigateToQuickReplies,
+        )
+    }
+}
+
+/**
+ * 提示词设置区域（仅高级模式）：自定义提示词 / 规则包 / 扩展包入口
+ * + 全局提示词模板（主提示词/用户名/人设/群聊规范——仍会进提示词，只是不能在简洁模式里改）
  */
 @Suppress("FunctionNaming") // Compose 组件按官方约定 PascalCase 命名
 @Composable
@@ -322,7 +359,6 @@ private fun PromptSettingsSection(
     onNavigateToPromptManagement: () -> Unit,
     onNavigateToRulePacks: () -> Unit = {},
     onNavigateToExtensionPacks: () -> Unit = {},
-    onNavigateToQuickReplies: () -> Unit = {},
 ) {
     val promptViewModel: CustomPromptViewModel = viewModel()
     val enabledPromptsCount by promptViewModel.enabledPromptsCount.collectAsState()
@@ -345,12 +381,6 @@ private fun PromptSettingsSection(
             subtitle = "导入/管理扩展包：权限清单确认、启停、覆盖安装",
             icon = Icons.Default.Extension,
             onClick = onNavigateToExtensionPacks,
-        )
-        ModernSettingsItem(
-            title = "快捷回复",
-            subtitle = "输入区上方的可点击按钮：发送、填入、执行命令",
-            icon = Icons.Default.Edit,
-            onClick = onNavigateToQuickReplies,
         )
     }
 

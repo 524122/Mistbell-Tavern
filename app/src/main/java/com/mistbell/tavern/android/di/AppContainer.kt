@@ -244,7 +244,9 @@ class AppContainer(private val appContext: Context) {
      * 界面模式（进程级单一真相的读取口，P3 执行边界 docs/UI_MODE.md）：settings ui_mode
      * 的常驻收集。**初值 null = 模式未知**：数据库读回来之前各闸门一律先不放行（简洁
      * 模式用户启用了带脚本的规则包时，绝不能在模式读回前的几毫秒里把脚本加载执行）。
-     * 给执行闸门用；设置页展示用 [SettingsRepository.observeUiMode]（非空、缺省高级）。
+     * 界面（P3 第 2 项）也统一读它：模式未知时不渲染任何随模式变化的入口，与闸门
+     * 「未知不放行」同一口径——SettingsViewModel / 聊天设置 VM 直通暴露本流（StateFlow<UiMode?>），
+     * 界面层不做自己的 stateIn（初值 + WhileSubscribed 会反复闪错）。
      */
     val uiMode: kotlinx.coroutines.flow.StateFlow<UiMode?> by lazy {
         val residentScope =

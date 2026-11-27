@@ -37,25 +37,30 @@ import com.mistbell.tavern.android.ui.chatlist.ChatListScreen
 import com.mistbell.tavern.android.ui.regex.RegexHubScreen
 import com.mistbell.tavern.android.ui.settings.ModernSettingsScreen
 import com.mistbell.tavern.android.ui.settings.SettingsViewModel
+import com.mistbell.tavern.android.ui.settings.UserModeSelectionDialog
 import com.mistbell.tavern.android.ui.worldbook.WorldBookListScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** 底部导航栏/侧边导航栏共用的目的地定义 */
-private data class MainDestination(
-    val label: String,
-    val icon: ImageVector,
-)
+/** Tab 的界面皮（文案与图标）；模式 → 可见性的纯逻辑在 MainTab.kt（零 Android 依赖，可单测） */
+private fun MainTab.label(): String =
+    when (this) {
+        MainTab.CHAT -> "聊天"
+        MainTab.CHARACTERS -> "角色"
+        MainTab.WORLD_BOOK -> "世界书"
+        MainTab.REGEX -> "正则"
+        MainTab.SETTINGS -> "设置"
+    }
 
-private val mainDestinations =
-    listOf(
-        MainDestination("聊天", Icons.Default.Chat),
-        MainDestination("角色", Icons.Default.Person),
-        MainDestination("世界书", Icons.Default.Book),
-        MainDestination("正则", Icons.Default.Rule),
-        MainDestination("设置", Icons.Default.Settings),
-    )
+private fun MainTab.icon(): ImageVector =
+    when (this) {
+        MainTab.CHAT -> Icons.Default.Chat
+        MainTab.CHARACTERS -> Icons.Default.Person
+        MainTab.WORLD_BOOK -> Icons.Default.Book
+        MainTab.REGEX -> Icons.Default.Rule
+        MainTab.SETTINGS -> Icons.Default.Settings
+    }
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -82,11 +87,23 @@ fun MainScreen(
     onOpenGlobalRegex: () -> Unit = {},
     onOpenCharacterRegex: (String) -> Unit = {},
 ) {
-    var selectedTab by rememberSaveable { mutableStateOf(0) }
-
     val app = LocalContext.current.applicationContext as android.app.Application
     val factory = ViewModelProvider.AndroidViewModelFactory.getInstance(app)
     val scope = rememberCoroutineScope()
+
+    // 界面模式（P3 第 2 项「按模式收拢界面」）：主导航层自持一份 SettingsViewModel，
+    // 既驱动 Tab 收拢（visibleMainTabs），也供世界书 / 设置 Tab 复用（同一实例）。
+    // uiMode 是进程级常驻流 AppContainer.uiMode 的直通暴露（StateFlow<UiMode?>，Eagerly 不停）：
+    // null = 模式未知，此时 visibleTabs 为空（导航栏空一帧）且选中回落聊天——
+    // 不渲染随模式变化的 Tab，与执行闸门「未知不放行」同一口径（docs/UI_MODE.md §1）
+    val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+    val uiMode by settingsViewModel.uiMode.collectAsState()
+
+    // 选中 Tab 存稳定 id（MainTab.SAVE_KEY 是新保存键；旧版本存的是下标 0–4，
+    // 恢复出未知 id 一律回落聊天），显示层按模式回落（settledMainTab）
+    var selectedTabId by rememberSaveable(key = MainTab.SAVE_KEY) { mutableStateOf(MainTab.CHAT.id) }
+    val visibleTabs = visibleMainTabs(uiMode)
+    val selectedTab = settledMainTab(MainTab.fromId(selectedTabId), uiMode)
 
     // 升级清零一次性提示：挂在主导航层，覆盖横竖屏两种形态下的首页。
     // 点击外部/返回不允许绕过确认——"1" 标记保留，下次启动继续提示，保证用户一定看到升级说明
@@ -110,6 +127,20 @@ fun MainScreen(
         )
     }
 
+    // 升级首启模式选择（P3 第 2 项，一次性）：弹层内容复用 UserModeSelectionDialog（含规划
+    // 要求的两句说明）。卡片点击只改本地选中；「完成」/点外部/返回都视为确认当前选中——
+    // 未动过时即预选项，因此「关掉 = 保持预选项」（绝不悄悄变成简洁）
+    val promptViewModel: UiModePromptViewModel = viewModel(factory = factory)
+    val promptPreselect by promptViewModel.pendingPrompt.collectAsState()
+    if (promptPreselect != null) {
+        var selectedMode by remember(promptPreselect) { mutableStateOf(promptPreselect!!) }
+        UserModeSelectionDialog(
+            currentMode = selectedMode,
+            onModeSelected = { selectedMode = it },
+            onDismiss = { promptViewModel.settle(selectedMode) },
+        )
+    }
+
     // 自适应：宽度非 Compact（横屏手机/平板/折叠屏展开）时用左侧 NavigationRail，
     // 竖屏手机维持底部 NavigationBar
     val windowSizeClass = calculateWindowSizeClass(LocalContext.current as Activity)
@@ -118,13 +149,13 @@ fun MainScreen(
     // 直接切换当前页面，避免 AnimatedContent 在首帧同时建立动画测量层。
     val tabContent: @Composable (Modifier) -> Unit = { contentModifier ->
         when (selectedTab) {
-            0 ->
+            MainTab.CHAT ->
                 ChatListScreen(
                     onChatClick = onChatClick,
                     onNewChatClick = onNewChatClick,
                     modifier = contentModifier,
                 )
-            1 ->
+            MainTab.CHARACTERS ->
                 CharacterListScreen(
                     onCharacterClick = { character ->
                         scope.launch {
@@ -151,9 +182,8 @@ fun MainScreen(
                     showTopBarBackButton = false,
                     modifier = contentModifier,
                 )
-            2 -> {
-                // 世界书 Tab：顶栏齿轮唤起「世界书全局参数」底部弹层（与设置 Tab 同一 factory 获取 SettingsViewModel）
-                val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+            MainTab.WORLD_BOOK -> {
+                // 世界书 Tab：顶栏齿轮唤起「世界书全局参数」底部弹层（复用主导航层的 SettingsViewModel）
                 WorldBookListScreen(
                     showBackButton = false,
                     onBookClick = { bookId -> onNavigateToWorldBookDetail(bookId) },
@@ -161,14 +191,13 @@ fun MainScreen(
                     modifier = contentModifier,
                 )
             }
-            3 ->
+            MainTab.REGEX ->
                 RegexHubScreen(
                     onOpenGlobalRegex = onOpenGlobalRegex,
                     onOpenCharacterRegex = onOpenCharacterRegex,
                     modifier = contentModifier,
                 )
-            else -> {
-                val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
+            MainTab.SETTINGS ->
                 ModernSettingsScreen(
                     onBack = null,
                     onNavigateToThemeManager = onNavigateToThemeManager,
@@ -182,7 +211,6 @@ fun MainScreen(
                     viewModel = settingsViewModel,
                     modifier = contentModifier,
                 )
-            }
         }
     }
 
@@ -214,13 +242,13 @@ fun MainScreen(
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp, androidx.compose.ui.Alignment.Top),
                 ) {
-                    mainDestinations.forEachIndexed { index, destination ->
+                    visibleTabs.forEach { tab ->
                         NavigationRailItem(
                             modifier = Modifier.width(64.dp).height(68.dp),
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            icon = { Icon(destination.icon, contentDescription = null) },
-                            label = { Text(destination.label) },
+                            selected = tab == selectedTab,
+                            onClick = { selectedTabId = tab.id },
+                            icon = { Icon(tab.icon(), contentDescription = null) },
+                            label = { Text(tab.label()) },
                             colors =
                                 NavigationRailItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -249,12 +277,12 @@ fun MainScreen(
                     containerColor = MaterialTheme.colorScheme.background,
                     tonalElevation = 0.dp,
                 ) {
-                    mainDestinations.forEachIndexed { index, destination ->
+                    visibleTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            icon = { Icon(destination.icon, contentDescription = null) },
-                            label = { Text(destination.label) },
+                            selected = tab == selectedTab,
+                            onClick = { selectedTabId = tab.id },
+                            icon = { Icon(tab.icon(), contentDescription = null) },
+                            label = { Text(tab.label()) },
                             colors =
                                 NavigationBarItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
