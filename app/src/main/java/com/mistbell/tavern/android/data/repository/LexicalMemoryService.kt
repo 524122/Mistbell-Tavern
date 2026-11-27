@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter
 class LexicalMemoryService(
     private val context: Context,
     private val topK: Int = DEFAULT_TOP_K,
-    private val recentWindow: Int = DEFAULT_RECENT_WINDOW,
+    private val recentWindow: Int = RECENT_WINDOW,
 ) {
     private val db get() = TavernApplication.instance.container.database
 
@@ -104,17 +104,27 @@ class LexicalMemoryService(
 
     private fun like(term: String): String = "%$term%"
 
-    private companion object {
-        const val NO_MATCH = "~~nomatch~~"
+    // companion 不再 private：RECENT_WINDOW 是词法路与向量路的共享口径，PromptBuilder 要引用它；
+    // 其余成员显式 private，可见面不扩大
+    companion object {
+        private const val NO_MATCH = "~~nomatch~~"
 
         /** 单条召回注入的正文上限：**只是注入投影**，消息本体在 Room 里完整保留 */
-        const val MAX_RECALLED_CONTENT_CHARS = 150
+        private const val MAX_RECALLED_CONTENT_CHARS = 150
 
-        /** 召回条数与当前会话排除窗口的默认值（调用方未指定时） */
-        const val DEFAULT_TOP_K = 5
-        const val DEFAULT_RECENT_WINDOW = 40
+        /** 召回条数的默认值（调用方未指定时） */
+        private const val DEFAULT_TOP_K = 5
 
-        val TIME_FORMAT: DateTimeFormatter =
+        /**
+         * 当前会话近期窗口排除条数（最近 N 条消息不召回）。
+         *
+         * **词法路与向量路的单一来源**：词法路经构造参数默认值取它；向量路
+         * （PromptBuilder.hybridRecallBlock 的近期窗口剔除）直接引用它查同一套排除集。
+         * 两边不再各写一个数字，口径才不会漂移。
+         */
+        const val RECENT_WINDOW = 40
+
+        private val TIME_FORMAT: DateTimeFormatter =
             DateTimeFormatter.ofPattern("MM-dd HH:mm")
     }
 

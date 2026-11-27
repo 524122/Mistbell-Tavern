@@ -7,6 +7,7 @@ import com.mistbell.tavern.android.data.api.model.MemoryType
 import com.mistbell.tavern.android.data.api.model.StructuredMemory
 import com.mistbell.tavern.android.data.api.model.truncateMemoryContent
 import com.mistbell.tavern.android.data.local.AppDatabase
+import com.mistbell.tavern.android.data.local.dao.MessageDao
 import com.mistbell.tavern.android.data.local.dao.SettingsDao
 import com.mistbell.tavern.android.data.local.entity.CharacterEntity
 import com.mistbell.tavern.android.data.local.entity.MessageEntity
@@ -519,7 +520,9 @@ object PromptBuilder {
     private const val MIN_DUPLICATE_LENGTH = 8
     private const val MEMORY_CANDIDATE_LIMIT = 100
 
-    // 混合召回：向量路候选取 topK 的倍数（融合时词法路还会补一批，名次重排后截断回 topK）
+    // 混合召回：向量路候选取 topK 的倍数（融合时词法路还会补一批，名次重排后截断回 topK）。
+    // 近期窗口剔除会吃掉一部分过取的候选（见 prepareVectorHits），倍数必须保证剔除后
+    // 剩下的候选仍不塌——取值依据见 docs/MEMORY_EVAL.md 的设备侧对照实验
     private const val HYBRID_VECTOR_CANDIDATE_MULTIPLIER = 3
 
     /**
@@ -1160,13 +1163,7 @@ object PromptBuilder {
                 if (longTermMemoryEnabled) {
                     buildMemoryContext(
                         db = db,
-                        query =
-                            MemoryRecallQuery(
-                                request.ownerId,
-                                request.characterId,
-                                request.sessionId,
-                                request.userMessage,
-                            ),
+                        query = recallQueryOf(request),
                         contextTokenLimit = contextTokenLimit,
                     )
                 } else {
@@ -1801,7 +1798,19 @@ object PromptBuilder {
         val characterId: String,
         val sessionId: String,
         val userMessage: String,
+        // 近期窗口剔除用：刚落库的当前用户消息 id（通常已在最近 N 条里，显式带上兜底时序边缘）
+        val currentMessageId: String? = null,
     )
+
+    /** 装配入参 → 召回查询的投影（currentMessageId 供向量路的近期窗口剔除用） */
+    private fun recallQueryOf(request: PromptRequest): MemoryRecallQuery =
+        MemoryRecallQuery(
+            ownerId = request.ownerId,
+            characterId = request.characterId,
+            sessionId = request.sessionId,
+            userMessage = request.userMessage,
+            currentMessageId = request.currentMessageId,
+        )
 
     private suspend fun buildMemoryContext(
         db: AppDatabase,
@@ -1942,13 +1951,26 @@ object PromptBuilder {
             )
         }
 
+    /** S2 召回设置（全局可配，读取时解析，存储为纯数值）：召回条数 + 向量相似度阈值 */
+    private data class HybridRecallSettings(val topK: Int, val similarityThreshold: Float)
+
+    private suspend fun hybridRecallSettings(db: AppDatabase): HybridRecallSettings =
+        HybridRecallSettings(
+            topK = ChatSettingsResolver.memoryRecallTopK(db.settingsDao().getValue("memory_recall_top_k")),
+            similarityThreshold =
+                ChatSettingsResolver.memorySimilarityThreshold(
+                    db.settingsDao().getValue("memory_similarity_threshold"),
+                ),
+        )
+
     /**
      * 混合召回块：向量路与词法路**同时**检索，由 [RecallRanker] 融合排序。
      *
      * 向量路擅长语义相近但措辞不同的命中，词法路擅长专有名词/稀有词的精确命中；
      * 旧实现两路二选一，任一路的盲区都没有兜底。词法服务与无 embedding 回退路径
-     * 共用同一个 [LexicalMemoryService]（自带当前会话近期窗口排除，不重复召回上下文里
-     * 已有的内容），窗口口径与向量路完全一致（见 [RecallWindow]）。
+     * 共用同一个 [LexicalMemoryService]，两路的会话作用域（[RecallWindow]）与
+     * **近期窗口排除**（当前会话最近 N 条不召回，见 [prepareVectorHits]）完全一致——
+     * 近期内容本来就在上下文里，不该占召回名额。
      */
     private suspend fun hybridRecallBlock(
         db: AppDatabase,
@@ -1957,19 +1979,23 @@ object PromptBuilder {
         injectedContents: List<String>,
         vectorMemoryService: VectorMemoryService,
     ): RecallOutcome {
-        // S2 召回设置：top-k 与相似度阈值全局可配（读取时解析，存储为纯数值）
-        val topK = ChatSettingsResolver.memoryRecallTopK(db.settingsDao().getValue("memory_recall_top_k"))
-        val threshold =
-            ChatSettingsResolver.memorySimilarityThreshold(
-                db.settingsDao().getValue("memory_similarity_threshold"),
-            )
+        val settings = hybridRecallSettings(db)
         val outcome =
             vectorMemoryService.searchRelevantMemories(
                 query = query.userMessage,
                 // 作用域整体交给 RecallWindow：本方法不再自己解释档位（角色是否收窄、
                 // 会话是否收窄都在窗口里），三通道口径才不会各自漂移
                 window = window,
-                topK = topK * HYBRID_VECTOR_CANDIDATE_MULTIPLIER,
+                topK = settings.topK * HYBRID_VECTOR_CANDIDATE_MULTIPLIER,
+            )
+        // 向量路候选先过近期窗口剔除（与词法路同一套排除），再进融合——
+        // 过取倍数兜住被剔除的份额，候选数不塌（见 HYBRID_VECTOR_CANDIDATE_MULTIPLIER）
+        val vectorPrep =
+            prepareVectorHits(
+                messageDao = db.messageDao(),
+                window = window,
+                currentMessageId = query.currentMessageId,
+                searchResults = outcome.results,
             )
         val lexicalStartedAt = System.nanoTime()
         val lexicalItems =
@@ -1981,10 +2007,10 @@ object PromptBuilder {
         // 其中有词法 corroborate 的会被保留（混合召回的核心收益），其余才丢弃
         val ranked =
             RecallRanker.fuse(
-                vectorHits = outcome.results.map { it.toRecallCandidate() },
+                vectorHits = vectorPrep.kept,
                 lexicalHits = lexicalItems.map { it.toRecallCandidate() },
-                topK = topK,
-                similarityThreshold = threshold,
+                topK = settings.topK,
+                similarityThreshold = settings.similarityThreshold,
                 nowEpochMs = System.currentTimeMillis(),
             )
 
@@ -1997,13 +2023,27 @@ object PromptBuilder {
                 vectorCacheHit = outcome.cacheHit,
                 vectorLatencyMs = outcome.latencyMs,
                 lexicalLatencyMs = lexicalLatencyMs,
+                recentWindowDropped = vectorPrep.droppedCount,
             )
 
-        // sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——此时词法路同样
-        // 拒绝召回（同一窗口口径），ranked 必为空，无需额外提示
-        //
-        // 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
-        // 内容已被本提示词覆盖的召回行直接丢弃，同一事实不再烧两次 token
+        return recallRenderOutcome(ranked, diagnostics, injectedContents, outcome.sessionScoped)
+    }
+
+    /**
+     * 渲染召回块并给出最终诊断：
+     *
+     * sessionScoped=false 只可能是"窗口缺会话 id、向量层已拒绝召回"——此时词法路同样
+     * 拒绝召回（同一窗口口径），ranked 必为空，无需额外提示；
+     *
+     * 去重：重要度≥7 的记忆会同步一份 summary 进向量库，与结构化召回内容重复——
+     * 内容已被本提示词覆盖的召回行直接丢弃，同一事实不再烧两次 token。
+     */
+    private fun recallRenderOutcome(
+        ranked: List<RecallRanker.RankedRecall>,
+        diagnostics: RecallDiagnostics,
+        injectedContents: List<String>,
+        sessionScoped: Boolean,
+    ): RecallOutcome {
         val render =
             if (ranked.isEmpty()) {
                 null
@@ -2013,7 +2053,7 @@ object PromptBuilder {
         if (render == null) {
             val reason =
                 when {
-                    ranked.isEmpty() && !outcome.sessionScoped -> RecallDiagnostics.DROP_NO_SESSION
+                    ranked.isEmpty() && !sessionScoped -> RecallDiagnostics.DROP_NO_SESSION
                     ranked.isEmpty() -> RecallDiagnostics.DROP_NO_HITS
                     else -> RecallDiagnostics.DROP_ALL_DUPLICATED
                 }
@@ -2024,6 +2064,47 @@ object PromptBuilder {
             diagnostics = diagnostics.copy(injectedRecallLines = render.injectedCount),
             messageIds = render.messageIds,
         )
+    }
+
+    /** 向量路候选过近期窗口剔除后的产物：进入融合的候选 + 因近期窗口被剔除的条数（诊断观测） */
+    internal data class VectorRecallWindowFilter(
+        val kept: List<RecallRanker.RecallCandidate>,
+        val droppedCount: Int,
+    )
+
+    /**
+     * 向量路候选的近期窗口剔除——与词法路（[LexicalMemoryService.searchRelevantHistory]）
+     * **同一套排除**：
+     *
+     * 词法路自带「当前会话最近 N 条不召回」，向量路此前没有任何排除——探针/当前消息自己
+     * 与最近几楼闲聊占掉召回块名额（设备诊断量过：召回块前五里平均 2.3 个在最近 50 楼内，
+     * 第一条往往是当前用户消息自己，而这些内容本来就在上下文里）。
+     *
+     * - N 与词法路**同源**：同一个 [LexicalMemoryService.RECENT_WINDOW]、同一条
+     *   [MessageDao.latestIdsBySession] 查询，两边不再各写一个数字；
+     * - 当前消息 id 显式并入排除集（它通常已在最近 N 条里，落库时序的边缘情形下兜底）；
+     * - 摘要副本的 messageId 形如 `structured_memory_<id>`（见 VectorSyncOutboxScheduler），
+     *   不在消息 id 排除集里，不会被误删。
+     *
+     * 召回发生在历史窗口选定**之前**（为了「角色卡 + 历史」的前缀缓存），向量路拿不到
+     * 最终的历史窗口；「最近 N 条」是词法路既有口径，两路共用同一近似窗口。
+     */
+    internal suspend fun prepareVectorHits(
+        messageDao: MessageDao,
+        window: RecallWindow,
+        currentMessageId: String?,
+        searchResults: List<VectorStore.SearchResult>,
+    ): VectorRecallWindowFilter {
+        val excludedIds =
+            messageDao
+                .latestIdsBySession(
+                    sessionId = window.currentSessionId,
+                    ownerId = window.ownerId,
+                    limit = LexicalMemoryService.RECENT_WINDOW,
+                ).toSet() +
+                setOfNotNull(currentMessageId?.takeIf { it.isNotBlank() })
+        val kept = searchResults.map { it.toRecallCandidate() }.filter { it.messageId !in excludedIds }
+        return VectorRecallWindowFilter(kept = kept, droppedCount = searchResults.size - kept.size)
     }
 
     /** 向量检索结果 → 融合候选：list 顺序即名次（store 按分数降序返回） */

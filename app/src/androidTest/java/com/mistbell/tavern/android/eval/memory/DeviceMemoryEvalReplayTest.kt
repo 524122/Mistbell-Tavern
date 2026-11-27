@@ -317,6 +317,7 @@ class DeviceMemoryEvalReplayTest {
         val historyIntactDropped: Int,
         val probesWithVectorCandidates: Int,
         val vectorCandidatesSum: Int,
+        val recentWindowDroppedSum: Int,
         val syncStats: DeviceSyncStats,
         val messageWrites: Int,
         val summaryWrites: Int,
@@ -357,6 +358,7 @@ class DeviceMemoryEvalReplayTest {
         var historyIntactDropped = 0
         var probesWithVectorCandidates = 0
         var vectorCandidatesSum = 0
+        var recentWindowDroppedSum = 0
         val validProbes = replay.probes.filter { it.valid }
         validProbes.forEach { probe ->
             val diag = probe.recallDiagnostics
@@ -370,6 +372,7 @@ class DeviceMemoryEvalReplayTest {
             }
             if (diag != null) {
                 vectorCandidatesSum += diag.vectorCandidates
+                recentWindowDroppedSum += diag.recentWindowDropped
                 if (diag.vectorCandidates > 0) probesWithVectorCandidates++
             }
         }
@@ -392,6 +395,7 @@ class DeviceMemoryEvalReplayTest {
             historyIntactDropped = historyIntactDropped,
             probesWithVectorCandidates = probesWithVectorCandidates,
             vectorCandidatesSum = vectorCandidatesSum,
+            recentWindowDroppedSum = recentWindowDroppedSum,
             syncStats = stack.syncStats,
             messageWrites = stack.countingStore.messageWriteCount,
             summaryWrites = stack.countingStore.summaryWriteCount,
@@ -534,8 +538,8 @@ class DeviceMemoryEvalReplayTest {
         lines += ""
         lines += "### 真栈证据（逐会话）"
         lines += ""
-        lines += "| 会话 | vec0 probe | embedding | available | 消息向量 | 摘要向量(期望) | 有效探针 | 向量候选>0 楼 | 历史未裁剪弃召回 | 向量候选合计 | 违规 |"
-        lines += "|---|---|---|---|---|---|---|---|---|---|---|"
+        lines += "| 会话 | vec0 probe | embedding | available | 消息向量 | 摘要向量(期望) | 有效探针 | 向量候选>0 楼 | 历史未裁剪弃召回 | 向量候选合计 | 近窗剔除合计 | 违规 |"
+        lines += "|---|---|---|---|---|---|---|---|---|---|---|---|"
         evidences.forEach { evidence ->
             val cells =
                 listOf(
@@ -549,6 +553,7 @@ class DeviceMemoryEvalReplayTest {
                     "${evidence.probesWithVectorCandidates}",
                     "${evidence.historyIntactDropped}",
                     "${evidence.vectorCandidatesSum}",
+                    "${evidence.recentWindowDroppedSum}",
                     "${evidence.violations.size}",
                 )
             lines += "| " + cells.joinToString(" | ") + " |"

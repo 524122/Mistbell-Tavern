@@ -42,6 +42,12 @@ data class RecallDiagnostics(
     val injectedStructuredMemoryIds: List<String> = emptyList(),
     /** 本轮实际注入的召回行对应的**消息** id（召回块未注入时为空，同上口径） */
     val injectedRecallMessageIds: List<String> = emptyList(),
+    /**
+     * 向量路候选里因「近期窗口排除」被剔除的条数（纯观测，纯增量字段，恒 ≥ 0；
+     * 词法回退模式恒为 0）。近期内容本来就在上下文里，不该占召回名额——
+     * 排除口径与词法路同源，见 PromptBuilder 的向量路候选准备。
+     */
+    val recentWindowDropped: Int = 0,
 ) {
     /** 预览/复制文本用的一行摘要 */
     fun summaryLine(): String {
@@ -58,6 +64,7 @@ data class RecallDiagnostics(
                     "召回 $injectedRecallLines 条（向量 $vectorCandidates ∩ 词法 $lexicalCandidates → 融合 $fusedCount）"
                 }
         }
+        if (recentWindowDropped > 0) parts += "近窗剔除 $recentWindowDropped 条"
         val timing = timingPart()
         return when {
             parts.isEmpty() && timing.isEmpty() -> "本轮无长期记忆注入"
